@@ -20,18 +20,20 @@ class NotMNISTNoisyLoader:
         self.labels = None
         print(f'[{self.__class__.__name__}] Data fpath:', self._datapath)
         self.N = None
-        self._all_data = self.load()
         self._return_labels = return_labels
         self._l1 = label1
         self._l2 = label2
+        self._all_data = self.load(labels=[self._l1, self._l2])
         self._l1_index = self.labels.index(label1)
         self._l2_index = self.labels.index(label2)
         self._l1_N = len(self._all_data[label1])
         self._l2_N = len(self._all_data[label2])
 
-    def _load_one_directory(self, directory, img_files_dict):
+    def _load_one_directory(self, directory, img_files_dict, labels=None):
         data_dict = {}
-        for label in img_files_dict:
+        if labels is None:
+            labels = img_files_dict.keys()
+        for label in labels:
             data = np.zeros((len(img_files_dict[label]), 27, 27), dtype=np.float32)
             for i, img_fname in tqdm(enumerate(img_files_dict[label])):
                 img_fpath = os.path.join(directory, label, img_fname)
@@ -43,11 +45,11 @@ class NotMNISTNoisyLoader:
             data_dict[label] = data
         return data_dict
 
-    def load(self):
+    def load(self, labels=None):
         with open(self._img_files_pkl, 'rb') as f:
             img_files_dict = pickle.load(f)
 
-        data = self._load_one_directory(self._datapath, img_files_dict)
+        data = self._load_one_directory(self._datapath, img_files_dict, labels=labels)
 
         sz = sum([data[label].shape[0] for label in data.keys()])
         self.labels = sorted(list(data.keys()))
