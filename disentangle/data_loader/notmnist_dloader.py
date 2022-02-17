@@ -12,15 +12,22 @@ from git.objects import base
 class NotMNISTNoisyLoader:
     """
     """
-    def __init__(self, data_fpath: str, img_files_pkl) -> None:
+    def __init__(self, data_fpath: str, img_files_pkl, label1, label2, return_labels: bool = False) -> None:
 
         # train/val split is defined in this file. It contains the list of images one needs to load from fpath_dict
         self._img_files_pkl = img_files_pkl
         self._datapath = data_fpath
-
+        self.labels = None
         print(f'[{self.__class__.__name__}] Data fpath:', self._datapath)
         self.N = None
         self._all_data = self.load()
+        self._return_labels = return_labels
+        self._l1 = label1
+        self._l2 = label2
+        self._l1_index = self.labels.index(label1)
+        self._l2_index = self.labels.index(label2)
+        self._l1_N = len(self._all_data[label1])
+        self._l2_N = len(self._all_data[label2])
 
     def _load_one_directory(self, directory, img_files_dict):
         data_dict = {}
@@ -50,40 +57,22 @@ class NotMNISTNoisyLoader:
         self.N = sz
         return data
 
-    def _bs_label_index(self, base_index, start_label_index, end_label_index):
-        """
-        Binary search to find which label this index belongs to.
-        """
-        if end_label_index == start_label_index:
-            return start_label_index
-
-        mid = (start_label_index + end_label_index) // 2
-        if self.cumlative_label_sizes[mid] <= base_index:
-            return self._bs_label_index(base_index, mid + 1, end_label_index)
-        else:
-            return self._bs_label_index(base_index, start_label_index, mid)
-
-    def get_img_index(self, base_index, label_index):
-        if label_index == 0:
-            return base_index
-        else:
-            return base_index - self.cumlative_label_sizes[label_index - 1]
-
-    def get_label_index(self, index):
-        return self._bs_label_index(index, 0, len(self.labels) - 1)
-
     def __getitem__(self, index):
-        label_index = self.get_label_index(index)
-        img_index = self.get_img_index(index, label_index)
-        img = self._all_data[self.labels[label_index]][img_index]
-        return img, self.labels[label_index]
+        l1_idx = index % self._l1_N
+        l2_idx = index // self._l1_N
+        img1 = self._all_data[self._l1][l1_idx]
+        img2 = self._all_data[self._l2][l2_idx]
+
+        inp = (img1 + img2) / 2
+        target = np.concatenate([img1, img2], axis=0)
+        return inp, target
 
     def get_mean_std(self):
         data = []
-        for label in self.labels:
-            data.append(self._all_data[label])
+        data.append(self._all_data[self._l1])
+        data.append(self._all_data[self._l2])
         all_data = np.concatenate(data)
         return np.mean(all_data), np.std(all_data)
 
     def __len__(self):
-        return self.N
+        return self._l1_N * self._l2_N

@@ -20,7 +20,11 @@ class LadderVAE(pl.LightningModule):
         super().__init__()
         self.lr = config.training.lr
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
+        # grayscale input
         self.color_ch = 1
+        # disentangling two grayscale images.
+        self.target_ch = 2
+
         self.z_dims = config.model.z_dims
         self.blocks_per_layer = config.model.blocks_per_layer
         self.n_layers = len(self.z_dims)
@@ -159,9 +163,9 @@ class LadderVAE(pl.LightningModule):
 
         # Define likelihood
         if self.likelihood_form == 'gaussian':
-            self.likelihood = GaussianLikelihood(self.n_filters, self.color_ch)
+            self.likelihood = GaussianLikelihood(self.n_filters, self.target_ch)
         elif self.likelihood_form == 'noise_model':
-            self.likelihood = NoiseModelLikelihood(self.n_filters, self.color_ch, data_mean, data_std, self.noiseModel)
+            self.likelihood = NoiseModelLikelihood(self.n_filters, self.target_ch, data_mean, data_std, self.noiseModel)
         else:
             msg = "Unrecognized likelihood '{}'".format(self.likelihood_form)
             raise RuntimeError(msg)
@@ -254,11 +258,13 @@ class LadderVAE(pl.LightningModule):
             self.grad_norm_bottom_up, self.grad_norm_top_down = self.compute_gradient_norm()
 
     def training_step(self, batch, batch_idx):
-        x, noise_levels = batch
+        x, target = batch
         x_normalized = (x - self.data_mean[0]) / self.data_std[0]
+        target_normalized = (target - self.data_mean[0]) / self.data_std[0]
+
         out, td_data = self.forward(x_normalized)
 
-        recons_loss = self.get_reconstruction_loss(out, x_normalized)
+        recons_loss = self.get_reconstruction_loss(out, target_normalized)
         kl_loss = self.get_kl_divergence_loss(td_data)
 
         net_loss = recons_loss + self.get_kl_weight() * kl_loss

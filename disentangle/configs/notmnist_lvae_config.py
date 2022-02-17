@@ -11,7 +11,8 @@ def get_config():
     data.data_type = DataType.NotMNIST
     data.img_dsample = 1
     data.image_size = 28 // data.img_dsample
-
+    data.label1 = 'A'
+    data.label2 = 'B'
     data.sampler_type = SamplerType.DefaultSampler
     data.mean_val = 44.8525
     data.std_val = 73.395
