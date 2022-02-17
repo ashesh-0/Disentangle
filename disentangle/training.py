@@ -23,14 +23,12 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_img_files_pkl = os.path.join(datadir, 'train_fnames.pkl')
         val_img_files_pkl = os.path.join(datadir, 'val_fnames.pkl')
 
-        noisy_fpath_dict = {k: os.path.join(datadir, 'noisy', f'Noise{k}') for k in config.data.noise_levels}
+        datapath = os.path.join(datadir, 'noisy', f'Noise{-1}')
 
         assert config.model.model_type in [ModelType.LadderVae]
         assert raw_data_dict is None
-        return_img_labels = True
-        train_data = None if skip_train_dataset else NotMNISTNoisyLoader(
-            noisy_fpath_dict, train_img_files_pkl, return_character_labels=return_img_labels)
-        val_data = NotMNISTNoisyLoader(noisy_fpath_dict, val_img_files_pkl, return_character_labels=return_img_labels)
+        train_data = None if skip_train_dataset else NotMNISTNoisyLoader(datapath, train_img_files_pkl)
+        val_data = NotMNISTNoisyLoader(datapath, val_img_files_pkl)
 
     return train_data, val_data
 

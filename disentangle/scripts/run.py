@@ -129,11 +129,6 @@ def main(argv):
     if FLAGS.mode == "train":
         set_logger()
         raw_data_dict = None
-        if config.model.model_type == ModelType.LatentNoiseChannelPredictor:
-            raw_data_dict = get_train_val_latent_data(FLAGS.pretrained_ckptdir, FLAGS.datadir)
-            # update the config to reflect the noise and data channels.
-            config.data.content_z_shape = raw_data_dict['train']['z_content'].shape[1:]
-            config.data.noise_z_shape = raw_data_dict['train']['z_noise'].shape[1:]
 
         # Now, config cannot be changed.
         config = ml_collections.FrozenConfigDict(config)
@@ -144,40 +139,10 @@ def main(argv):
         # assert np.abs(config.data.mean_val - data_mean) < 1e-3, f'{config.data.mean_val - data_mean}'
         # assert np.abs(config.data.std_val - data_std) < 1e-3, f'{config.data.std_val - data_std}'
 
-        if config.data.sampler_type == SamplerType.ContrastiveSampler:
-            train_sampler = ContrastiveSampler(train_data, train_data.N, train_data.noise_levels,
-                                               config.training.batch_size)
-            val_sampler = ContrastiveSampler(val_data, val_data.N, val_data.noise_levels, config.training.batch_size)
-            batch_size = None
-            shuffle = False
-        elif config.data.sampler_type == SamplerType.SameLabelSampler:
-            train_sampler = SameLabelSampler(train_data, train_data.N, train_data.noise_levels,
-                                             config.training.batch_size)
-            val_sampler = SameLabelSampler(val_data, val_data.N, val_data.noise_levels, config.training.batch_size)
-            batch_size = None
-            shuffle = False
-        elif config.data.sampler_type == SamplerType.TwinNoiseSampler:
-            train_sampler = TwinNoiseSampler(train_data, train_data.N, train_data.noise_levels,
-                                             config.training.batch_size)
-            val_sampler = TwinNoiseSampler(val_data, val_data.N, val_data.noise_levels, config.training.batch_size)
-            batch_size = None
-            shuffle = False
-        elif config.data.sampler_type == SamplerType.DefaultSampler:
-            train_sampler = None
-            val_sampler = None
+        if config.data.sampler_type == SamplerType.DefaultSampler:
             batch_size = config.training.batch_size
             shuffle = True
 
-        if config.data.sampler_type != SamplerType.DefaultSampler:
-            train_dloader = DataLoader(train_data,
-                                       pin_memory=False,
-                                       batch_sampler=train_sampler,
-                                       num_workers=config.training.num_workers)
-            val_dloader = DataLoader(val_data,
-                                     pin_memory=False,
-                                     batch_sampler=val_sampler,
-                                     num_workers=config.training.num_workers)
-        else:
             train_dloader = DataLoader(train_data,
                                        pin_memory=False,
                                        num_workers=config.training.num_workers,

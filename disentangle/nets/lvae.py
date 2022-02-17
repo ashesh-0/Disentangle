@@ -49,8 +49,6 @@ class LadderVAE(pl.LightningModule):
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
-        self.cl_weight = config.loss.cl_weight if 'cl_weight' in config.loss else None
-        self.cl_channels = config.loss.cl_channels
         self._global_step = 0
 
         assert (self.data_std is not None)
@@ -263,7 +261,7 @@ class LadderVAE(pl.LightningModule):
         recons_loss = self.get_reconstruction_loss(out, x_normalized)
         kl_loss = self.get_kl_divergence_loss(td_data)
 
-        net_loss = recons_loss + self.get_kl_weight() * kl_loss + self.cl_weight * cl_loss
+        net_loss = recons_loss + self.get_kl_weight() * kl_loss
         self.log('reconstruction_loss', recons_loss, on_epoch=True)
         self.log('kl_loss', kl_loss, on_epoch=True)
         self.log('training_loss', net_loss, on_epoch=True)

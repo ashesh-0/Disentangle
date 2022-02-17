@@ -16,6 +16,7 @@ def get_default_config():
     config.training.batch_size = 32
     # Taken from https://github.com/openai/vdvae/blob/main/hps.py#L38
     config.training.grad_clip_norm_value = 0.5
+    config.training.gradient_clip_algorithm = 'value'
 
     config.git = ml_collections.ConfigDict()
     config.git.changedFiles = []
