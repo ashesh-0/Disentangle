@@ -23,7 +23,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_img_files_pkl = os.path.join(datadir, 'train_fnames.pkl')
         val_img_files_pkl = os.path.join(datadir, 'val_fnames.pkl')
 
-        datapath = os.path.join(datadir, 'noisy', f'Noise{-1}')
+        datapath = os.path.join(datadir, 'noisy', 'Noise50')
 
         assert config.model.model_type in [ModelType.LadderVae]
         assert raw_data_dict is None
