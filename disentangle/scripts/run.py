@@ -22,6 +22,7 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
 from disentangle.sampler.random_sampler import RandomSampler
+from disentangle.sampler.singleimg_sampler import SingleImgSampler
 from disentangle.training import create_dataset, train_network
 from ml_collections.config_flags import config_flags
 
@@ -155,9 +156,14 @@ def main(argv):
                                      shuffle=False,
                                      batch_size=batch_size)
 
-        elif config.data.sampler_type == SamplerType.RandomSampler:
-            train_sampler = RandomSampler(train_data, config.training.batch_size)
-            val_sampler = RandomSampler(val_data, config.training.batch_size)
+        else:
+
+            if config.data.sampler_type == SamplerType.RandomSampler:
+                train_sampler = RandomSampler(train_data, config.training.batch_size)
+                val_sampler = RandomSampler(val_data, config.training.batch_size)
+            elif config.data.sampler_type == SamplerType.SingleImgSampler:
+                train_sampler = SingleImgSampler(train_data, config.training.batch_size)
+                val_sampler = SingleImgSampler(val_data, config.training.batch_size)
 
             train_dloader = DataLoader(train_data,
                                        pin_memory=False,
