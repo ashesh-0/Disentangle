@@ -29,6 +29,12 @@ class NotMNISTNoisyLoader:
         self._l1_N = len(self._all_data[label1])
         self._l2_N = len(self._all_data[label2])
 
+    def get_label_idx_range(self):
+        return {
+            '1': [0, self._l1_N],
+            '2': [self._l1_N, self._l1_N + self._l2_N],
+        }
+
     def _load_one_directory(self, directory, img_files_dict, labels=None):
         data_dict = {}
         if labels is None:
@@ -59,11 +65,12 @@ class NotMNISTNoisyLoader:
         self.N = sz
         return data
 
-    def __getitem__(self, index):
-        l1_idx = index % self._l1_N
-        l2_idx = index // self._l1_N
-        img1 = self._all_data[self._l1][l1_idx]
-        img2 = self._all_data[self._l2][l2_idx]
+    def __getitem__(self, index_tuple):
+        index1, index2 = index_tuple
+        assert index1 < self._l1_N, 'Index1 must be from first label'
+        assert index2 >= self._l1_N and index2 < self.__len__(), 'Index2 must be from second label'
+        img1 = self._all_data[self._l1][index1]
+        img2 = self._all_data[self._l2][index2 % self._l1_N]
 
         inp = (img1 + img2) / 2
         target = np.concatenate([img1, img2], axis=0)
@@ -77,4 +84,4 @@ class NotMNISTNoisyLoader:
         return np.mean(all_data), np.std(all_data)
 
     def __len__(self):
-        return self._l1_N * self._l2_N
+        return self._l1_N + self._l2_N

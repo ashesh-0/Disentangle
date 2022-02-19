@@ -31,6 +31,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         label2 = config.data.label2
         train_data = None if skip_train_dataset else NotMNISTNoisyLoader(datapath, train_img_files_pkl, label1, label2)
         val_data = NotMNISTNoisyLoader(datapath, val_img_files_pkl, label1, label2)
+
     return train_data, val_data
 
 
@@ -76,16 +77,6 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             # overfit_batches=10,
             weights_summary=weights_summary)
     trainer.fit(model, train_loader, val_loader)
-
-    if config.model.model_type == ModelType.VanillaVae:
-        collapse_flag = model.collapse
-
-        if trainer.state.value == 'INTERRUPTED':
-            # CTRL + C
-            collapse_flag = None
-        return collapse_flag
-    else:
-        return None
 
 
 def train_network(train_loader, val_loader, data_mean, data_std, config, model_name, log_info=False):
