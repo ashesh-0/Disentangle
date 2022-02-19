@@ -18,7 +18,7 @@ class SingleImgSampler(BaseSampler):
         num_batches = len(self._dset) // N
         # In half of the batches label1 image will be same. In the other half label2 image will be the same
         # SI ~ single image
-        SI_cnt = num_batches // 2
+        SI_cnt = int(np.ceil(num_batches / 2))
 
         l1_SI_idx = np.random.choice(np.arange(l1_range[0], l1_range[1]), size=SI_cnt, replace=SI_cnt > self.l1_N)
         l2_SI_idx = np.random.choice(np.arange(l2_range[0], l2_range[1]), size=SI_cnt, replace=SI_cnt > self.l2_N)
