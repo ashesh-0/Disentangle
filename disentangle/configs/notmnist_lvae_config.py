@@ -13,7 +13,7 @@ def get_config():
     data.image_size = 28 // data.img_dsample
     data.label1 = 'A'
     data.label2 = 'B'
-    data.sampler_type = SamplerType.SingleImgSampler
+    data.sampler_type = SamplerType.RandomSampler
     data.mean_val = 44.8525
     data.std_val = 73.395
     data.return_img_labels = False
