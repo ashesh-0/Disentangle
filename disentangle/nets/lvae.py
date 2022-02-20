@@ -295,15 +295,18 @@ class LadderVAE(pl.LightningModule):
         self.log('val_loss', recons_loss, on_epoch=True)
         if batch_idx == 0:
             all_samples = []
-            for i in range(10):
+            for i in range(100):
                 sample, _ = self(x_normalized[0:1, ...])
                 sample = self.likelihood.parameter_net(sample)
                 all_samples.append(sample[None])
+
             all_samples = torch.cat(all_samples, dim=0)
             all_samples = all_samples * self.data_std[0] + self.data_mean[0]
-            all_samples = all_samples.cpu().numpy()
-            img_mmse = torch.from_numpy(np.mean(np.array(all_samples)[:, 0, ...], axis=0, keepdims=True))
-            self.log_images_for_tensorboard(torch.from_numpy(np.array(all_samples)[:, 0, ...]), x[0:1, ...], img_mmse)
+            all_samples = all_samples.cpu()
+            img_mmse = torch.mean(all_samples, dim=0)[0]
+            self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
+            self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
+
         return net_loss
 
     def forward(self, x):
@@ -505,12 +508,12 @@ class LadderVAE(pl.LightningModule):
         top_layer_shape = (n_imgs, c, h, w)
         return top_layer_shape
 
-    def log_images_for_tensorboard(self, pred, x, img_mmse, label='predictions'):
+    def log_images_for_tensorboard(self, pred, target, img_mmse, label):
         clamped_pred = torch.clamp((pred - pred.min()) / (pred.max() - pred.min()), 0, 1)
         clamped_mmse = torch.clamp((img_mmse - img_mmse.min()) / (img_mmse.max() - img_mmse.min()), 0, 1)
-        if x is not None:
-            clamped_input = torch.clamp((x - x.min()) / (x.max() - x.min()), 0, 1)
-            self.trainer.logger.experiment.add_image('inputs/img', clamped_input[0], self.current_epoch)
+        if target is not None:
+            clamped_input = torch.clamp((target - target.min()) / (target.max() - target.min()), 0, 1)
+            self.trainer.logger.experiment.add_image(f'target_for{label}', clamped_input[None], self.current_epoch)
         for i in range(7):
-            self.trainer.logger.experiment.add_image(f'{label}/sample_{i}', clamped_pred[i], self.current_epoch)
-        self.trainer.logger.experiment.add_image(f'{label}/mmse (100 samples)', clamped_mmse[0], self.current_epoch)
+            self.trainer.logger.experiment.add_image(f'{label}/sample_{i}', clamped_pred[i:i + 1], self.current_epoch)
+        self.trainer.logger.experiment.add_image(f'{label}/mmse (100 samples)', clamped_mmse[None], self.current_epoch)
