@@ -30,7 +30,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.LadderVae
     model.z_dims = [64, 64]
-    model.blocks_per_layer = 3
+    model.blocks_per_layer = 1
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True
