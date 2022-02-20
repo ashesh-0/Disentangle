@@ -282,10 +282,13 @@ class LadderVAE(pl.LightningModule):
         return output
 
     def validation_step(self, batch, batch_idx):
-        x, noise_levels = batch
+        x, target = batch
         x_normalized = (x - self.data_mean[0]) / self.data_std[0]
+        target_normalized = (target - self.data_mean[0]) / self.data_std[0]
+
         out, td_data = self.forward(x_normalized)
-        recons_loss = self.get_reconstruction_loss(out, x_normalized)
+
+        recons_loss = self.get_reconstruction_loss(out, target_normalized)
         kl_loss = self.get_kl_divergence_loss(td_data)
 
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
