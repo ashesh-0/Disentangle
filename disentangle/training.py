@@ -14,6 +14,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
+from disentangle.data_loader.places_dloader import PlacesLoader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
 
@@ -31,6 +32,17 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         label2 = config.data.label2
         train_data = None if skip_train_dataset else NotMNISTNoisyLoader(datapath, train_img_files_pkl, label1, label2)
         val_data = NotMNISTNoisyLoader(datapath, val_img_files_pkl, label1, label2)
+    elif config.data.data_type == DataType.Places365:
+        train_datapath = os.path.join(datadir, 'Noise-1', 'train')
+        val_datapath = os.path.join(datadir, 'Noise-1', 'val')
+        assert config.model.model_type in [ModelType.LadderVae]
+        assert raw_data_dict is None
+        label1 = config.data.label1
+        label2 = config.data.label2
+        img_dsample = config.data.img_dsample
+        train_data = None if skip_train_dataset else PlacesLoader(
+            train_datapath, label1, label2, img_dsample=img_dsample)
+        val_data = PlacesLoader(val_datapath, label1, label2, img_dsample=img_dsample)
 
     return train_data, val_data
 

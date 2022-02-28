@@ -8,5 +8,7 @@ I see that the second approach had better results. however, in both cases, best 
 which is very strange? 
 
 There was a bug in the validation error due to which I'm re-running the configs.
-/home/ubuntu/ashesh/training/disentangle/2202/D2-M3-S1-L0/1
-/home/ubuntu/ashesh/training/disentangle/2202/D2-M3-S2-L0/5
+/home/ubuntu/ashesh/training/disentangle/2202/D2-M3-S1-L0/1: Random sampler
+/home/ubuntu/ashesh/training/disentangle/2202/D2-M3-S2-L0/5: Single img sampler
+
+Random sampler is better in terms of performance
