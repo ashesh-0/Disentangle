@@ -9,8 +9,8 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.data_type = DataType.Places365
-    data.img_dsample = 1
-    data.image_size = 64 // data.img_dsample
+    data.img_dsample = 2
+    data.image_size = 128 // data.img_dsample
     data.label1 = 'desert_road'
     data.label2 = 'desert-sand'
     data.sampler_type = SamplerType.RandomSampler
