@@ -35,7 +35,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
     elif config.data.data_type == DataType.Places365:
         train_datapath = os.path.join(datadir, 'Noise-1', 'train')
         val_datapath = os.path.join(datadir, 'Noise-1', 'val')
-        assert config.model.model_type in [ModelType.LadderVae]
+        assert config.model.model_type in [ModelType.LadderVae, ModelType.LadderVaeTwinDecoder]
         assert raw_data_dict is None
         label1 = config.data.label1
         label2 = config.data.label2

@@ -16,14 +16,15 @@ from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomU
 
 
 class LadderVAE(pl.LightningModule):
-    def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[]):
+    def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__()
         self.lr = config.training.lr
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
         # grayscale input
         self.color_ch = 1
+
         # disentangling two grayscale images.
-        self.target_ch = 2
+        self.target_ch = target_ch
 
         self.z_dims = config.model.z_dims
         self.blocks_per_layer = config.model.blocks_per_layer
@@ -287,7 +288,6 @@ class LadderVAE(pl.LightningModule):
         target_normalized = (target - self.data_mean[0]) / self.data_std[0]
 
         out, td_data = self.forward(x_normalized)
-
         recons_loss = self.get_reconstruction_loss(out, target_normalized)
         kl_loss = self.get_kl_divergence_loss(td_data)
 
@@ -342,7 +342,9 @@ class LadderVAE(pl.LightningModule):
                      n_img_prior=None,
                      mode_layers=None,
                      constant_layers=None,
-                     forced_latent=None):
+                     forced_latent=None,
+                     top_down_layers=None,
+                     final_top_down_layer=None):
         """
         Args:
             bu_values: Output of the bottom-up pass. It will have values from multiple layers of the ladder.
@@ -353,6 +355,10 @@ class LadderVAE(pl.LightningModule):
                             So, only prior is used here.
             forced_latent: Here, latent vector is not sampled but taken from here.
         """
+        if top_down_layers is None:
+            top_down_layers = self.top_down_layers
+        if final_top_down_layer is None:
+            final_top_down_layer = self.final_top_down
 
         # Default: no layer is sampled from the distribution's mode
         if mode_layers is None:
@@ -416,16 +422,16 @@ class LadderVAE(pl.LightningModule):
             skip_input = out  # TODO or out_pre_residual? or both?
 
             # Full top-down layer, including sampling and deterministic part
-            out, out_pre_residual, aux = self.top_down_layers[i](out,
-                                                                 skip_connection_input=skip_input,
-                                                                 inference_mode=inference_mode,
-                                                                 bu_value=bu_value,
-                                                                 n_img_prior=n_img_prior,
-                                                                 use_mode=use_mode,
-                                                                 force_constant_output=constant_out,
-                                                                 forced_latent=forced_latent[i],
-                                                                 mode_pred=self.mode_pred,
-                                                                 use_uncond_mode=use_uncond_mode)
+            out, out_pre_residual, aux = top_down_layers[i](out,
+                                                            skip_connection_input=skip_input,
+                                                            inference_mode=inference_mode,
+                                                            bu_value=bu_value,
+                                                            n_img_prior=n_img_prior,
+                                                            use_mode=use_mode,
+                                                            force_constant_output=constant_out,
+                                                            forced_latent=forced_latent[i],
+                                                            mode_pred=self.mode_pred,
+                                                            use_uncond_mode=use_uncond_mode)
             z[i] = aux['z']  # sampled variable at this layer (batch, ch, h, w)
             kl[i] = aux['kl_samplewise']  # (batch, )
             kl_spatial[i] = aux['kl_spatial']  # (batch, h, w)
@@ -439,7 +445,7 @@ class LadderVAE(pl.LightningModule):
             else:
                 logprob_p = None
         # Final top-down layer
-        out = self.final_top_down(out)
+        out = final_top_down_layer(out)
 
         data = {
             'z': z,  # list of tensors with shape (batch, ch[i], h[i], w[i])

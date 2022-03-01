@@ -10,11 +10,14 @@ from disentangle.config_utils import get_updated_config
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.nets.lvae import LadderVAE
+from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
 
 
 def create_model(config, data_mean, data_std):
     if config.model.model_type == ModelType.LadderVae:
         model = LadderVAE(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVaeTwinDecoder:
+        model = LadderVAETwinDecoder(data_mean, data_std, config)
     return model
 
 
