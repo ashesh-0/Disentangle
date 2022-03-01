@@ -132,12 +132,12 @@ class LadderVAETwinDecoder(LadderVAE):
         }
         return out_l1, out_l2, td_data
 
-    def get_reconstruction_loss(self, reconstruction_l1, reconstruction_l2, input):
+    def get_reconstruction_loss(self, reconstruction_l1, reconstruction_l2, target):
         # Log likelihood
-        ll, _ = self.likelihood_l1(reconstruction_l1, input[:, 0:1])
+        ll, _ = self.likelihood_l1(reconstruction_l1, target[:, 0:1])
         recons_loss_l1 = -ll.mean()
 
-        ll, _ = self.likelihood_l2(reconstruction_l2, input[:, 0:1])
+        ll, _ = self.likelihood_l2(reconstruction_l2, target[:, 1:])
         recons_loss_l2 = -ll.mean()
 
         return (recons_loss_l1 + recons_loss_l2) / 2
