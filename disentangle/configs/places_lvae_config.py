@@ -11,8 +11,8 @@ def get_config():
     data.data_type = DataType.Places365
     data.img_dsample = 2
     data.image_size = 128 // data.img_dsample
-    data.label1 = 'desert_road'
-    data.label2 = 'desert-sand'
+    data.label1 = 'desert-sand'
+    data.label2 = 'army_base'
     data.sampler_type = SamplerType.RandomSampler
     data.return_img_labels = False
 
