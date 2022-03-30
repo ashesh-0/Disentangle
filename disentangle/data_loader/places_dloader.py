@@ -14,7 +14,7 @@ class PlacesLoader:
 
         self._datapath = data_fpath
         self.labels = None
-        print(f'[{self.__class__.__name__}] Data fpath:', self._datapath)
+        print(f'[{self.__class__.__name__}] Data fpath:', self._datapath, f'{label1} {label2}')
         self.N = None
         self._return_labels = return_labels
         self._img_dsample = img_dsample

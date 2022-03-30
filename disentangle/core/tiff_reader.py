@@ -11,3 +11,8 @@ def load_tiff(path):
         imgs.append(image[None])
 
     return np.concatenate(imgs, axis=0)
+
+
+def load_tiffs(paths):
+    data = [load_tiff(path) for path in paths]
+    return np.concatenate(data, axis=0)
