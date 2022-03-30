@@ -59,7 +59,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
         os.remove(filename)
 
     model = create_model(config, data_mean, data_std)
-    print(model)
+    # print(model)
     callbacks = [
         EarlyStopping(monitor='val_loss', min_delta=1e-6, patience=100, verbose=True, mode='min'),
         checkpoint_callback,
