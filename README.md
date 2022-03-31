@@ -21,5 +21,12 @@ Random sampler is better in terms of performance
 
 Increasing the power of reconstruction
 3 layered.
-turing: (128, 64) /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
-ruth:   (32,16)   /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
+
+Varying (model.z_dims, Num of filters)
+    ruth:   (32,16)   /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
+    turing: (128, 64) /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
+    turing: (256,128) /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/2
+
+Varying kl_weight
+    0.5
+    0.2
