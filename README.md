@@ -12,3 +12,14 @@ There was a bug in the validation error due to which I'm re-running the configs.
 /home/ubuntu/ashesh/training/disentangle/2202/D2-M3-S2-L0/5: Single img sampler
 
 Random sampler is better in terms of performance
+
+[airfield                  ice_skating_rink-outdoor ] 50.1 +- 0.4
+[grotto                    heliport                 ] 50.3 +- 0.3
+[movie_theater-indoor      mezzanine                ] 50.9 +- 0.6
+[wet_bar                   movie_theater-indoor     ] 50.8 +- 0.5
+[ice_skating_rink-outdoor  waiting_room             ] 51.5 +- 0.4
+
+Increasing the power of reconstruction
+3 layered.
+turing: (128, 64) /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
+ruth:   (32,16)   /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
