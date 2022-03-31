@@ -31,3 +31,4 @@ Varying kl_weight
     tur:    1       /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
     ruth:   0.5     /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/2
     tur:    0.2     /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/3
+    ruth:   0.1     /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/3
