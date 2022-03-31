@@ -28,5 +28,5 @@ Varying (model.z_dims, Num of filters)
     turing: (256,128) /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/2
 
 Varying kl_weight
-    0.5
-    0.2
+    ruth:   0.5     /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/2
+    tur:    0.2
