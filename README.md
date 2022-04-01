@@ -23,15 +23,18 @@ Increasing the power of reconstruction
 3 layered.
 
 Varying (model.z_dims, Num of filters)
-    ruth:   (32,16)   /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
-    turing: (128, 64) /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
-    turing: (256,128) /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/2
+    ruth:   (32,16)   Rec:0.0153 KL:0.0030      /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
+    turing: (128, 64) Rec:0.0104 KL:0.0027      /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
+    turing: (256,128) Rec:0.0091 KL:0.0021      /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/2
 
 Varying kl_weight
-Server      kl_weight   Rec loss    Ckpt
-    tur:    1                   /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
-    ruth:   0.5                 /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/2
-    tur:    0.2                 /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/3
-    ruth:   0.1         0.007   /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/3
-    tur:    0.05        0.007   /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/4
-    tur:    0.01        0.007   /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/5
+Server      kl_weight   Metrics                                 Ckpt
+    tur:    1           Rec:0.0104 KL:0.0027    /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/1
+    ruth:   0.5         Rec:0.0099 KL:0.0044    /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/2
+    tur:    0.2         Rec:0.0089 KL:0.0076    /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/3
+    ruth:   0.1         Rec:0.0087 KL:0.0115    /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/3
+    tur:    0.05        Rec:0.0088 KL:0.0174    /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/4
+    tur:    0.01        Rec:0.0082 KL:0.0332    /home/ubuntu/ashesh/training/disentangle/2203/D1-M3-S1-L0/5
+
+I observe that the validation is not robust enough as the number of samples are less.
+One can easily fix this by increasing the random pairs.  
