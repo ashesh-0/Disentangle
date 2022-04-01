@@ -2,7 +2,6 @@ import numpy as np
 import torch
 
 from disentangle.core.data_utils import crop_img_tensor
-from disentangle.nets.lvae_twinnoise import LadderVAETwinnoise
 
 
 def get_img_from_forward_output(out, model):
