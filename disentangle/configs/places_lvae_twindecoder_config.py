@@ -11,14 +11,14 @@ def get_config():
     data.data_type = DataType.Places365
     data.img_dsample = 2
     data.image_size = 128 // data.img_dsample
-    data.label1 = 'desert-sand'
-    data.label2 = 'desert_road'
+    data.label1 = 'ice_skating_rink-outdoor'
+    data.label2 = 'waiting_room'
     data.sampler_type = SamplerType.RandomSampler
     data.return_img_labels = False
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.kl_weight = 0.2
+    loss.kl_weight = 0.1
     loss.kl_annealing = False
     loss.kl_annealtime = 10
     loss.kl_start = -1
@@ -27,14 +27,14 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVaeTwinDecoder
-    model.z_dims = [64, 64, 64]
+    model.z_dims = [128, 128, 128]
     model.blocks_per_layer = 3
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True
     model.stochastic_skip = True
-    model.n_filters = 128
-    model.dropout = 0.0
+    model.n_filters = 64
+    model.dropout = 0.2
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'

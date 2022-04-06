@@ -128,6 +128,7 @@ class NormalStochasticBlock2d(nn.Module):
             if mode_pred is False:  # if not predicting
                 # Compute KL (analytical or MC estimate)
                 kl_analytical = kl_divergence(q, p)
+
                 if analytical_kl:
                     kl_elementwise = kl_analytical
                 else:

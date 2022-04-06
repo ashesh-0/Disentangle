@@ -33,9 +33,9 @@ Varying (model.z_dims,  Val Metrics                 Train Metrics
 Varying kl_weight
 Server      kl_weight   Val Metrics             Train Metrics                                 Ckpt
     tur:    1           Rec:0.0104 KL:0.0027    Rec:0.007735 KL:0.002670    disentangle/2203/D1-M3-S1-L0/1
-    ruth:   0.5         Rec:0.0099 KL:0.0044    disentangle/2203/D1-M3-S1-L0/2
+    ruth:   0.5         Rec:0.0099 KL:0.0044    Rec:0.007674 KL:0.004390    disentangle/2203/D1-M3-S1-L0/2
     tur:    0.2         Rec:0.0089 KL:0.0076    Rec:0.005330 KL:0.007597    disentangle/2203/D1-M3-S1-L0/3
-    ruth:   0.1         Rec:0.0087 KL:0.0115    disentangle/2203/D1-M3-S1-L0/3
+    ruth:   0.1         Rec:0.0087 KL:0.0115    Rec:0.004557 KL:0.011589    disentangle/2203/D1-M3-S1-L0/3
     tur:    0.05        Rec:0.0088 KL:0.0174    Rec:0.006042 KL:0.017418    disentangle/2203/D1-M3-S1-L0/4
     tur:    0.01        Rec:0.0082 KL:0.0332    Rec:0.003737 KL:0.033354    disentangle/2203/D1-M3-S1-L0/5
 
@@ -43,8 +43,19 @@ I observe that the validation is not robust enough as the number of samples are 
 One can easily fix this by increasing the random pairs.  I checked it in validation. it is not much significant.
 
 blocks per layer =5
-tur:    /home/ubuntu/ashesh/training/disentangle/2204/D1-M3-S1-L0/0
+tur:                    Rec:0.007762 KL:0.016818    Rec:0.005100 KL:0.017000 disentangle/2204/D1-M3-S1-L0/0
+
 
 
 z_dims from 3 to 2
-ruth:   /home/ubuntu/ashesh/training/disentangle/2204/D1-M3-S1-L0/0
+    ruth:   2        Rec:0.0087 KL:0.0209    Rec:0.0064 KL:0.0206    disentangle/2204/D1-M3-S1-L0/0
+    tur:    3        Rec:0.0088 KL:0.0174    Rec:0.0060 KL:0.0174    disentangle/2203/D1-M3-S1-L0/4
+
+
+I see strong overfitting when kl_weight=0.01. Adding dropout to see if it improves performance.
+Server      dropout      Val Metrics             Train Metrics                                 Ckpt
+    ruth:   0.2         Rec:0.0081 KL:0.0400    Rec:0.0054 KL:0.0399    disentangle/2204/D1-M3-S1-L0/1
+    tur:    0.0         Rec:0.0082 KL:0.0332    Rec:0.0037 KL:0.0334    disentangle/2203/D1-M3-S1-L0/5
+
+
+I checked that KL divergence calculation is fine in the code.

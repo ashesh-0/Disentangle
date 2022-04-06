@@ -233,6 +233,7 @@ class LadderVAE(pl.LightningModule):
         nlayers = kl.shape[1]
         for i in range(nlayers):
             kl[:, i] = kl[:, i] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
+
         kl_loss = free_bits_kl(kl, self.free_bits).mean()
         return kl_loss
 
