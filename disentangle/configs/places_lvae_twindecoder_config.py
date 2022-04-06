@@ -18,7 +18,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.kl_weight = 0.1
+    loss.kl_weight = 0.01
     loss.kl_annealing = False
     loss.kl_annealtime = 10
     loss.kl_start = -1
