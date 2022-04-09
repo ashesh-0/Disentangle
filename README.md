@@ -59,3 +59,7 @@ Server      dropout      Val Metrics             Train Metrics                  
 
 
 I checked that KL divergence calculation is fine in the code.
+Twindecoder:    
+Server      Config          Val Metrics
+tur     kl_weight: 0.1      Rec:0.008110 KL:0.007804    Rec:0.006085 KL:0.007914    disentangle/2204/D1-M4-S1-L0/0
+ruth    kl_weight: 0.01     Rec:0.007787 KL:0.026159    Rec:0.005435 KL:0.026358    disentangle/2204/D1-M4-S1-L0/0
