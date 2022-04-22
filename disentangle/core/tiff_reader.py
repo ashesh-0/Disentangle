@@ -1,16 +1,12 @@
-# pylibtiff
 import numpy as np
-
-from libtiff import TIFF
+from skimage.io import imread
 
 
 def load_tiff(path):
-    tif = TIFF.open(path)
-    imgs = []
-    for image in tif.iter_images():
-        imgs.append(image[None])
-
-    return np.concatenate(imgs, axis=0)
+    """
+    Returns a 4d numpy array: num_imgs*h*w*num_channels
+    """
+    return imread(path, plugin='tifffile')
 
 
 def load_tiffs(paths):

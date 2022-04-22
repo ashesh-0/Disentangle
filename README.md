@@ -1,6 +1,9 @@
 # Objective
 Here, our goal is to disentangle the images by taking as input the sum of the two images. For example, given image A & B, input to our model is A+B and the output is A,B
 
+Example run:
+python disentangle/scripts/run.py --workdir=/home/ubuntu/ashesh/training/disentangle/ -mode=train --datadir=/mnt/ashesh/places365_noisy/ --config=/home/ubuntu/ashesh/code/Disentangle/disentangle/configs/places_lvae_twindecoder_config.py
+
 ## Exp 1
 Tried two samplers: Random sampler and SingleImg sampler. In first, a batch comprises of two random samples. (/home/ubuntu/ashesh/training/disentangle/2202/D2-M3-S2-L0/0)
 In second a batch comprises of 1 image and other random samples. (/home/ubuntu/ashesh/training/disentangle/2202/D2-M3-S2-L0/1)
@@ -63,3 +66,9 @@ Twindecoder:
 Server      Config          Val Metrics
 tur     kl_weight: 0.1      Rec:0.008110 KL:0.007804    Rec:0.006085 KL:0.007914    disentangle/2204/D1-M4-S1-L0/0
 ruth    kl_weight: 0.01     Rec:0.007787 KL:0.026159    Rec:0.005435 KL:0.026358    disentangle/2204/D1-M4-S1-L0/0
+In order to overfit most info, I've reduced the kl_weight to 0.0001
+ruth /home/ubuntu/ashesh/training/disentangle/2204/D1-M4-S1-L0/1
+
+
+# Working with microscopy data
+Now, I'm working with OptiMEM100x014 dataset. It has total of 61 images.

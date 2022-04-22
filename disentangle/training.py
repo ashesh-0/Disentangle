@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
+from disentangle.data_loader.multi_channel_tiff_dloader import MultiChTiffDloader
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
 from disentangle.data_loader.places_dloader import PlacesLoader
 from disentangle.nets.model_utils import create_model
@@ -43,7 +44,24 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_data = None if skip_train_dataset else PlacesLoader(
             train_datapath, label1, label2, img_dsample=img_dsample)
         val_data = PlacesLoader(val_datapath, label1, label2, img_dsample=img_dsample)
-
+    elif config.data.data_type == DataType.OptiMEM100_014:
+        datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
+        train_data = None if skip_train_dataset else MultiChTiffDloader(config.data.image_size,
+                                                                        datapath,
+                                                                        config.data.channel_1,
+                                                                        config.data.channel_2,
+                                                                        thresh=config.data.threshold,
+                                                                        is_train=True,
+                                                                        val_fraction=config.training.val_fraction,
+                                                                        repeat_factor=1)
+        val_data = MultiChTiffDloader(config.data.image_size,
+                                      datapath,
+                                      config.data.channel_1,
+                                      config.data.channel_2,
+                                      thresh=config.data.threshold,
+                                      is_train=False,
+                                      val_fraction=config.training.val_fraction,
+                                      repeat_factor=config.training.val_repeat_factor)
     return train_data, val_data
 
 
