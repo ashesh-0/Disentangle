@@ -79,7 +79,11 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
     model = create_model(config, data_mean, data_std)
     # print(model)
     callbacks = [
-        EarlyStopping(monitor='val_loss', min_delta=1e-6, patience=100, verbose=True, mode='min'),
+        EarlyStopping(monitor='val_loss',
+                      min_delta=1e-6,
+                      patience=config.training.earlystop_patience,
+                      verbose=True,
+                      mode='min'),
         checkpoint_callback,
     ]
     if 'val_every_n_steps' in config.training and config.training.val_every_n_steps is not None:
