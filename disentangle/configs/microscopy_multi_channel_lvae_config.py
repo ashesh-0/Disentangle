@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
+    data.image_size = 128
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
     data.channel_2 = 2
@@ -46,7 +46,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 30
     training.max_epochs = 1000
-    training.batch_size = 2
+    training.batch_size = 4
     training.num_workers = 0
     training.val_repeat_factor = 5
     training.val_fraction = 0.2
