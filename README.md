@@ -72,3 +72,5 @@ ruth /home/ubuntu/ashesh/training/disentangle/2204/D1-M4-S1-L0/1
 
 # Working with microscopy data
 Now, I'm working with OptiMEM100x014 dataset. It has total of 61 images.
+I see that val loss shoots to infinity? 
+Trying a 0.995  quantile as the higher threshold. I see that both image types have same threshold value.

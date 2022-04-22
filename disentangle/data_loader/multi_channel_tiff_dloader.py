@@ -39,6 +39,10 @@ class MultiChTiffDloader(TiffLoader):
         self._fpath = fpath
 
         self._data = train_val_data(self._fpath, is_train, channel_1, channel_2, val_fraction=val_fraction)
+
+        max_val = np.quantile(self._data, 0.995)
+        self._data[self._data > max_val] = max_val
+
         self.N = len(self._data)
 
         msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
@@ -48,8 +52,7 @@ class MultiChTiffDloader(TiffLoader):
 
     def _load_img(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
         imgs = self._data[index]
-        imgs = imgs / imgs.max(axis=0).max(axis=0)[None, None]
         return imgs[None, :, :, 0], imgs[None, :, :, 1]
 
     def get_mean_std(self):
-        return 0.0, 1.0
+        return self._data.mean(), self._data.std()
