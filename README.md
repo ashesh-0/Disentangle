@@ -74,3 +74,11 @@ ruth /home/ubuntu/ashesh/training/disentangle/2204/D1-M4-S1-L0/1
 Now, I'm working with OptiMEM100x014 dataset. It has total of 61 images.
 I see that val loss shoots to infinity? 
 Trying a 0.995  quantile as the higher threshold. I see that both image types have same threshold value.
+
+There is asymmetry in the losses of the two classes. one class has more data. other class has less data.
+So, the loss is mostly dominated by the one class.
+
+/home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/2 is the first working model. 
+Notes:
+    It estimates one class better than other. Better performing class typically has more pixels with a pattern.
+    To fix this
