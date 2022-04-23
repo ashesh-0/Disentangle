@@ -81,4 +81,6 @@ So, the loss is mostly dominated by the one class.
 /home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/2 is the first working model. 
 Notes:
     It estimates one class better than other. Better performing class typically has more pixels with a pattern.
-    To fix this
+    To fix this, I've code up a hack. Here, one pair of images is valid only if both of them have content.
+    In the previous model, if one of them had a content, then we considered it a valid pair. That approach is more real world aligned. However, for the heck of trying it out, I'm trying it to see whether I get better performance
+    on such images.
