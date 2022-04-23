@@ -57,9 +57,9 @@ class MultiChTiffDloader(TiffLoader):
     def get_mean_std(self):
         return self._data.mean(), self._data.std()
 
-    def _is_content_present(self, img1: np.ndarray, img2: np.ndarray):
-        met1 = self.metric(img1)
-        met2 = self.metric(img2)
-        if self.in_allowed_range(met1) and self.in_allowed_range(met2):
-            return True
-        return False
+    # def _is_content_present(self, img1: np.ndarray, img2: np.ndarray):
+    #     met1 = self.metric(img1)
+    #     met2 = self.metric(img2)
+    #     if self.in_allowed_range(met1) and self.in_allowed_range(met2):
+    #         return True
+    #     return False
