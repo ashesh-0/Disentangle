@@ -46,14 +46,15 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         val_data = PlacesLoader(val_datapath, label1, label2, img_dsample=img_dsample)
     elif config.data.data_type == DataType.OptiMEM100_014:
         datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
-        train_data = None if skip_train_dataset else MultiChTiffDloader(config.data.image_size,
-                                                                        datapath,
-                                                                        config.data.channel_1,
-                                                                        config.data.channel_2,
-                                                                        thresh=config.data.threshold,
-                                                                        is_train=True,
-                                                                        val_fraction=config.training.val_fraction,
-                                                                        repeat_factor=1)
+        train_data = None if skip_train_dataset else MultiChTiffDloader(
+            config.data.image_size,
+            datapath,
+            config.data.channel_1,
+            config.data.channel_2,
+            thresh=config.data.threshold,
+            is_train=True,
+            val_fraction=config.training.val_fraction,
+            repeat_factor=config.training.train_repeat_factor)
         val_data = MultiChTiffDloader(config.data.image_size,
                                       datapath,
                                       config.data.channel_1,
