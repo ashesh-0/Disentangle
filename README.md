@@ -84,3 +84,8 @@ Notes:
     To fix this, I've code up a hack. Here, one pair of images is valid only if both of them have content.
     In the previous model, if one of them had a content, then we considered it a valid pair. That approach is more real world aligned. However, for the heck of trying it out, I'm trying it to see whether I get better performance
     on such images.
+
+VAL Error
+/home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/4: 0.017
+/home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/3: 0.009
+/home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/2: 0.009
