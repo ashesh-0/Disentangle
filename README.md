@@ -89,3 +89,9 @@ VAL Error
 /home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/4: 0.017
 /home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/3: 0.009
 /home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/2: 0.009
+/home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/6: 0.010
+
+
+I see that one issue could be simply too less validation samples taken for the loss. Due to this,
+I think I was seeing very low losses while training (on evaluation). Which were not reproducible.
+With repeating 50 times, I'm able to get reasonable numbers.

@@ -26,7 +26,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128]
+    model.z_dims = [128, 128, 128]
     model.blocks_per_layer = 5
     model.nonlin = 'elu'
     model.merge_type = 'residual'
@@ -48,7 +48,7 @@ def get_config():
     training.max_epochs = 20000
     training.batch_size = 4
     training.num_workers = 0
-    training.val_repeat_factor = 5
+    training.val_repeat_factor = 50
     training.val_fraction = 0.2
     config.training.earlystop_patience = 5000
     return config
