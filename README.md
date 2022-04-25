@@ -96,5 +96,8 @@ I see that one issue could be simply too less validation samples taken for the l
 I think I was seeing very low losses while training (on evaluation). Which were not reproducible.
 With repeating 50 times, I'm able to get reasonable numbers.
 /home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/7
+I don't see validation error stablizing at all.
 
 I think one may repeat the training factor to 10 times as well. This will help in ensuring that most time is not spent on running the validation only.
+Increased the batch_size to 8 and introduced the training factor.
+/home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/8
