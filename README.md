@@ -101,3 +101,17 @@ I don't see validation error stablizing at all.
 I think one may repeat the training factor to 10 times as well. This will help in ensuring that most time is not spent on running the validation only.
 Increased the batch_size to 8 and introduced the training factor.
 /home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/8
+
+To ascertain that the discripency in the validation error is just in due to the fact that we have too few of images and random sampling of patches leads to the discripency, I've created a deterministic data loader. It samples all the grid patches. So the validation error should be deterministic now.
+/home/ubuntu/ashesh/training/disentangle/2204/D3-M3-S0-L0/9
+
+I found out the bug. It was that the mean() and std() on training data was different than on validation data.
+In the notebook I was using the validation data's mean and std due to which this was happening. Now, the validation performance while training and the performance in notebook matches very closely.
+
+
+I tried to sample a reconstruction multiple times and then take the average.  However, it has no real benefit as the loss decreases only by 10e-4 units. If I increase the KL weight, then it may become more significant.
+
+/home/ubuntu/ashesh/training/disentangle/
+config                  with deterministic      randomized
+2204/D3-M3-S0-L0/9                              0.010+-0.001
+2204/D3-M3-S0-L0/7                              0.020+-0.002

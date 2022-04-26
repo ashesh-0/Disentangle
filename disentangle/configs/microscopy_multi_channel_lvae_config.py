@@ -14,7 +14,7 @@ def get_config():
     data.channel_2 = 2
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
-    data.deterministic_grid = True
+    data.deterministic_grid = False
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -48,8 +48,8 @@ def get_config():
     training.lr_scheduler_patience = 1000
     training.max_epochs = 20000
     training.batch_size = 8
-    training.num_workers = 0
-    training.val_repeat_factor = 50
+    training.num_workers = 4
+    training.val_repeat_factor = 441
     training.train_repeat_factor = 10
     training.val_fraction = 0.2
     config.training.earlystop_patience = 5000
