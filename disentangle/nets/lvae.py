@@ -40,6 +40,7 @@ class LadderVAE(pl.LightningModule):
         self.gated = config.model.gated
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
+
         self.noiseModel = None
         self.merge_type = config.model.merge_type
         self.analytical_kl = config.model.analytical_kl
@@ -291,10 +292,10 @@ class LadderVAE(pl.LightningModule):
     def normalize_input(self, x):
         if self.normalized_input:
             return x
-        return (x - self.data_mean) / self.data_std
+        return (x - self.data_mean.to(x.device)) / self.data_std.to(x.device)
 
     def normalize_target(self, target):
-        return (target - self.data_mean) / self.data_std
+        return (target - self.data_mean.to(target.device)) / self.data_std.to(target.device)
 
     def validation_step(self, batch, batch_idx):
         x, target = batch
@@ -315,7 +316,7 @@ class LadderVAE(pl.LightningModule):
                 all_samples.append(sample[None])
 
             all_samples = torch.cat(all_samples, dim=0)
-            all_samples = all_samples * self.data_std + self.data_mean
+            all_samples = all_samples * self.data_std.to(all_samples.device) + self.data_mean.to(all_samples.device)
             all_samples = all_samples.cpu()
             img_mmse = torch.mean(all_samples, dim=0)[0]
             self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
