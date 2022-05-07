@@ -16,8 +16,13 @@ class MultiChTiffDloader(TiffLoader):
                  val_fraction=None,
                  enable_flips: bool = False,
                  repeat_factor: int = 1,
-                 thresh: float = None):
-        super().__init__(img_sz, enable_flips=enable_flips, thresh=thresh, repeat_factor=repeat_factor)
+                 thresh: float = None,
+                 normalized_input=None):
+        super().__init__(img_sz,
+                         enable_flips=enable_flips,
+                         thresh=thresh,
+                         repeat_factor=repeat_factor,
+                         normalized_input=normalized_input)
         self._fpath = fpath
 
         self._data = train_val_data(self._fpath, is_train, channel_1, channel_2, val_fraction=val_fraction)
@@ -37,7 +42,10 @@ class MultiChTiffDloader(TiffLoader):
         return imgs[None, :, :, 0], imgs[None, :, :, 1]
 
     def get_mean_std(self):
-        return self._data.mean(), self._data.std()
+        mean = np.mean(self._data, axis=(0, 1, 2))
+        std = np.std(self._data, axis=(0, 1, 2))
+        # The extra None is added to ensure that
+        return mean[None, :, None, None], std[None, :, None, None]
 
     # def _is_content_present(self, img1: np.ndarray, img2: np.ndarray):
     #     met1 = self.metric(img1)

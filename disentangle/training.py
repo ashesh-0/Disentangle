@@ -63,6 +63,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                                                        val_fraction=config.training.val_fraction)
 
         else:
+            normalized_input = config.data.get('normalized_input', False)
             train_data = None if skip_train_dataset else MultiChTiffDloader(
                 config.data.image_size,
                 datapath,
@@ -71,7 +72,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 thresh=config.data.threshold,
                 is_train=True,
                 val_fraction=config.training.val_fraction,
-                repeat_factor=config.training.train_repeat_factor)
+                repeat_factor=config.training.train_repeat_factor,
+                normalized_input=normalized_input)
             val_data = MultiChTiffDloader(config.data.image_size,
                                           datapath,
                                           config.data.channel_1,
@@ -79,7 +81,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                                           thresh=config.data.threshold,
                                           is_train=False,
                                           val_fraction=config.training.val_fraction,
-                                          repeat_factor=config.training.val_repeat_factor)
+                                          repeat_factor=config.training.val_repeat_factor,
+                                          normalized_input=normalized_input)
     return train_data, val_data
 
 

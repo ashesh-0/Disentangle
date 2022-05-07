@@ -150,8 +150,8 @@ class LadderVAETwinDecoder(LadderVAE):
 
     def training_step(self, batch, batch_idx):
         x, target = batch
-        x_normalized = (x - self.data_mean[0]) / self.data_std[0]
-        target_normalized = (target - self.data_mean[0]) / self.data_std[0]
+        x_normalized = (x - self.data_mean) / self.data_std
+        target_normalized = (target - self.data_mean) / self.data_std
 
         out_l1, out_l2, td_data = self.forward(x_normalized)
 
@@ -174,8 +174,8 @@ class LadderVAETwinDecoder(LadderVAE):
 
     def validation_step(self, batch, batch_idx):
         x, target = batch
-        x_normalized = (x - self.data_mean[0]) / self.data_std[0]
-        target_normalized = (target - self.data_mean[0]) / self.data_std[0]
+        x_normalized = (x - self.data_mean) / self.data_std
+        target_normalized = (target - self.data_mean) / self.data_std
 
         out_l1, out_l2, td_data = self.forward(x_normalized)
         recons_loss = self.get_reconstruction_loss(out_l1, out_l2, target_normalized)
@@ -194,12 +194,12 @@ class LadderVAETwinDecoder(LadderVAE):
                 all_samples_l2.append(sample_l2[None])
 
             all_samples_l1 = torch.cat(all_samples_l1, dim=0)
-            all_samples_l1 = all_samples_l1 * self.data_std[0] + self.data_mean[0]
+            all_samples_l1 = all_samples_l1 * self.data_std + self.data_mean
             all_samples_l1 = all_samples_l1.cpu()
             img_mmse_l1 = torch.mean(all_samples_l1, dim=0)[0]
 
             all_samples_l2 = torch.cat(all_samples_l2, dim=0)
-            all_samples_l2 = all_samples_l2 * self.data_std[0] + self.data_mean[0]
+            all_samples_l2 = all_samples_l2 * self.data_std + self.data_mean
             all_samples_l2 = all_samples_l2.cpu()
             img_mmse_l2 = torch.mean(all_samples_l2, dim=0)[0]
 

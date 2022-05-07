@@ -112,6 +112,10 @@ In the notebook I was using the validation data's mean and std due to which this
 I tried to sample a reconstruction multiple times and then take the average.  However, it has no real benefit as the loss decreases only by 10e-4 units. If I increase the KL weight, then it may become more significant.
 
 /home/ubuntu/ashesh/training/disentangle/
-config                  with deterministic      randomized
-2204/D3-M3-S0-L0/9                              0.010+-0.001
-2204/D3-M3-S0-L0/7                              0.020+-0.002
+config                                          with deterministic      randomized
+2204/D3-M3-S0-L0/9      trained with determ                              0.010+-0.001
+2204/D3-M3-S0-L0/7      trained with random                              0.020+-0.002
+2204/D3-M3-S0-L0/10     trained with random
+
+## May 7
+I see that the mean and the std of the two channels are different. It therefore makes sense to have different mean and std for normalization.

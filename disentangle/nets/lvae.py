@@ -18,6 +18,7 @@ from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomU
 class LadderVAE(pl.LightningModule):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__()
+
         self.lr = config.training.lr
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
         # grayscale input
@@ -37,8 +38,8 @@ class LadderVAE(pl.LightningModule):
         self.img_shape = (config.data.image_size, config.data.image_size)
         self.res_block_type = config.model.res_block_type
         self.gated = config.model.gated
-        self.data_mean = torch.Tensor([data_mean])
-        self.data_std = torch.Tensor([data_std])
+        self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
+        self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
         self.noiseModel = None
         self.merge_type = config.model.merge_type
         self.analytical_kl = config.model.analytical_kl
@@ -55,6 +56,10 @@ class LadderVAE(pl.LightningModule):
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
         self._global_step = 0
+
+        # normalized_input: If input is normalized, then we don't normalize the input.
+        # We then just normalize the target. Otherwise, both input and target are normalized.
+        self.normalized_input = config.data.get('normalized_input', False)
 
         assert (self.data_std is not None)
         assert (self.data_mean is not None)
@@ -261,8 +266,8 @@ class LadderVAE(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, target = batch
-        x_normalized = (x - self.data_mean[0]) / self.data_std[0]
-        target_normalized = (target - self.data_mean[0]) / self.data_std[0]
+        x_normalized = self.normalize_input(x)
+        target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
 
@@ -283,10 +288,18 @@ class LadderVAE(pl.LightningModule):
         }
         return output
 
+    def normalize_input(self, x):
+        if self.normalized_input:
+            return x
+        return (x - self.data_mean) / self.data_std
+
+    def normalize_target(self, target):
+        return (target - self.data_mean) / self.data_std
+
     def validation_step(self, batch, batch_idx):
         x, target = batch
-        x_normalized = (x - self.data_mean[0]) / self.data_std[0]
-        target_normalized = (target - self.data_mean[0]) / self.data_std[0]
+        x_normalized = self.normalize_input(x)
+        target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
         recons_loss = self.get_reconstruction_loss(out, target_normalized)
@@ -302,7 +315,7 @@ class LadderVAE(pl.LightningModule):
                 all_samples.append(sample[None])
 
             all_samples = torch.cat(all_samples, dim=0)
-            all_samples = all_samples * self.data_std[0] + self.data_mean[0]
+            all_samples = all_samples * self.data_std + self.data_mean
             all_samples = all_samples.cpu()
             img_mmse = torch.mean(all_samples, dim=0)[0]
             self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')

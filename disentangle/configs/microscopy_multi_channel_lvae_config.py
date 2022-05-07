@@ -15,6 +15,7 @@ def get_config():
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.00
     data.deterministic_grid = False
+    data.normalized_input = True
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
