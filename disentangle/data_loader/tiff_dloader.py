@@ -20,7 +20,7 @@ class TiffLoader:
             repeat_factor: Since we are doing a random crop, repeat_factor is
             given which can repeatedly sample from the same image. If self.N=12
             and repeat_factor is 5, then index upto 12*5 = 60 is allowed.
-            normalized_input: whether to normalize the input or now
+            normalized_input: whether to normalize the input or not
         """
         assert isinstance(normalized_input, bool)
         self._img_sz = img_sz
@@ -126,12 +126,12 @@ class TiffLoader:
         index = index % self.N
 
         img1, img2 = self._get_img(index)
+        target = np.concatenate([img1, img2], axis=0)
 
         if self._normalized_input:
             img1, img2 = self.normalize_img(img1, img2)
 
         inp = (0.5 * img1 + 0.5 * img2).astype(np.float32)
-        target = np.concatenate([img1, img2], axis=0)
         return inp, target
 
     def get_mean_std(self):
