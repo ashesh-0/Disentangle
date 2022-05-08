@@ -300,7 +300,7 @@ class LadderVAE(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, target = batch
         if isinstance(self.data_mean, torch.Tensor):
-            if self.data_mean.device == target.device:
+            if self.data_mean.device != target.device:
                 self.data_mean = self.data_mean.to(target.device)
                 self.data_std = self.data_std.to(target.device)
 
