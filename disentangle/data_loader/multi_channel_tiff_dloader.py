@@ -42,14 +42,11 @@ class MultiChTiffDloader(TiffLoader):
         return imgs[None, :, :, 0], imgs[None, :, :, 1]
 
     def get_mean_std(self):
-        mean = np.mean(self._data, axis=(0, 1, 2))
-        std = np.std(self._data, axis=(0, 1, 2))
-        # The extra None is added to ensure that
-        return mean[None, :, None, None], std[None, :, None, None]
-
-    # def _is_content_present(self, img1: np.ndarray, img2: np.ndarray):
-    #     met1 = self.metric(img1)
-    #     met2 = self.metric(img2)
-    #     if self.in_allowed_range(met1) and self.in_allowed_range(met2):
-    #         return True
-    #     return False
+        # mean = np.mean(self._data, axis=(0, 1, 2))
+        # std = np.std(self._data, axis=(0, 1, 2))
+        # return mean[None, :, None, None], std[None, :, None, None]
+        mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
+        std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
+        mean = np.repeat(mean, 2, axis=1)
+        std = np.repeat(std, 2, axis=1)
+        return mean, std

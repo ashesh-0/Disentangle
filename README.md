@@ -120,4 +120,7 @@ config                                          with deterministic      randomiz
 ## May 7
 I see that the mean and the std of the two channels are different. It therefore makes sense to have different mean and std for normalization.
 
-Using different mean and stdev for the two channels.: /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/0
+Using different mean and stdev for the two channels.: 
+/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/1
+I see that it is not giving a good performance. If this is just because the separate mean std doesn't work, 
+then passing the original value of the mean and std should lead to identical performance. Working for that.
