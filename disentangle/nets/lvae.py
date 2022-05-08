@@ -292,7 +292,7 @@ class LadderVAE(pl.LightningModule):
     def normalize_input(self, x):
         if self.normalized_input:
             return x
-        return (x - self.data_mean) / self.data_std
+        return (x - self.data_mean.mean()) / self.data_std.mean()
 
     def normalize_target(self, target):
         return (target - self.data_mean) / self.data_std

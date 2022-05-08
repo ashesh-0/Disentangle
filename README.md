@@ -124,3 +124,5 @@ Using different mean and stdev for the two channels.:
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/1
 I see that it is not giving a good performance. If this is just because the separate mean std doesn't work, 
 then passing the original value of the mean and std should lead to identical performance. Working for that.
+
+same mean and std: /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/2
