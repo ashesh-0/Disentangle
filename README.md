@@ -126,4 +126,23 @@ I see that it is not giving a good performance. If this is just because the sepa
 then passing the original value of the mean and std should lead to identical performance. Working for that.
 
 same mean and std: /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/2
-todo: skip the mean/std computtaion.
+todo: skip the mean/std computtaion everytime => DONE
+VAL loss seems to be quite fluctuating. It could be so because of either of the two issues:
+1. The threshold is inappropriately high and so training is getting slightly skewed. To test this, I probably just need to reduce the threshold to 0 and check. 
+
+2. Everytime one gets a different validation set due to random sampling and so we observe very different results. Since we are using quite high repeat_factor, I don't think that would be the case. To check if this is the case, I could simply evaluate it to see how different are the results that I'm getting.
+    Computing the reconstruction loss 3 times.
+    Rec:0.051260 KL:nan
+    Rec L1:0.029837 Rec L2:0.072700
+    Rec:0.052363 KL:nan
+    Rec L1:0.027938 Rec L2:0.076840
+    Rec:0.051050 KL:nan
+    Rec L1:0.029995 Rec L2:0.072093
+    As I see, this is sufficiently stable even with val_repeat_factor being just 10. So, reason has to be 1.
+    
+    I see that L2 has a much higher loss.
+    When I disable the normalized_input, I see that I'm getting a much better loss
+        Rec:0.018831 KL:nan
+        Rec L1:0.016865 Rec L2:0.020857
+
+I've figured out what the issue was. When normalizing in the data loader, I need to always use the mean and std of training data and not the validation data. Currently, I was using mean and std of validation data for validation data loader and mean and std of training data. 

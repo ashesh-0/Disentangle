@@ -127,7 +127,6 @@ class TiffLoader:
 
         img1, img2 = self._get_img(index)
         target = np.concatenate([img1, img2], axis=0)
-
         if self._normalized_input:
             img1, img2 = self.normalize_img(img1, img2)
 

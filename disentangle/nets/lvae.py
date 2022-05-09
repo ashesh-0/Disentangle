@@ -60,7 +60,7 @@ class LadderVAE(pl.LightningModule):
 
         # normalized_input: If input is normalized, then we don't normalize the input.
         # We then just normalize the target. Otherwise, both input and target are normalized.
-        self.normalized_input = config.data.get('normalized_input', False)
+        self.normalized_input = config.data.normalized_input
 
         assert (self.data_std is not None)
         assert (self.data_mean is not None)

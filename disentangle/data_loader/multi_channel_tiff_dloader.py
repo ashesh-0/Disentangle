@@ -24,14 +24,16 @@ class MultiChTiffDloader(TiffLoader):
                          repeat_factor=repeat_factor,
                          normalized_input=normalized_input)
         self._fpath = fpath
-
+        self._is_train = is_train
         self._data = train_val_data(self._fpath, is_train, channel_1, channel_2, val_fraction=val_fraction)
 
         max_val = np.quantile(self._data, 0.995)
         self._data[self._data > max_val] = max_val
 
+        self._mean = None
+        self._std = None
+
         self.N = len(self._data)
-        self._mean, self._std = self._compute_mean_std()
         msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
         msg += f' Train:{int(is_train)} N:{self.N} Flip:{int(enable_flips)} Repeat:{repeat_factor}'
         msg += f' Thresh:{thresh}'
@@ -44,7 +46,15 @@ class MultiChTiffDloader(TiffLoader):
     def get_mean_std(self):
         return self._mean, self._std
 
-    def _compute_mean_std(self):
+    def set_mean_std(self, mean_val, std_val):
+        self._mean = mean_val
+        self._std = std_val
+
+    def compute_mean_std(self, allow_for_validation_data=False):
+        """
+        Note that we must compute this only for training data.
+        """
+        assert self._is_train is True or allow_for_validation_data, 'This is just allowed for training data'
         # mean = np.mean(self._data, axis=(0, 1, 2))
         # std = np.std(self._data, axis=(0, 1, 2))
         # return mean[None, :, None, None], std[None, :, None, None]

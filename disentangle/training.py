@@ -63,7 +63,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                                                        val_fraction=config.training.val_fraction)
 
         else:
-            normalized_input = config.data.get('normalized_input', False)
+            normalized_input = config.data.normalized_input
             train_data = None if skip_train_dataset else MultiChTiffDloader(
                 config.data.image_size,
                 datapath,
@@ -74,6 +74,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 val_fraction=config.training.val_fraction,
                 repeat_factor=config.training.train_repeat_factor,
                 normalized_input=normalized_input)
+
             val_data = MultiChTiffDloader(config.data.image_size,
                                           datapath,
                                           config.data.channel_1,
@@ -83,6 +84,10 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                                           val_fraction=config.training.val_fraction,
                                           repeat_factor=config.training.val_repeat_factor,
                                           normalized_input=normalized_input)
+            # For normalizing, we should be using the training data's mean and std.
+            mean_val, std_val = train_data.compute_mean_std()
+            train_data.set_mean_std(mean_val, std_val)
+            val_data.set_mean_std(mean_val, std_val)
     return train_data, val_data
 
 
