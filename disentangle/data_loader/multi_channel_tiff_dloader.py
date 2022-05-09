@@ -31,7 +31,7 @@ class MultiChTiffDloader(TiffLoader):
         self._data[self._data > max_val] = max_val
 
         self.N = len(self._data)
-
+        self._mean, self._std = self._compute_mean_std()
         msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
         msg += f' Train:{int(is_train)} N:{self.N} Flip:{int(enable_flips)} Repeat:{repeat_factor}'
         msg += f' Thresh:{thresh}'
@@ -42,6 +42,9 @@ class MultiChTiffDloader(TiffLoader):
         return imgs[None, :, :, 0], imgs[None, :, :, 1]
 
     def get_mean_std(self):
+        return self._mean, self._std
+
+    def _compute_mean_std(self):
         # mean = np.mean(self._data, axis=(0, 1, 2))
         # std = np.std(self._data, axis=(0, 1, 2))
         # return mean[None, :, None, None], std[None, :, None, None]
