@@ -146,3 +146,5 @@ VAL loss seems to be quite fluctuating. It could be so because of either of the 
         Rec L1:0.016865 Rec L2:0.020857
 
 I've figured out what the issue was. When normalizing in the data loader, I need to always use the mean and std of training data and not the validation data. Currently, I was using mean and std of validation data for validation data loader and mean and std of training data. 
+
+/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/4
