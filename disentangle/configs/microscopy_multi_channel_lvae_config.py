@@ -14,7 +14,7 @@ def get_config():
     data.channel_2 = 2
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
-    data.deterministic_grid = False
+    data.deterministic_grid = True
     data.normalized_input = True
 
     loss = config.loss

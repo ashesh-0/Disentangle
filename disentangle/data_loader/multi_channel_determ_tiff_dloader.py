@@ -6,15 +6,14 @@ from disentangle.data_loader.multi_channel_train_val_data import train_val_data
 
 
 class MultiChDeterministicTiffDloader:
-    def __init__(
-        self,
-        img_sz: int,
-        fpath: str,
-        channel_1: int,
-        channel_2: int,
-        is_train: Union[None, bool] = None,
-        val_fraction=None,
-    ):
+    def __init__(self,
+                 img_sz: int,
+                 fpath: str,
+                 channel_1: int,
+                 channel_2: int,
+                 is_train: Union[None, bool] = None,
+                 val_fraction=None,
+                 normalized_input=None):
         """
         Here, an image is split into grids of size img_sz. 
         Args:
@@ -27,15 +26,16 @@ class MultiChDeterministicTiffDloader:
         self._fpath = fpath
 
         self._data = train_val_data(self._fpath, is_train, channel_1, channel_2, val_fraction=val_fraction)
-
+        self._normalized_input = normalized_input
         max_val = np.quantile(self._data, 0.995)
         self._data[self._data > max_val] = max_val
 
         self.N = len(self._data)
         self._repeat_factor = (self._data.shape[-2] // self._img_sz)**2
-
+        self._is_train = is_train
         msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
         msg += f' Train:{int(is_train)} N:{self.N} Repeat:{self._repeat_factor}'
+        msg += f' NormInp:{self._normalized_input}'
         print(msg)
 
     def _crop_determinstic(self, index, img1: np.ndarray, img2: np.ndarray):
@@ -85,7 +85,33 @@ class MultiChDeterministicTiffDloader:
         return imgs[None, :, :, 0], imgs[None, :, :, 1]
 
     def get_mean_std(self):
-        return self._data.mean(), self._data.std()
+        return self._mean, self._std
+
+    def set_mean_std(self, mean_val, std_val):
+        self._mean = mean_val
+        self._std = std_val
+
+    def normalize_img(self, img1, img2):
+        mean, std = self.get_mean_std()
+        mean = mean.squeeze()
+        std = std.squeeze()
+        img1 = (img1 - mean[0]) / std[0]
+        img2 = (img2 - mean[1]) / std[1]
+        return img1, img2
+
+    def compute_mean_std(self, allow_for_validation_data=False):
+        """
+        Note that we must compute this only for training data.
+        """
+        assert self._is_train is True or allow_for_validation_data, 'This is just allowed for training data'
+        mean = np.mean(self._data, axis=(0, 1, 2))
+        std = np.std(self._data, axis=(0, 1, 2))
+        return mean[None, :, None, None], std[None, :, None, None]
+        # mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
+        # std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
+        # mean = np.repeat(mean, 2, axis=1)
+        # std = np.repeat(std, 2, axis=1)
+        # return mean, std
 
     def _get_img(self, index: int):
         """
@@ -98,6 +124,9 @@ class MultiChDeterministicTiffDloader:
 
     def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
         img1, img2 = self._get_img(index)
-        inp = (0.5 * img1 + 0.5 * img2).astype(np.float32)
         target = np.concatenate([img1, img2], axis=0)
+        if self._normalized_input:
+            img1, img2 = self.normalize_img(img1, img2)
+
+        inp = (0.5 * img1 + 0.5 * img2).astype(np.float32)
         return inp, target

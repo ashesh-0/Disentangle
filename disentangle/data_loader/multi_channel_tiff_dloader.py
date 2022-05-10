@@ -37,6 +37,7 @@ class MultiChTiffDloader(TiffLoader):
         msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
         msg += f' Train:{int(is_train)} N:{self.N} Flip:{int(enable_flips)} Repeat:{repeat_factor}'
         msg += f' Thresh:{thresh}'
+        msg += f' NormInp:{self._normalized_input}'
         print(msg)
 
     def _load_img(self, index: int) -> Tuple[np.ndarray, np.ndarray]:

@@ -147,4 +147,6 @@ VAL loss seems to be quite fluctuating. It could be so because of either of the 
 
 I've figured out what the issue was. When normalizing in the data loader, I need to always use the mean and std of training data and not the validation data. Currently, I was using mean and std of validation data for validation data loader and mean and std of training data. 
 
-/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/4
+/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/4: This is now behaving just the way when normalized_input was False. 
+
+/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/5: enabled differing mean and std. Only issue is that it crashed after sometime.  running it again. /6. It still crashes. I'll now try the same idea with  deterministic_grid=True
