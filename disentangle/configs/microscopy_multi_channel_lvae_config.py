@@ -50,7 +50,7 @@ def get_config():
     training.max_epochs = 20000
     training.batch_size = 8
     training.num_workers = 4
-    training.val_repeat_factor = 441
+    training.val_repeat_factor = 50
     training.train_repeat_factor = 10
     training.val_fraction = 0.2
     config.training.earlystop_patience = 5000

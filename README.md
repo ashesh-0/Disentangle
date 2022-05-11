@@ -150,3 +150,4 @@ I've figured out what the issue was. When normalizing in the data loader, I need
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/4: This is now behaving just the way when normalized_input was False. 
 
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/5: enabled differing mean and std. Only issue is that it crashed after sometime.  running it again. /6. It still crashes. I'll now try the same idea with  deterministic_grid=True
+
