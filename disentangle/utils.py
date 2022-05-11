@@ -4,12 +4,13 @@ from glob import glob
 
 import numpy as np
 import torch
-from IPython.display import clear_output
 from matplotlib import pyplot as plt
 from sklearn.cluster import MeanShift
 from sklearn.feature_extraction import image
-from tifffile import imsave
 from tqdm import tqdm
+
+from IPython.display import clear_output
+from tifffile import imsave
 
 
 def normalize(img, mean, std):
@@ -403,7 +404,7 @@ def PSNR(gt, img):
     gt: array
         Ground truth image.
     img: array
-        Predicted image.''
+        Predicted image.
     '''
     mse = np.mean(np.square(gt - img))
     return 20 * np.log10(np.max(gt) - np.min(gt)) - 10 * np.log10(mse)
