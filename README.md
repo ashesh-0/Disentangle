@@ -151,3 +151,7 @@ I've figured out what the issue was. When normalizing in the data loader, I need
 
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/5: enabled differing mean and std. Only issue is that it crashed after sometime.  running it again. /6. It still crashes. I'll now try the same idea with  deterministic_grid=True
 
+
+
+rutherford where I've modified the code to have same mean and stc /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/7
+turing where I've undoed the changes in the code. The mean and std will have a different value now.
