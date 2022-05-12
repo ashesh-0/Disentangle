@@ -157,3 +157,6 @@ I've figured out what the issue was. When normalizing in the data loader, I need
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/0: turing where I've undoed the changes in the code. The mean and std will have a different value now.
 
 Both of them are working perfectly well. What this means is that the determinstic grid is ensuring that training happens as it should happen. 
+
+turing: /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/1 prior fixed to N(0,1) and using different weights.
+ruth:
