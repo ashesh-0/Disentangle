@@ -155,3 +155,5 @@ I've figured out what the issue was. When normalizing in the data loader, I need
 
 rutherford where I've modified the code to have same mean and stc /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/7
 turing where I've undoed the changes in the code. The mean and std will have a different value now.
+
+Both of them are working perfectly well. This is most surprising. #TODO check what is there configuration.
