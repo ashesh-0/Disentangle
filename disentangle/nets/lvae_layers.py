@@ -1,6 +1,8 @@
 """
 Taken from https://github.com/juglab/HDN/blob/main/models/lvae_layers.py
 """
+from typing import Union
+
 import torch
 from torch import nn
 
@@ -26,21 +28,48 @@ class TopDownLayer(nn.Module):
     (while they are usually taken from the previous layer), and can be learned.
     """
     def __init__(self,
-                 z_dim,
-                 n_res_blocks,
-                 n_filters,
-                 is_top_layer=False,
-                 downsampling_steps=None,
+                 z_dim: int,
+                 n_res_blocks: int,
+                 n_filters: int,
+                 is_top_layer: bool = False,
+                 downsampling_steps: int = None,
                  nonlin=None,
-                 merge_type=None,
-                 batchnorm=True,
-                 dropout=None,
-                 stochastic_skip=False,
+                 merge_type: str = None,
+                 batchnorm: bool = True,
+                 dropout: Union[None, float] = None,
+                 stochastic_skip: bool = False,
                  res_block_type=None,
                  gated=None,
                  learn_top_prior=False,
                  top_prior_param_shape=None,
                  analytical_kl=False):
+        """
+            Args:
+                z_dim:          This is the dimension of the latent space.
+                n_res_blocks:   Number of TopDownDeterministicResBlock blocks
+                n_filters:      Number of channels which is present through out this layer.
+                is_top_layer:   Whether it is top layer or not.
+                downsampling_steps: How many times upsampling has to be done in this layer. This is typically 1.
+                nonlin: What non linear activation is to be applied at various places in this module.
+                merge_type: In Top down layer, one merges the information passed from q() and upper layers.
+                            This specifies how to mix these two tensors.
+                batchnorm: Whether to apply batch normalization at various places or not.
+                dropout: Amount of dropout to be applied at various places.
+                stochastic_skip: Previous layer's output is mixed with this layer's stochastic output. So, 
+                                the previous layer's output has a way to reach this level without going
+                                through the stochastic process. However, technically, this is not a skip as
+                                both are merged together. 
+                res_block_type: Example: 'bacdbac'. It has the constitution of the residual block.
+                gated: This is also an argument for the residual block. At the end of residual block, whether 
+                        there should be a gate or not.
+                learn_top_prior: Whether we want to learn the top prior or not. If set to False, for the top-most
+                                 layer, p will be N(0,1). Otherwise, we will still have a normal distribution. It is 
+                                 just that the mean and the stdev will be different.
+                top_prior_param_shape: This is the shape of the tensor which would contain the mean and the variance
+                                        of the prior (which is normal distribution) for the top most layer.
+                analytical_kl:  If True, typical KL divergence is calculated. Otherwise, an approximate of it is 
+                            calculated.
+        """
 
         super().__init__()
 
@@ -152,17 +181,34 @@ class TopDownLayer(nn.Module):
         return x, x_pre_residual, data
 
     def forward(self,
-                input_=None,
+                input_: Union[None, torch.Tensor] = None,
                 skip_connection_input=None,
                 inference_mode=False,
                 bu_value=None,
                 n_img_prior=None,
-                forced_latent=None,
-                use_mode=False,
+                forced_latent: Union[None, torch.Tensor] = None,
+                use_mode: bool = False,
                 force_constant_output=False,
                 mode_pred=False,
                 use_uncond_mode=False):
-
+        """
+        Args:
+            input_: output from previous top_down layer.
+            skip_connection_input: Currently, this is output from the previous top down layer. 
+                                It is mixed with the output of the stochastic layer.
+            inference_mode: In inference mode, q_params is not None. Otherwise it is. When q_params is None,
+                            everything is generated from the p_params. So, the encoder is not used at all.
+            bu_value: Output of the bottom-up pass layer of the same level as this top-down.
+            n_img_prior: This affects just the top most top-down layer. This is only present if inference_mode=False.
+            forced_latent: If this is a tensor, then in stochastic layer, we don't sample by using p() & q(). We simply 
+                            use this as the latent space sampling.
+            use_mode:      If it is true, we still don't sample from the q(). We simply 
+                            use the mean of the distribution as the latent space.
+            force_constant_output: This ensures that only the first sample of the batch is used. Typically used 
+                                when infernce_mode is False
+            mode_pred: If True, then only prediction happens. Otherwise, KL divergence loss also gets computed.
+            use_uncond_mode: Used only when mode_pred=True
+        """
         # Check consistency of arguments
         inputs_none = input_ is None and skip_connection_input is None
         if self.is_top_layer and not inputs_none:
@@ -235,14 +281,27 @@ class BottomUpLayer(nn.Module):
     bottom-up deterministic residual blocks with downsampling.
     """
     def __init__(self,
-                 n_res_blocks,
-                 n_filters,
-                 downsampling_steps=0,
+                 n_res_blocks: int,
+                 n_filters: int,
+                 downsampling_steps: int = 0,
                  nonlin=None,
-                 batchnorm=True,
-                 dropout=None,
-                 res_block_type=None,
-                 gated=None):
+                 batchnorm: bool = True,
+                 dropout: Union[None, float] = None,
+                 res_block_type: str = None,
+                 gated: bool = None):
+        """
+        Args:
+            n_res_blocks: Number of BottomUpDeterministicResBlock blocks present in this layer.
+            n_filters:      Number of channels which is present through out this layer.
+            downsampling_steps: How many times downsampling has to be done in this layer. This is typically 1.
+            nonlin: What non linear activation is to be applied at various places in this module.
+            batchnorm: Whether to apply batch normalization at various places or not.
+            dropout: Amount of dropout to be applied at various places.
+            res_block_type: Example: 'bacdbac'. It has the constitution of the residual block.
+            gated: This is also an argument for the residual block. At the end of residual block, whether 
+            there should be a gate or not.
+
+        """
         super().__init__()
 
         bu_blocks = []

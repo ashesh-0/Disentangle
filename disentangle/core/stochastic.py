@@ -1,6 +1,8 @@
 """
 Taken from https://github.com/juglab/HDN/blob/e30edf7ec2cd55c902e469b890d8fe44d15cbb7e/lib/stochastic.py
 """
+from typing import Union
+
 import torch
 from torch import nn
 from torch.distributions import kl_divergence
@@ -13,7 +15,15 @@ class NormalStochasticBlock2d(nn.Module):
     same for p(z), then sample z ~ q(z) and return conv(z).
     If q's parameters are not given, do the same but sample from p(z).
     """
-    def __init__(self, c_in, c_vars, c_out, kernel=3, transform_p_params=True):
+    def __init__(self, c_in: int, c_vars: int, c_out, kernel: int = 3, transform_p_params: bool = True):
+        """
+        Args:
+            c_in:   This is the channel count of the tensor input to this module.
+            c_vars: This is the size of the latent space
+            c_out:  Output of the stochastic layer. Note that this is different from z.
+            kernel: kernel used in convolutional layers.
+            transform_p_params: p_params are transformed if this is set to True.
+        """
         super().__init__()
         assert kernel % 2 == 1
         pad = kernel // 2
@@ -56,14 +66,29 @@ class NormalStochasticBlock2d(nn.Module):
         return out, data
 
     def forward(self,
-                p_params,
-                q_params=None,
-                forced_latent=None,
-                use_mode=False,
-                force_constant_output=False,
-                analytical_kl=False,
-                mode_pred=False,
-                use_uncond_mode=False):
+                p_params: torch.Tensor,
+                q_params: torch.Tensor = None,
+                forced_latent: Union[None, torch.Tensor] = None,
+                use_mode: bool = False,
+                force_constant_output: bool = False,
+                analytical_kl: bool = False,
+                mode_pred: bool = False,
+                use_uncond_mode: bool = False):
+        """
+        Args:
+            p_params: this is passed from top layers.
+            q_params: this is the merge of bottom up layer at this level and top down layers above this level.
+            forced_latent: If this is a tensor, then in stochastic layer, we don't sample by using p() & q(). We simply 
+                            use this as the latent space sampling.
+            use_mode:   If it is true, we still don't sample from the q(). We simply 
+                            use the mean of the distribution as the latent space.
+            force_constant_output: This ensures that only the first sample of the batch is used. Typically used 
+                                when infernce_mode is False
+            analytical_kl: If True, typical KL divergence is calculated. Otherwise, an approximate of it is 
+                            calculated.
+            mode_pred: If True, then only prediction happens. Otherwise, KL divergence loss also gets computed.
+            use_uncond_mode: Used only when mode_pred=True
+        """
 
         debug_qvar_max = 0
         assert (forced_latent is None) or (not use_mode)

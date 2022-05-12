@@ -26,12 +26,12 @@ class ResidualBlock(nn.Module):
     default_kernel_size = (3, 3)
 
     def __init__(self,
-                 channels,
+                 channels: int,
                  nonlin,
                  kernel=None,
                  groups=1,
-                 batchnorm=True,
-                 block_type=None,
+                 batchnorm: bool = True,
+                 block_type: str = None,
                  dropout=None,
                  gated=None):
         super().__init__()

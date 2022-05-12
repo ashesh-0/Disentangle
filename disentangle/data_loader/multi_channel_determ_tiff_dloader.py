@@ -33,6 +33,9 @@ class MultiChDeterministicTiffDloader:
         self.N = len(self._data)
         self._repeat_factor = (self._data.shape[-2] // self._img_sz)**2
         self._is_train = is_train
+        self._mean = None
+        self._std = None
+
         msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
         msg += f' Train:{int(is_train)} N:{self.N} Repeat:{self._repeat_factor}'
         msg += f' NormInp:{self._normalized_input}'
