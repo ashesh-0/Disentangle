@@ -189,5 +189,4 @@ if __name__ == '__main__':
     print('CudaToolKit Version', torch.version.cuda)
     print('torch Version', torch.__version__)
     print('torchvision Version', torchvision.__version__)
-
     app.run(main)

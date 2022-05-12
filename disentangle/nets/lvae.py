@@ -317,7 +317,7 @@ class LadderVAE(pl.LightningModule):
         self.log('val_loss', recons_loss, on_epoch=True)
         if batch_idx == 0:
             all_samples = []
-            for i in range(100):
+            for i in range(20):
                 sample, _ = self(x_normalized[0:1, ...])
                 sample = self.likelihood.parameter_net(sample)
                 all_samples.append(sample[None])
