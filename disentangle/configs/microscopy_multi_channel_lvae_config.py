@@ -33,10 +33,10 @@ def get_config():
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True
-    model.stochastic_skip = False
+    model.stochastic_skip = True
     model.n_filters = 64
     model.dropout = 0.2
-    model.learn_top_prior = False
+    model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
     model.gated = True
