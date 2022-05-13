@@ -73,7 +73,8 @@ class NormalStochasticBlock2d(nn.Module):
                 force_constant_output: bool = False,
                 analytical_kl: bool = False,
                 mode_pred: bool = False,
-                use_uncond_mode: bool = False):
+                use_uncond_mode: bool = False,
+                var_clip_max: Union[None, float] = None):
         """
         Args:
             p_params: this is passed from top layers.
@@ -88,6 +89,7 @@ class NormalStochasticBlock2d(nn.Module):
                             calculated.
             mode_pred: If True, then only prediction happens. Otherwise, KL divergence loss also gets computed.
             use_uncond_mode: Used only when mode_pred=True
+            var_clip_max: This is the maximum value the log of the variance of the latent vector for any layer can reach.
         """
 
         debug_qvar_max = 0
@@ -100,12 +102,18 @@ class NormalStochasticBlock2d(nn.Module):
 
         # Define p(z)
         p_mu, p_lv = p_params.chunk(2, dim=1)
+
+        if var_clip_max is not None:
+            p_lv = torch.clip(p_lv, max=var_clip_max)
         p = Normal(p_mu, (p_lv / 2).exp())
 
         if q_params is not None:
             # Define q(z)
             q_params = self.conv_in_q(q_params)
             q_mu, q_lv = q_params.chunk(2, dim=1)
+            if var_clip_max is not None:
+                q_lv = torch.clip(q_lv, max=var_clip_max)
+
             q = Normal(q_mu, (q_lv / 2).exp())
             debug_qvar_max = torch.max(q_lv)
             # Sample from q(z)

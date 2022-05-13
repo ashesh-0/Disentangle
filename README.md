@@ -160,6 +160,9 @@ Both of them are working perfectly well. What this means is that the determinsti
 
 turing: /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/1 prior fixed to N(0,1) and using different mean and var. It crashed. ? No idea why it crashed. 
 ruth: /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/8 prior fixed to N(0,1) and using same mean and var
-I get the same result. this variable does not seem to have any effect. The reason could be that we are using ladder VAE and so only the highest layer has the prior fixed to N(0,1). For The lower layers, anyways the convolution filters come in and they ensure that the p() could be whatever normal distribution. So, it is no wonder that it does not help with crashing and it did not change the performance. 
+I get the same result. this variable does not seem to have any effect. The reason could be that we are using ladder VAE and so only the highest layer has the prior fixed to N(0,1). For The lower layers, anyways the convolution filters come in and they ensure that the p() could be whatever normal distribution. So, it is no wonder that it does not help with crashing and it did not change the performance.
+
+While doing these things, it makes sense to disable stochastic_skip as well and see what effect does it has
+/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/9: stochastic_skip=False
 
 With MSE, I see that the best cases are mainly those where there is very little content. In that sense PSNR might be a better metric to observe things.

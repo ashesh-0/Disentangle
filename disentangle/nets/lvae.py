@@ -52,6 +52,7 @@ class LadderVAE(pl.LightningModule):
         self.kl_annealing = config.loss.kl_annealing
         self.kl_annealtime = config.loss.kl_annealtime
 
+        self._var_clip_max = config.model.var_clip_max
         # loss related
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
@@ -453,7 +454,8 @@ class LadderVAE(pl.LightningModule):
                                                             force_constant_output=constant_out,
                                                             forced_latent=forced_latent[i],
                                                             mode_pred=self.mode_pred,
-                                                            use_uncond_mode=use_uncond_mode)
+                                                            use_uncond_mode=use_uncond_mode,
+                                                            var_clip_max=self._var_clip_max)
             z[i] = aux['z']  # sampled variable at this layer (batch, ch, h, w)
             kl[i] = aux['kl_samplewise']  # (batch, )
             kl_spatial[i] = aux['kl_spatial']  # (batch, h, w)

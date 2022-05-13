@@ -43,6 +43,7 @@ def get_config():
     model.no_initial_downscaling = True
     model.analytical_kl = True
     model.mode_pred = False
+    model.var_clip_max = 5
 
     training = config.training
     training.lr = 0.001

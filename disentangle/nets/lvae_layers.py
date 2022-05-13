@@ -189,7 +189,8 @@ class TopDownLayer(nn.Module):
                 use_mode: bool = False,
                 force_constant_output=False,
                 mode_pred=False,
-                use_uncond_mode=False):
+                use_uncond_mode=False,
+                var_clip_max: Union[None, float] = None):
         """
         Args:
             input_: output from previous top_down layer.
@@ -207,6 +208,7 @@ class TopDownLayer(nn.Module):
                                 when infernce_mode is False
             mode_pred: If True, then only prediction happens. Otherwise, KL divergence loss also gets computed.
             use_uncond_mode: Used only when mode_pred=True
+            var_clip_max: This is the maximum value the log of the variance of the latent vector for any layer can reach.
         """
         # Check consistency of arguments
         inputs_none = input_ is None and skip_connection_input is None
@@ -249,7 +251,8 @@ class TopDownLayer(nn.Module):
                                         force_constant_output=force_constant_output,
                                         analytical_kl=self.analytical_kl,
                                         mode_pred=mode_pred,
-                                        use_uncond_mode=use_uncond_mode)
+                                        use_uncond_mode=use_uncond_mode,
+                                        var_clip_max=var_clip_max)
 
         # Skip connection from previous layer
         if self.stochastic_skip and not self.is_top_layer:
