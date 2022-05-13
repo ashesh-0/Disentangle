@@ -166,3 +166,6 @@ While doing these things, it makes sense to disable stochastic_skip as well and 
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/9: stochastic_skip=False
 
 With MSE, I see that the best cases are mainly those where there is very little content. In that sense PSNR might be a better metric to observe things.
+
+To fix the variance exploding problem I've added a maximum value limit on the variance. I simply use clipping.
+/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/3
