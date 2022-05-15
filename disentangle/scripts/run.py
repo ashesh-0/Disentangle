@@ -33,7 +33,6 @@ flags.DEFINE_string("workdir", None, "Work directory.")
 flags.DEFINE_enum("mode", None, ["train", "eval"], "Running mode: train or eval")
 flags.DEFINE_string("evaldir", "eval", "The folder name for storing evaluation results")
 flags.DEFINE_string("datadir", '/tmp2/ashesh/ashesh/VAE_based/data/MNIST/noisy/', "Data directory.")
-flags.DEFINE_string('pretrained_ckptdir', '', 'the checkpoint directory of the noise prediction model')
 flags.DEFINE_boolean("use_max_version", False, "Overwrite the max version of the model")
 flags.mark_flags_as_required(["workdir", "config", "mode"])
 
@@ -120,13 +119,6 @@ def main(argv):
 
     add_git_info(config)
     config.workdir = cur_workdir
-
-    if 'noise_predictor_model_ckpt_dir' in config.loss and config.loss.loss_type == LossType.ElboCL:
-        config.loss.noise_predictor_model_ckpt_dir = FLAGS.pretrained_ckptdir
-    if 'pretrained_ckptdir' in config.data and config.model.model_type in [
-            ModelType.LatentNoiseChannelPredictor, ModelType.LadderVaeAdvClassifier
-    ]:
-        config.data.pretrained_ckptdir = FLAGS.pretrained_ckptdir
 
     if FLAGS.mode == "train":
         set_logger()

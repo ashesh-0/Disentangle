@@ -9,7 +9,6 @@ from torch import nn
 
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
-from disentangle.core.loss_type import LossType
 from disentangle.losses import free_bits_kl
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
@@ -227,10 +226,17 @@ class LadderVAE(pl.LightningModule):
             kl_weight = 1.0
         return kl_weight
 
-    def get_reconstruction_loss(self, reconstruction, input):
+    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False):
+        """
+        Args:
+            return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
+        """
         # Log likelihood
-        ll, _ = self.likelihood(reconstruction, input)
+        ll, like_dict = self.likelihood(reconstruction, input)
         recons_loss = -ll.mean()
+        if return_predicted_img:
+            return recons_loss, like_dict['params']['mean']
+
         return recons_loss
 
     def get_kl_divergence_loss(self, topdown_layer_data_dict):

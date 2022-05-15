@@ -11,6 +11,7 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
+from disentangle.nets.lvae_with_critic import LadderVAECritic
 
 
 def create_model(config, data_mean, data_std):
@@ -18,6 +19,8 @@ def create_model(config, data_mean, data_std):
         model = LadderVAE(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVaeTwinDecoder:
         model = LadderVAETwinDecoder(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVAECritic:
+        model = LadderVAECritic(data_mean, data_std, config)
     return model
 
 
