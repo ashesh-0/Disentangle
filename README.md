@@ -178,4 +178,8 @@ Here, increased the critic weight 0.1. What happened is the opposite effect. Ear
 I've couple of things in mind which I'll try:
     1. Increase the learning rate for the second optimizer. (ruth /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/0)
     2. Disable the critic loss in the first optimizer. In this case the model should give clear 0/1 predictions:
-        0 for the generated and 1 for the target.
+        0 for the generated and 1 for the target. (/home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/2)
+
+
+#TODO check if clipping the var leads to inferior performance.
+#TODO check if different mean and var with clipping on leads to better peformance.

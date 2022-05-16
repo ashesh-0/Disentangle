@@ -12,16 +12,25 @@ from disentangle.nets.lvae import LadderVAE
 class LadderVAECritic(LadderVAE):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
+        input_hw = config.data.image_size
+        dense_ch_list = [128, 64]
+        cnn_out_ch = 32
         self.D1 = define_D(1,
                            config.model.critic.ndf,
                            config.model.critic.netD,
                            n_layers_D=config.model.critic.layers_D,
-                           norm=config.model.critic.norm)
+                           norm=config.model.critic.norm,
+                           input_hw=input_hw,
+                           dense_ch_list=dense_ch_list,
+                           cnn_out_ch=cnn_out_ch)
         self.D2 = define_D(1,
                            config.model.critic.ndf,
                            config.model.critic.netD,
                            n_layers_D=config.model.critic.layers_D,
-                           norm=config.model.critic.norm)
+                           norm=config.model.critic.norm,
+                           input_hw=input_hw,
+                           dense_ch_list=dense_ch_list,
+                           cnn_out_ch=cnn_out_ch)
 
         self.critic_loss_weight = config.loss.critic_loss_weight
         self.critic_loss_fn = nn.BCEWithLogitsLoss()
@@ -99,7 +108,7 @@ class LadderVAECritic(LadderVAE):
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
             # Note the negative here. It will aim to maximize the discriminator loss.
-            # net_loss += -1 * self.critic_loss_weight * D_loss
+            net_loss += -1 * self.critic_loss_weight * D_loss
 
             for i, x in enumerate(td_data['debug_qvar_max']):
                 self.log(f'qvar_max:{i}', x.item(), on_epoch=True)

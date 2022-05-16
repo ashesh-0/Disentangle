@@ -56,7 +56,7 @@ def get_config():
     model.critic = ml_collections.ConfigDict()
     model.critic.ndf = 64
     model.critic.netD = 'n_layers'
-    model.critic.layers_D = 4
+    model.critic.layers_D = 2
     model.critic.norm = 'batch'
 
     training = config.training

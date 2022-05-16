@@ -4,13 +4,20 @@ https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix
 """
 
 import functools
+from operator import imod
 
+import torch
 import torch.nn as nn
 
 
 class Identity(nn.Module):
     def forward(self, x):
         return x
+
+
+class Reshape(nn.Module):
+    def forward(self, inp):
+        return inp.view(inp.shape[0], -1)
 
 
 def get_norm_layer(norm_type='instance'):
@@ -33,7 +40,7 @@ def get_norm_layer(norm_type='instance'):
     return norm_layer
 
 
-def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch'):
+def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch', input_hw=None, dense_ch_list=None, cnn_out_ch=None):
     """Create a discriminator
 
     Parameters:
@@ -42,7 +49,9 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch'):
         netD (str)         -- the architecture's name: basic | n_layers | pixel
         n_layers_D (int)   -- the number of conv layers in the discriminator; effective when netD=='n_layers'
         norm (str)         -- the type of normalization layers used in the network.
-
+        input_hw           -- input spatial size. We assume a square image.
+        dense_ch_list      -- list of dense channels
+        cnn_out_ch         -- output channel of the CNN subunit.
     Returns a discriminator
 
     Our current implementation provides three types of discriminators:
@@ -64,9 +73,25 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch'):
     norm_layer = get_norm_layer(norm_type=norm)
 
     if netD == 'basic':  # default PatchGAN classifier
-        net = NLayerDiscriminator(input_nc, ndf, n_layers=3, norm_layer=norm_layer)
+        net = NLayerDiscriminator(
+            input_nc,
+            ndf,
+            n_layers=3,
+            norm_layer=norm_layer,
+            input_hw=input_hw,
+            dense_ch_list=dense_ch_list,
+            cnn_out_ch=cnn_out_ch,
+        )
     elif netD == 'n_layers':  # more options
-        net = NLayerDiscriminator(input_nc, ndf, n_layers_D, norm_layer=norm_layer)
+        net = NLayerDiscriminator(
+            input_nc,
+            ndf,
+            n_layers_D,
+            norm_layer=norm_layer,
+            input_hw=input_hw,
+            dense_ch_list=dense_ch_list,
+            cnn_out_ch=cnn_out_ch,
+        )
     elif netD == 'pixel':  # classify if each pixel is real or fake
         net = PixelDiscriminator(input_nc, ndf, norm_layer=norm_layer)
     else:
@@ -76,7 +101,14 @@ def define_D(input_nc, ndf, netD, n_layers_D=3, norm='batch'):
 
 class NLayerDiscriminator(nn.Module):
     """Defines a PatchGAN discriminator"""
-    def __init__(self, input_nc, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d):
+    def __init__(self,
+                 input_nc,
+                 ndf=64,
+                 n_layers=3,
+                 norm_layer=nn.BatchNorm2d,
+                 input_hw=None,
+                 dense_ch_list=None,
+                 cnn_out_ch: int = None):
         """Construct a PatchGAN discriminator
 
         Parameters:
@@ -84,8 +116,13 @@ class NLayerDiscriminator(nn.Module):
             ndf (int)       -- the number of filters in the last conv layer
             n_layers (int)  -- the number of conv layers in the discriminator
             norm_layer      -- normalization layer
+            dense_ch_list   -- If we want to add a dense layer at the end, we provide here the list of channels for the dnese layer.
+            cnn_out_ch      -- output channels for the CNN portion.
         """
         super(NLayerDiscriminator, self).__init__()
+        self.input_hw = input_hw
+        self.dense_ch_list = dense_ch_list
+
         if type(norm_layer) == functools.partial:  # no need to use bias as BatchNorm2d has affine parameters
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
@@ -113,9 +150,32 @@ class NLayerDiscriminator(nn.Module):
             nn.LeakyReLU(0.2, True)
         ]
 
-        sequence += [nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1,
+        sequence += [nn.Conv2d(ndf * nf_mult, cnn_out_ch, kernel_size=kw, stride=1,
                                padding=padw)]  # output 1 channel prediction map
-        self.model = nn.Sequential(*sequence)
+        self.cnn_model = nn.Sequential(*sequence)
+        # dense portion now
+        if self.dense_ch_list is not None:
+            self.add_dense_layers(input_hw, input_nc, cnn_out_ch)
+        else:
+            self.model = self.cnn_model
+
+    def add_dense_layers(self, input_hw, input_nc, cnn_out_ch):
+        # finding the shape of the output coming out of CNN module
+        with torch.no_grad():
+            inp = torch.rand(1, input_nc, input_hw, input_hw)
+            hw = self.cnn_model(inp).shape[-1]
+        # the last channel is 1
+        dense = self.get_dense(hw * hw * cnn_out_ch, self.dense_ch_list + [1])
+        self.model = nn.Sequential(self.cnn_model, Reshape(), dense)
+
+    def get_dense(self, in_channels, fc_list):
+        modules = []
+        for i, fc in enumerate(fc_list):
+            modules.append(nn.Linear(in_channels, fc))
+            if i < len(fc_list) - 1:
+                modules.append(nn.LeakyReLU(0.2, True))
+            in_channels = fc
+        return nn.Sequential(*modules)
 
     def forward(self, input):
         """Standard forward."""
