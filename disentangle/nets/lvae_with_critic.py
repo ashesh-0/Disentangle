@@ -76,9 +76,15 @@ class LadderVAECritic(LadderVAE):
         """
         pred1, pred2 = pred_normalized.chunk(2, dim=1)
         tar1, tar2 = target_normalized.chunk(2, dim=1)
-        loss1 = self.get_critic_loss(pred1, tar1, self.D1)
-        loss2 = self.get_critic_loss(pred2, tar2, self.D2)
-        return {'loss': (loss1 + loss2) / 2, 'loss_Label1': loss1, 'loss_Label2': loss2}
+        loss1, avg_pred_dict1 = self.get_critic_loss(pred1, tar1, self.D1)
+        loss2, avg_pred_dict2 = self.get_critic_loss(pred2, tar2, self.D2)
+        return {
+            'loss': (loss1 + loss2) / 2,
+            'loss_Label1': loss1,
+            'loss_Label2': loss2,
+            'avg_Label1': avg_pred_dict1,
+            'avg_Label2': avg_pred_dict2,
+        }
 
     def get_critic_loss(self, pred: torch.Tensor, tar: torch.Tensor, D) -> torch.Tensor:
         """
@@ -93,7 +99,8 @@ class LadderVAECritic(LadderVAE):
         tar_label = D(tar)
         loss_0 = self.critic_loss_fn(pred_label, torch.zeros_like(pred_label))
         loss_1 = self.critic_loss_fn(tar_label, torch.ones_like(tar_label))
-        return loss_0 + loss_1
+        loss = loss_0 + loss_1
+        return loss, {'generated': torch.sigmoid(pred_label).mean(), 'actual': torch.sigmoid(tar_label).mean()}
 
     def training_step(self, batch: tuple, batch_idx: int, optimizer_idx: int):
         x, target = batch
@@ -104,7 +111,8 @@ class LadderVAECritic(LadderVAE):
 
         if optimizer_idx == 0:
             kl_loss = self.get_kl_divergence_loss(td_data)
-            D_loss = self.get_critic_loss_stats(pred_nimg, target_normalized)['loss']
+            critic_dict = self.get_critic_loss_stats(pred_nimg, target_normalized)
+            D_loss = critic_dict['loss']
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
             # Note the negative here. It will aim to maximize the discriminator loss.
@@ -117,6 +125,11 @@ class LadderVAECritic(LadderVAE):
             self.log('kl_loss', kl_loss, on_epoch=True)
             self.log('training_loss', net_loss, on_epoch=True)
             self.log('D_loss', D_loss, on_epoch=True)
+            self.log('L1_generated_probab', critic_dict['avg_Label1']['generated'], on_epoch=True)
+            self.log('L1_actual_probab', critic_dict['avg_Label1']['actual'], on_epoch=True)
+            self.log('L2_generated_probab', critic_dict['avg_Label2']['generated'], on_epoch=True)
+            self.log('L2_actual_probab', critic_dict['avg_Label2']['actual'], on_epoch=True)
+
             output = {
                 'loss': net_loss,
                 'reconstruction_loss': recons_loss.detach(),
