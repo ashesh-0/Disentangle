@@ -169,3 +169,13 @@ With MSE, I see that the best cases are mainly those where there is very little 
 
 To fix the variance exploding problem I've added a maximum value limit on the variance. I simply use clipping.
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/3
+
+/home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/0
+Here, critic was not giving any significant prediction for either target  or generated.
+
+/home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/1
+Here, increased the critic weight 0.1. What happened is the opposite effect. Earlier, both generated and target images were giving roughly similar predictions in the discriminator. However, now, the generated images have much higher values than what the target images have. As far as updating the weights are concerned, they are geting updated correctly. I  see that after optimizer 1 runs, the weights are updated in the VAE model. After optimizer 2 runs, weights are updated for the D model.
+I've couple of things in mind which I'll try:
+    1. Increase the learning rate for the second optimizer. 
+    2. Disable the critic loss in the first optimizer. In this case the model should give clear 0/1 predictions:
+        0 for the generated and 1 for the target.
