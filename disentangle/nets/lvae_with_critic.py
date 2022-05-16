@@ -33,7 +33,7 @@ class LadderVAECritic(LadderVAE):
 
         optimizer1 = optim.Adamax(params1, lr=self.lr, weight_decay=0)
         params2 = list(self.D1.parameters()) + list(self.D2.parameters())
-        optimizer2 = optim.Adamax(params2, lr=10 * self.lr, weight_decay=0)
+        optimizer2 = optim.Adamax(params2, lr=self.lr, weight_decay=0)
 
         scheduler1 = optim.lr_scheduler.ReduceLROnPlateau(optimizer1,
                                                           'min',
@@ -99,7 +99,7 @@ class LadderVAECritic(LadderVAE):
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
             # Note the negative here. It will aim to maximize the discriminator loss.
-            net_loss += -1 * self.critic_loss_weight * D_loss
+            # net_loss += -1 * self.critic_loss_weight * D_loss
 
             for i, x in enumerate(td_data['debug_qvar_max']):
                 self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
