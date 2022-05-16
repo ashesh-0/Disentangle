@@ -50,12 +50,12 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 1000
+    training.lr_scheduler_patience = 30
     training.max_epochs = 20000
     training.batch_size = 8
     training.num_workers = 4
     training.val_repeat_factor = 50
     training.train_repeat_factor = 10
     training.val_fraction = 0.2
-    config.training.earlystop_patience = 5000
+    config.training.earlystop_patience = 100
     return config
