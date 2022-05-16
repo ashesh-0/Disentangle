@@ -17,12 +17,14 @@ class MultiChTiffDloader(TiffLoader):
                  enable_flips: bool = False,
                  repeat_factor: int = 1,
                  thresh: float = None,
-                 normalized_input=None):
+                 normalized_input=None,
+                 use_one_mu_std=None):
         super().__init__(img_sz,
                          enable_flips=enable_flips,
                          thresh=thresh,
                          repeat_factor=repeat_factor,
                          normalized_input=normalized_input)
+        assert isinstance(use_one_mu_std, bool)
         self._fpath = fpath
         self._is_train = is_train
         self._data = train_val_data(self._fpath, is_train, channel_1, channel_2, val_fraction=val_fraction)
@@ -32,7 +34,7 @@ class MultiChTiffDloader(TiffLoader):
 
         self._mean = None
         self._std = None
-
+        self._use_one_mu_std = use_one_mu_std
         self.N = len(self._data)
         msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
         msg += f' Train:{int(is_train)} N:{self.N} Flip:{int(enable_flips)} Repeat:{repeat_factor}'
@@ -56,11 +58,13 @@ class MultiChTiffDloader(TiffLoader):
         Note that we must compute this only for training data.
         """
         assert self._is_train is True or allow_for_validation_data, 'This is just allowed for training data'
-        mean = np.mean(self._data, axis=(0, 1, 2))
-        std = np.std(self._data, axis=(0, 1, 2))
-        return mean[None, :, None, None], std[None, :, None, None]
-        # mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
-        # std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
-        # mean = np.repeat(mean, 2, axis=1)
-        # std = np.repeat(std, 2, axis=1)
-        # return mean, std
+        if self._use_one_mu_std:
+            mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
+            std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
+            mean = np.repeat(mean, 2, axis=1)
+            std = np.repeat(std, 2, axis=1)
+        else:
+            mean = np.mean(self._data, axis=(0, 1, 2))
+            std = np.std(self._data, axis=(0, 1, 2))
+            return mean[None, :, None, None], std[None, :, None, None]
+        return mean, std

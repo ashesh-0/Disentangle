@@ -20,6 +20,9 @@ def get_config():
     data.threshold = 0.02
     data.deterministic_grid = True
     data.normalized_input = True
+    # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
+    # meean and stdev are used.
+    data.use_one_mu_std = True
 
     loss = config.loss
     loss.loss_type = LossType.ElboWithCritic

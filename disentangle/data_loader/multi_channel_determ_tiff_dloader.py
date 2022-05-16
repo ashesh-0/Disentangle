@@ -13,13 +13,16 @@ class MultiChDeterministicTiffDloader:
                  channel_2: int,
                  is_train: Union[None, bool] = None,
                  val_fraction=None,
-                 normalized_input=None):
+                 normalized_input=None,
+                 use_one_mu_std=None):
         """
         Here, an image is split into grids of size img_sz. 
         Args:
             repeat_factor: Since we are doing a random crop, repeat_factor is
-            given which can repeatedly sample from the same image. If self.N=12
-            and repeat_factor is 5, then index upto 12*5 = 60 is allowed.
+                given which can repeatedly sample from the same image. If self.N=12
+                and repeat_factor is 5, then index upto 12*5 = 60 is allowed.
+            use_one_mu_std: If this is set to true, then one mean and stdev is used 
+                for both channels. Otherwise, two different meean and stdev are used.
 
         """
         self._img_sz = img_sz
@@ -35,10 +38,12 @@ class MultiChDeterministicTiffDloader:
         self._is_train = is_train
         self._mean = None
         self._std = None
+        self._use_one_mu_std = use_one_mu_std
 
         msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
         msg += f' Train:{int(is_train)} N:{self.N} Repeat:{self._repeat_factor}'
         msg += f' NormInp:{self._normalized_input}'
+        msg += f' SingleNorm:{self._use_one_mu_std}'
         print(msg)
 
     def _crop_determinstic(self, index, img1: np.ndarray, img2: np.ndarray):
@@ -107,14 +112,16 @@ class MultiChDeterministicTiffDloader:
         Note that we must compute this only for training data.
         """
         assert self._is_train is True or allow_for_validation_data, 'This is just allowed for training data'
-        mean = np.mean(self._data, axis=(0, 1, 2))
-        std = np.std(self._data, axis=(0, 1, 2))
-        return mean[None, :, None, None], std[None, :, None, None]
-        # mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
-        # std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
-        # mean = np.repeat(mean, 2, axis=1)
-        # std = np.repeat(std, 2, axis=1)
-        # return mean, std
+        if self._use_one_mu_std:
+            mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
+            std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
+            mean = np.repeat(mean, 2, axis=1)
+            std = np.repeat(std, 2, axis=1)
+            return mean, std
+        else:
+            mean = np.mean(self._data, axis=(0, 1, 2))
+            std = np.std(self._data, axis=(0, 1, 2))
+            return mean[None, :, None, None], std[None, :, None, None]
 
     def _get_img(self, index: int):
         """
