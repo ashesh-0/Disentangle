@@ -57,7 +57,7 @@ def get_config():
     model.critic.ndf = 64
     model.critic.netD = 'n_layers'
     model.critic.layers_D = 2
-    model.critic.norm = 'batch'
+    model.critic.norm = 'none'
 
     training = config.training
     training.lr = 0.001

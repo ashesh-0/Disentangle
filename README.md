@@ -184,3 +184,9 @@ I've couple of things in mind which I'll try:
 
 #TODO check if clipping the var leads to inferior performance. (ruth /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/10)
 #TODO check if different mean and var with clipping on leads to better peformance.
+
+Added logging in the critic's output to check what is happeniing. also enabled dense layers (tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/3)
+# May 17
+One thing is that the discriminator needs to be created based on local'ish' features and not super global features. It therefore does not make sense to have a pretty deep discriminator. 
+But then we need to see what is the kind of structure which is getting seeped into the reconstruction. Once we do that, we can then decide upon what should be the best structure for it. 
+
