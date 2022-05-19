@@ -195,3 +195,10 @@ I observe that when I do not use a batchnormalization, the discriminator loss is
 I'm talking about the critic loss. For the reconstruction loss, things match almost perfectly. 
 However, this does not solve the issue. I see that in the main model, we have used the batch2dnormalization a number of times and there is no issue there. So, then it does not make sense why 
 this should affect only the discriminator.
+
+
+I think before I optimize the critic based setup, I should look into these four experiments as it is very likely that I may get a better performance by doing them.
+Exp 1: Enable Learning rate scheduler
+Exp 2: Add Rotation in Augmentation on training data
+Exp 3: Work with 16 bit precision
+Exp 4: Image size: Increase the size.
