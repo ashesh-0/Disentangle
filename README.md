@@ -190,3 +190,8 @@ Added logging in the critic's output to check what is happeniing. also enabled d
 One thing is that the discriminator needs to be created based on local'ish' features and not super global features. It therefore does not make sense to have a pretty deep discriminator. 
 But then we need to see what is the kind of structure which is getting seeped into the reconstruction. Once we do that, we can then decide upon what should be the best structure for it. 
 
+consistent notebook issue:
+I observe that when I do not use a batchnormalization, the discriminator loss is quite meaningful. Although, I must say that  I don't get the training loss which I observe while training. Here 
+I'm talking about the critic loss. For the reconstruction loss, things match almost perfectly. 
+However, this does not solve the issue. I see that in the main model, we have used the batch2dnormalization a number of times and there is no issue there. So, then it does not make sense why 
+this should affect only the discriminator.

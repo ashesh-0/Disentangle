@@ -1,5 +1,5 @@
 """
-functions used in notebooks
+Functions used in Critic notebooks
 """
 import numpy as np
 import torch
@@ -53,6 +53,7 @@ def get_mmse_dict(model, x_normalized, target_normalized, mmse_count):
         img_mmse += recon_img / mmse_count
 
     D_loss = model.get_critic_loss_stats(recon_img, target_normalized)['loss'].cpu().item()
+    ll, dic = model.likelihood(recon_normalized, target_normalized)
 
     cpred_1, cpred_2 = get_critic_prediction(model, recon_img, target_normalized)
     loss_mmse = model.likelihood.log_likelihood(target_normalized, {'mean': img_mmse})
