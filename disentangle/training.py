@@ -132,7 +132,8 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             logger=logger,
             #  profiler=profiler,
             callbacks=callbacks,
-            weights_summary=weights_summary)
+            weights_summary=weights_summary,
+            precision=config.training.precision)
     else:
         trainer = pl.Trainer(
             max_epochs=config.training.max_epochs,
@@ -142,7 +143,8 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             callbacks=callbacks,
             #  fast_dev_run=100,
             # overfit_batches=10,
-            weights_summary=weights_summary)
+            weights_summary=weights_summary,
+            precision=config.training.precision)
     trainer.fit(model, train_loader, val_loader)
 
 

@@ -171,7 +171,7 @@ To fix the variance exploding problem I've added a maximum value limit on the va
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/3
 
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/0
-Here, critic was not giving any significant prediction for either target  or generated.
+Here
 
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/1
 Here, increased the critic weight 0.1. What happened is the opposite effect. Earlier, both generated and target images were giving roughly similar predictions in the discriminator. However, now, the generated images have much higher values than what the target images have. As far as updating the weights are concerned, they are geting updated correctly. I  see that after optimizer 1 runs, the weights are updated in the VAE model. After optimizer 2 runs, weights are updated for the D model.
@@ -191,14 +191,27 @@ One thing is that the discriminator needs to be created based on local'ish' feat
 But then we need to see what is the kind of structure which is getting seeped into the reconstruction. Once we do that, we can then decide upon what should be the best structure for it. 
 
 consistent notebook issue:
-I observe that when I do not use a batchnormalization, the discriminator loss is quite meaningful. Although, I must say that  I don't get the training loss which I observe while training. Here 
+I observe that when I do not use a batchnormalization, the discriminator loss is quite meaningful.(/home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/4)
+Although, I must say that  I don't get the training loss which I observe while training. Here 
 I'm talking about the critic loss. For the reconstruction loss, things match almost perfectly. 
 However, this does not solve the issue. I see that in the main model, we have used the batch2dnormalization a number of times and there is no issue there. So, then it does not make sense why 
 this should affect only the discriminator.
 
 
 I think before I optimize the critic based setup, I should look into these four experiments as it is very likely that I may get a better performance by doing them.
-Exp 1: Enable Learning rate scheduler
-Exp 2: Add Rotation in Augmentation on training data
-Exp 3: Work with 16 bit precision
+Exp 0: Observe how good the performance becomes when increasing the image size.
+Exp 1: Enable Learning rate scheduler => /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/11
+Exp 2: Work with 16 bit precision
+Exp 3: Add Rotation in Augmentation on training data
 Exp 4: Image size: Increase the size.
+Exp 5: Look at the optimal PSNR code and use it from there.
+
+## Exp 0
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/4
+128 => Rec:0.010008, Rec L1:0.009271 Rec L2:0.010606, PSNR L1:18.40 PSNR L2:25.37
+256 => Rec:0.009056, Rec L1:0.008398 Rec L2:0.009766, PSNR L1:20.29 PSNR L2:28.78
+512 => Rec:0.008922, Rec L1:0.008279 Rec L2:0.009643, PSNR L1:23.20 PSNR L2:31.26
+512 => Rec:0.008967, Rec L1:0.008279 Rec L2:0.009633, PSNR L1:23.21 PSNR L2:31.26
+1024=> Rec:0.009800, Rec L1:0.009087 Rec L2:0.010522, PSNR L1:28.64 PSNR L2:31.26
+
+256 then seems to be the optimal 
