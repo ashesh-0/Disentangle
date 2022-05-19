@@ -1,5 +1,6 @@
 from typing import Tuple, Union
 
+import albumentations as A
 import numpy as np
 
 from disentangle.data_loader.multi_channel_train_val_data import train_val_data
@@ -14,6 +15,7 @@ class MultiChDeterministicTiffDloader:
                  is_train: Union[None, bool] = None,
                  val_fraction=None,
                  normalized_input=None,
+                 enable_rotation_aug: bool = False,
                  use_one_mu_std=None):
         """
         Here, an image is split into grids of size img_sz. 
@@ -39,11 +41,15 @@ class MultiChDeterministicTiffDloader:
         self._mean = None
         self._std = None
         self._use_one_mu_std = use_one_mu_std
+        self._enable_rotation = enable_rotation_aug
+        # Randomly rotate [-90,90]
+        self._rotation_transform = A.Rotate(p=1) if self._enable_rotation else None
 
         msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
         msg += f' Train:{int(is_train)} N:{self.N} Repeat:{self._repeat_factor}'
         msg += f' NormInp:{self._normalized_input}'
         msg += f' SingleNorm:{self._use_one_mu_std}'
+        msg += f' Rot:{self._enable_rotation}'
         print(msg)
 
     def _crop_determinstic(self, index, img1: np.ndarray, img2: np.ndarray):
@@ -134,6 +140,11 @@ class MultiChDeterministicTiffDloader:
 
     def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
         img1, img2 = self._get_img(index)
+        if self._enable_rotation:
+            rot_dic = self._rotation_transform(image=img1, mask=img2)
+            img1 = rot_dic['image']
+            img2 = rot_dic['mask']
+
         target = np.concatenate([img1, img2], axis=0)
         if self._normalized_input:
             img1, img2 = self.normalize_img(img1, img2)

@@ -19,6 +19,7 @@ def get_config():
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
+    data.train_aug_rotate = True
 
     loss = config.loss
     loss.loss_type = LossType.Elbo

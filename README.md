@@ -200,10 +200,10 @@ this should affect only the discriminator.
 
 I think before I optimize the critic based setup, I should look into these four experiments as it is very likely that I may get a better performance by doing them.
 Exp 0: Observe how good the performance becomes when increasing the image size.
-Exp 1: Enable Learning rate scheduler => /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/11
-Exp 2: Work with 16 bit precision
-Exp 3: Add Rotation in Augmentation on training data
-Exp 4: Image size: Increase the size.
+Exp 1: Enable Learning rate scheduler => rutherford /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/11
+Exp 2: Work with 16 bit precision (a baseline for other models)
+Exp 3: Image size: Increase the size. (with 16 bit precision) turing /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/8
+Exp 4: Add Rotation in Augmentation on training data
 Exp 5: Look at the optimal PSNR code and use it from there.
 
 ## Exp 0

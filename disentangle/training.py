@@ -49,6 +49,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
         normalized_input = config.data.normalized_input
         use_one_mu_std = config.data.use_one_mu_std
+        train_aug_rotate = config.data.train_aug_rotate
         if 'deterministic_grid' in config.data and config.data.deterministic_grid is True:
             train_data = None if skip_train_dataset else MultiChDeterministicTiffDloader(
                 config.data.image_size,
@@ -58,15 +59,19 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 is_train=True,
                 val_fraction=config.training.val_fraction,
                 normalized_input=normalized_input,
-                use_one_mu_std=use_one_mu_std)
-            val_data = MultiChDeterministicTiffDloader(config.data.image_size,
-                                                       datapath,
-                                                       config.data.channel_1,
-                                                       config.data.channel_2,
-                                                       is_train=False,
-                                                       val_fraction=config.training.val_fraction,
-                                                       normalized_input=normalized_input,
-                                                       use_one_mu_std=use_one_mu_std)
+                use_one_mu_std=use_one_mu_std,
+                enable_rotation_aug=train_aug_rotate)
+            val_data = MultiChDeterministicTiffDloader(
+                config.data.image_size,
+                datapath,
+                config.data.channel_1,
+                config.data.channel_2,
+                is_train=False,
+                val_fraction=config.training.val_fraction,
+                normalized_input=normalized_input,
+                use_one_mu_std=use_one_mu_std,
+                enable_rotation_aug=False  # No rotation aug on validation
+            )
 
         else:
             train_data = None if skip_train_dataset else MultiChTiffDloader(
