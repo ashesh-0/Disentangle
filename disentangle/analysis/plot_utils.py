@@ -58,7 +58,7 @@ def get_worst_k(arr, N):
     return ind[np.argsort(arr[ind])]
 
 
-def plot_imgs_from_idx(idx_list, val_dset, model):
+def plot_imgs_from_idx(idx_list, val_dset, model, model_type):
     """
     Plots  images and their disentangled predictions. Input is a list of idx for which this is done.
     """
