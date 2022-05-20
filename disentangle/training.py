@@ -105,7 +105,6 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
 
 def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callback, train_loader, val_loader,
                            weights_summary):
-
     # tensorboard previous files.
     for filename in glob.glob(config.workdir + "/events*"):
         os.remove(filename)
