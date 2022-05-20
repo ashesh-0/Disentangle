@@ -242,7 +242,15 @@ Exp 2: Work with 16 bit precision (a baseline for other models)
 Exp 3: Image size: Increase the size. (with 16 bit precision) turing
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/8
 Exp 4: Add Rotation in Augmentation on training data (tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/9)
+Rec:0.009270 KL:nan
+Rec L1:0.009228 Rec L2:0.009337
+PSNR L1:20.10 PSNR L2:29.18
+I think there is one reason as to why this performance might not have improved as much as I would've liked it to.
+When you rotate a crop by some angle, you, on average, increase the zero space. One way to avoid it would be to allow
+for just 4 rotations. In this case, I'll not have that issue. Another thing is to allow for flipping
 Exp 5: Look at the optimal PSNR code and use it from there.
+
+Exp 3: turing /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/8
 
 ## Exp 0
 
@@ -252,5 +260,4 @@ tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/4
 512 => Rec:0.008922, Rec L1:0.008279 Rec L2:0.009643, PSNR L1:23.20 PSNR L2:31.26
 512 => Rec:0.008967, Rec L1:0.008279 Rec L2:0.009633, PSNR L1:23.21 PSNR L2:31.26
 1024=> Rec:0.009800, Rec L1:0.009087 Rec L2:0.010522, PSNR L1:28.64 PSNR L2:31.26
-
 256 then seems to be the optimal 

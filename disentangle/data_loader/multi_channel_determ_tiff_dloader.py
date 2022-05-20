@@ -36,14 +36,17 @@ class MultiChDeterministicTiffDloader:
         self._data[self._data > max_val] = max_val
 
         self.N = len(self._data)
-        self._repeat_factor = (self._data.shape[-2] // self._img_sz)**2
+        self._repeat_factor = (self._data.shape[-2] // self._img_sz) ** 2
         self._is_train = is_train
         self._mean = None
         self._std = None
         self._use_one_mu_std = use_one_mu_std
         self._enable_rotation = enable_rotation_aug
         # Randomly rotate [-90,90]
-        self._rotation_transform = A.Rotate(p=1) if self._enable_rotation else None
+
+        self._rotation_transform = None
+        if self._enable_rotation:
+            self._rotation_transform = A.Compose([A.Flip(), A.RandomRotate90()])
 
         msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
         msg += f' Train:{int(is_train)} N:{self.N} Repeat:{self._repeat_factor}'
@@ -141,10 +144,10 @@ class MultiChDeterministicTiffDloader:
     def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
         img1, img2 = self._get_img(index)
         if self._enable_rotation:
-            rot_dic = self._rotation_transform(image=img1, mask=img2)
-            img1 = rot_dic['image']
-            img2 = rot_dic['mask']
-
+            # passing just the 2D input. 3rd dimension messes up things.
+            rot_dic = self._rotation_transform(image=img1[0], mask=img2[0])
+            img1 = rot_dic['image'][None]
+            img2 = rot_dic['mask'][None]
         target = np.concatenate([img1, img2], axis=0)
         if self._normalized_input:
             img1, img2 = self.normalize_img(img1, img2)
