@@ -78,7 +78,7 @@ def plot_imgs_from_idx(idx_list, val_dset, model, model_type):
 
             recon_normalized, td_data = model(x_normalized)
             imgs = get_img_from_forward_output(recon_normalized, model)
-            loss_dic = get_mmse_dict(model, x_normalized, target_normalized, 1)
+            loss_dic = get_mmse_dict(model, x_normalized, target_normalized, 1, model_type)
             ll1, ll2 = get_label_separated_loss(loss_dic['mmse_rec_loss'])
 
             inp = inp.cpu().numpy()
