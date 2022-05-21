@@ -252,8 +252,10 @@ changes and will shortly start the training.
 turing /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/10 (flipping + 90rotation)
 I don't see any improvement. Idea now is to find the bottleneck. What is limiting the performance. Atleast the training
 error has to go down.
-/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/11 (reduced kl_weight=0.005
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/11 (reduced kl_weight=0.005
 and increased max_var=8)
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/12 (increase depth and channel count)
+ruth /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/12 (increase depth even further and channel count)
 My interpretation of the increased variance is that it allows to capture a larger amount of the subspace. However, the
 counter argument is that with larger variance it is difficult to ascertain what would be the sampled z. And so, the
 model would essentially behave very similar for nearby mean values. I think, it then makes sense to look at for which
