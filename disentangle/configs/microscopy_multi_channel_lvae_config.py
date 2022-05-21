@@ -32,13 +32,13 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128]
+    model.z_dims = [256, 256, 256, 256, 256]
     model.blocks_per_layer = 5
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True
     model.stochastic_skip = True
-    model.n_filters = 64
+    model.n_filters = 256
     model.dropout = 0.2
     model.learn_top_prior = True
     model.img_shape = None

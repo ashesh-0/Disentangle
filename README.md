@@ -250,6 +250,16 @@ When you rotate a crop by some angle, you, on average, increase the zero space. 
 for just 4 rotations. In this case, I'll not have that issue. Another thing is to allow for flipping. I've made those
 changes and will shortly start the training.
 turing /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/10 (flipping + 90rotation)
+I don't see any improvement. Idea now is to find the bottleneck. What is limiting the performance. Atleast the training
+error has to go down.
+/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/11 (reduced kl_weight=0.005
+and increased max_var=8)
+My interpretation of the increased variance is that it allows to capture a larger amount of the subspace. However, the
+counter argument is that with larger variance it is difficult to ascertain what would be the sampled z. And so, the
+model would essentially behave very similar for nearby mean values. I think, it then makes sense to look at for which
+images, do the stdev() in q() gets very high:
+a) is it only few worse examples or is it all examples in general.
+b) Also, is it for few channels or is it on all channels?
 
 Exp 5: Look at the optimal PSNR code and use it from there.
 
@@ -261,4 +271,5 @@ tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/4
 512 => Rec:0.008922, Rec L1:0.008279 Rec L2:0.009643, PSNR L1:23.20 PSNR L2:31.26
 512 => Rec:0.008967, Rec L1:0.008279 Rec L2:0.009633, PSNR L1:23.21 PSNR L2:31.26
 1024=> Rec:0.009800, Rec L1:0.009087 Rec L2:0.010522, PSNR L1:28.64 PSNR L2:31.26
-256 then seems to be the optimal 
+256 then seems to be the optimal
+
