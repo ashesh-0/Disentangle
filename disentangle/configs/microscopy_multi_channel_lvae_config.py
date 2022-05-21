@@ -23,7 +23,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.kl_weight = 0.01
+    loss.kl_weight = 0.005
     loss.kl_annealing = False
     loss.kl_annealtime = 10
     loss.kl_start = -1
@@ -47,7 +47,7 @@ def get_config():
     model.no_initial_downscaling = True
     model.analytical_kl = True
     model.mode_pred = False
-    model.var_clip_max = 5
+    model.var_clip_max = 8
 
     training = config.training
     training.lr = 0.001

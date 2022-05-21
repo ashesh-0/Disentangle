@@ -247,10 +247,11 @@ Rec L1:0.009228 Rec L2:0.009337
 PSNR L1:20.10 PSNR L2:29.18
 I think there is one reason as to why this performance might not have improved as much as I would've liked it to.
 When you rotate a crop by some angle, you, on average, increase the zero space. One way to avoid it would be to allow
-for just 4 rotations. In this case, I'll not have that issue. Another thing is to allow for flipping
-Exp 5: Look at the optimal PSNR code and use it from there.
+for just 4 rotations. In this case, I'll not have that issue. Another thing is to allow for flipping. I've made those
+changes and will shortly start the training.
+turing /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/10 (flipping + 90rotation)
 
-Exp 3: turing /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/8
+Exp 5: Look at the optimal PSNR code and use it from there.
 
 ## Exp 0
 
