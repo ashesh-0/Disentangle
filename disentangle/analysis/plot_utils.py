@@ -52,21 +52,22 @@ def plot_one_batch_twinnoise(imgs, plot_width=20):
         ax[1, i].axis('off')
 
 
-def get_worst_k(arr, N):
+def get_k_largest_indices(arr: np.ndarray, K: int):
     """
-    Returns the k lowest elements, in the sorted order.
+    Returns the index for K largest elements, in the order small->large.
     """
-    ind = np.argpartition(arr, -1 * N)[-1 * N:]
+    ind = np.argpartition(arr, -1 * K)[-1 * K:]
     return ind[np.argsort(arr[ind])]
 
 
-def add_subplot_axes(ax, rect, facecolor='w', min_labelsize=5):
+def add_subplot_axes(ax, rect: List[float], facecolor: str = 'w', min_labelsize: int = 5):
     """
     Add an axes inside an axes. This can be used to create an inset plot.
     Adapted from https://stackoverflow.com/questions/17458580/embedding-small-plots-inside-subplots-in-matplotlib
     Args:
         ax: matplotblib.axes
-        rect: Where to position the new axes inside the current axes ax.
+        rect: Array with 4 elements describing where to position the new axes inside the current axes ax.
+            eg: [0.1,0.1,0.4,0.2]
         facecolor: what should be the background color of the new axes
         min_labelsize: what should be the minimum labelsize in the new axes
     """

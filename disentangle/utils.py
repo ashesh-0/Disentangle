@@ -117,7 +117,7 @@ def extract_patches(x, patch_size, num_patches):
     img_width = x.shape[2]
     img_height = x.shape[1]
     if (num_patches is None):
-        num_patches = int(float(img_width * img_height) / float(patch_size**2) * 2)
+        num_patches = int(float(img_width * img_height) / float(patch_size ** 2) * 2)
     patches = np.zeros(shape=(x.shape[0] * num_patches, patch_size, patch_size))
 
     for i in tqdm(range(x.shape[0])):
@@ -199,13 +199,13 @@ def getSamples(vae, size=20, zSize=64, mu=None, logvar=None, samples=1, tq=False
 
 
 def interpolate(
-    vae,
-    z_start,
-    z_end,
-    steps,
-    display,
-    vmin=0,
-    vmax=255,
+        vae,
+        z_start,
+        z_end,
+        steps,
+        display,
+        vmin=0,
+        vmax=255,
 ):
     results = []
     for i in range(steps):
@@ -234,7 +234,6 @@ def tiledMode(im, ps, overlap, display=True, vmin=0, vmax=255, initBW=200, minBW
     while (xmin < im.shape[2]):
         ovTop = 0
         while (ymin < im.shape[1]):
-
             inputPatch = im[:, ymin:ymax, xmin:xmax]
             a = findMode(inputPatch, initBW, minBW, reduce)
             a = a[:a.shape[0], :a.shape[1]]
@@ -267,7 +266,7 @@ def findClosest(samples, q):
     q: image(array)
         Image to which the closest image needs to be found.
     """
-    dif = np.mean(np.mean((samples - q)**2, -1), -1)
+    dif = np.mean(np.mean((samples - q) ** 2, -1), -1)
     return samples[np.argmin(dif)]
 
 
@@ -338,7 +337,7 @@ def plotProbabilityDistribution(signalBinIndex, histogram, gaussianMixtureNoiseM
     plt.subplot(1, 2, 1)
     plt.xlabel('Observation Bin')
     plt.ylabel('Signal Bin')
-    plt.imshow(histogram**0.25, cmap='gray')
+    plt.imshow(histogram ** 0.25, cmap='gray')
     plt.axhline(y=signalBinIndex + 0.5, linewidth=5, color='blue', alpha=0.5)
 
     plt.subplot(1, 2, 2)
@@ -396,18 +395,44 @@ def normalize_minmse(x, target):
     return alpha * x + beta
 
 
-def PSNR(gt, img):
+def PSNR(gt, pred, range_=None):
     '''
-    Compute PSNR.
-    Parameters
-    ----------
-    gt: array
-        Ground truth image.
-    img: array
-        Predicted image.
+        Compute PSNR.
+        Parameters
+        ----------
+        gt: array
+            Ground truth image.
+        img: array
+            Predicted image.
     '''
-    mse = np.mean(np.square(gt - img))
-    return 20 * np.log10(np.max(gt) - np.min(gt)) - 10 * np.log10(mse)
+    if range_ is None:
+        range_ = np.max(gt) - np.min(gt)
+    mse = np.mean((gt - pred) ** 2)
+    return 20 * np.log10((range_) / np.sqrt(mse))
+
+
+def zero_mean(x):
+    return x - np.mean(x)
+
+
+def fix_range(gt, x):
+    a = np.sum(gt * x) / (np.sum(x * x))
+    return x * a
+
+
+def fix(gt, x):
+    gt_ = zero_mean(gt)
+    return fix_range(gt_, zero_mean(x))
+
+
+def RangeInvariantPsnr(gt, pred):
+    """
+    Taken from https://github.com/juglab/ScaleInvPSNR/blob/master/psnr.py
+    It rescales the prediction to ensure that the prediction has the same range as the ground truth.
+    """
+    ra = (np.max(gt) - np.min(gt)) / np.std(gt)
+    gt_ = zero_mean(gt) / np.std(gt)
+    return PSNR(zero_mean(gt_), fix(gt_, pred), ra)
 
 
 def tta_forward(x):
@@ -521,7 +546,7 @@ def plot_qualitative_results(noisy_input, vae, device):
 
         # we select a random crop
         size_uncropped = int(0.14 * (np.minimum(noisy_input[0].shape[0], noisy_input[0].shape[1])))
-        size = size_uncropped - (size_uncropped % (2**vae.n_depth))
+        size = size_uncropped - (size_uncropped % (2 ** vae.n_depth))
         minx = np.random.randint(0, noisy_input[0].shape[0] - size)
         miny = np.random.randint(0, noisy_input[0].shape[1] - size)
         img = noisy_input[0][minx:minx + size, miny:miny + size]
@@ -545,7 +570,7 @@ def plot_qualitative_results(noisy_input, vae, device):
         plt.imshow(imgMMSE, cmap='magma')
         plt.title('MMSE (100 samples)')
 
-        #We also display the first 4 samples
+        # We also display the first 4 samples
         for i in range(4):
             ax = plt.subplot(1, 6, i + 2)
             ax.get_xaxis().set_visible(False)

@@ -245,6 +245,9 @@ Exp 4: Add Rotation in Augmentation on training data (tur /home/ubuntu/ashesh/tr
 Rec:0.009270 KL:nan
 Rec L1:0.009228 Rec L2:0.009337
 PSNR L1:20.10 PSNR L2:29.18
+#TODO: One thing which I've not done here is that in validation, one needs to get all rotation variants and aggregate
+their prediction. One then uses this as the final prediction of the model.
+
 I think there is one reason as to why this performance might not have improved as much as I would've liked it to.
 When you rotate a crop by some angle, you, on average, increase the zero space. One way to avoid it would be to allow
 for just 4 rotations. In this case, I'll not have that issue. Another thing is to allow for flipping. I've made those
