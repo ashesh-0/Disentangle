@@ -275,3 +275,6 @@ tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/4
 1024=> Rec:0.009800, Rec L1:0.009087 Rec L2:0.010522, PSNR L1:28.64 PSNR L2:31.26
 256 then seems to be the optimal
 
+## Inspecting what are the images which are performing badly on training data.
+
+## Inspecting what are the images which are performing badly: do rotated images have any inferior performance.
