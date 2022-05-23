@@ -243,16 +243,17 @@ class LadderVAE(pl.LightningModule):
         ll, like_dict = self.likelihood(reconstruction, input)
         recons_loss = -ll.mean()
         mixed_recons_loss = 0
+        output = {'loss': recons_loss}
         if self.enable_mixed_rec:
-            mixed_recons_loss = self.likelihood.log_likelihood(
-                torch.mean(input, dim=1, keepdim=True), {
-                    'mean': torch.mean(like_dict['params']['mean'], dim=1, keepdim=True)}, )
-            mixed_recons_loss = -1 * mixed_recons_loss.mean()
-        recons_loss += self.mixed_rec_w * mixed_recons_loss
-        if return_predicted_img:
-            return recons_loss, like_dict['params']['mean']
+            mixed_target = torch.mean(input, dim=1, keepdim=True)
+            mixed_prediction = torch.mean(like_dict['params']['mean'], dim=1, keepdim=True)
+            mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_prediction})
+            output['mixed_loss'] = -1 * mixed_recons_ll.mean()
 
-        return recons_loss
+        if return_predicted_img:
+            return output, like_dict['params']['mean']
+
+        return output
 
     def get_kl_divergence_loss(self, topdown_layer_data_dict):
         # kl[i] for each i has length batch_size
@@ -293,14 +294,17 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
-        recons_loss = self.get_reconstruction_loss(out, target_normalized)
+        recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
+        recons_loss = recons_loss_dict['loss'] + self.mixed_rec_w * recons_loss_dict['mixed_loss']
         kl_loss = self.get_kl_divergence_loss(td_data)
 
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
         for i, x in enumerate(td_data['debug_qvar_max']):
             self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
 
-        self.log('reconstruction_loss', recons_loss, on_epoch=True)
+        self.log('reconstruction_loss', recons_loss_dict['loss'], on_epoch=True)
+        self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
+
         self.log('kl_loss', kl_loss, on_epoch=True)
         self.log('training_loss', net_loss, on_epoch=True)
         self.log('lr', self.lr, on_epoch=True)
@@ -332,7 +336,8 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
-        recons_loss = self.get_reconstruction_loss(out, target_normalized)
+        recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
+        recons_loss = recons_loss_dict['loss']
         kl_loss = self.get_kl_divergence_loss(td_data)
 
         net_loss = recons_loss + self.get_kl_weight() * kl_loss

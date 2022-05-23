@@ -38,7 +38,7 @@ class LadderVAECritic(LadderVAE):
     def configure_optimizers(self):
         params1 = list(self.first_bottom_up.parameters()) + list(self.bottom_up_layers.parameters()) + list(
             self.top_down_layers.parameters()) + list(self.final_top_down.parameters()) + list(
-                self.likelihood.parameters())
+            self.likelihood.parameters())
 
         optimizer1 = optim.Adamax(params1, lr=self.lr, weight_decay=0)
         params2 = list(self.D1.parameters()) + list(self.D2.parameters())
@@ -107,8 +107,8 @@ class LadderVAECritic(LadderVAE):
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
         out, td_data = self.forward(x_normalized)
-        recons_loss, pred_nimg = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
-
+        recons_loss_dict, pred_nimg = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        recons_loss = recons_loss_dict['loss']
         if optimizer_idx == 0:
             kl_loss = self.get_kl_divergence_loss(td_data)
             critic_dict = self.get_critic_loss_stats(pred_nimg, target_normalized)
