@@ -10,7 +10,7 @@ if __name__ == '__main__':
     parser.add_argument('config', type=str)
     args = parser.parse_args()
     assert os.path.exists(args.config)
-    dir = os.path.dirname(args.config)
+    dir = args.config
     try:
         ckpt_fpath = get_best_checkpoint(dir)
         checkpoint = torch.load(ckpt_fpath)
