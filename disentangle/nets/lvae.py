@@ -12,6 +12,7 @@ from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihoo
 from disentangle.losses import free_bits_kl
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
+from disentangle.core.loss_type import LossType
 
 
 class LadderVAE(pl.LightningModule):
@@ -56,6 +57,14 @@ class LadderVAE(pl.LightningModule):
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
+
+        # enabling reconstruction loss on mixed input
+        self.mixed_rec_w = 0
+        self.enable_mixed_rec = False
+        if self.loss_type == LossType.ElboMixedReconstruction:
+            self.mixed_rec_w = config.loss.mixed_rec_weight
+            self.enable_mixed_rec = True
+
         self._global_step = 0
 
         # normalized_input: If input is normalized, then we don't normalize the input.
@@ -101,7 +110,6 @@ class LadderVAE(pl.LightningModule):
         self.bottom_up_layers = nn.ModuleList([])
 
         for i in range(self.n_layers):
-
             # Whether this is the top layer
             is_top = i == self.n_layers - 1
 
@@ -211,7 +219,7 @@ class LadderVAE(pl.LightningModule):
 
     def get_kl_weight(self):
         if (self.kl_annealing == True):
-            #calculate relative weight
+            # calculate relative weight
             kl_weight = (self.current_epoch - self.kl_start) * (1.0 / self.kl_annealtime)
             # clamp to [0,1]
             kl_weight = min(max(0.0, kl_weight), 1.0)
@@ -234,6 +242,13 @@ class LadderVAE(pl.LightningModule):
         # Log likelihood
         ll, like_dict = self.likelihood(reconstruction, input)
         recons_loss = -ll.mean()
+        mixed_recons_loss = 0
+        if self.enable_mixed_rec:
+            mixed_recons_loss = self.likelihood.log_likelihood(
+                torch.mean(input, dim=1, keepdim=True), {
+                    'mean': torch.mean(like_dict['params']['mean'], dim=1, keepdim=True)}, )
+            mixed_recons_loss = -1 * mixed_recons_loss.mean()
+        recons_loss += self.mixed_rec_w * mixed_recons_loss
         if return_predicted_img:
             return recons_loss, like_dict['params']['mean']
 

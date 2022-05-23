@@ -278,6 +278,35 @@ tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/4
 1024=> Rec:0.009800, Rec L1:0.009087 Rec L2:0.010522, PSNR L1:28.64 PSNR L2:31.26
 256 then seems to be the optimal
 
+## variant PSNR
+
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/9
+scaled: PSNR L1:21.24 PSNR L2:30.29
+simple: PSNR L1:19.88 PSNR L2:29.24
+
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/8
+Rec:0.007471 Rec L1:0.007374 Rec L2:0.007601 scaled PSNR L1:21.63 PSNR L2:30.76 simple PSNR L1:20.69 PSNR L2:29.79
+
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/10
+Rec:0.008336, Rec L1:0.008291 Rec L2:0.008419 scaled PSNR L1:21.48 PSNR L2:30.56 simple PSNR L1:20.47 PSNR L2:29.62
+
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/11
+Rec:0.007563 Rec L1:0.007373 Rec L2:0.007756 scaled PSNR L1:21.64 PSNR L2:30.76 simple PSNR L1:20.70 PSNR L2:29.86
+
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/12
+Rec:0.007883 Rec L1:0.007499 Rec L2:0.008265 scaled PSNR L1:21.65 PSNR L2:30.65 simple PSNR L1:20.64 PSNR L2:29.63
+
+8 fold Rotation /8 tur
+Rec:0.210035 KL:nan
+Rec L1:0.007342 Rec L2:0.007491
+PSNR L1:20.71 PSNR L2:29.86
+It appears that the rotated versions give very high errors. One would need to see individually how they perform. here,
+Rec:0.21 is the reconstruction loss on a rotated version of the input. it is way high
+
+I see that the dropout is also enabled. It could also be the reason why performance on training data has not improved.
+Another point is that the performance improvedment which I've got could be simply due to reducin the batch size. One
+needs to run a baseline to ascertain this.
+
 ## Inspecting what are the images which are performing badly on training data.
 
 ## Inspecting what are the images which are performing badly: do rotated images have any inferior performance.
