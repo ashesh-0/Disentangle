@@ -185,13 +185,13 @@ in and they ensure that the p() could be whatever normal distribution. So, it is
 crashing and it did not change the performance.
 
 While doing these things, it makes sense to disable stochastic_skip as well and see what effect does it has
-/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/9: stochastic_skip=False
+ruth /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/9: stochastic_skip=False => performance is quite similar
 
 With MSE, I see that the best cases are mainly those where there is very little content. In that sense PSNR might be a
 better metric to observe things.
 
 To fix the variance exploding problem I've added a maximum value limit on the variance. I simply use clipping.
-/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/3
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/3
 
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/0
 Here
@@ -212,7 +212,8 @@ I've couple of things in mind which I'll try:
    probablities like 1. It hovers around 0.3-0.5
 
 #TODO check if clipping the var leads to inferior performance. (ruth
-/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/10)
+/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/10) => no, it does not
+
 #TODO check if different mean and var with clipping on leads to better peformance.
 
 Added logging in the critic's output to check what is happeniing. also enabled dense layers (tur
@@ -311,7 +312,10 @@ Exp 6
 Enabling the reconstruction loss /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L2/0
 
 Exp 7
-Reducting the dropout: 0.05
+Reducting the dropout: 0.05 (/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/13)
+
+The variance of P() is fixed to 1. When we give some weight w to the KL divergence term, what this essentially means is
+that we are fixing the stdev of P() to w.
 
 ## Inspecting what are the images which are performing badly on training data.
 
