@@ -22,8 +22,8 @@ def get_config():
     data.train_aug_rotate = True
 
     loss = config.loss
-    loss.loss_type = LossType.ElboMixedReconstruction
-    loss.mixed_rec_weight = 1
+    loss.loss_type = LossType.Elbo
+    # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 0.005
     loss.kl_annealing = False
@@ -41,7 +41,7 @@ def get_config():
     model.batchnorm = True
     model.stochastic_skip = True
     model.n_filters = 64
-    model.dropout = 0.2
+    model.dropout = 0.05
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'

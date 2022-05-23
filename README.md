@@ -266,8 +266,6 @@ images, do the stdev() in q() gets very high:
 a) is it only few worse examples or is it all examples in general.
 b) Also, is it for few channels or is it on all channels?
 
-Exp 5: Look at the optimal PSNR code and use it from there.
-
 ## Exp 0
 
 tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/4
@@ -277,6 +275,8 @@ tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/4
 512 => Rec:0.008967, Rec L1:0.008279 Rec L2:0.009633, PSNR L1:23.21 PSNR L2:31.26
 1024=> Rec:0.009800, Rec L1:0.009087 Rec L2:0.010522, PSNR L1:28.64 PSNR L2:31.26
 256 then seems to be the optimal
+
+Exp 5: Look at the optimal PSNR code and use it from there.: I see that below, there is an improvement.
 
 ## variant PSNR
 
@@ -306,6 +306,12 @@ Rec:0.21 is the reconstruction loss on a rotated version of the input. it is way
 I see that the dropout is also enabled. It could also be the reason why performance on training data has not improved.
 Another point is that the performance improvedment which I've got could be simply due to reducin the batch size. One
 needs to run a baseline to ascertain this.
+
+Exp 6
+Enabling the reconstruction loss /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L2/0
+
+Exp 7
+Reducting the dropout: 0.05
 
 ## Inspecting what are the images which are performing badly on training data.
 
