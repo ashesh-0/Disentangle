@@ -243,11 +243,9 @@ Exp 2: Work with 16 bit precision (a baseline for other models)
 Exp 3: Image size: Increase the size. (with 16 bit precision) turing
 /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/8
 Exp 4: Add Rotation in Augmentation on training data (tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/9)
-Rec:0.009270 KL:nan
-Rec L1:0.009228 Rec L2:0.009337
-PSNR L1:20.10 PSNR L2:29.18
+Rec:0.009270 Rec L1:0.009228 Rec L2:0.009337 scaled PSNR L1:20.10 PSNR L2:29.18 simple PSNR L1:19.88 PSNR L2:29.24
 #TODO: One thing which I've not done here is that in validation, one needs to get all rotation variants and aggregate
-their prediction. One then uses this as the final prediction of the model.
+their prediction. One then uses this as the final prediction of the model. =>  done, only slightly improved version.
 
 I think there is one reason as to why this performance might not have improved as much as I would've liked it to.
 When you rotate a crop by some angle, you, on average, increase the zero space. One way to avoid it would be to allow
@@ -298,21 +296,19 @@ tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/12
 Rec:0.007883 Rec L1:0.007499 Rec L2:0.008265 scaled PSNR L1:21.65 PSNR L2:30.65 simple PSNR L1:20.64 PSNR L2:29.63
 
 8 fold Rotation /8 tur
-Rec:0.210035 KL:nan
 Rec L1:0.007342 Rec L2:0.007491
 PSNR L1:20.71 PSNR L2:29.86
-It appears that the rotated versions give very high errors. One would need to see individually how they perform. here,
-Rec:0.21 is the reconstruction loss on a rotated version of the input. it is way high
 
 I see that the dropout is also enabled. It could also be the reason why performance on training data has not improved.
-Another point is that the performance improvedment which I've got could be simply due to reducin the batch size. One
+Another point is that the performance improvement which I've got could be simply due to reducin the batch size. One
 needs to run a baseline to ascertain this.
 
 Exp 6
 Enabling the reconstruction loss /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L2/0
+Rec:0.007813 Rec L1:0.007780 Rec L2:0.007841 scaled PSNR L1:21.53 PSNR L2:30.81 simple PSNR L1:20.66 PSNR L2:29.88
 
 Exp 7
-Reducting the dropout: 0.05 (/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/13)
+Reducting the dropout: 0.05 (ruth /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/13)
 
 The variance of P() is fixed to 1. When we give some weight w to the KL divergence term, what this essentially means is
 that we are fixing the stdev of P() to w.
@@ -320,3 +316,5 @@ that we are fixing the stdev of P() to w.
 ## Inspecting what are the images which are performing badly on training data.
 
 ## Inspecting what are the images which are performing badly: do rotated images have any inferior performance.
+
+PSNR L1:21.63 PSNR L2:30.76
