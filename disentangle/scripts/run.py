@@ -108,7 +108,7 @@ def main(argv):
         # Used for debugging.
         version = int(get_new_model_version(cur_workdir))
         if version > 0:
-            version = f'{version -1}'
+            version = f'{version - 1}'
 
         cur_workdir = os.path.join(cur_workdir, str(version))
     else:

@@ -240,8 +240,17 @@ may get a better performance by doing them.
 Exp 0: Observe how good the performance becomes when increasing the image size just on the validation set.
 Exp 1: Enable Learning rate scheduler => rutherford /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/11
 Exp 2: Work with 16 bit precision (a baseline for other models)
-Exp 3: Image size: Increase the size. (with 16 bit precision) turing
-/home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/8
+Exp 3: Image size: Increase the size. (with 16 bit precision)
+turing /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/8 256 * 256
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/13 512 * 512 ( it also has dropout and kl_weights
+different)
+Performance on 512 sized : Rec:0.006886 Rec L1:0.006736 Rec L2:0.007039 scaled PSNR L1:24.63 PSNR L2:33.22 simple PSNR
+L1:23.87 PSNR L2:32.53
+Performance on 256 sized : Rec:0.007159 Rec L1:0.007003 Rec L2:0.007334 scaled PSNR L1:21.76 PSNR L2:30.86
+
+Currently, tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/8 is top model trained on 256 * 256.
+Its performance on 512 sized: Rec:0.007216 Rec L1:0.007148 Rec L2:0.007345 scaled PSNR L1:24.41 PSNR L2:33.03
+
 Exp 4: Add Rotation in Augmentation on training data (tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/9)
 Rec:0.009270 Rec L1:0.009228 Rec L2:0.009337 scaled PSNR L1:20.10 PSNR L2:29.18 simple PSNR L1:19.88 PSNR L2:29.24
 #TODO: One thing which I've not done here is that in validation, one needs to get all rotation variants and aggregate
@@ -317,4 +326,3 @@ that we are fixing the stdev of P() to w.
 
 ## Inspecting what are the images which are performing badly: do rotated images have any inferior performance.
 
-PSNR L1:21.63 PSNR L2:30.76
