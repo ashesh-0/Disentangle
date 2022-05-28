@@ -326,3 +326,6 @@ that we are fixing the stdev of P() to w.
 
 ## Inspecting what are the images which are performing badly: do rotated images have any inferior performance.
 
+Day 27
+
+## TODO: Zoom-in the image and then compute the PSNR. Zoom-in the image and aggregate reconstructions.
