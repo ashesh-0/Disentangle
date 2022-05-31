@@ -326,6 +326,12 @@ that we are fixing the stdev of P() to w.
 
 ## Inspecting what are the images which are performing badly: do rotated images have any inferior performance.
 
-Day 27
+# May 27
 
 ## TODO: Zoom-in the image and then compute the PSNR. Zoom-in the image and aggregate reconstructions.
+
+(256 sized)
+ruth /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/1: Critic with 0.1 weight
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/1: Critic with 0.01 weight
+
+nucleus + actin

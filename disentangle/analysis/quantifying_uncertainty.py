@@ -32,7 +32,7 @@ def compute_regionwise_metric_one_pair(data1, data2, metric_types: List[str], re
     Nc = data1.shape[-3]
     Nh = data1.shape[-2] // regionsize
     Nw = data1.shape[-1] // regionsize
-    output = {mtype: np.zeros((Nh, Nw, Nc)) for mtype in metric_types}
+    output = {mtype: np.zeros((Nc, Nh, Nw)) for mtype in metric_types}
     for hidx in range(Nh):
         for widx in range(Nw):
             h = hidx * regionsize
@@ -42,7 +42,7 @@ def compute_regionwise_metric_one_pair(data1, data2, metric_types: List[str], re
             #             import pdb;pdb.set_trace()
             met_dic = _compute_metrics(d1, d2, metric_types)
             for mtype in metric_types:
-                output[mtype][hidx, widx] = met_dic[mtype]
+                output[mtype][..., hidx, widx] = met_dic[mtype]
 
     return output
 
@@ -54,10 +54,10 @@ def _compute_metrics(data1, data2, metric_types: List[str]):
     output = {}
     #     import pdb;pdb.set_trace()
     for metric_type in metric_types:
-        assert metric_type in ['PSNR', 'RangeInvariantPsnr', 'MSE']
+        assert metric_type in ['PSNR', 'RangeInvariantPsnr', 'RMSE']
 
-        if metric_type == 'MSE':
-            metric = np.mean((data1 - data2) ** 2, axis=1)
+        if metric_type == 'RMSE':
+            metric = np.sqrt(np.mean((data1 - data2) ** 2, axis=1))
         elif metric_type == 'PSNR':
             metric = np.array([PSNR(data1[0], data2[0]), PSNR(data1[1], data2[1])])
         elif metric_type == 'RangeInvariantPsnr':
@@ -84,6 +84,7 @@ def compute_regionwise_metric(model, dset, idx_list: List[int], metric_types, re
         output[img_idx] = {}
         assert len(sample_dict[img_idx]['rec']) == sample_count
         rec_list = sample_dict[img_idx]['rec']
+        output[img_idx]['samples'] = rec_list
         for idx1 in range(sample_count):
             output[img_idx][idx1] = {}
             # NOTE: we need to iterate starting from 0 and not from idx1 + 1 since not every metric is symmetric.
@@ -96,3 +97,21 @@ def compute_regionwise_metric(model, dset, idx_list: List[int], metric_types, re
                                                                                  metric_types,
                                                                                  regionsize)
     return output
+
+
+def upscale_regionwise_metric(metric_dict: dict, regionsize: int):
+    """
+    This expands the regionwise metric to take the same shape as the input image. This ensures that one could simply
+    use the heatmap.
+    """
+    output_dict = {}
+    for mtype in metric_dict.keys():
+        metric = metric_dict[mtype]
+        repeat = np.array([1] * len(metric.shape))
+        # The last 2 dimensions are the spatial dimensions. expand it to fit regionsize times the current dimensions.
+        repeat[-2:] = regionsize
+        print(metric.shape, repeat)
+        #         np.kron(x, np.ones((1,5,5)))
+        metric = np.kron(metric, np.ones(tuple(repeat)))
+        output_dict[mtype] = metric
+    return output_dict
