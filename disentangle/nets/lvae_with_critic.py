@@ -86,7 +86,7 @@ class LadderVAECritic(LadderVAE):
             'avg_Label2': avg_pred_dict2,
         }
 
-    def get_critic_loss(self, pred: torch.Tensor, tar: torch.Tensor, D) -> torch.Tensor:
+    def get_critic_loss(self, pred: torch.Tensor, tar: torch.Tensor, D):
         """
         Given a predicted image and a target image, here we return a binary crossentropy loss.
         discriminator is trained to predict 1 for target image and 0 for the predicted image.
