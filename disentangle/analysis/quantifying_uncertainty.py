@@ -25,7 +25,7 @@ def sample_images(model, dset, idx_list, sample_count: int = 5):
     return output
 
 
-def compute_regionwise_metric_one_pair(data1, data2, metric_types: List[str], regionsize: int):
+def compute_regionwise_metric_pairwise_one_pair(data1, data2, metric_types: List[str], regionsize: int):
     # ensure that we are working with a square
     assert data1.shape[-1] == data1.shape[-2]
     assert data1.shape == data2.shape
@@ -66,8 +66,8 @@ def _compute_metrics(data1, data2, metric_types: List[str]):
     return output
 
 
-def compute_regionwise_metric(model, dset, idx_list: List[int], metric_types, regionsize: int = 64,
-                              sample_count: int = 5) -> Dict[int, dict]:
+def compute_regionwise_metric_pairwise(model, dset, idx_list: List[int], metric_types, regionsize: int = 64,
+                                       sample_count: int = 5) -> Dict[int, dict]:
     """
     This will get the prediction multiple times for each of the idx. It would then compute the pairswise metric
     between the predictions, that too on small regions. So, if the model is not sure about a certain region, it would simply
@@ -97,10 +97,11 @@ def compute_regionwise_metric(model, dset, idx_list: List[int], metric_types, re
 
                 if idx1 == idx2:
                     continue
-                output[img_idx]['pairwise_metric'][idx1][idx2] = compute_regionwise_metric_one_pair(rec_list[idx1],
-                                                                                                    rec_list[idx2],
-                                                                                                    metric_types,
-                                                                                                    regionsize)
+                output[img_idx]['pairwise_metric'][idx1][idx2] = compute_regionwise_metric_pairwise_one_pair(
+                    rec_list[idx1],
+                    rec_list[idx2],
+                    metric_types,
+                    regionsize)
     return output
 
 
@@ -116,7 +117,8 @@ def upscale_regionwise_metric(metric_dict: dict, regionsize: int):
         for mtype in metric_dict[img_idx].keys():
             metric = metric_dict[img_idx][mtype]
             repeat = np.array([1] * len(metric.shape))
-            # The last 2 dimensions are the spatial dimensions. expand it to fit regionsize times the current dimensions.
+            # The last 2 dimensions are the spatial dimensions. expand it to fit regionsize times the
+            # current dimensions.
             repeat[-2:] = regionsize
             #   print(metric.shape, repeat)
             #   np.kron(x, np.ones((1,5,5)))
@@ -190,13 +192,14 @@ def normalize_metric(metric_dict: Dict[int, dict], normalize_type: str, target_d
     return normalized_metric_dict
 
 
-def plot_regionwise_metric(model, dset, idx_list: List[int], metric_types, regionsize: int = 64,
-                           sample_count: int = 5, normalize_type='pixelwise_norm'):
+def get_regionwise_metric(model, dset, idx_list: List[int], metric_types, regionsize: int = 64,
+                          sample_count: int = 5, normalize_type='pixelwise_norm'):
     """
-    Here, we intend to plot regionwise metric. The idea is to overlay the heatmap on top of the image.
+    Here, we intend to get regionwise metric. One applies aggregation, upscaling and optionally normalization on top
+    of it.
     """
-    metric = compute_regionwise_metric(model, dset, idx_list, metric_types, regionsize=regionsize,
-                                       sample_count=sample_count)
+    metric = compute_regionwise_metric_pairwise(model, dset, idx_list, metric_types, regionsize=regionsize,
+                                                sample_count=sample_count)
     agg_metric = aggregate_metric(metric)
     target_dict = {img_idx: metric[img_idx]['tar'] for img_idx in metric.keys()}
     upscale_metric = upscale_regionwise_metric(agg_metric, regionsize)
