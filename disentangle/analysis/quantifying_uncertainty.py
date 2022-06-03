@@ -164,9 +164,9 @@ def normalize_metric_single_target(metric_dict: Dict[str, dict], normalize_type:
             metric_type => metric
 
     """
-    assert normalize_type in ['pixelwise']
+    assert normalize_type in ['pixelwise_norm']
     normalized_metric = {}
-    if normalize_type == 'pixelwise':
+    if normalize_type == 'pixelwise_norm':
         for metric_type in metric_dict:
             metric_mat = metric_dict[metric_type]
             normalized_metric[metric_type] = metric_mat / target
@@ -191,7 +191,7 @@ def normalize_metric(metric_dict: Dict[int, dict], normalize_type: str, target_d
 
 
 def plot_regionwise_metric(model, dset, idx_list: List[int], metric_types, regionsize: int = 64,
-                           sample_count: int = 5):
+                           sample_count: int = 5, normalize_type='pixelwise_norm'):
     """
     Here, we intend to plot regionwise metric. The idea is to overlay the heatmap on top of the image.
     """
@@ -201,10 +201,10 @@ def plot_regionwise_metric(model, dset, idx_list: List[int], metric_types, regio
     target_dict = {img_idx: metric[img_idx]['tar'] for img_idx in metric.keys()}
     upscale_metric = upscale_regionwise_metric(agg_metric, regionsize)
 
-    norm_agg_metric = normalize_metric(upscale_metric,
-                                       'pixelwise',
-                                       target_dict)
+    if normalize_type is not None:
+        upscale_metric = normalize_metric(upscale_metric,
+                                          normalize_type,
+                                          target_dict)
 
     target = {img_id: metric[img_id]['tar'] for img_id in metric.keys()}
-    return norm_agg_metric, target
-#     overlay_plot(norm_agg_metric, target)
+    return upscale_metric, target
