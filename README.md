@@ -333,5 +333,5 @@ that we are fixing the stdev of P() to w.
 (256 sized)
 ruth /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/1: Critic with 0.1 weight
 tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/1: Critic with 0.01 weight
-
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/6 Critic with 0.005 weight
 nucleus + actin
