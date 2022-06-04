@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import torch
-from typing import List
+from typing import List, Union
 
 from disentangle.utils import PSNR
 from disentangle.analysis.lvae_utils import get_img_from_forward_output
@@ -113,14 +113,15 @@ def clean_for_xaxis_plot(inset_ax):
     inset_ax.spines['left'].set_visible(False)
 
 
-def add_pixel_kde(ax, rect: List[float], data1: np.ndarray, data2: np.ndarray, min_labelsize: int,
+def add_pixel_kde(ax, rect: List[float], data1: np.ndarray, data2: Union[np.ndarray, None], min_labelsize: int,
                   color1='r', color2='black', label1='Target', label2='Predicted'):
     """
     Adds KDE (density plot) of data1(eg: target) and data2(ex: predicted) image pixel values as an inset
     """
     inset_ax = add_subplot_axes(ax, rect, facecolor="None", min_labelsize=min_labelsize)
     sns.kdeplot(data=data1.reshape(-1, ), ax=inset_ax, color=color1, label=label1)
-    sns.kdeplot(data=data2.reshape(-1, ), ax=inset_ax, color=color2, label=label2)
+    if data2 is not None:
+        sns.kdeplot(data=data2.reshape(-1, ), ax=inset_ax, color=color2, label=label2)
     clean_for_xaxis_plot(inset_ax)
 
 
