@@ -6,7 +6,8 @@ from typing import List, Dict
 import torch
 from disentangle.analysis.lvae_utils import get_img_from_forward_output
 from disentangle.utils import PSNR, RangeInvariantPsnr
-import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 
 def sample_images(model, dset, idx_list, sample_count: int = 5):
@@ -111,7 +112,6 @@ def upscale_regionwise_metric(metric_dict: dict, regionsize: int):
     use the heatmap.
     """
     output_dict = {}
-    #     import pdb;pdb.set_trace()
     for img_idx in metric_dict.keys():
         output_dict[img_idx] = {}
         for mtype in metric_dict[img_idx].keys():
@@ -120,11 +120,9 @@ def upscale_regionwise_metric(metric_dict: dict, regionsize: int):
             # The last 2 dimensions are the spatial dimensions. expand it to fit regionsize times the
             # current dimensions.
             repeat[-2:] = regionsize
-            #   print(metric.shape, repeat)
-            #   np.kron(x, np.ones((1,5,5)))
             metric = np.kron(metric, np.ones(tuple(repeat)))
             output_dict[img_idx][mtype] = metric
-        return output_dict
+    return output_dict
 
 
 def aggregate_metric(metric_dict):

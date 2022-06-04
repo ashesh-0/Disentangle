@@ -7,6 +7,7 @@ from typing import List, Union
 from disentangle.utils import PSNR
 from disentangle.analysis.lvae_utils import get_img_from_forward_output
 from disentangle.analysis.critic_notebook_utils import get_mmse_dict, get_label_separated_loss
+from disentangle.analysis.quantifying_uncertainty import get_regionwise_metric
 
 
 def clean_ax(ax):
@@ -199,3 +200,34 @@ def plot_imgs_from_idx(idx_list, val_dset, model, model_type, inset_pixel_kde=Fa
             ax[ax_idx, 0].set_title(f'Id:{img_idx}')
             ax[ax_idx, 1].set_title('Image 1')
             ax[ax_idx, 3].set_title('Image 2')
+
+
+def plot_regionwise_metric(model, dset, idx_list: List[int], metric_types: List[str], regionsize: int = 64,
+                           sample_count: int = 5, normalize_type=None):
+    metric_dict, target = get_regionwise_metric(model,
+                                                dset,
+                                                idx_list,
+                                                metric_types,
+                                                regionsize=regionsize,
+                                                sample_count=sample_count,
+                                                normalize_type=normalize_type)
+
+    img_sz = 3.5
+    nrows = len(idx_list)
+    sample_count = 20
+    inset_rect = [0.1, 0.1, 0.4, 0.2]
+    inset_min_labelsize = 8
+    _, ax = plt.subplots(figsize=(img_sz * 4, nrows * img_sz), ncols=4, nrows=nrows)
+    for i, img_idx in enumerate(idx_list):
+        ax[i, 0].imshow(target[img_idx][0])
+        ax[i, 2].imshow(target[img_idx][1])
+
+        add_pixel_kde(ax[i, 0], inset_rect, target[img_idx][0], target[img_idx][1], inset_min_labelsize,
+                      color1='r', color2='black', )
+        add_pixel_kde(ax[i, 2], inset_rect, target[img_idx][1], target[img_idx][0], inset_min_labelsize,
+                      color1='r', color2='black', )
+
+        max_val = metric_dict[sample_count][img_idx]['RMSE'].max()
+        min_val = metric_dict[sample_count][img_idx]['RMSE'].min()
+        sns.heatmap(metric_dict[sample_count][img_idx]['RMSE'][0], ax=ax[i, 1], vmax=max_val, vmin=min_val)
+        sns.heatmap(metric_dict[sample_count][img_idx]['RMSE'][1], ax=ax[i, 3], vmax=max_val, vmin=min_val)
