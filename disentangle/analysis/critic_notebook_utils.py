@@ -64,6 +64,11 @@ def get_mmse_dict(model, x_normalized, target_normalized, mmse_count, model_type
             avg_logvar += dic['logvar']
 
     ll, dic = model.likelihood(recon_normalized, target_normalized)
+    mse = (img_mmse - target_normalized) ** 2
+    # batch and the two channels
+    N = np.prod(mse.shape[:2])
+    rmse = torch.sqrt(torch.mean(mse.view(N, -1), dim=1))
+    rmse = rmse.view(mse.shape[:2])
     loss_mmse = model.likelihood.log_likelihood(target_normalized, {'mean': img_mmse, 'logvar': avg_logvar})
 
     psnrl1 = np.array(
@@ -78,6 +83,7 @@ def get_mmse_dict(model, x_normalized, target_normalized, mmse_count, model_type
         'mmse_rec_loss': loss_mmse,
         'img': recon_img,
         'rec_loss': ll,
+        'rmse': rmse,
         'psnr_l1': psnrl1,
         'psnr_l2': psnrl2,
     }
