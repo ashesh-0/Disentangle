@@ -13,6 +13,10 @@ class LikelihoodModule(nn.Module):
         pass
 
     @staticmethod
+    def logvar(params):
+        return None
+
+    @staticmethod
     def mean(params):
         pass
 
@@ -32,6 +36,7 @@ class LikelihoodModule(nn.Module):
         mean = self.mean(distr_params)
         mode = self.mode(distr_params)
         sample = self.sample(distr_params)
+        logvar = self.logvar(distr_params)
         if x is None:
             ll = None
         else:
@@ -41,6 +46,7 @@ class LikelihoodModule(nn.Module):
             'mode': mode,
             'sample': sample,
             'params': distr_params,
+            'logvar': logvar,
         }
         return ll, dct
 
@@ -132,6 +138,10 @@ class GaussianLikelihood(LikelihoodModule):
         # p = Normal(params['mean'], (params['logvar'] / 2).exp())
         # return p.rsample()
         return params['mean']
+
+    @staticmethod
+    def logvar(params):
+        return params['logvar']
 
     def log_likelihood(self, x, params):
         if self.predict_logvar:
