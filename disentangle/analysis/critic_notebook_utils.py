@@ -51,15 +51,20 @@ def get_mmse_dict(model, x_normalized, target_normalized, mmse_count, model_type
         psnr_fn = RangeInvariantPsnr
 
     img_mmse = 0
+    avg_logvar = None
     assert mmse_count >= 1
     for _ in range(mmse_count):
         recon_normalized, _ = model(x_normalized)
         ll, dic = model.likelihood(recon_normalized, target_normalized)
         recon_img = dic['mean']
         img_mmse += recon_img / mmse_count
+        if model.predict_logvar:
+            if avg_logvar is None:
+                avg_logvar = 0
+            avg_logvar += dic['logvar']
 
     ll, dic = model.likelihood(recon_normalized, target_normalized)
-    loss_mmse = model.likelihood.log_likelihood(target_normalized, {'mean': img_mmse})
+    loss_mmse = model.likelihood.log_likelihood(target_normalized, {'mean': img_mmse, 'logvar': avg_logvar})
 
     psnrl1 = np.array(
         [psnr_fn(target_normalized[i, 0].cpu().numpy(), img_mmse[i, 0].cpu().numpy()) for i in

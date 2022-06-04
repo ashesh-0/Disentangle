@@ -51,6 +51,7 @@ class LadderVAE(pl.LightningModule):
         self.kl_start = config.loss.kl_start
         self.kl_annealing = config.loss.kl_annealing
         self.kl_annealtime = config.loss.kl_annealtime
+        self.predict_logvar = config.model.predict_logvar
 
         self._var_clip_max = config.model.var_clip_max
         # loss related
@@ -179,7 +180,7 @@ class LadderVAE(pl.LightningModule):
         # Define likelihood
         if self.likelihood_form == 'gaussian':
             self.likelihood = GaussianLikelihood(self.n_filters, self.target_ch,
-                                                 predict_logvar=config.model.predict_logvar)
+                                                 predict_logvar=self.predict_logvar)
         elif self.likelihood_form == 'noise_model':
             self.likelihood = NoiseModelLikelihood(self.n_filters, self.target_ch, data_mean, data_std, self.noiseModel)
         else:
