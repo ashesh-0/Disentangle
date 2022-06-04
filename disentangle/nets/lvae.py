@@ -178,7 +178,8 @@ class LadderVAE(pl.LightningModule):
 
         # Define likelihood
         if self.likelihood_form == 'gaussian':
-            self.likelihood = GaussianLikelihood(self.n_filters, self.target_ch)
+            self.likelihood = GaussianLikelihood(self.n_filters, self.target_ch,
+                                                 predict_logvar=config.model.predict_logvar)
         elif self.likelihood_form == 'noise_model':
             self.likelihood = NoiseModelLikelihood(self.n_filters, self.target_ch, data_mean, data_std, self.noiseModel)
         else:
@@ -350,7 +351,7 @@ class LadderVAE(pl.LightningModule):
             all_samples = []
             for i in range(20):
                 sample, _ = self(x_normalized[0:1, ...])
-                sample = self.likelihood.parameter_net(sample)
+                sample = self.likelihood.get_mean_lv(sample)[0]
                 all_samples.append(sample[None])
 
             all_samples = torch.cat(all_samples, dim=0)

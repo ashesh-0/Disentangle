@@ -94,15 +94,25 @@ class NoiseModelLikelihood(LikelihoodModule):
 
 
 class GaussianLikelihood(LikelihoodModule):
-    def __init__(self, ch_in, color_channels):
+    def __init__(self, ch_in, color_channels, predict_logvar=False):
         super().__init__()
-        self.parameter_net = nn.Conv2d(ch_in, color_channels, kernel_size=3, padding=1)
+        # If True, then we also predict pixelwise logvar.
+        self.predict_logvar = predict_logvar
+        assert isinstance(self.predict_logvar, bool)
+        self.parameter_net = nn.Conv2d(ch_in, color_channels * (1 + int(self.predict_logvar)), kernel_size=3, padding=1)
+
+    def get_mean_lv(self, x):
+        x = self.parameter_net(x)
+        if self.predict_logvar:
+            mean, lv = x.chunk(2, dim=1)
+        else:
+            mean = x
+            lv = None
+        return mean, lv
 
     def distr_params(self, x):
-        x = self.parameter_net(x)
-        # mean, lv = x.chunk(2, dim=1)
-        mean = x
-        lv = None
+        mean, lv = self.get_mean_lv(x)
+
         params = {
             'mean': mean,
             'logvar': lv,
@@ -124,28 +134,24 @@ class GaussianLikelihood(LikelihoodModule):
         return params['mean']
 
     def log_likelihood(self, x, params):
-        logprob = -0.5 * (params['mean'] - x)**2
-        #         logprob = log_normal(x, params['mean'], params['logvar'], reduce='none')
+        if self.predict_logvar:
+            logprob = log_normal(x, params['mean'], params['logvar'])
+        else:
+            logprob = -0.5 * (params['mean'] - x) ** 2
         return logprob
 
 
-def log_normal(x, mean, logvar, reduce='mean'):
+def log_normal(x, mean, logvar):
     """
     Log of the probability density of the values x untder the Normal
-    distribution with parameters mean and logvar. The sum is taken over all
-    dimensions except for the first one (assumed to be batch). Reduction
-    is applied at the end.
+    distribution with parameters mean and logvar.
     :param x: tensor of points, with shape (batch, channels, dim1, dim2)
     :param mean: tensor with mean of distribution, shape
                  (batch, channels, dim1, dim2)
     :param logvar: tensor with log-variance of distribution, shape has to be
                    either scalar or broadcastable
-    :param reduce: reduction over batch: 'mean' | 'sum' | 'none'
-    :return:
     """
 
-    logvar = _input_check(x, mean, logvar, reduce)
     var = torch.exp(logvar)
-    log_prob = -0.5 * (((x - mean)**2) / var + logvar + torch.tensor(2 * math.pi).log())
-    log_prob = log_prob.sum((1, 2, 3))
-    return _reduce(log_prob, reduce)
+    log_prob = -0.5 * (((x - mean) ** 2) / var + logvar + torch.tensor(2 * math.pi).log())
+    return log_prob

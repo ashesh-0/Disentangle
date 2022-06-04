@@ -11,7 +11,7 @@ def get_config():
     data.image_size = 256
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
-    data.channel_2 = 3
+    data.channel_2 = 2
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
     data.deterministic_grid = True
@@ -25,7 +25,7 @@ def get_config():
     loss.loss_type = LossType.Elbo
     # loss.mixed_rec_weight = 1
 
-    loss.kl_weight = 0.005
+    loss.kl_weight = 1
     loss.kl_annealing = False
     loss.kl_annealtime = 10
     loss.kl_start = -1
@@ -50,6 +50,7 @@ def get_config():
     model.analytical_kl = True
     model.mode_pred = False
     model.var_clip_max = 8
+    model.predict_logvar = True
 
     training = config.training
     training.lr = 0.001

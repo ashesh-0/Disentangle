@@ -334,4 +334,6 @@ that we are fixing the stdev of P() to w.
 ruth /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/1: Critic with 0.1 weight
 tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/1: Critic with 0.01 weight
 tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/6 Critic with 0.005 weight
+
 nucleus + actin
+I've changed the channels to be (0,3) /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/0
