@@ -339,3 +339,4 @@ nucleus + actin
 I've changed the channels to be (0,3) /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/0
 
 enabling logvar: /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/0
+Idea is to look at the RMSE/scaled PSNR to ascertain whether there is any improvement or not. 
