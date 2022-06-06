@@ -103,7 +103,7 @@ class GaussianLikelihood(LikelihoodModule):
         # If True, then we also predict pixelwise logvar.
         self.predict_logvar = predict_logvar
 
-        assert self.predict_logvar in [None, 'pixelwise', 'channelwise']
+        assert self.predict_logvar in [None, 'global', 'pixelwise', 'channelwise']
         logvar_ch_needed = self.predict_logvar is not None
         self.parameter_net = nn.Conv2d(ch_in, color_channels * (1 + logvar_ch_needed), kernel_size=3, padding=1)
 
@@ -112,11 +112,19 @@ class GaussianLikelihood(LikelihoodModule):
         if self.predict_logvar is not None:
             # pixelwise mean and logvar
             mean, lv = x.chunk(2, dim=1)
-            if self.predict_logvar == 'channelwise':
-                # logvar should be of the following shape (batch,num_channels)
-                N = np.prod(lv.shape[:2])
+            if self.predict_logvar in ['channelwise', 'global']:
+                if self.predict_logvar == 'channelwise':
+                    # logvar should be of the following shape (batch,num_channels). Other dims would be singletons.
+                    N = np.prod(lv.shape[:2])
+                    new_shape = (*mean.shape[:2], *([1] * len(mean.shape[2:])))
+                elif self.predict_logvar == 'global':
+                    # logvar should be of the following shape (batch). Other dims would be singletons.
+                    N = lv.shape[0]
+                    new_shape = (*mean.shape[:1], *([1] * len(mean.shape[1:])))
+                else:
+                    raise ValueError(f"Invalid value for self.predict_logvar:{self.predict_logvar}")
+
                 lv = torch.mean(lv.reshape(N, -1), dim=1)
-                new_shape = (*mean.shape[:2], *([1] * len(mean.shape[2:])))
                 lv = lv.reshape(new_shape)
         else:
             mean = x

@@ -50,8 +50,8 @@ def get_config():
     model.analytical_kl = True
     model.mode_pred = False
     model.var_clip_max = 8
-    # predict_logvar takes one of the three values: [None,'channelwise','pixelwise']
-    model.predict_logvar = 'channelwise'
+    # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
+    model.predict_logvar = 'global'
 
     training = config.training
     training.lr = 0.001
