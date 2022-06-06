@@ -63,6 +63,6 @@ def get_config():
     training.train_repeat_factor = None
     training.val_fraction = 0.2
     training.earlystop_patience = 100
-    # training.precision = 16
+    training.precision = 16
 
     return config
