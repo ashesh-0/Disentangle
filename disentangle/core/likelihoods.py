@@ -1,16 +1,14 @@
 import math
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch import nn
-from torch.distributions import Normal
-from torch.nn import functional as F
+from typing import Union
 
 
 class LikelihoodModule(nn.Module):
     def distr_params(self, x):
-        pass
+        return None
 
     @staticmethod
     def logvar(params):
@@ -18,18 +16,18 @@ class LikelihoodModule(nn.Module):
 
     @staticmethod
     def mean(params):
-        pass
+        return None
 
     @staticmethod
     def mode(params):
-        pass
+        return None
 
     @staticmethod
     def sample(params):
-        pass
+        return None
 
     def log_likelihood(self, x, params):
-        pass
+        return None
 
     def forward(self, input_, x):
         distr_params = self.distr_params(input_)
@@ -100,17 +98,26 @@ class NoiseModelLikelihood(LikelihoodModule):
 
 
 class GaussianLikelihood(LikelihoodModule):
-    def __init__(self, ch_in, color_channels, predict_logvar=False):
+    def __init__(self, ch_in, color_channels, predict_logvar: Union[None, str] = None):
         super().__init__()
         # If True, then we also predict pixelwise logvar.
         self.predict_logvar = predict_logvar
-        assert isinstance(self.predict_logvar, bool)
-        self.parameter_net = nn.Conv2d(ch_in, color_channels * (1 + int(self.predict_logvar)), kernel_size=3, padding=1)
+
+        assert self.predict_logvar in [None, 'pixelwise', 'channelwise']
+        logvar_ch_needed = self.predict_logvar is not None
+        self.parameter_net = nn.Conv2d(ch_in, color_channels * (1 + logvar_ch_needed), kernel_size=3, padding=1)
 
     def get_mean_lv(self, x):
         x = self.parameter_net(x)
-        if self.predict_logvar:
+        if self.predict_logvar is not None:
+            # pixelwise mean and logvar
             mean, lv = x.chunk(2, dim=1)
+            if self.predict_logvar == 'channelwise':
+                # logvar should be of the following shape (batch,num_channels)
+                N = np.prod(lv.shape[:2])
+                lv = torch.mean(lv.reshape(N, -1), dim=1)
+                new_shape = (*mean.shape[:2], *([1] * len(mean.shape[2:])))
+                lv = lv.reshape(new_shape)
         else:
             mean = x
             lv = None
@@ -144,7 +151,7 @@ class GaussianLikelihood(LikelihoodModule):
         return params['logvar']
 
     def log_likelihood(self, x, params):
-        if self.predict_logvar:
+        if self.predict_logvar is not None:
             logprob = log_normal(x, params['mean'], params['logvar'])
         else:
             logprob = -0.5 * (params['mean'] - x) ** 2

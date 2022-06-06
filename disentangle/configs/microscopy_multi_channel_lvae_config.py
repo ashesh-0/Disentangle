@@ -50,7 +50,8 @@ def get_config():
     model.analytical_kl = True
     model.mode_pred = False
     model.var_clip_max = 8
-    model.predict_logvar = True
+    # predict_logvar takes one of the three values: [None,'channelwise','pixelwise']
+    model.predict_logvar = 'channelwise'
 
     training = config.training
     training.lr = 0.001
@@ -62,6 +63,6 @@ def get_config():
     training.train_repeat_factor = None
     training.val_fraction = 0.2
     training.earlystop_patience = 100
-    training.precision = 16
+    # training.precision = 16
 
     return config
