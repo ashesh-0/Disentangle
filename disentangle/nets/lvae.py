@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import torch
 import torch.optim as optim
 from torch import nn
-
+import wandb
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
 from disentangle.losses import free_bits_kl
@@ -575,7 +575,13 @@ class LadderVAE(pl.LightningModule):
         clamped_mmse = torch.clamp((img_mmse - img_mmse.min()) / (img_mmse.max() - img_mmse.min()), 0, 1)
         if target is not None:
             clamped_input = torch.clamp((target - target.min()) / (target.max() - target.min()), 0, 1)
-            self.trainer.logger.experiment.add_image(f'target_for{label}', clamped_input[None], self.current_epoch)
-        for i in range(7):
-            self.trainer.logger.experiment.add_image(f'{label}/sample_{i}', clamped_pred[i:i + 1], self.current_epoch)
-        self.trainer.logger.experiment.add_image(f'{label}/mmse (100 samples)', clamped_mmse[None], self.current_epoch)
+            img = wandb.Image(clamped_input[None].cpu().numpy())
+            self.logger.experiment.log({f'target_for{label}': img})
+            # self.trainer.logger.experiment.add_image(f'target_for{label}', clamped_input[None], self.current_epoch)
+        for i in range(3):
+            # self.trainer.logger.experiment.add_image(f'{label}/sample_{i}', clamped_pred[i:i + 1], self.current_epoch)
+            img = wandb.Image(clamped_pred[i:i + 1].cpu().numpy())
+            self.logger.experiment.log({f'{label}/sample_{i}': img})
+
+        img = wandb.Image(clamped_mmse[None].cpu().numpy())
+        self.trainer.logger.experiment.log({f'{label}/mmse (100 samples)': img})

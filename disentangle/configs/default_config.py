@@ -27,4 +27,6 @@ def get_default_config():
     config.git.latest_commit = ''
 
     config.workdir = '/FILL_IN_THE_WORKDIR'
+    config.hostname = ''
+    config.exptname = ''
     return config

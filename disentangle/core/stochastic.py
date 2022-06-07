@@ -15,6 +15,7 @@ class NormalStochasticBlock2d(nn.Module):
     same for p(z), then sample z ~ q(z) and return conv(z).
     If q's parameters are not given, do the same but sample from p(z).
     """
+
     def __init__(self, c_in: int, c_vars: int, c_out, kernel: int = 3, transform_p_params: bool = True):
         """
         Args:
@@ -185,7 +186,7 @@ class NormalStochasticBlock2d(nn.Module):
             'logprob_q': logprob_q,  # (batch, )
             'kl_elementwise': kl_elementwise,  # (batch, ch, h, w)
             'kl_samplewise': kl_samplewise,  # (batch, )
-            'kl_channelwise': kl_channelwise,  #(batch, ch)
+            'kl_channelwise': kl_channelwise,  # (batch, ch)
             'kl_spatial': kl_spatial_analytical,  # (batch, h, w)
             'qvar_max': debug_qvar_max,
         }

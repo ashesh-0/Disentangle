@@ -2,6 +2,8 @@ import glob
 import logging
 import os
 import pickle
+from pytorch_lightning.loggers import WandbLogger
+from pytorch_lightning import Trainer
 
 import pytorch_lightning as pl
 import torch
@@ -19,6 +21,7 @@ from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
 from disentangle.data_loader.places_dloader import PlacesLoader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
+import wandb
 
 
 def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False):
@@ -126,6 +129,8 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
     if 'val_every_n_steps' in config.training and config.training.val_every_n_steps is not None:
         callbacks.append(ValEveryNSteps(config.training.val_every_n_steps))
 
+    logger.experiment.config.update(config.to_dict())
+    # wandb.init(config=config)
     if torch.cuda.is_available():
         # profiler = pl.profiler.AdvancedProfiler(output_filename=os.path.join(config.workdir, 'advance_profile.txt'))
         trainer = pl.Trainer(
@@ -152,7 +157,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
     trainer.fit(model, train_loader, val_loader)
 
 
-def train_network(train_loader, val_loader, data_mean, data_std, config, model_name, log_info=False):
+def train_network(train_loader, val_loader, data_mean, data_std, config, model_name, logdir):
     checkpoint_callback = ModelCheckpoint(
         monitor='val_loss',
         dirpath=config.workdir,
@@ -162,10 +167,11 @@ def train_network(train_loader, val_loader, data_mean, data_std, config, model_n
         mode='min',
     )
     checkpoint_callback.CHECKPOINT_NAME_LAST = model_name + "_last"
-    logger = TensorBoardLogger(config.workdir, name="", version="", default_hp_metric=False)
-    weights_summary = "top" if log_info else None
-    if not log_info:
-        pl.utilities.distributed.log.setLevel(logging.ERROR)
+    logger = WandbLogger(name=os.path.join(config.hostname, config.exptname), save_dir=logdir,
+                         project="Disentanglement")
+    # logger = TensorBoardLogger(config.workdir, name="", version="", default_hp_metric=False)
+    weights_summary = None
+    pl.utilities.distributed.log.setLevel(logging.ERROR)
     posterior_collapse_count = 0
     collapse_flag = True
     while collapse_flag and posterior_collapse_count < 20:

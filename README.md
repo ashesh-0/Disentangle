@@ -319,6 +319,11 @@ Rec:0.007813 Rec L1:0.007780 Rec L2:0.007841 scaled PSNR L1:21.53 PSNR L2:30.81 
 Exp 7
 Reducting the dropout: 0.05 (ruth /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/13)
 dropout: 0.0 tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/14
+Rec:0.006574
+Rec L1:0.006450 Rec L2:0.006737
+RMSE L1:0.1103 L2:0.1122
+PSNR L1:24.66 PSNR L2:33.33
+
 The variance of P() is fixed to 1. When we give some weight w to the KL divergence term, what this essentially means is
 that we are fixing the stdev of P() to w.
 
@@ -332,11 +337,38 @@ that we are fixing the stdev of P() to w.
 
 (256 sized)
 ruth /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/1: Critic with 0.1 weight
-tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/1: Critic with 0.01 weight
-tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/6 Critic with 0.005 weight
+128:
+scaled PSNR L1:21.35 PSNR L2:29.98
+RMSE L1:0.1172 L2:0.1248
+256:
+PSNR L1:21.35 PSNR L2:29.98
+RMSE L1:0.1172 L2:0.1248
 
+size 128: tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/1: Critic with 0.01 weight
+size 256: tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M5-S0-L1/6 Critic with 0.005 weight
+256:
+PSNR L1:21.37 PSNR L2:30.49
+RMSE L1:0.1178 L2:0.1195
 nucleus + actin
 I've changed the channels to be (0,3) /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/0
 
 enabling logvar: /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/0
-Idea is to look at the RMSE/scaled PSNR to ascertain whether there is any improvement or not. 
+Idea is to look at the RMSE/scaled PSNR to ascertain whether there is any improvement or not.
+
+chanelwise logvar: tur disentangle/2206/D3-M3-S0-L0/1
+RMSE L1:0.1132 L2:0.1154
+PSNR L1:24.63 PSNR L2:33.23
+
+global logvar: ruth training/disentangle/2206/D3-M3-S0-L0/1
+Rec:-0.724319
+Rec L1:-0.727334 Rec L2:-0.719014
+RMSE L1:0.1180 L2:0.1190
+PSNR L1:24.39 PSNR L2:32.98
+
+pixelwise logvar: ruth training/disentangle/2206/D3-M3-S0-L0/0
+Rec:-0.860996 KL:nan
+Rec L1:-0.864775 Rec L2:-0.855941
+RMSE L1:0.1103 L2:0.1113
+PSNR L1:24.71 PSNR L2:33.28
+
+## Why is it the case that the bright blobs in region 2 comes only at boundaries.

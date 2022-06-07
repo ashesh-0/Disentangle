@@ -31,7 +31,7 @@ FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file("config", None, "Training configuration.", lock_config=True)
 flags.DEFINE_string("workdir", None, "Work directory.")
 flags.DEFINE_enum("mode", None, ["train", "eval"], "Running mode: train or eval")
-flags.DEFINE_string("evaldir", "eval", "The folder name for storing evaluation results")
+flags.DEFINE_string("logdir", '.', "The folder name for storing logging")
 flags.DEFINE_string("datadir", '/tmp2/ashesh/ashesh/VAE_based/data/MNIST/noisy/', "Data directory.")
 flags.DEFINE_boolean("use_max_version", False, "Overwrite the max version of the model")
 flags.mark_flags_as_required(["workdir", "config", "mode"])
@@ -92,33 +92,43 @@ def get_month():
     return datetime.now().strftime("%y%m")
 
 
+def get_workdir(config, root_dir, use_max_version):
+    rel_path = get_month()
+    cur_workdir = os.path.join(root_dir, rel_path)
+    Path(cur_workdir).mkdir(exist_ok=True)
+
+    rel_path = os.path.join(rel_path, get_model_name(config))
+    cur_workdir = os.path.join(root_dir, rel_path)
+    Path(cur_workdir).mkdir(exist_ok=True)
+
+    if use_max_version:
+        # Used for debugging.
+        version = int(get_new_model_version(cur_workdir))
+        if version > 0:
+            version = f'{version - 1}'
+
+        rel_path = os.path.join(rel_path, str(version))
+    else:
+        rel_path = os.path.join(rel_path, get_new_model_version(cur_workdir))
+
+    cur_workdir = os.path.join(root_dir, rel_path)
+    Path(cur_workdir).mkdir(exist_ok=True)
+    return cur_workdir, rel_path
+
+
 def main(argv):
     config = FLAGS.config
     # making older configs compatible with current version.
     config = get_updated_config(config)
 
     assert os.path.exists(FLAGS.workdir)
-
-    cur_workdir = os.path.join(FLAGS.workdir, get_month())
-    Path(cur_workdir).mkdir(exist_ok=True)
-    cur_workdir = os.path.join(cur_workdir, get_model_name(config))
-    Path(cur_workdir).mkdir(exist_ok=True)
-
-    if FLAGS.use_max_version:
-        # Used for debugging.
-        version = int(get_new_model_version(cur_workdir))
-        if version > 0:
-            version = f'{version - 1}'
-
-        cur_workdir = os.path.join(cur_workdir, str(version))
-    else:
-        cur_workdir = os.path.join(cur_workdir, get_new_model_version(cur_workdir))
-
-    Path(cur_workdir).mkdir(exist_ok=True)
+    cur_workdir, relative_path = get_workdir(config, FLAGS.workdir, FLAGS.use_max_version)
     print(f'Saving training to {cur_workdir}')
 
     add_git_info(config)
     config.workdir = cur_workdir
+    config.exptname = relative_path
+    config.hostname = socket.gethostname()
 
     if FLAGS.mode == "train":
         set_logger()
@@ -166,7 +176,7 @@ def main(argv):
                                      batch_sampler=val_sampler,
                                      num_workers=config.training.num_workers)
 
-        train_network(train_dloader, val_dloader, data_mean, data_std, config, 'BaselineVAECL')
+        train_network(train_dloader, val_dloader, data_mean, data_std, config, 'BaselineVAECL', FLAGS.logdir)
 
     elif FLAGS.mode == "eval":
         pass
