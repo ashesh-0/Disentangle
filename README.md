@@ -372,3 +372,28 @@ RMSE L1:0.1103 L2:0.1113
 PSNR L1:24.71 PSNR L2:33.28
 
 ## Why is it the case that the bright blobs in region 2 comes only at boundaries.
+
+# June 11
+
+## Comparing with doubledip
+
+In doubledip, we work with 2 weights.
+tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/14
+
+worst:
+Rec:0.008295 KL:nan
+Rec L1:0.008302 Rec L2:0.008350
+RMSE L1:0.1261 L2:0.1265
+PSNR L1:20.34 PSNR L2:30.24
+
+best:
+Rec:0.004696 KL:nan
+Rec L1:0.004710 Rec L2:0.004724
+RMSE L1:0.0969 L2:0.0971
+PSNR L1:34.58 PSNR L2:34.51
+
+doubledip
+best
+PSNR L1:32.75 PSNR L2:29.17
+worst
+PSNR L1:19.02 PSNR L2:26.96
