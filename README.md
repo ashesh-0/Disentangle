@@ -397,3 +397,14 @@ best
 PSNR L1:32.75 PSNR L2:29.17
 worst
 PSNR L1:19.02 PSNR L2:26.96
+
+## VampPrior idea
+
+The idea is to start simple. We will have just one level VAE. And we will compare it against one level VAE with vamprior
+Later, when we extent it to ladder vae, we will have a choice whether to induce vamp prior at each level or
+just at the top most level.
+
+Note that here, we take the kl divergence between q and p. We explicityly define q and p distributions and then
+use pytorch based code to get this.
+
+However, in the vamprior, we don't create the distribution. i think we compute kl divergence using a single sample.
