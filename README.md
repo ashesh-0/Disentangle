@@ -408,3 +408,5 @@ Note that here, we take the kl divergence between q and p. We explicityly define
 use pytorch based code to get this.
 
 However, in the vamprior, we don't create the distribution. i think we compute kl divergence using a single sample.
+I've simplified the setup to start simple with just one resolution level.
+/home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/6: with vamprior enabled.
