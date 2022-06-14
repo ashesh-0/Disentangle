@@ -201,7 +201,7 @@ class LadderVAE(pl.LightningModule):
         if self.vp_enabled:
             self.vp_N = config.model.vampprior_N
             # create an idle input for calling pseudo-inputs
-            self.vp_dummy_input = Variable(torch.eye(self.vp_N, self.vp_N), requires_grad=False)
+            self.vp_dummy_input = Variable(torch.eye(self.vp_N, self.vp_N), requires_grad=False).cuda()
             nonlinearity = nn.Hardtanh(min_val=0.0, max_val=1.0)
             self.vp_means = nn.Sequential(nn.Linear(self.vp_N, int(np.prod(self.img_shape)), bias=False), nonlinearity)
             self.vp_latent_ch = config.model.z_dims[-1]
@@ -402,6 +402,9 @@ class LadderVAE(pl.LightningModule):
         bu_values = self.bottomup_pass(x_pad)
         vp_dist_params = None
         if self.vp_enabled:
+            if self.vp_means.device != x_pad.device:
+                self.vp_means = self.vp_means.to(x_pad.device)
+
             vp_dist_params = self._vp_compute_mu_logvar()
 
         # Top-down inference/generation
