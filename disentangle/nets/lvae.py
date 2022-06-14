@@ -331,6 +331,17 @@ class LadderVAE(pl.LightningModule):
     def normalize_target(self, target):
         return (target - self.data_mean) / self.data_std
 
+    def power_of_2(self, x):
+        assert isinstance(x, int)
+        if x == 1:
+            return True
+        if x == 0:
+            # happens with validation
+            return False
+        if x % 2 == 1:
+            return False
+        return self.power_of_2(x // 2)
+
     def validation_step(self, batch, batch_idx):
         x, target = batch
         if isinstance(self.data_mean, torch.Tensor):
@@ -348,7 +359,7 @@ class LadderVAE(pl.LightningModule):
 
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
         self.log('val_loss', recons_loss, on_epoch=True)
-        if batch_idx == 0:
+        if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples = []
             for i in range(20):
                 sample, _ = self(x_normalized[0:1, ...])
