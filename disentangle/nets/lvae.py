@@ -402,8 +402,8 @@ class LadderVAE(pl.LightningModule):
         bu_values = self.bottomup_pass(x_pad)
         vp_dist_params = None
         if self.vp_enabled:
-            if self.vp_means.device != x_pad.device:
-                self.vp_means = self.vp_means.to(x_pad.device)
+            if self.vp_dummy_input.device != x_pad.device:
+                self.vp_dummy_input = self.vp_dummy_input.to(x_pad.device)
 
             vp_dist_params = self._vp_compute_mu_logvar()
 
