@@ -13,6 +13,7 @@ from disentangle.losses import free_bits_kl
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
 from disentangle.core.loss_type import LossType
+from torch.autograd import Variable
 
 
 class LadderVAE(pl.LightningModule):
@@ -58,6 +59,10 @@ class LadderVAE(pl.LightningModule):
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
+
+        # vampprior
+        self.vp_N = self.vp_enabled = self.vp_dummy_input = self.vp_means = self.vp_latent_ch = self.vp_hw = None
+        self._init_vp(config)
 
         # enabling reconstruction loss on mixed input
         self.mixed_rec_w = 0
@@ -158,6 +163,7 @@ class LadderVAE(pl.LightningModule):
                     res_block_type=self.res_block_type,
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
+                    vp_enabled=is_top and self.vp_enabled,
                 ))
 
         # Final top-down layer
@@ -189,6 +195,17 @@ class LadderVAE(pl.LightningModule):
         # gradient norms. updated while training. this is also logged.
         self.grad_norm_bottom_up = 0.0
         self.grad_norm_top_down = 0.0
+
+    def _init_vp(self, config):
+        self.vp_enabled = config.model.use_vampprior
+        if self.vp_enabled:
+            self.vp_N = config.model.vampprior_N
+            # create an idle input for calling pseudo-inputs
+            self.vp_dummy_input = Variable(torch.eye(self.vp_N, self.vp_N), requires_grad=False)
+            nonlinearity = nn.Hardtanh(min_val=0.0, max_val=1.0)
+            self.vp_means = nn.Sequential(nn.Linear(self.vp_N, int(np.prod(self.img_shape)), bias=False), nonlinearity)
+            self.vp_latent_ch = config.model.z_dims[-1]
+            self.vp_hw = self.img_shape[0]
 
     def get_nonlin(self):
         nonlin = {
@@ -369,11 +386,15 @@ class LadderVAE(pl.LightningModule):
 
         # Pad input to make everything easier with conv strides
         x_pad = self.pad_input(x)
+
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
+        vp_dist_params = None
+        if self.vp_enabled:
+            vp_dist_params = self._vp_compute_mu_logvar()
 
         # Top-down inference/generation
-        out, td_data = self.topdown_pass(bu_values)
+        out, td_data = self.topdown_pass(bu_values, vp_dist_params=vp_dist_params)
         # Restore original image size
         out = crop_img_tensor(out, img_size)
 
@@ -386,11 +407,21 @@ class LadderVAE(pl.LightningModule):
         # Loop from bottom to top layer, store all deterministic nodes we
         # need in the top-down pass
         bu_values = []
+
         for i in range(self.n_layers):
             x = self.bottom_up_layers[i](x)
             bu_values.append(x)
 
         return bu_values
+
+    def _vp_compute_mu_logvar(self):
+        X = self.vp_means(self.vp_dummy_input)  # 500*784, where 500 is the number of psudo inputs.
+        X = X.view(-1, 1, self.vp_hw, self.vp_hw)  # 500*1*28*28
+        # This is the mean and the var of the individual distribution of psudo inputs.
+        # -1 ensures that we just pick the deepest layer. in future, we can simply learn an input of the shape of
+        # a penultimate layer and then just use the last bottom_up layer
+        p_mu_logvar = self.bottomup_pass(X)[-1]
+        return p_mu_logvar
 
     def topdown_pass(self,
                      bu_values=None,
@@ -399,7 +430,9 @@ class LadderVAE(pl.LightningModule):
                      constant_layers=None,
                      forced_latent=None,
                      top_down_layers=None,
-                     final_top_down_layer=None):
+                     final_top_down_layer=None,
+                     vp_dist_params=None
+                     ):
         """
         Args:
             bu_values: Output of the bottom-up pass. It will have values from multiple layers of the ladder.
@@ -409,6 +442,7 @@ class LadderVAE(pl.LightningModule):
             constant_layers: Here, a single instance's z is copied over the entire batch. Also, bottom-up path is not used.
                             So, only prior is used here.
             forced_latent: Here, latent vector is not sampled but taken from here.
+            vp_dist_params: This is the vampprior's distribution params (mean and logvar concatenated)
         """
         if top_down_layers is None:
             top_down_layers = self.top_down_layers
@@ -456,7 +490,7 @@ class LadderVAE(pl.LightningModule):
             forced_latent = [None] * self.n_layers
 
         # log p(z) where z is the sample in the topdown pass
-        logprob_p = 0.
+        # logprob_p = 0.
 
         # Top-down inference/generation loop
         out = out_pre_residual = None
@@ -487,7 +521,8 @@ class LadderVAE(pl.LightningModule):
                                                             forced_latent=forced_latent[i],
                                                             mode_pred=self.mode_pred,
                                                             use_uncond_mode=use_uncond_mode,
-                                                            var_clip_max=self._var_clip_max)
+                                                            var_clip_max=self._var_clip_max,
+                                                            vp_dist_params=vp_dist_params if i == 0 else None)
             z[i] = aux['z']  # sampled variable at this layer (batch, ch, h, w)
             kl[i] = aux['kl_samplewise']  # (batch, )
             kl_spatial[i] = aux['kl_spatial']  # (batch, h, w)
@@ -496,10 +531,10 @@ class LadderVAE(pl.LightningModule):
 
             kl_channelwise[i] = aux['kl_channelwise']
             debug_qvar_max[i] = aux['qvar_max']
-            if self.mode_pred is False:
-                logprob_p += aux['logprob_p'].mean()  # mean over batch
-            else:
-                logprob_p = None
+            # if self.mode_pred is False:
+            #     logprob_p += aux['logprob_p'].mean()  # mean over batch
+            # else:
+            #     logprob_p = None
         # Final top-down layer
         out = final_top_down_layer(out)
 
@@ -508,7 +543,7 @@ class LadderVAE(pl.LightningModule):
             'kl': kl,  # list of tensors with shape (batch, )
             'kl_spatial': kl_spatial,  # list of tensors w shape (batch, h[i], w[i])
             'kl_channelwise': kl_channelwise,  # list of tensors with shape (batch, ch[i])
-            'logprob_p': logprob_p,  # scalar, mean over batch
+            # 'logprob_p': logprob_p,  # scalar, mean over batch
             'q_mu': q_mu,
             'q_lv': q_lv,
             'debug_qvar_max': debug_qvar_max,

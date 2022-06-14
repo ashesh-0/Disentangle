@@ -75,7 +75,6 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=False  # No rotation aug on validation
             )
-
         else:
             train_data = None if skip_train_dataset else MultiChTiffDloader(
                 config.data.image_size,

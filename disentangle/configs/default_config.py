@@ -9,7 +9,7 @@ def get_default_config():
     config.data.sampler_type = SamplerType.DefaultSampler
 
     config.model = ml_collections.ConfigDict()
-
+    config.model.use_vampprior = False
     config.loss = ml_collections.ConfigDict()
 
     config.training = ml_collections.ConfigDict()

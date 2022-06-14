@@ -27,6 +27,7 @@ class TopDownLayer(nn.Module):
     is used directly as q_params, and p_params are defined in this layer
     (while they are usually taken from the previous layer), and can be learned.
     """
+
     def __init__(self,
                  z_dim: int,
                  n_res_blocks: int,
@@ -42,7 +43,8 @@ class TopDownLayer(nn.Module):
                  gated=None,
                  learn_top_prior=False,
                  top_prior_param_shape=None,
-                 analytical_kl=False):
+                 analytical_kl=False,
+                 vp_enabled=False):
         """
             Args:
                 z_dim:          This is the dimension of the latent space.
@@ -69,6 +71,7 @@ class TopDownLayer(nn.Module):
                                         of the prior (which is normal distribution) for the top most layer.
                 analytical_kl:  If True, typical KL divergence is calculated. Otherwise, an approximate of it is 
                             calculated.
+                vp_enabled: If True, then the vampprior is enabled.
         """
 
         super().__init__()
@@ -78,9 +81,15 @@ class TopDownLayer(nn.Module):
         self.stochastic_skip = stochastic_skip
         self.learn_top_prior = learn_top_prior
         self.analytical_kl = analytical_kl
+        self.vp_enabled = vp_enabled
+        assert vp_enabled is False or (vp_enabled is True and is_top_layer is True)
         # Define top layer prior parameters, possibly learnable
         if is_top_layer:
-            self.top_prior_params = nn.Parameter(torch.zeros(top_prior_param_shape), requires_grad=learn_top_prior)
+            if self.vp_enabled:
+                # if vamprior is enabled, the prior should come from the q() and not fixed here.
+                pass
+            else:
+                self.top_prior_params = nn.Parameter(torch.zeros(top_prior_param_shape), requires_grad=learn_top_prior)
 
         # Downsampling steps left to do in this layer
         dws_left = downsampling_steps
@@ -138,12 +147,12 @@ class TopDownLayer(nn.Module):
                 )
 
     def forward_swapped(
-        self,
-        q_mu,
-        q_lv,
-        input_=None,
-        skip_connection_input=None,
-        n_img_prior=None,
+            self,
+            q_mu,
+            q_lv,
+            input_=None,
+            skip_connection_input=None,
+            n_img_prior=None,
     ):
 
         # Check consistency of arguments
@@ -190,7 +199,8 @@ class TopDownLayer(nn.Module):
                 force_constant_output=False,
                 mode_pred=False,
                 use_uncond_mode=False,
-                var_clip_max: Union[None, float] = None):
+                var_clip_max: Union[None, float] = None,
+                vp_dist_params: Union[None, torch.Tensor] = None):
         """
         Args:
             input_: output from previous top_down layer.
@@ -209,19 +219,28 @@ class TopDownLayer(nn.Module):
             mode_pred: If True, then only prediction happens. Otherwise, KL divergence loss also gets computed.
             use_uncond_mode: Used only when mode_pred=True
             var_clip_max: This is the maximum value the log of the variance of the latent vector for any layer can reach.
+            vp_dist_params: This contains the vampprior distribution params. Essentially the mean+logvar concatenated
+                            vector for each of the config.model.vampprior_N many trainable custom inputs.
         """
         # Check consistency of arguments
         inputs_none = input_ is None and skip_connection_input is None
         if self.is_top_layer and not inputs_none:
             raise ValueError("In top layer, inputs should be None")
 
+        if vp_dist_params is not None and not self.is_top_layer:
+            raise ValueError("VampPrior is implemented only in topmost layer right now")
+
+        p_params = None
         # If top layer, define parameters of prior p(z_L)
         if self.is_top_layer:
-            p_params = self.top_prior_params
+            if self.vp_enabled is False:
+                p_params = self.top_prior_params
 
-            # Sample specific number of images by expanding the prior
-            if n_img_prior is not None:
-                p_params = p_params.expand(n_img_prior, -1, -1, -1)
+                # Sample specific number of images by expanding the prior
+                if n_img_prior is not None:
+                    p_params = p_params.expand(n_img_prior, -1, -1, -1)
+            else:
+                p_params = vp_dist_params
 
         # Else the input from the layer above is the prior parameters
         else:
@@ -252,7 +271,8 @@ class TopDownLayer(nn.Module):
                                         analytical_kl=self.analytical_kl,
                                         mode_pred=mode_pred,
                                         use_uncond_mode=use_uncond_mode,
-                                        var_clip_max=var_clip_max)
+                                        var_clip_max=var_clip_max,
+                                        vp_enabled=vp_dist_params is not None)
 
         # Skip connection from previous layer
         if self.stochastic_skip and not self.is_top_layer:
@@ -265,7 +285,9 @@ class TopDownLayer(nn.Module):
         # Last top-down block (sequence of residual blocks)
         x = self.deterministic_block(x)
 
-        keys = ['z', 'kl_samplewise', 'kl_spatial', 'kl_channelwise', 'logprob_p', 'logprob_q', 'qvar_max']
+        keys = ['z', 'kl_samplewise', 'kl_spatial', 'kl_channelwise',
+                # 'logprob_p',
+                'logprob_q', 'qvar_max']
         data = {k: data_stoch[k] for k in keys}
         data['q_mu'] = None
         data['q_lv'] = None
@@ -282,6 +304,7 @@ class BottomUpLayer(nn.Module):
     small deterministic Resnet in top-down layers. Consists of a sequence of
     bottom-up deterministic residual blocks with downsampling.
     """
+
     def __init__(self,
                  n_res_blocks: int,
                  n_filters: int,
@@ -344,6 +367,7 @@ class ResBlockWithResampling(nn.Module):
     whether the residual path has a gate layer at the end. There are a few
     residual block structures to choose from.
     """
+
     def __init__(self,
                  mode,
                  c_in,
@@ -429,6 +453,7 @@ class MergeLayer(nn.Module):
     Merge two 4D input tensors by concatenating along dim=1 and passing the
     result through 1) a convolutional 1x1 layer, or 2) a residual block
     """
+
     def __init__(self, channels, merge_type, nonlin=nn.LeakyReLU, batchnorm=True, dropout=None, res_block_type=None):
         super().__init__()
         try:
