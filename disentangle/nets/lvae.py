@@ -201,7 +201,7 @@ class LadderVAE(pl.LightningModule):
         if self.vp_enabled:
             self.vp_N = config.model.vampprior_N
             # create an idle input for calling pseudo-inputs
-            self.vp_dummy_input = Variable(torch.eye(self.vp_N, self.vp_N), requires_grad=False).cuda()
+            self.vp_dummy_input = Variable(torch.eye(self.vp_N, self.vp_N), requires_grad=False)
             nonlinearity = nn.Hardtanh(min_val=0.0, max_val=1.0)
             self.vp_means = nn.Sequential(nn.Linear(self.vp_N, int(np.prod(self.img_shape)), bias=False), nonlinearity)
             self.vp_latent_ch = config.model.z_dims[-1]
