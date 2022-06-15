@@ -448,6 +448,10 @@ Rec L1:-0.631300 Rec L2:-0.620459
 RMSE L1:0.1313 L2:0.1330
 PSNR L1:25.17 PSNR L2:32.62
 
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/4: with vamprior disabled and using the analytical KL
+The point of training this is just to check whether using a one sample MC estimate of KL is similar/different to
+analytical KL.
+
 1. Check why overall loss is negative. => earlier we were just computing the MSE. Now, there is also logvar in the
    picture. The logvar is of decoder ~ P(x|z).
 2. check the training performance.
@@ -462,3 +466,8 @@ PSNR L1:25.17 PSNR L2:32.62
 
 On this I've to say that the shape of the kl divergence curve is quite similar to what I've got when not using the
 vampprior.
+
+Another issue is that for Vampprior, the KL divergence is getting negative. which is slightly disturbing.
+Another issue is that in the code, we do clipping of the logvar of q_params and p_params. however, we still go on using
+the p_params and q_params.
+Ideally, we should not use q_params and p_params, but instead work with the mu and the sigma as it is clipped.
