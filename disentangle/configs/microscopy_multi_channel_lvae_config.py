@@ -53,7 +53,7 @@ def get_config():
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
     model.use_vampprior = True
-    model.vampprior_N = 100
+    model.vampprior_N = 20
 
     training = config.training
     training.lr = 0.001
