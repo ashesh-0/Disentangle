@@ -292,7 +292,7 @@ class TopDownLayer(nn.Module):
         data['q_mu'] = None
         data['q_lv'] = None
         if data_stoch['q_params'] is not None:
-            q_mu, q_lv = data_stoch['q_params'].chunk(2, dim=1)
+            q_mu, q_lv = data_stoch['q_params']
             data['q_mu'] = q_mu
             data['q_lv'] = q_lv
         return x, x_pre_residual, data

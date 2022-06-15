@@ -127,7 +127,7 @@ class NormalStochasticBlock2d(nn.Module):
             p_lv = torch.clip(p_lv, max=var_clip_max)
 
         p = Normal(p_mu, (p_lv / 2).exp())
-        return p_params, p_mu, p_lv, p
+        return p_mu, p_lv, p
 
     def process_q_params(self, q_params, var_clip_max):
         # Define q(z)
@@ -137,7 +137,7 @@ class NormalStochasticBlock2d(nn.Module):
             q_lv = torch.clip(q_lv, max=var_clip_max)
 
         q = Normal(q_mu, (q_lv / 2).exp())
-        return q_params, q_mu, q_lv, q
+        return q_mu, q_lv, q
 
     def forward(self,
                 p_params: torch.Tensor,
@@ -179,15 +179,17 @@ class NormalStochasticBlock2d(nn.Module):
         assert vp_enabled is False or (vp_enabled is True and analytical_kl is False), msg
 
         if vp_enabled is False:
-            p_params, _, _, p = self.process_p_params(p_params, var_clip_max)
+            p_mu, p_lv, p = self.process_p_params(p_params, var_clip_max)
         else:
             # with VP enabled, we need to pass through the q (complete q) to get averaged posterior
             # so, we need to go though this as well.
-            p_params, _, _, _ = self.process_q_params(p_params, var_clip_max)
+            p_mu, p_lv, _ = self.process_q_params(p_params, var_clip_max)
+            p_params = (p_mu, p_lv)
             p = None
 
         if q_params is not None:
-            q_params, q_mu, q_lv, q = self.process_q_params(q_params, var_clip_max)
+            q_mu, q_lv, q = self.process_q_params(q_params, var_clip_max)
+            q_params = (q_mu, q_lv)
             debug_qvar_max = torch.max(q_lv)
             # Sample from q(z)
             sampling_distrib = q
@@ -202,7 +204,8 @@ class NormalStochasticBlock2d(nn.Module):
         # This is used when doing experiment from the prior - q is not used.
         if force_constant_output:
             z = z[0:1].expand_as(z).clone()
-            p_params = p_params[0:1].expand_as(p_params).clone()
+            p_params = (
+                p_params[0][0:1].expand_as(p_params[0]).clone(), p_params[1][0:1].expand_as(p_params[1]).clone())
 
         # Output of stochastic layer
         out = self.conv_out(z)
@@ -243,8 +246,11 @@ def kl_normal_mc(z, p_mulv, q_mulv):
     :param q_mulv:
     :return:
     """
-    p_mu, p_lv = torch.chunk(p_mulv, 2, dim=1)
-    q_mu, q_lv = torch.chunk(q_mulv, 2, dim=1)
+    assert isinstance(p_mulv, tuple)
+    assert isinstance(q_mulv, tuple)
+    p_mu, p_lv = p_mulv
+    q_mu, q_lv = q_mulv
+
     p_std = (p_lv / 2).exp()
     q_std = (q_lv / 2).exp()
 
@@ -296,8 +302,11 @@ def kl_vampprior_mc(z, p_mulv, q_mulv):
     One-sample estimation of element-wise KL between a vamprior p and
      a diagonal  multivariate normal distributions.
     """
-    p_mu, p_lv = torch.chunk(p_mulv, 2, dim=1)
-    q_mu, q_lv = torch.chunk(q_mulv, 2, dim=1)
+    assert isinstance(q_mulv, tuple)
+    assert isinstance(p_mulv, tuple)
+    p_mu, p_lv = p_mulv
+    q_mu, q_lv = q_mulv
+
     q_std = (q_lv / 2).exp()
     q_distrib = Normal(q_mu, q_std)
     return q_distrib.log_prob(z) - vp_log_p_z(p_mu, p_lv, z)
