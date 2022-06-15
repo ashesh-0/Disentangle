@@ -409,4 +409,56 @@ use pytorch based code to get this.
 
 However, in the vamprior, we don't create the distribution. i think we compute kl divergence using a single sample.
 I've simplified the setup to start simple with just one resolution level.
-/home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/6: with vamprior enabled.
+ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/6: with vamprior enabled.
+Still running.
+Validation (512):
+Rec:-0.451406 KL:nan
+Rec L1:-0.516070 Rec L2:-0.387791
+RMSE L1:0.1459 L2:0.1579
+PSNR L1:23.22 PSNR L2:30.88
+
+Training (512):
+Rec:-0.361301 KL:nan
+Rec L1:-0.426261 Rec L2:-0.296286
+RMSE L1:0.1605 L2:0.1745
+PSNR L1:24.07 PSNR L2:30.73
+
+Validation (256):
+Rec:-0.541758 KL:nan
+Rec L1:-0.607862 Rec L2:-0.476115
+RMSE L1:0.1369 L2:0.1498
+PSNR L1:20.73 PSNR L2:28.91
+
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/3: with vamprior disabled.
+Validation(256):
+Rec:-0.694106 KL:nan
+Rec L1:-0.697464 Rec L2:-0.691742
+RMSE L1:0.1190 L2:0.1205
+PSNR L1:21.45 PSNR L2:30.39
+
+Training(256):
+Rec:-0.650173 KL:nan
+Rec L1:-0.654998 Rec L2:-0.645784
+RMSE L1:0.1286 L2:0.1303
+PSNR L1:22.18 PSNR L2:30.96
+
+Training(512):
+Rec:-0.626107 KL:nan
+Rec L1:-0.631300 Rec L2:-0.620459
+RMSE L1:0.1313 L2:0.1330
+PSNR L1:25.17 PSNR L2:32.62
+
+1. Check why overall loss is negative. => earlier we were just computing the MSE. Now, there is also logvar in the
+   picture. The logvar is of decoder ~ P(x|z).
+2. check the training performance.
+3. Ensure that the notebook reconstruction and training run reconstruction loss matches. => For validation, I'm getting
+   the same metrics which I see while training. For training dataset, the numbers are off significantly. I see that the
+   training loss is quite consistent across multiple (3) computations without setting the random seeds. I get the same
+   value upto 3 decimal places for reconstruction loss.
+
+## TODO: Why the training loss does not match between runs and the notebooks.?
+
+## TODO: KL loss is coming out to be negative. One needs to see how that can happen? there must be a bug.
+
+On this I've to say that the shape of the kl divergence curve is quite similar to what I've got when not using the
+vampprior.
