@@ -47,7 +47,7 @@ def get_config():
     model.res_block_type = 'bacdbacd'
     model.gated = True
     model.no_initial_downscaling = True
-    model.analytical_kl = True
+    model.analytical_kl = False
     model.mode_pred = False
     model.var_clip_max = 8
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
