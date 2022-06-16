@@ -497,10 +497,12 @@ So, to achieve this I'm reducing the image size by a factor of 4 to 64. This all
 inputs.
 
 ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/8: vamprior disabled. (image_size:64)
-
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/17: vamprior enabled. (image_size:64)
 Another thing to look is that how is the KL divergence loss behaves on the validation set.
 
 ## Another idea is that make it a proper VAE. Just keep the penultimate layer having channels 2 and enforce a loss on one of them and the loss on the final output.
 
 It will be a VAE with one additional constraint on the penultimate layer.
-
+Since I know that the batch normalization is probably the reason why training performance becomes so very different
+in notebook depending upon whether I do model.eval() or not, it might make sense to train a model without
+batch normalization.
