@@ -184,8 +184,9 @@ class NormalStochasticBlock2d(nn.Module):
             # with VP enabled, we need to pass through the q (complete q) to get averaged posterior
             # so, we need to go though this as well.
             p_mu, p_lv, _ = self.process_q_params(p_params, var_clip_max)
-            p_params = (p_mu, p_lv)
             p = None
+
+        p_params = (p_mu, p_lv)
 
         if q_params is not None:
             q_mu, q_lv, q = self.process_q_params(q_params, var_clip_max)
