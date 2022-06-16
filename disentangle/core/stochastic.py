@@ -288,12 +288,9 @@ def vp_log_p_z(z_p_mean, z_p_logvar, z):
     # NOTE: check that whether we need to do sum
     a = log_Normal_diag(z_expand, means, logvars) - math.log(C)  # MB x C (4 * 40)
     a_max, _ = torch.max(a, 1)  # MB. sum would be a more accurate description. max() is close to the truth as
-    # if we have a multi modal distribution, then probably, only one of the modes of the distribution would
-    # give some non-zero probablity. Other modes probably don't contribute much to it.
-    # calculte log-sum-exp
-    # NOTE: This is equivalent to simply taking the sum of a. Not sure why they did it.
+    # NOTE: This is equivalent to simply taking the log of (sum of exp(a)). They've done it simply to avoid overflows.
+    # Now, one needs to take exp of (a - a_max) and not of a.
     log_prior = (a_max + torch.log(torch.sum(torch.exp(a - a_max.unsqueeze(1)), 1)))  # MB
-
     return log_prior
 
 

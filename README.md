@@ -473,4 +473,25 @@ the p_params and q_params.
 Ideally, we should not use q_params and p_params, but instead work with the mu and the sigma as it is clipped. => fixed
 it.
 
-tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/5: just one input for the vampprior.
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/5: just one input for the vampprior. validation is super
+fluctuating and has high error.
+
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/12: with 20 inputs for the vamprior
+Validation(256):
+Rec:-0.545016 KL:-0.832505
+Rec L1:-0.586590 Rec L2:-0.504542
+RMSE L1:0.1351 L2:0.1482
+PSNR L1:20.88 PSNR L2:28.64
+
+I see that it is quite similar to ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/6. In other words
+adding more number of inputs has not helped. (yet)
+But the thing is that in the code, they had used 500 as number of inputs. Also, ideally, the number of inputs should
+be the entire training dataset. So, it makes sense to experiment with larger number of trainable inputs.
+
+Another thing to look is that how is the KL divergence loss behaves on the validation set.
+
+## Another idea is that make it a proper VAE. Just keep the penultimate layer having channels 2 and enforce a loss on one of them and the loss on the final output.
+
+It will be a VAE with one additional constraint on the penultimate layer.
+
+
