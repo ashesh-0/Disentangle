@@ -493,6 +493,10 @@ I see that it is quite similar to ruth /home/ubuntu/ashesh/training/disentangle/
 adding more number of inputs has not helped. (yet)
 But the thing is that in the code, they had used 500 as number of inputs. Also, ideally, the number of inputs should
 be the entire training dataset. So, it makes sense to experiment with larger number of trainable inputs.
+So, to achieve this I'm reducing the image size by a factor of 4 to 64. This allows me to have upto 300 trainable
+inputs.
+
+ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/8: vamprior disabled. (image_size:64)
 
 Another thing to look is that how is the KL divergence loss behaves on the validation set.
 

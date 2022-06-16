@@ -52,7 +52,7 @@ def get_config():
     model.var_clip_max = 8
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
-    model.use_vampprior = False
+    model.use_vampprior = True
     model.vampprior_N = 300
 
     training = config.training
