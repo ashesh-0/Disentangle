@@ -483,6 +483,12 @@ Rec L1:-0.586590 Rec L2:-0.504542
 RMSE L1:0.1351 L2:0.1482
 PSNR L1:20.88 PSNR L2:28.64
 
+Training(256):
+Rec:-0.459280 KL:-0.831866
+Rec L1:-0.496504 Rec L2:-0.422399
+RMSE L1:0.1506 L2:0.1635
+PSNR L1:21.58 PSNR L2:29.02
+
 I see that it is quite similar to ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/6. In other words
 adding more number of inputs has not helped. (yet)
 But the thing is that in the code, they had used 500 as number of inputs. Also, ideally, the number of inputs should
@@ -493,5 +499,4 @@ Another thing to look is that how is the KL divergence loss behaves on the valid
 ## Another idea is that make it a proper VAE. Just keep the penultimate layer having channels 2 and enforce a loss on one of them and the loss on the final output.
 
 It will be a VAE with one additional constraint on the penultimate layer.
-
 
