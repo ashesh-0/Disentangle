@@ -19,7 +19,6 @@ from torch.autograd import Variable
 class LadderVAE(pl.LightningModule):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__()
-
         self.lr = config.training.lr
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
         # grayscale input
@@ -307,7 +306,7 @@ class LadderVAE(pl.LightningModule):
         if optimizer_idx == 0:
             self.grad_norm_bottom_up, self.grad_norm_top_down = self.compute_gradient_norm()
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx, enable_logging=True):
         x, target = batch
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
@@ -318,21 +317,23 @@ class LadderVAE(pl.LightningModule):
 
         if self.loss_type == LossType.ElboMixedReconstruction:
             recons_loss += self.mixed_rec_w * recons_loss_dict['mixed_loss']
-            self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
+            if enable_logging:
+                self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
 
         kl_loss = self.get_kl_divergence_loss(td_data)
 
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
-        for i, x in enumerate(td_data['debug_qvar_max']):
-            self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
+        if enable_logging:
+            for i, x in enumerate(td_data['debug_qvar_max']):
+                self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
 
-        self.log('reconstruction_loss', recons_loss_dict['loss'], on_epoch=True)
+            self.log('reconstruction_loss', recons_loss_dict['loss'], on_epoch=True)
+            self.log('kl_loss', kl_loss, on_epoch=True)
+            self.log('training_loss', net_loss, on_epoch=True)
+            self.log('lr', self.lr, on_epoch=True)
+            self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
+            self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
 
-        self.log('kl_loss', kl_loss, on_epoch=True)
-        self.log('training_loss', net_loss, on_epoch=True)
-        self.log('lr', self.lr, on_epoch=True)
-        self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
-        self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
         output = {
             'loss': net_loss,
             'reconstruction_loss': recons_loss.detach(),

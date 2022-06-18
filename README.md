@@ -496,7 +496,15 @@ be the entire training dataset. So, it makes sense to experiment with larger num
 So, to achieve this I'm reducing the image size by a factor of 4 to 64. This allows me to have upto 300 trainable
 inputs.
 
-ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/8: vamprior disabled. (image_size:64)
+ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/8: vamprior disabled. (image_size:64) std has very high
+values
+and it crashed. running it with lower max threshold.
+ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/9: with max_log_var set to 6. So, I see that it is not
+related to max_log_var. The self.top_prior_params is set to Nan. The reason is that the KL loss gets super high. q_var
+is
+also touching maximum value 6. Note that when the input size was 256, it was not the case. it was also fluctuating but
+did not get to nan. When I compare the analytical KL and one example estimate, I don't see any clear difference between
+them at 256*256 resolution (/3 and /4)
 tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/17: vamprior enabled. (image_size:64)
 Another thing to look is that how is the KL divergence loss behaves on the validation set.
 
@@ -506,3 +514,4 @@ It will be a VAE with one additional constraint on the penultimate layer.
 Since I know that the batch normalization is probably the reason why training performance becomes so very different
 in notebook depending upon whether I do model.eval() or not, it might make sense to train a model without
 batch normalization.
+

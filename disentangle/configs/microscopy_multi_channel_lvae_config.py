@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 256
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
     data.channel_2 = 2
@@ -33,7 +33,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVaeSepVampprior
     model.z_dims = [128]
     model.blocks_per_layer = 5
     model.nonlin = 'elu'
@@ -52,8 +52,8 @@ def get_config():
     model.var_clip_max = 6
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
-    model.use_vampprior = False
-    model.vampprior_N = 300
+    model.use_vampprior = True
+    model.vampprior_N = 10
 
     training = config.training
     training.lr = 0.001
