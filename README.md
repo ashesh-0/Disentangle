@@ -508,6 +508,13 @@ them at 256*256 resolution (/3 and /4)
 tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/17: vamprior enabled. (image_size:64)
 Another thing to look is that how is the KL divergence loss behaves on the validation set.
 
+Now, I've adopted a two optimizer based setup. The motivations are two:
+
+1. Any non-ELBO term is historically seen to disturb the data extraction process of the decoder. I read is somewhere, in
+   some paper. (some? :D :( )
+2. I don't want to allow the model to change the decoder weights so that they align with the trainable input well to
+   together yield low KL divergence. Doing this should encourage the learning of learnable inputs of the vampprior
+
 ## Another idea is that make it a proper VAE. Just keep the penultimate layer having channels 2 and enforce a loss on one of them and the loss on the final output.
 
 It will be a VAE with one additional constraint on the penultimate layer.
