@@ -371,13 +371,17 @@ Rec L1:-0.864775 Rec L2:-0.855941
 RMSE L1:0.1103 L2:0.1113
 PSNR L1:24.71 PSNR L2:33.28
 
-## Why is it the case that the bright blobs in region 2 comes only at boundaries.
+## Why is it the case that the bright blobs in region 2 comes only at boundaries. => I checked the val data loader.
+
+I see all kinds of shapes. However, it could be happening that the bright regions around boundary are the ones with the
+best results and so they are more visible.
 
 # June 11
 
 ## Comparing with doubledip
 
 In doubledip, we work with 2 weights.
+We pick the best 10 and worst 10 image crops from the following trained model and check double dip's performance on it.
 tur /home/ubuntu/ashesh/training/disentangle/2205/D3-M3-S0-L0/14
 
 worst:
@@ -392,22 +396,27 @@ Rec L1:0.004710 Rec L2:0.004724
 RMSE L1:0.0969 L2:0.0971
 PSNR L1:34.58 PSNR L2:34.51
 
-doubledip
+doubledip (with 2 inputs)
 best
 PSNR L1:32.75 PSNR L2:29.17
 worst
 PSNR L1:19.02 PSNR L2:26.96
 
+doubledip (with one input)
+best
+PSNR L1:26.29 PSNR L2:23.54
+
 ## VampPrior idea
 
 The idea is to start simple. We will have just one level VAE. And we will compare it against one level VAE with vamprior
-Later, when we extent it to ladder vae, we will have a choice whether to induce vamp prior at each level or
+Later, when we extend it to ladder vae, we will have a choice whether to induce vamp prior at each level or
 just at the top most level.
 
-Note that here, we take the kl divergence between q and p. We explicityly define q and p distributions and then
+Note that here, we take the kl divergence between q and p. We explicitly define q and p distributions and then
 use pytorch based code to get this.
 
-However, in the vamprior, we don't create the distribution. i think we compute kl divergence using a single sample.
+However, in the vamprior, for KL divergence, we don't create the P distribution explicitly. we compute kl divergence
+using a single sample MC approximation.
 I've simplified the setup to start simple with just one resolution level.
 ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/6: with vamprior enabled.
 Still running.
@@ -450,17 +459,20 @@ PSNR L1:25.17 PSNR L2:32.62
 
 tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/4: with vamprior disabled and using the analytical KL
 The point of training this is just to check whether using a one sample MC estimate of KL is similar/different to
-analytical KL.
+analytical KL. It is very similar. I don't see any real difference.
 
-1. Check why overall loss is negative. => earlier we were just computing the MSE. Now, there is also logvar in the
-   picture. The logvar is of decoder ~ P(x|z).
-2. check the training performance.
+1. Check why overall loss is negative. => earlier we were just computing the MSE (logvar was 0). Now, there is also
+   logvar in the picture. The logvar is of decoder ~ P(x|z).
+2. Check the training performance.
 3. Ensure that the notebook reconstruction and training run reconstruction loss matches. => For validation, I'm getting
    the same metrics which I see while training. For training dataset, the numbers are off significantly. I see that the
    training loss is quite consistent across multiple (3) computations without setting the random seeds. I get the same
    value upto 3 decimal places for reconstruction loss.
 
-## TODO: Why the training loss does not match between runs and the notebooks.?
+## TODO: Why the training loss does not match between runs and the notebooks.? => this has to do with model.eval()
+
+If model.eval() is not True, training loss exactly matches between runs and notebooks. So, one idea is to either disable
+batchnorm or have more batch size.
 
 ## TODO: KL loss is coming out to be negative. One needs to see how that can happen? there must be a bug.
 
@@ -501,10 +513,9 @@ values
 and it crashed. running it with lower max threshold.
 ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/9: with max_log_var set to 6. So, I see that it is not
 related to max_log_var. The self.top_prior_params is set to Nan. The reason is that the KL loss gets super high. q_var
-is
-also touching maximum value 6. Note that when the input size was 256, it was not the case. it was also fluctuating but
-did not get to nan. When I compare the analytical KL and one example estimate, I don't see any clear difference between
-them at 256*256 resolution (/3 and /4)
+is also touching maximum value 6. Note that when the input size was 256, it was not the case. it was also fluctuating
+but did not get to nan. When I compare the analytical KL and one example estimate, I don't see any clear difference
+between them at 256*256 resolution (/3 and /4)
 tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/17: vamprior enabled. (image_size:64)
 Another thing to look is that how is the KL divergence loss behaves on the validation set.
 
@@ -515,6 +526,18 @@ Now, I've adopted a two optimizer based setup. The motivations are two:
 2. I don't want to allow the model to change the decoder weights so that they align with the trainable input well to
    together yield low KL divergence. Doing this should encourage the learning of learnable inputs of the vampprior
 
+Without dropout:ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M6-S0-L0/0
+Rec:-0.482274 KL:nan
+Rec L1:-0.536763 Rec L2:-0.427336
+RMSE L1:0.1432 L2:0.1607
+PSNR L1:20.79 PSNR L2:28.16
+
+Adding dropout: tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M6-S0-L0/1
+Rec:-0.624432 KL:nan
+Rec L1:-0.661199 Rec L2:-0.588311
+RMSE L1:0.1298 L2:0.1379
+PSNR L1:21.00 PSNR L2:29.46
+
 ## Another idea is that make it a proper VAE. Just keep the penultimate layer having channels 2 and enforce a loss on one of them and the loss on the final output.
 
 It will be a VAE with one additional constraint on the penultimate layer.
@@ -522,3 +545,4 @@ Since I know that the batch normalization is probably the reason why training pe
 in notebook depending upon whether I do model.eval() or not, it might make sense to train a model without
 batch normalization.
 
+The validation loss is quite bumpy and training loss is quite smooth.

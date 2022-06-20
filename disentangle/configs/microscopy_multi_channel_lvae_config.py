@@ -33,7 +33,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVaeSepVampprior
+    model.model_type = ModelType.LadderVae
     model.z_dims = [128]
     model.blocks_per_layer = 5
     model.nonlin = 'elu'
