@@ -531,18 +531,24 @@ Rec:-0.482274 KL:nan
 Rec L1:-0.536763 Rec L2:-0.427336
 RMSE L1:0.1432 L2:0.1607
 PSNR L1:20.79 PSNR L2:28.16
+The validation loss is quite bumpy and training loss is quite smooth.
 
 Adding dropout: tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M6-S0-L0/1
 Rec:-0.624432 KL:nan
 Rec L1:-0.661199 Rec L2:-0.588311
 RMSE L1:0.1298 L2:0.1379
 PSNR L1:21.00 PSNR L2:29.46
+The validation is relatively smooth.
+
+Since with dropout, things started working better, the question would be that how is the performance
+with dropout on single optimizer case.
+rutn /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/12:
 
 ## Another idea is that make it a proper VAE. Just keep the penultimate layer having channels 2 and enforce a loss on one of them and the loss on the final output.
 
 It will be a VAE with one additional constraint on the penultimate layer.
+
 Since I know that the batch normalization is probably the reason why training performance becomes so very different
 in notebook depending upon whether I do model.eval() or not, it might make sense to train a model without
 batch normalization.
 
-The validation loss is quite bumpy and training loss is quite smooth.
