@@ -562,3 +562,7 @@ Since I know that the batch normalization is probably the reason why training pe
 in notebook depending upon whether I do model.eval() or not, it might make sense to train a model without batch
 normalization.
 
+## Enabling contrastive learning.
+
+ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/13: existing setup (without CL) with randomized data
+loader.
