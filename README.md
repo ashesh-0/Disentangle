@@ -550,6 +550,10 @@ tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/20
 I see that dropout + (no vampprior) is giving the best performance. Which essentially means that
 vampprior is not working.
 
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/21
+Here, I'm working with a non-optimized version of vampprior. Just want to check if this one also gives similar
+performances.
+
 ## Another idea is that make it a proper VAE. Just keep the penultimate layer having channels 2 and enforce a loss on one of them and the loss on the final output.
 
 It will be a VAE with one additional constraint on the penultimate layer.

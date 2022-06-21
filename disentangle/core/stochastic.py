@@ -187,7 +187,6 @@ class NormalStochasticBlock2d(nn.Module):
             p = None
 
         p_params = (p_mu, p_lv)
-
         if q_params is not None:
             q_mu, q_lv, q = self.process_q_params(q_params, var_clip_max)
             q_params = (q_mu, q_lv)
@@ -263,7 +262,8 @@ def kl_normal_mc(z, p_mulv, q_mulv):
 
 
 def log_Normal_diag(x, mean, log_var):
-    log_normal = -0.5 * (log_var + torch.pow(x - mean, 2) / torch.exp(log_var))
+    constant = - 0.5 * torch.log(torch.Tensor([2 * math.pi])).item()
+    log_normal = constant + -0.5 * (log_var + torch.pow(x - mean, 2) / torch.exp(log_var))
     return log_normal
 
 
