@@ -16,6 +16,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
+from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
 from disentangle.data_loader.multi_channel_tiff_dloader import MultiChTiffDloader
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
 from disentangle.data_loader.places_dloader import PlacesLoader
@@ -54,7 +55,9 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         use_one_mu_std = config.data.use_one_mu_std
         train_aug_rotate = config.data.train_aug_rotate
         if 'deterministic_grid' in config.data and config.data.deterministic_grid is True:
-            train_data = None if skip_train_dataset else MultiChDeterministicTiffDloader(
+            data_class = (
+                MultiChDeterministicTiffRandDloader if config.data.randomized_channels else MultiChDeterministicTiffDloader)
+            train_data = None if skip_train_dataset else data_class(
                 config.data.image_size,
                 datapath,
                 config.data.channel_1,
@@ -64,7 +67,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 normalized_input=normalized_input,
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=train_aug_rotate)
-            val_data = MultiChDeterministicTiffDloader(
+            val_data = data_class(
                 config.data.image_size,
                 datapath,
                 config.data.channel_1,
