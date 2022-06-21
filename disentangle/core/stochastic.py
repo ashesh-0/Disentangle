@@ -283,15 +283,15 @@ def vp_log_p_z(z_p_mean, z_p_logvar, z):
     # (10, 40,256,256)= > (1, 10, 40,256,256)
     means = z_p_mean.unsqueeze(0)
     logvars = z_p_logvar.unsqueeze(0)
-
     # in computing the probablity of z, we sum over the latent dimension (20)
     # We need to divide by C (500) to keep it a valid distribution. Average of gaussians.
     # NOTE: check that whether we need to do sum
     a = log_Normal_diag(z_expand, means, logvars) - math.log(C)  # MB x C (4 * 40)
-    a_max, _ = torch.max(a, 1)  # MB. sum would be a more accurate description. max() is close to the truth as
+    # a_max, _ = torch.max(a, 1)  # MB. sum would be a more accurate description. max() is close to the truth as
     # NOTE: This is equivalent to simply taking the log of (sum of exp(a)). They've done it simply to avoid overflows.
     # Now, one needs to take exp of (a - a_max) and not of a.
-    log_prior = (a_max + torch.log(torch.sum(torch.exp(a - a_max.unsqueeze(1)), 1)))  # MB
+    # log_prior = (a_max + torch.log(torch.sum(torch.exp(a - a_max.unsqueeze(1)), 1)))  # MB
+    log_prior = torch.log(torch.sum(torch.exp(a), 1))
     return log_prior
 
 

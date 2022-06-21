@@ -542,13 +542,19 @@ The validation is relatively smooth.
 
 Since with dropout, things started working better, the question would be that how is the performance
 with dropout on single optimizer case.
-rutn /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/12:
+rutn /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/12
+
+and with dropout but without vampprior
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/20
+
+I see that dropout + (no vampprior) is giving the best performance. Which essentially means that
+vampprior is not working.
 
 ## Another idea is that make it a proper VAE. Just keep the penultimate layer having channels 2 and enforce a loss on one of them and the loss on the final output.
 
 It will be a VAE with one additional constraint on the penultimate layer.
 
 Since I know that the batch normalization is probably the reason why training performance becomes so very different
-in notebook depending upon whether I do model.eval() or not, it might make sense to train a model without
-batch normalization.
+in notebook depending upon whether I do model.eval() or not, it might make sense to train a model without batch
+normalization.
 
