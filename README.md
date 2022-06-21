@@ -477,7 +477,7 @@ batchnorm or have more batch size.
 ## TODO: KL loss is coming out to be negative. One needs to see how that can happen? there must be a bug.
 
 On this I've to say that the shape of the kl divergence curve is quite similar to what I've got when not using the
-vampprior.
+vampprior. => This was a harmless bug. So, log(sqrt(1/2pi)) was not included while computing the log of the probablity.
 
 Another issue is that for Vampprior, the KL divergence is getting negative. which is slightly disturbing.
 Another issue is that in the code, we do clipping of the logvar of q_params and p_params. however, we still go on using
