@@ -20,6 +20,7 @@ def get_config():
     # meean and stdev are used.
     data.use_one_mu_std = True
     data.train_aug_rotate = True
+    data.randomized_channels = True
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -52,7 +53,7 @@ def get_config():
     model.var_clip_max = 6
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
-    model.use_vampprior = True
+    model.use_vampprior = False
     model.vampprior_N = 10
 
     training = config.training
