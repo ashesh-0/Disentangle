@@ -576,6 +576,16 @@ However, another interpretation is also there. Now that the two channels are dec
 sense anymore. It would be better to have two decoders which do this job. The hope is that they would be able to extract
 a better performance out. This is also evident from the inferior training performance of the this model over the case
 when two channels were co-localized.
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M4-S0-L0/0: this has twin decoder setup. This is used with non
+co-occuring channels. The expectation now is that we would be able to get better reconstruction loss on training data
+than ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/13. The hope is that we get better validation
+performance than the above mentioned model and may be with the case when it is absent. On a different note, this is
+equivalent to training a single VAE with just one target channel. We can anyway learn the other channel by subtracting
+from the input. There is one condition where I think using two channels in output will be better over using one channel.
+Lets say that the model is confident about one channel on a speciic region. But the model does not know what should be
+the channel 2. In that case, the model iwll disturb the prediction of channel 1 as well. but if the counter argument is
+thati if one of the channel is super clear, there is no reason to beleivethat the modeldoes not have this sense of
+subtracting that from the input. This is slightly hazy.
 
 another thing is to check how the performance changes when one does not do model.eval()
 another thing is to inspect the performance with and without the rotation. I remember doing it once. I think it was

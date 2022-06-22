@@ -73,8 +73,8 @@ class LadderVAETwinDecoder(LadderVAE):
         assert self.likelihood_form == 'gaussian'
         del self.likelihood
         self.likelihood = None
-        self.likelihood_l1 = GaussianLikelihood(self.n_filters // 2, self.target_ch)
-        self.likelihood_l2 = GaussianLikelihood(self.n_filters // 2, self.target_ch)
+        self.likelihood_l1 = GaussianLikelihood(self.n_filters // 2, self.target_ch, predict_logvar=self.predict_logvar)
+        self.likelihood_l2 = GaussianLikelihood(self.n_filters // 2, self.target_ch, predict_logvar=self.predict_logvar)
 
     def get_final_top_down(self):
         modules = list()
