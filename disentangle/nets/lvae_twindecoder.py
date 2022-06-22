@@ -25,7 +25,6 @@ class LadderVAETwinDecoder(LadderVAE):
         nonlin = self.get_nonlin()
 
         for i in range(self.n_layers):
-
             # Whether this is the top layer
             is_top = i == self.n_layers - 1
 
@@ -150,8 +149,8 @@ class LadderVAETwinDecoder(LadderVAE):
 
     def training_step(self, batch, batch_idx):
         x, target = batch
-        x_normalized = (x - self.data_mean) / self.data_std
-        target_normalized = (target - self.data_mean) / self.data_std
+        x_normalized = self.normalize_input(x)
+        target_normalized = self.normalize_target(target)
 
         out_l1, out_l2, td_data = self.forward(x_normalized)
 
@@ -174,8 +173,10 @@ class LadderVAETwinDecoder(LadderVAE):
 
     def validation_step(self, batch, batch_idx):
         x, target = batch
-        x_normalized = (x - self.data_mean) / self.data_std
-        target_normalized = (target - self.data_mean) / self.data_std
+        self.set_params_to_same_device_as(target)
+
+        x_normalized = self.normalize_input(x)
+        target_normalized = self.normalize_target(target)
 
         out_l1, out_l2, td_data = self.forward(x_normalized)
         recons_loss = self.get_reconstruction_loss(out_l1, out_l2, target_normalized)
@@ -183,10 +184,10 @@ class LadderVAETwinDecoder(LadderVAE):
 
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
         self.log('val_loss', recons_loss, on_epoch=True)
-        if batch_idx == 0:
+        if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples_l1 = []
             all_samples_l2 = []
-            for i in range(100):
+            for i in range(20):
                 sample_l1, sample_l2, _ = self(x_normalized[0:1, ...])
                 sample_l1 = self.likelihood_l1.parameter_net(sample_l1)
                 sample_l2 = self.likelihood_l2.parameter_net(sample_l2)

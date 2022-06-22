@@ -566,3 +566,18 @@ normalization.
 
 ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/13: existing setup (without CL) with randomized data
 loader.
+After looking at the performance of above, I think that it may not be the best option to induce contrastive learning
+here. The reason is that for me to enable contrastive learning, I need to decouple the two channels. So, I cannot take
+co-occuring channels. But since the performance of randomized data loader is poor, this means that decoupling has an
+inferior affect on the validation data and so there is no reason to support that CL will help improve the validation
+performance. Although I coded up the two index data loader and sampler, I'm not thinking of going forward with it.
+
+However, another interpretation is also there. Now that the two channels are decoupled using same decoder does not make
+sense anymore. It would be better to have two decoders which do this job. The hope is that they would be able to extract
+a better performance out. This is also evident from the inferior training performance of the this model over the case
+when two channels were co-localized.
+
+another thing is to check how the performance changes when one does not do model.eval()
+another thing is to inspect the performance with and without the rotation. I remember doing it once. I think it was
+understood that the model does not give inferior performance to rotated versions as well. But this is not completely
+clear. 

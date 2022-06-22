@@ -360,12 +360,15 @@ class LadderVAE(pl.LightningModule):
             return False
         return self.power_of_2(x // 2)
 
+    def set_params_to_same_device_as(self, correct_device_tensor):
+        if isinstance(self.data_mean, torch.Tensor):
+            if self.data_mean.device != correct_device_tensor.device:
+                self.data_mean = self.data_mean.to(correct_device_tensor.device)
+                self.data_std = self.data_std.to(correct_device_tensor.device)
+
     def validation_step(self, batch, batch_idx):
         x, target = batch
-        if isinstance(self.data_mean, torch.Tensor):
-            if self.data_mean.device != target.device:
-                self.data_mean = self.data_mean.to(target.device)
-                self.data_std = self.data_std.to(target.device)
+        self.set_params_to_same_device_as(target)
 
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
