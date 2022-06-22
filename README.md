@@ -588,6 +588,21 @@ thati if one of the channel is super clear, there is no reason to beleivethat th
 subtracting that from the input. This is slightly hazy.
 
 another thing is to check how the performance changes when one does not do model.eval()
+/home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/12
+With eval():
+Rec:-0.548259 KL:nan
+Rec L1:-0.619266 Rec L2:-0.476884
+RMSE L1:0.1324 L2:0.1540
+PSNR L1:20.86 PSNR L2:28.42
+
+Without eval():
+Rec:-0.543836 KL:nan
+Rec L1:-0.645605 Rec L2:-0.441391
+RMSE L1:0.1334 L2:0.1546
+PSNR L1:21.13 PSNR L2:29.51
+
 another thing is to inspect the performance with and without the rotation. I remember doing it once. I think it was
 understood that the model does not give inferior performance to rotated versions as well. But this is not completely
-clear. 
+clear.
+
+TODO: look at the distribution of the latent space
