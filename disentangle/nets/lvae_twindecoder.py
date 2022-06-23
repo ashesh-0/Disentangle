@@ -12,6 +12,8 @@ from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
 
+from typing import List, Tuple
+
 
 class LadderVAETwinDecoder(LadderVAE):
     def __init__(self, data_mean, data_std, config):
@@ -95,12 +97,36 @@ class LadderVAETwinDecoder(LadderVAE):
 
         return nn.Sequential(*modules)
 
-    def sample_from_q(self, x, masks=None):
-        sample1 = super().sample_from_q(x, top_down_layers=self.top_down_layers_l1,
-                                        final_top_down_layer=self.final_top_down_l1, masks=masks)
-        sample2 = super().sample_from_q(x, top_down_layers=self.top_down_layers_l2,
-                                        final_top_down_layer=self.final_top_down_l2, masks=masks)
+    def sample_from_q(self, x, masks=None) -> Tuple[List[torch.Tensor], List[torch.Tensor]]:
+        img_size = x.size()[2:]
+
+        # Pad input to make everything easier with conv strides
+        x_pad = self.pad_input(x)
+
+        # Bottom-up inference: return list of length n_layers (bottom to top)
+        bu_values = self.bottomup_pass(x_pad)
+        bu_values_l1, bu_values_l2 = self.get_separate_bu_values(bu_values)
+
+        sample1 = self._sample_from_q(bu_values_l1, top_down_layers=self.top_down_layers_l1,
+                                      final_top_down_layer=self.final_top_down_l1, masks=masks)
+
+        sample2 = self._sample_from_q(bu_values_l2, top_down_layers=self.top_down_layers_l2,
+                                      final_top_down_layer=self.final_top_down_l2, masks=masks)
         return sample1, sample2
+
+    @staticmethod
+    def get_separate_bu_values(bu_values):
+        """
+        One bu_value list for each decoder
+        """
+        bu_values_l1 = []
+        bu_values_l2 = []
+
+        for one_level_bu in bu_values:
+            bu_l1, bu_l2 = one_level_bu.chunk(2, dim=1)
+            bu_values_l1.append(bu_l1)
+            bu_values_l2.append(bu_l2)
+        return bu_values_l1, bu_values_l2
 
     def forward(self, x):
         img_size = x.size()[2:]
@@ -109,13 +135,7 @@ class LadderVAETwinDecoder(LadderVAE):
         x_pad = self.pad_input(x)
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
-        bu_values_l1 = []
-        bu_values_l2 = []
-
-        for one_level_bu in bu_values:
-            bu_l1, bu_l2 = one_level_bu.chunk(2, dim=1)
-            bu_values_l1.append(bu_l1)
-            bu_values_l2.append(bu_l2)
+        bu_values_l1, bu_values_l2 = self.get_separate_bu_values(bu_values)
 
         # Top-down inference/generation
         out_l1, td_data_l1 = self.topdown_pass(

@@ -441,7 +441,7 @@ class LadderVAE(pl.LightningModule):
         p_mu_logvar = self.bottomup_pass(X)[-1]
         return p_mu_logvar
 
-    def sample_from_q(self, x, top_down_layers=None, final_top_down_layer=None, masks=None):
+    def sample_from_q(self, x, masks=None):
         img_size = x.size()[2:]
 
         # Pad input to make everything easier with conv strides
@@ -449,8 +449,7 @@ class LadderVAE(pl.LightningModule):
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
-        return self._sample_from_q(bu_values, top_down_layers=top_down_layers,
-                                   final_top_down_layer=final_top_down_layer, masks=masks)
+        return self._sample_from_q(bu_values, masks=masks)
 
     def _sample_from_q(self, bu_values, top_down_layers=None, final_top_down_layer=None, masks=None):
         if top_down_layers is None:
