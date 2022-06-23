@@ -72,8 +72,11 @@ def get_mmse_dict(model, x_normalized, target_normalized, mmse_count, model_type
     rmse = rmse.view(mse.shape[:2])
     loss_mmse = model.likelihood.log_likelihood(target_normalized, {'mean': img_mmse, 'logvar': avg_logvar})
     kl_loss = None
+    kl_loss_channelwise = None
     if compute_kl_loss:
         kl_loss = model.get_kl_divergence_loss(td_data).cpu().numpy()
+        resN = len(td_data['kl_channelwise'])
+        kl_loss_channelwise = [td_data['kl_channelwise'][i].detach().cpu().numpy() for i in range(resN)]
 
     psnrl1 = np.array(
         [psnr_fn(target_normalized[i, 0].cpu().numpy(), img_mmse[i, 0].cpu().numpy()) for i in
@@ -91,6 +94,7 @@ def get_mmse_dict(model, x_normalized, target_normalized, mmse_count, model_type
         'psnr_l1': psnrl1,
         'psnr_l2': psnrl2,
         'kl_loss': kl_loss,
+        'kl_loss_channelwise': kl_loss_channelwise,
     }
     if model_type == ModelType.LadderVAECritic:
         D_loss = model.get_critic_loss_stats(recon_img, target_normalized)['loss'].cpu().item()
