@@ -85,6 +85,13 @@ class NormalStochasticBlock2d(nn.Module):
             z = forced_latent
         return z
 
+    def sample_from_q(self, q_params, var_clip_max):
+        """
+        Note that q_params should come from outside. It must not be already transformed since we are doing it here.
+        """
+        _, _, q = self.process_q_params(q_params, var_clip_max)
+        return q.rsample()
+
     def compute_kl_metrics(self, p, p_params, q, q_params, mode_pred, analytical_kl, z, vp_enabled):
         """
         Compute KL (analytical or MC estimate) and then process it in multiple ways.

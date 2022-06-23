@@ -441,6 +441,38 @@ class LadderVAE(pl.LightningModule):
         p_mu_logvar = self.bottomup_pass(X)[-1]
         return p_mu_logvar
 
+    def sample_from_q(self, x, top_down_layers=None, final_top_down_layer=None, masks=None):
+        img_size = x.size()[2:]
+
+        # Pad input to make everything easier with conv strides
+        x_pad = self.pad_input(x)
+
+        # Bottom-up inference: return list of length n_layers (bottom to top)
+        bu_values = self.bottomup_pass(x_pad)
+        return self._sample_from_q(bu_values, top_down_layers=top_down_layers,
+                                   final_top_down_layer=final_top_down_layer, masks=masks)
+
+    def _sample_from_q(self, bu_values, top_down_layers=None, final_top_down_layer=None, masks=None):
+        if top_down_layers is None:
+            top_down_layers = self.top_down_layers
+        if final_top_down_layer is None:
+            final_top_down_layer = self.final_top_down
+        if masks is None:
+            masks = [None] * len(bu_values)
+
+        msg = "Multiscale is not supported as of now. You need the output from the previous layers to do this."
+        assert self.n_layers == 1, msg
+        samples = []
+        for i in reversed(range(self.n_layers)):
+            bu_value = bu_values[i]
+
+            # Note that the first argument can be set to None since we are just dealing with one level
+            sample = top_down_layers[i].sample_from_q(None, bu_value, var_clip_max=self._var_clip_max,
+                                                      mask=masks[i])
+            samples.append(sample)
+
+        return samples
+
     def topdown_pass(self,
                      bu_values=None,
                      n_img_prior=None,

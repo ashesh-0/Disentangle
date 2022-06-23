@@ -188,6 +188,44 @@ class TopDownLayer(nn.Module):
         data = {k: data_stoch[k] for k in keys}
         return x, x_pre_residual, data
 
+    def sample_from_q(self, input_, bu_value, var_clip_max=None, mask=None):
+        """
+        We sample from q
+        """
+        if self.is_top_layer:
+            q_params = bu_value
+        else:
+            # NOTE: Here the assumption is that the vampprior is only applied on the top layer.
+            assert self.vp_enabled is False
+            vp_dist_params = None
+            n_img_prior = None
+            p_params = self.get_p_params(input_, vp_dist_params, n_img_prior)
+            q_params = self.merge(bu_value, p_params)
+
+        sample = self.stochastic.sample_from_q(q_params, var_clip_max)
+        if mask:
+            return sample[mask]
+        return sample
+
+    def get_p_params(self, input_, vp_dist_params, n_img_prior):
+        p_params = None
+        # If top layer, define parameters of prior p(z_L)
+        if self.is_top_layer:
+            if self.vp_enabled is False:
+                p_params = self.top_prior_params
+
+                # Sample specific number of images by expanding the prior
+                if n_img_prior is not None:
+                    p_params = p_params.expand(n_img_prior, -1, -1, -1)
+            else:
+                p_params = vp_dist_params
+
+        # Else the input from the layer above is the prior parameters
+        else:
+            p_params = input_
+
+        return p_params
+
     def forward(self,
                 input_: Union[None, torch.Tensor] = None,
                 skip_connection_input=None,
@@ -230,21 +268,7 @@ class TopDownLayer(nn.Module):
         if vp_dist_params is not None and not self.is_top_layer:
             raise ValueError("VampPrior is implemented only in topmost layer right now")
 
-        p_params = None
-        # If top layer, define parameters of prior p(z_L)
-        if self.is_top_layer:
-            if self.vp_enabled is False:
-                p_params = self.top_prior_params
-
-                # Sample specific number of images by expanding the prior
-                if n_img_prior is not None:
-                    p_params = p_params.expand(n_img_prior, -1, -1, -1)
-            else:
-                p_params = vp_dist_params
-
-        # Else the input from the layer above is the prior parameters
-        else:
-            p_params = input_
+        p_params = self.get_p_params(input_, vp_dist_params, n_img_prior)
 
         # In inference mode, get parameters of q from inference path,
         # merging with top-down path if it's not the top layer

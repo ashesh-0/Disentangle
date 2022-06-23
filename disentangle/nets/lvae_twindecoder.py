@@ -95,6 +95,13 @@ class LadderVAETwinDecoder(LadderVAE):
 
         return nn.Sequential(*modules)
 
+    def sample_from_q(self, x, masks=None):
+        sample1 = super().sample_from_q(x, top_down_layers=self.top_down_layers_l1,
+                                        final_top_down_layer=self.final_top_down_l1, masks=masks)
+        sample2 = super().sample_from_q(x, top_down_layers=self.top_down_layers_l2,
+                                        final_top_down_layer=self.final_top_down_l2, masks=masks)
+        return sample1, sample2
+
     def forward(self, x):
         img_size = x.size()[2:]
 

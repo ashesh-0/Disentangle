@@ -607,4 +607,5 @@ clear.
 
 TODO: look at the distribution of the latent space
 One option is what I already have. But that will not tell me whether individual pixels are following bimodal
-distribution or not. The better option would be to 
+distribution or not. The better option would be to pick few channels randomly and then collect their values and plot a
+histogram for each of them.
