@@ -606,3 +606,5 @@ understood that the model does not give inferior performance to rotated versions
 clear.
 
 TODO: look at the distribution of the latent space
+One option is what I already have. But that will not tell me whether individual pixels are following bimodal
+distribution or not. The better option would be to 
