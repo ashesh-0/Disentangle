@@ -638,3 +638,6 @@ Vampprior is used here.
 *So, with vampprior, there is certainly more variation in the latent space q(z|x). However, this has not helped me
 quantitatively.*
 
+ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/14: 2 layer stochastic
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/22: 2 layer stochastic with nearest nbr upsampling.
+
