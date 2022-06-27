@@ -5,6 +5,7 @@ from typing import Union
 
 import torch
 from torch import nn
+from torch.nn import functional as F
 
 from disentangle.core.nn_submodules import ResidualBlock, ResidualGatedBlock
 from disentangle.core.stochastic import NormalStochasticBlock2d
@@ -411,6 +412,7 @@ class ResBlockWithResampling(nn.Module):
             min_inner_channels = 0
         inner_filters = max(c_out, min_inner_channels)
 
+        self.mode = mode
         # Define first conv layer to change channels and/or up/downsample
         if resample:
             if mode == 'bottom-up':  # downsample
@@ -421,13 +423,15 @@ class ResBlockWithResampling(nn.Module):
                                           stride=2,
                                           groups=groups)
             elif mode == 'top-down':  # upsample
-                self.pre_conv = nn.ConvTranspose2d(in_channels=c_in,
-                                                   out_channels=inner_filters,
-                                                   kernel_size=3,
-                                                   padding=1,
-                                                   stride=2,
-                                                   groups=groups,
-                                                   output_padding=1)
+                assert c_in == inner_filters
+                # self.pre_conv = nn.ConvTranspose2d(in_channels=c_in,
+                #                                    out_channels=inner_filters,
+                #                                    kernel_size=3,
+                #                                    padding=1,
+                #                                    stride=2,
+                #                                    groups=groups,
+                #                                    output_padding=1)
+                self.pre_conv = lambda x: F.interpolate(x, scale_factor=2)
         elif c_in != inner_filters:
             self.pre_conv = nn.Conv2d(c_in, inner_filters, 1, groups=groups)
         else:
