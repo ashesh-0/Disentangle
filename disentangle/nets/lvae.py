@@ -5,15 +5,16 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.optim as optim
-from torch import nn
 import wandb
+from torch import nn
+from torch.autograd import Variable
+
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
+from disentangle.core.loss_type import LossType
 from disentangle.losses import free_bits_kl
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
-from disentangle.core.loss_type import LossType
-from torch.autograd import Variable
 
 
 class LadderVAE(pl.LightningModule):

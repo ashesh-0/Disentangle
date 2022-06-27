@@ -1,10 +1,11 @@
 """
 Functions used in Critic notebooks
 """
+import numpy as np
+import torch
+
 from disentangle.core.model_type import ModelType
 from disentangle.utils import PSNR, RangeInvariantPsnr
-import torch
-import numpy as np
 
 
 def _get_critic_prediction(pred: torch.Tensor, tar: torch.Tensor, D) -> dict:

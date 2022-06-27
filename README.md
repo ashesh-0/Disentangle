@@ -609,3 +609,32 @@ TODO: look at the distribution of the latent space
 One option is what I already have. But that will not tell me whether individual pixels are following bimodal
 distribution or not. The better option would be to pick few channels randomly and then collect their values and plot a
 histogram for each of them.
+
+## Quantifying the variation in different samples of z.
+
+For a model, we pick the 5 channels which are encoding most information.
+Then, for every pixel and for every channel from these 5, we have 1300 values (these are samples). We take the stdev()
+over these 1300 samples.
+Then we take multiple quantiles over the spatial dimension.: [0.9,0.95,0.99,1]
+
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/20
+Vampprior is not used here
+5 channels: [ 58  66 107  82  30]
+58: [1.38166519 1.39267651 1.41264883 1.46426952]
+66: [1.32721498 1.33775475 1.35533307 1.411695  ]
+107: [1.53482792 1.55091931 1.5909445  1.74113047]
+82: [1.99286857 2.03700962 2.12856118 2.33725095]
+30: [1.1215461  1.14142587 1.77479567 2.23341012]
+
+ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/12
+Vampprior is used here.
+[125  80  99  68 116]
+125: [3.14138227 3.16546384 3.21388607 3.34862971]
+80: [3.11764662 3.14254434 3.18545849 3.31207299]
+99: [3.26120763 3.28584398 3.33368055 3.48035073]
+68: [3.62801194 3.68453919 3.79051085 4.02732563]
+116: [5.76723213 5.87433157 6.98443893 8.37312508]
+
+*So, with vampprior, there is certainly more variation in the latent space q(z|x). However, this has not helped me
+quantitatively.*
+
