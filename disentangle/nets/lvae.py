@@ -340,6 +340,10 @@ class LadderVAE(pl.LightningModule):
             'reconstruction_loss': recons_loss.detach(),
             'kl_loss': kl_loss.detach(),
         }
+        # https://github.com/openai/vdvae/blob/main/train.py#L26
+        if torch.isnan(net_loss).any():
+            return None
+
         return output
 
     def normalize_input(self, x):
