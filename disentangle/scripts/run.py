@@ -38,7 +38,8 @@ flags.mark_flags_as_required(["workdir", "config", "mode"])
 
 
 def add_git_info(config):
-    repo = git.Repo(search_parent_directories=True)
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    repo = git.Repo(dir_path, search_parent_directories=True)
     config.git.changedFiles = [item.a_path for item in repo.index.diff(None)]
     config.git.branch = repo.active_branch.name
     config.git.untracked_files = repo.untracked_files

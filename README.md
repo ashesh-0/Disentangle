@@ -646,3 +646,7 @@ I don't see any difference between apply nearest nbr or not. it is the same in t
 case that the KL divergence would be non-zero.
 tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/23: 2 layer stochastic with nearest nbr upsampling.
 ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/15: 2 layer stochastic
+
+On Vamprior idea: Using a much larger number of images with 64 patch size.
+ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/18 without vampprior
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/25 with vamprior
