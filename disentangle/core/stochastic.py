@@ -1,8 +1,8 @@
 """
 Adapted from https://github.com/juglab/HDN/blob/e30edf7ec2cd55c902e469b890d8fe44d15cbb7e/lib/stochastic.py
 """
-from typing import Union
 import math
+from typing import Union
 
 import torch
 from torch import nn

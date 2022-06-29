@@ -533,7 +533,7 @@ RMSE L1:0.1432 L2:0.1607
 PSNR L1:20.79 PSNR L2:28.16
 The validation loss is quite bumpy and training loss is quite smooth.
 
-Adding dropout: tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M6-S0-L0/1
+Adding dropout: ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M6-S0-L0/1
 Rec:-0.624432 KL:nan
 Rec L1:-0.661199 Rec L2:-0.588311
 RMSE L1:0.1298 L2:0.1379
@@ -576,7 +576,7 @@ However, another interpretation is also there. Now that the two channels are dec
 sense anymore. It would be better to have two decoders which do this job. The hope is that they would be able to extract
 a better performance out. This is also evident from the inferior training performance of the this model over the case
 when two channels were co-localized.
-tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M4-S0-L0/0: this has twin decoder setup. This is used with non
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M4-S0-L0/1: this has twin decoder setup. This is used with non
 co-occuring channels. The expectation now is that we would be able to get better reconstruction loss on training data
 than ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/13. The hope is that we get better validation
 performance than the above mentioned model and may be with the case when it is absent. On a different note, this is
@@ -640,4 +640,9 @@ quantitatively.*
 
 ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/14: 2 layer stochastic
 tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/22: 2 layer stochastic with nearest nbr upsampling.
+both of the above crashed as the values became nan. Now, I've skipped nan updates.
 
+I don't see any difference between apply nearest nbr or not. it is the same in terms of performance. It could be the
+case that the KL divergence would be non-zero.
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/23: 2 layer stochastic with nearest nbr upsampling.
+ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/15: 2 layer stochastic
