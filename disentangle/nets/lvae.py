@@ -307,6 +307,21 @@ class LadderVAE(pl.LightningModule):
         if optimizer_idx == 0:
             self.grad_norm_bottom_up, self.grad_norm_top_down = self.compute_gradient_norm()
 
+    def on_after_backward(self) -> None:
+        """
+        Skipping updates in case of unstable gradients
+        https://github.com/Lightning-AI/lightning/issues/4956
+        """
+        valid_gradients = True
+        for name, param in self.named_parameters():
+            if param.grad is not None:
+                valid_gradients = not (torch.isnan(param.grad).any() or torch.isinf(param.grad).any())
+                if not valid_gradients:
+                    break
+        if not valid_gradients:
+            print(f'detected inf or nan values in gradients. not updating model parameters')
+            self.zero_grad()
+
     def training_step(self, batch, batch_idx, enable_logging=True):
         x, target = batch
         x_normalized = self.normalize_input(x)
