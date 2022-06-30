@@ -18,12 +18,12 @@ class MultiChDeterministicTiffDloader:
                  enable_rotation_aug: bool = False,
                  use_one_mu_std=None):
         """
-        Here, an image is split into grids of size img_sz. 
+        Here, an image is split into grids of size img_sz.
         Args:
             repeat_factor: Since we are doing a random crop, repeat_factor is
                 given which can repeatedly sample from the same image. If self.N=12
                 and repeat_factor is 5, then index upto 12*5 = 60 is allowed.
-            use_one_mu_std: If this is set to true, then one mean and stdev is used 
+            use_one_mu_std: If this is set to true, then one mean and stdev is used
                 for both channels. Otherwise, two different meean and stdev are used.
 
         """
@@ -31,6 +31,7 @@ class MultiChDeterministicTiffDloader:
         self._fpath = fpath
 
         self._data = train_val_data(self._fpath, is_train, channel_1, channel_2, val_fraction=val_fraction)
+
         self._normalized_input = normalized_input
         max_val = np.quantile(self._data, 0.995)
         self._data[self._data > max_val] = max_val
@@ -61,8 +62,8 @@ class MultiChDeterministicTiffDloader:
             return img1, img2, {'h': [0, h], 'w': [0, w], 'hflip': False, 'wflip': False}
 
         h_start, w_start = self._get_deterministic_hw(index, h, w)
-        img1 = self._crop_img(img1, h_start, w_start, False, False)
-        img2 = self._crop_img(img2, h_start, w_start, False, False)
+        img1 = self._crop_flip_img(img1, h_start, w_start, False, False)
+        img2 = self._crop_flip_img(img2, h_start, w_start, False, False)
 
         return img1, img2, {
             'h': [h_start, h_start + self._img_sz],
@@ -71,8 +72,12 @@ class MultiChDeterministicTiffDloader:
             'wflip': False,
         }
 
-    def _crop_img(self, img: np.ndarray, h_start: int, w_start: int, h_flip: bool, w_flip: bool):
+    def _crop_img(self, img: np.ndarray, h_start: int, w_start: int):
         new_img = img[..., h_start:h_start + self._img_sz, w_start:w_start + self._img_sz]
+        return new_img
+
+    def _crop_flip_img(self, img: np.ndarray, h_start: int, w_start: int, h_flip: bool, w_flip: bool):
+        new_img = self._crop_img(img, h_start, w_start)
         if h_flip:
             new_img = new_img[..., ::-1, :]
         if w_flip:
@@ -82,7 +87,7 @@ class MultiChDeterministicTiffDloader:
 
     def _get_deterministic_hw(self, index: int, h: int, w: int):
         """
-        Random starting position for the crop for the img with index `index`.
+        Fixed starting position for the crop for the img with index `index`.
         """
         assert h == w
         factor = index // self.N
@@ -134,7 +139,7 @@ class MultiChDeterministicTiffDloader:
 
     def _get_img(self, index: int):
         """
-        Loads an image. 
+        Loads an image.
         Crops the image such that cropped image has content.
         """
         img1, img2 = self._load_img(index)
