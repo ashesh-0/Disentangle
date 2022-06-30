@@ -133,7 +133,11 @@ class NormalStochasticBlock2d(nn.Module):
         if var_clip_max is not None:
             p_lv = torch.clip(p_lv, max=var_clip_max)
 
-        p = Normal(p_mu, (p_lv / 2).exp())
+        try:
+            p = Normal(p_mu, (p_lv / 2).exp())
+        except:
+            import pdb
+            pdb.set_trace()
         return p_mu, p_lv, p
 
     def process_q_params(self, q_params, var_clip_max):
@@ -143,7 +147,12 @@ class NormalStochasticBlock2d(nn.Module):
         if var_clip_max is not None:
             q_lv = torch.clip(q_lv, max=var_clip_max)
 
-        q = Normal(q_mu, (q_lv / 2).exp())
+        try:
+            q = Normal(q_mu, (q_lv / 2).exp())
+        except:
+            import pdb
+            pdb.set_trace()
+
         return q_mu, q_lv, q
 
     def forward(self,
@@ -261,8 +270,12 @@ def kl_normal_mc(z, p_mulv, q_mulv):
     p_std = (p_lv / 2).exp()
     q_std = (q_lv / 2).exp()
 
-    p_distrib = Normal(p_mu, p_std)
-    q_distrib = Normal(q_mu, q_std)
+    try:
+        p_distrib = Normal(p_mu, p_std)
+        q_distrib = Normal(q_mu, q_std)
+    except:
+        import pdb
+        pdb.set_trace()
     return q_distrib.log_prob(z) - p_distrib.log_prob(z)
 
     # the prior
