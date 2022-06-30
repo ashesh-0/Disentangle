@@ -650,4 +650,7 @@ ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/15: 2 layer stoch
 On Vamprior idea: Using a much larger number of images with 64 patch size.
 ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/18 without vampprior
 tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/25 with vamprior
-Both of them still crashed. 
+Both of them still crashed.
+I'm now trying to skip updates where gradient is inf or nan.
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/28
+with 32 bit precision, there are no inf gradients.
