@@ -653,4 +653,14 @@ tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/25 with vamprior
 Both of them still crashed.
 I'm now trying to skip updates where gradient is inf or nan.
 tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/28
-with 32 bit precision, there are no inf gradients.
+
+## On infinite gradients
+
+I see that with 16-bit precision, there are infinite gradients. However, when they are used in backpropagation, I don't
+see nan weights. Also, when training with 32 bit precision, there are no inf gradients. So, the logical conclusion is
+that they are infinite for 16 bit floating point.
+They are not infinite for 32 bit. And that the gradient progagtion still happens in 32 bits. I was able to reduce the
+number of such inf gradients by simply using the gradient clipping functionality of pytorch lightning.
+
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/1 without vampprior.
+
