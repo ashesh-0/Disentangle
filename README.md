@@ -663,4 +663,6 @@ They are not infinite for 32 bit. And that the gradient progagtion still happens
 number of such inf gradients by simply using the gradient clipping functionality of pytorch lightning.
 
 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/1 without vampprior.
+both of them still crashed again. So, now, I've enabled 32bit instead of 16 bit.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/2 with vampprior
 
