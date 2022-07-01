@@ -20,7 +20,7 @@ def get_config():
     # meean and stdev are used.
     data.use_one_mu_std = True
     data.train_aug_rotate = True
-    data.randomized_channels = True
+    data.randomized_channels = False
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
