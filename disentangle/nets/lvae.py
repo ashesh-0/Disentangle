@@ -157,6 +157,7 @@ class LadderVAE(pl.LightningModule):
                     dropout=self.dropout,
                     res_block_type=self.res_block_type,
                     gated=self.gated,
+                    lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
                 ))
 
             # Add top-down stochastic layer at level i.

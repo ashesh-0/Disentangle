@@ -1,6 +1,7 @@
 """
 Taken from https://github.com/juglab/HDN/blob/main/models/lvae_layers.py
 """
+from copy import deepcopy
 from typing import Union
 
 import torch
@@ -337,7 +338,8 @@ class BottomUpLayer(nn.Module):
                  batchnorm: bool = True,
                  dropout: Union[None, float] = None,
                  res_block_type: str = None,
-                 gated: bool = None):
+                 gated: bool = None,
+                 lowres_separate_branch=False, ):
         """
         Args:
             n_res_blocks: Number of BottomUpDeterministicResBlock blocks present in this layer.
@@ -352,7 +354,7 @@ class BottomUpLayer(nn.Module):
 
         """
         super().__init__()
-
+        self.lowres_separate_branch = lowres_separate_branch
         bu_blocks_downsized = []
         bu_blocks_samesize = []
         for _ in range(n_res_blocks):
@@ -377,6 +379,12 @@ class BottomUpLayer(nn.Module):
 
         self.net_downsized = nn.Sequential(*bu_blocks_downsized)
         self.net = nn.Sequential(*bu_blocks_samesize)
+        # using the same net for the lowresolution (and larger sized image)
+        self.lowres_net = self.net
+
+        if self.lowres_separate_branch:
+            self.lowres_net = deepcopy(self.net)
+
         self.lowres_merge = MergeLowRes(
             channels=n_filters,
             merge_type='residual',
@@ -387,12 +395,13 @@ class BottomUpLayer(nn.Module):
         )
 
     def forward(self, x, lowres_x=None):
+
         primary_flow = self.net_downsized(x)
         primary_flow = self.net(primary_flow)
         if lowres_x is None:
             return primary_flow
 
-        lowres_flow = self.net(lowres_x)
+        lowres_flow = self.lowres_net(lowres_x)
         return self.lowres_merge(primary_flow, lowres_flow)
 
 

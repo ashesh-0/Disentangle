@@ -21,7 +21,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 1
+    data.multiscale_lowres_count = 3
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -56,6 +56,7 @@ def get_config():
     model.predict_logvar = 'global'
     model.use_vampprior = False
     model.vampprior_N = 300
+    model.multiscale_lowres_separate_branch = False
 
     training = config.training
     training.lr = 0.001
