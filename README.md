@@ -661,3 +661,7 @@ one BottomUpDeterministicResBlock to process high resolution details.
 ## Multiscale idea
 
 Here, the idea is that multiple zoomed out inputs are passed through the network.
+with 64*64, things are not working out. So, working with 128*128 now.
+
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/5 => 2 scales.
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/4 => no scales.
