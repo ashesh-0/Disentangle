@@ -64,6 +64,14 @@ class LadderVAE(pl.LightningModule):
         self.vp_N = self.vp_enabled = self.vp_dummy_input = self.vp_means = self.vp_latent_ch = self.vp_hw = None
         self._init_vp(config)
 
+        # multiscale
+        self._multiscale_count = config.data.multiscale_lowres_count
+        if self._multiscale_count is None:
+            self._multiscale_count = 1
+
+        msg = "Multiscale count({}) should not exceed the number of bottom up layers ({}) by more than 1"
+        msg = msg.format(config.data.multiscale_lowres_count, len(config.model.z_dims))
+        assert self._multiscale_count <= 1 or config.data.multiscale_lowres_count <= 1 + len(config.model.z_dims), msg
         # enabling reconstruction loss on mixed input
         self.mixed_rec_w = 0
         self.enable_mixed_rec = False
@@ -110,6 +118,23 @@ class LadderVAE(pl.LightningModule):
                 dropout=self.dropout,
                 res_block_type=self.res_block_type,
             ))
+        msg = "if multiscale is enabled, then we are just working with monocrome images."
+        assert self._multiscale_count == 1 or self.color_ch == 1, msg
+        lowres_first_bottom_ups = []
+        for _ in range(1, self._multiscale_count):
+            first_bottom_up = nn.Sequential(
+                nn.Conv2d(self.color_ch, self.n_filters, 5, padding=2, stride=stride), nonlin(),
+                BottomUpDeterministicResBlock(
+                    c_in=self.n_filters,
+                    c_out=self.n_filters,
+                    nonlin=nonlin,
+                    batchnorm=self.batchnorm,
+                    dropout=self.dropout,
+                    res_block_type=self.res_block_type,
+                ))
+            lowres_first_bottom_ups.append(first_bottom_up)
+
+        self.lowres_first_bottom_ups = nn.ModuleList(lowres_first_bottom_ups) if len(lowres_first_bottom_ups) else None
 
         # Init lists of layers
         self.top_down_layers = nn.ModuleList([])
@@ -423,16 +448,21 @@ class LadderVAE(pl.LightningModule):
 
         return out, td_data
 
-    def bottomup_pass(self, x):
-        # Bottom-up initial layer
-        x = self.first_bottom_up(x)
+    def bottomup_pass(self, inp):
+        # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
+        # later channels are simply to yield more context.
+        x = self.first_bottom_up(inp[:, :1])
 
         # Loop from bottom to top layer, store all deterministic nodes we
         # need in the top-down pass
         bu_values = []
 
         for i in range(self.n_layers):
-            x = self.bottom_up_layers[i](x)
+            lowres_x = None
+            if i + 1 < inp.shape[1]:
+                lowres_x = self.lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
+
+            x = self.bottom_up_layers[i](x, lowres_x=lowres_x)
             bu_values.append(x)
 
         return bu_values

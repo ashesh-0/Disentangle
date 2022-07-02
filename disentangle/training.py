@@ -2,14 +2,14 @@ import glob
 import logging
 import os
 import pickle
-from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning import Trainer
 
 import pytorch_lightning as pl
 import torch
+import wandb
+from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from torch.utils.data import DataLoader
 
 from disentangle.core.data_type import DataType
@@ -18,11 +18,11 @@ from disentangle.core.model_type import ModelType
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
 from disentangle.data_loader.multi_channel_tiff_dloader import MultiChTiffDloader
+from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
 from disentangle.data_loader.places_dloader import PlacesLoader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
-import wandb
 
 
 def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False):
@@ -55,29 +55,54 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         use_one_mu_std = config.data.use_one_mu_std
         train_aug_rotate = config.data.train_aug_rotate
         if 'deterministic_grid' in config.data and config.data.deterministic_grid is True:
-            data_class = (
-                MultiChDeterministicTiffRandDloader if config.data.randomized_channels else MultiChDeterministicTiffDloader)
-            train_data = None if skip_train_dataset else data_class(
-                config.data.image_size,
-                datapath,
-                config.data.channel_1,
-                config.data.channel_2,
-                is_train=True,
-                val_fraction=config.training.val_fraction,
-                normalized_input=normalized_input,
-                use_one_mu_std=use_one_mu_std,
-                enable_rotation_aug=train_aug_rotate)
-            val_data = data_class(
-                config.data.image_size,
-                datapath,
-                config.data.channel_1,
-                config.data.channel_2,
-                is_train=False,
-                val_fraction=config.training.val_fraction,
-                normalized_input=normalized_input,
-                use_one_mu_std=use_one_mu_std,
-                enable_rotation_aug=False  # No rotation aug on validation
-            )
+            if 'multiscale_lowres_count' in config.data:
+                train_data = None if skip_train_dataset else MultiScaleTiffDloader(
+                    config.data.image_size,
+                    datapath,
+                    config.data.channel_1,
+                    config.data.channel_2,
+                    is_train=True,
+                    val_fraction=config.training.val_fraction,
+                    normalized_input=normalized_input,
+                    use_one_mu_std=use_one_mu_std,
+                    enable_rotation_aug=train_aug_rotate,
+                    num_scales=config.data.multiscale_lowres_count)
+                val_data = MultiScaleTiffDloader(
+                    config.data.image_size,
+                    datapath,
+                    config.data.channel_1,
+                    config.data.channel_2,
+                    is_train=False,
+                    val_fraction=config.training.val_fraction,
+                    normalized_input=normalized_input,
+                    use_one_mu_std=use_one_mu_std,
+                    enable_rotation_aug=False,  # No rotation aug on validation
+                    num_scales=config.data.multiscale_lowres_count,
+                )
+            else:
+                data_class = (
+                    MultiChDeterministicTiffRandDloader if config.data.randomized_channels else MultiChDeterministicTiffDloader)
+                train_data = None if skip_train_dataset else data_class(
+                    config.data.image_size,
+                    datapath,
+                    config.data.channel_1,
+                    config.data.channel_2,
+                    is_train=True,
+                    val_fraction=config.training.val_fraction,
+                    normalized_input=normalized_input,
+                    use_one_mu_std=use_one_mu_std,
+                    enable_rotation_aug=train_aug_rotate)
+                val_data = data_class(
+                    config.data.image_size,
+                    datapath,
+                    config.data.channel_1,
+                    config.data.channel_2,
+                    is_train=False,
+                    val_fraction=config.training.val_fraction,
+                    normalized_input=normalized_input,
+                    use_one_mu_std=use_one_mu_std,
+                    enable_rotation_aug=False  # No rotation aug on validation
+                )
         else:
             train_data = None if skip_train_dataset else MultiChTiffDloader(
                 config.data.image_size,

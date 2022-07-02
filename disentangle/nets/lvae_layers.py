@@ -353,27 +353,47 @@ class BottomUpLayer(nn.Module):
         """
         super().__init__()
 
-        bu_blocks = []
+        bu_blocks_downsized = []
+        bu_blocks_samesize = []
         for _ in range(n_res_blocks):
             do_resample = False
             if downsampling_steps > 0:
                 do_resample = True
                 downsampling_steps -= 1
-            bu_blocks.append(
-                BottomUpDeterministicResBlock(
-                    c_in=n_filters,
-                    c_out=n_filters,
-                    nonlin=nonlin,
-                    downsample=do_resample,
-                    batchnorm=batchnorm,
-                    dropout=dropout,
-                    res_block_type=res_block_type,
-                    gated=gated,
-                ))
-        self.net = nn.Sequential(*bu_blocks)
+            block = BottomUpDeterministicResBlock(
+                c_in=n_filters,
+                c_out=n_filters,
+                nonlin=nonlin,
+                downsample=do_resample,
+                batchnorm=batchnorm,
+                dropout=dropout,
+                res_block_type=res_block_type,
+                gated=gated,
+            )
+            if do_resample:
+                bu_blocks_downsized.append(block)
+            else:
+                bu_blocks_samesize.append(block)
 
-    def forward(self, x):
-        return self.net(x)
+        self.net_downsized = nn.Sequential(*bu_blocks_downsized)
+        self.net = nn.Sequential(*bu_blocks_samesize)
+        self.lowres_merge = MergeLowRes(
+            channels=n_filters,
+            merge_type='residual',
+            nonlin=nonlin,
+            batchnorm=batchnorm,
+            dropout=dropout,
+            res_block_type=res_block_type,
+        )
+
+    def forward(self, x, lowres_x=None):
+        primary_flow = self.net_downsized(x)
+        primary_flow = self.net(primary_flow)
+        if lowres_x is None:
+            return primary_flow
+
+        lowres_flow = self.net(lowres_x)
+        return self.lowres_merge(primary_flow, lowres_flow)
 
 
 class ResBlockWithResampling(nn.Module):
@@ -404,7 +424,8 @@ class ResBlockWithResampling(nn.Module):
                  res_block_type=None,
                  dropout=None,
                  min_inner_channels=None,
-                 gated=None):
+                 gated=None,
+                 lowres_input=False):
         super().__init__()
         assert mode in ['top-down', 'bottom-up']
         if min_inner_channels is None:
@@ -444,6 +465,12 @@ class ResBlockWithResampling(nn.Module):
             gated=gated,
             block_type=res_block_type,
         )
+        # self.lowres_input = lowres_input
+        # self.lowres_pre_conv = self.lowres_body = self.lowres_merge = None
+        # if self.lowres_input:
+        #     self._init_lowres(c_in=c_in, inner_filters=inner_filters, nonlin=nonlin, res_block_kernel=res_block_kernel,
+        #                       groups=groups, batchnorm=batchnorm, dropout=dropout, gated=gated,
+        #                       res_block_type=res_block_type)
 
         # Define last conv layer to get correct num output channels
         if inner_filters != c_out:
@@ -451,13 +478,51 @@ class ResBlockWithResampling(nn.Module):
         else:
             self.post_conv = None
 
+    # def _init_lowres(self, c_in=None, inner_filters=None, nonlin=None, res_block_kernel=None,
+    #                  groups=None, batchnorm=None, dropout=None, gated=None,
+    #                  res_block_type=None):
+    #     self.lowres_pre_conv = nn.Conv2d(c_in, inner_filters, 1, groups=groups)
+    #     self.lowres_body = ResidualBlock(
+    #         channels=inner_filters,
+    #         nonlin=nonlin,
+    #         kernel=res_block_kernel,
+    #         groups=groups,
+    #         batchnorm=batchnorm,
+    #         dropout=dropout,
+    #         gated=gated,
+    #         block_type=res_block_type,
+    #     )
+    #     self.lowres_merge = MergeLowRes(
+    #         channels=inner_filters,
+    #         merge_type='residual',
+    #         nonlin=nonlin,
+    #         batchnorm=batchnorm,
+    #         dropout=dropout,
+    #         res_block_type=res_block_type,
+    #     )
+
     def forward(self, x):
         if self.pre_conv is not None:
             x = self.pre_conv(x)
+
         x = self.res(x)
         if self.post_conv is not None:
             x = self.post_conv(x)
         return x
+
+    # def forward(self, x, lowres=None):
+    #     if self.pre_conv is not None:
+    #         x = self.pre_conv(x)
+    #
+    #     x = self.res(x)
+    #     if lowres is not None:
+    #         lowres = self.lowres_pre_conv(lowres)
+    #         lowres = self.lowres_body(lowres)
+    #         x = self.lowres_merge(x, lowres)
+    #
+    #     if self.post_conv is not None:
+    #         x = self.post_conv(x)
+    #     return x
 
 
 class TopDownDeterministicResBlock(ResBlockWithResampling):
@@ -501,6 +566,19 @@ class MergeLayer(nn.Module):
     def forward(self, x, y):
         x = torch.cat((x, y), dim=1)
         return self.layer(x)
+
+
+class MergeLowRes(MergeLayer):
+    """
+    Here, we merge the lowresolution input (which has higher size)
+    """
+
+    def forward(self, latent, lowres):
+        h, w = latent.shape[-2:]
+        lh, lw = lowres.shape[-2:]
+        h_pad = (lh - h) // 2
+        w_pad = (lw - w) // 2
+        return super().forward(latent, lowres[:, :, h_pad:-h_pad, w_pad:-w_pad])
 
 
 class SkipConnectionMerger(MergeLayer):

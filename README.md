@@ -650,4 +650,14 @@ ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/15: 2 layer stoch
 On Vamprior idea: Using a much larger number of images with 64 patch size.
 ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/18 without vampprior
 tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/25 with vamprior
-Both of them still crashed. 
+Both of them still crashed.
+
+I see that there is very less processing which happens at the highest level. After 1/2 convolution layers, one
+downsamples to a lower dimension. So, one simple thing would be to investigate what happens if one deepens processing of
+the highest resolution input before one downsamples it to lower resolution. It might help in capturing the high
+resolution information better. But I think this might not help since I see that in lvae itself, one uses
+one BottomUpDeterministicResBlock to process high resolution details.
+
+## Multiscale idea
+
+Here, the idea is that multiple zoomed out inputs are passed through the network.
