@@ -55,7 +55,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         use_one_mu_std = config.data.use_one_mu_std
         train_aug_rotate = config.data.train_aug_rotate
         if 'deterministic_grid' in config.data and config.data.deterministic_grid is True:
-            if 'multiscale_lowres_count' in config.data:
+            if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
                 train_data = None if skip_train_dataset else MultiScaleTiffDloader(
                     config.data.image_size,
                     datapath,
