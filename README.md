@@ -664,4 +664,21 @@ Here, the idea is that multiple zoomed out inputs are passed through the network
 with 64*64, things are not working out. So, working with 128*128 now.
 
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/5 => 2 scales.
+Rec:-0.765260 KL:0.038013
+Rec L1:-0.764980 Rec L2:-0.770321
+RMSE L1:0.1133 L2:0.1129
+PSNR L1:20.07 PSNR L2:27.75
+
 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/4 => no scales.
+Rec:-0.713871 KL:0.038714
+Rec L1:-0.712717 Rec L2:-0.715366
+RMSE L1:0.1205 L2:0.1220
+PSNR L1:19.85 PSNR L2:27.38
+
+In terms of reconstruction loss, I think this is quite clear that the performance has improved. Not so much wrt to
+scaled PSNR. However, running the model twice/thrice might give us what we need.
+Another point is that the model with no scales crashed mid way. Thereby showing that its training is unstable.
+Model with multiple scales was more stable in training.
+
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/6 => 2 scales + separate branch for the lowresolution
+input
