@@ -682,3 +682,13 @@ Model with multiple scales was more stable in training.
 
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/6 => 2 scales + separate branch for the lowresolution
 input
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/5 => 3 scales with 64*64 as input size. Hope is that this
+model should be able to train. And that it might reach competitive performance to the tur
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/6
+since the context is the same. As the size of the input was decreased, the context was increaed to ensure this.
+It crashed after just 4-5 epochs. but not before giving a nice reconstruction loss. training it again.
+
+## Nan-issue
+
+I see that nan on mean/stdev happens specifically on few spatial pixels and not all pixels. So, it could make sense to
+quantify spatially as well.

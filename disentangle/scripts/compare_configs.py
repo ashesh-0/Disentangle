@@ -43,7 +43,7 @@ def compare_raw_configs(config1, config2):
         if key_v2 in keys:
             continue
         assert val1_v2[
-            idx] is None, 'Since this key is not present in keys, it means that it was not present in config1. So it must be none'
+                   idx] is None, 'Since this key is not present in keys, it means that it was not present in config1. So it must be none'
         keys.append(key_v2)
         val1.append(val1_v2[idx])
         val2.append(val2_v2[idx])
@@ -62,7 +62,6 @@ def _df_column_name(path):
     tokens = []
     depth = 3
     while depth > 0 and path != '':
-
         d0 = os.path.basename(path)
         path = os.path.dirname(path)
         tokens.append(d0)
@@ -89,7 +88,11 @@ def compare_config(config1_path, config2_path):
     df.columns = [_df_column_name(config1_path), _df_column_name(config2_path)]
     df = df.sort_index()
 
-    return df, get_changed_files(*list(df.loc['git.latest_commit'].values))
+    commit_key = 'git.latest_commit'
+    if commit_key not in df.index:
+        df.loc[commit_key] = [config1.git.latest_commit] * 2
+
+    return df, get_changed_files(*list(df.loc[commit_key].values))
 
 
 if __name__ == '__main__':
