@@ -56,7 +56,7 @@ def get_config():
     model.predict_logvar = 'global'
     model.use_vampprior = False
     model.vampprior_N = 300
-    model.multiscale_lowres_separate_branch = False
+    model.multiscale_lowres_separate_branch = True
 
     training = config.training
     training.lr = 0.001
