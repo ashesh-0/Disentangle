@@ -59,7 +59,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
 
     training = config.training
-    training.lr = 0.001
+    training.lr = 0.0001
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
     training.batch_size = 4
