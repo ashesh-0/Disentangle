@@ -713,3 +713,7 @@ ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/6
 
 I see that nan on mean/stdev happens specifically on few spatial pixels and not all pixels. So, it could make sense to
 quantify spatially as well.
+
+I see that with multiscale, there are some predictions which have a negative PSNR. That happens for those cases where
+the target pixels are near zero. In this case, the numerator becomes smaller than the average difference between target
+and prediction pixels. Interestingly enough, I don't see these happening for non-multiscale model.
