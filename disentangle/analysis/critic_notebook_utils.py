@@ -44,7 +44,7 @@ def get_critic_prediction(model, pred_normalized, target_normalized):
     return cpred_1, cpred_2
 
 
-def get_mmse_dict(model, x_normalized, target_normalized, mmse_count, model_type, psnr_type='simple',
+def get_mmse_dict(model, x_normalized, target_normalized, mmse_count, model_type, psnr_type='range_invariant',
                   compute_kl_loss=False):
     assert psnr_type in ['simple', 'range_invariant']
     if psnr_type == 'simple':
