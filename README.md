@@ -654,6 +654,9 @@ Both of them still crashed.
 I'm now trying to skip updates where gradient is inf or nan.
 tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/28
 
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/13: vamprior with 100 learnable inputs.trained on 128*128
+sized inputs.
+
 ## On infinite gradients
 
 I see that with 16-bit precision, there are infinite gradients. However, when they are used in backpropagation, I don't
