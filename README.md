@@ -673,3 +673,5 @@ tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/2 with vampprior
 does not work. it still crashes.
 now, I've normalized the target. ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/3
 it still does not help. it still crashes.
+
+vampprior gnode12/2207/D3-M3-S0-L0/4: larger batch size (8) and larger image size (128)
