@@ -656,6 +656,8 @@ tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/28
 
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/13: vamprior with 100 learnable inputs.trained on 128*128
 sized inputs.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/16: vamprior with 100 learnable inputs, with lower
+learning rate. learning rate was reduced since we were facing network crashes.
 
 ## On infinite gradients
 
