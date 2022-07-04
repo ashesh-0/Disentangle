@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 32
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
     data.channel_2 = 2
@@ -21,7 +21,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 4
+    data.multiscale_lowres_count = 5
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -36,7 +36,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128]
+    model.z_dims = [128, 128, 128, 128]
     model.blocks_per_layer = 5
     model.nonlin = 'elu'
     model.merge_type = 'residual'

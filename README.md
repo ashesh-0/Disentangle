@@ -668,12 +668,14 @@ Rec:-0.765260 KL:0.038013
 Rec L1:-0.764980 Rec L2:-0.770321
 RMSE L1:0.1133 L2:0.1129
 PSNR L1:20.07 PSNR L2:27.75
+unscaled PSNR L1:18.70 PSNR L2:26.50
 
 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/4 => no scales.
 Rec:-0.713871 KL:0.038714
 Rec L1:-0.712717 Rec L2:-0.715366
 RMSE L1:0.1205 L2:0.1220
 PSNR L1:19.85 PSNR L2:27.38
+unscaled PSNR PSNR L1:18.37 PSNR L2:26.12
 
 In terms of reconstruction loss, I think this is quite clear that the performance has improved. Not so much wrt to
 scaled PSNR. However, running the model twice/thrice might give us what we need.
@@ -683,7 +685,13 @@ Model with multiple scales was more stable in training.
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/6 => 2 scales + separate branch for the lowresolution
 input
 It crashed after just 4-5 epochs. but not before giving a nice reconstruction loss. training it again.
+
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/7
+Rec:-0.783937 KL:0.038684
+Rec L1:-0.792583 Rec L2:-0.776651
+RMSE L1:0.1127 L2:0.1147
+PSNR L1:19.98 PSNR L2:27.54
+unscaled PSNR L1:18.90 PSNR L2:26.52
 
 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/5 => 3 scales with 64*64 as input size. Hope is that this
 model should be able to train. And that it might reach competitive performance to the tur
