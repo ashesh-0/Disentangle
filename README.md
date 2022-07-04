@@ -675,3 +675,4 @@ now, I've normalized the target. ruth /home/ubuntu/ashesh/training/disentangle/2
 it still does not help. it still crashes.
 
 vampprior gnode12/2207/D3-M3-S0-L0/4: larger batch size (8) and larger image size (128)
+no vampprior gnode14/2207/D3-M3-S0-L0/5: with same batch size as above and image size.
