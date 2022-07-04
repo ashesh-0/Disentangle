@@ -702,6 +702,8 @@ tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/6
 since the context is the same. As the size of the input was decreased, the context was increaed (by increase one more
 stochastic layer and one more context layer) to ensure this.
 
+node12/2207/D3-M3-S0-L0/0: baseline for 64*64 case. here, we don't have any multi-resolution done.
+
 ruth /5 crashed. trying it again with a lower learning rate.
 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/6
 
