@@ -686,12 +686,14 @@ tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/6 => 2 scales + se
 input
 It crashed after just 4-5 epochs. but not before giving a nice reconstruction loss. training it again.
 
-tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/7
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/7 (here, there is a separate branch.)
 Rec:-0.783937 KL:0.038684
 Rec L1:-0.792583 Rec L2:-0.776651
 RMSE L1:0.1127 L2:0.1147
 PSNR L1:19.98 PSNR L2:27.54
 unscaled PSNR L1:18.90 PSNR L2:26.52
+
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/7 (here, we work with even lower resolution input, 32*32)
 
 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/5 => 3 scales with 64*64 as input size. Hope is that this
 model should be able to train. And that it might reach competitive performance to the tur
