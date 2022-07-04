@@ -650,6 +650,7 @@ ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/15: 2 layer stoch
 On Vamprior idea: Using a much larger number of images with 64 patch size.
 ruth /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/18 without vampprior
 tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/25 with vamprior
+
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/14 with vamprior (large number of )
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/15
 Both of them still crashed.
@@ -717,3 +718,30 @@ quantify spatially as well.
 I see that with multiscale, there are some predictions which have a negative PSNR. That happens for those cases where
 the target pixels are near zero. In this case, the numerator becomes smaller than the average difference between target
 and prediction pixels. Interestingly enough, I don't see these happening for non-multiscale model.
+
+I'm now trying to skip updates where gradient is inf or nan.
+tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/28
+
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/13: vamprior with 100 learnable inputs.trained on 128*128
+sized inputs.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/16: vamprior with 100 learnable inputs, with lower
+learning rate. learning rate was reduced since we were facing network crashes.
+
+## On infinite gradients
+
+I see that with 16-bit precision, there are infinite gradients. However, when they are used in backpropagation, I don't
+see nan weights. Also, when training with 32 bit precision, there are no inf gradients. So, the logical conclusion is
+that they are infinite for 16 bit floating point.
+They are not infinite for 32 bit. And that the gradient progagtion still happens in 32 bits. I was able to reduce the
+number of such inf gradients by simply using the gradient clipping functionality of pytorch lightning.
+
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/1 without vampprior.
+both of them still crashed again. So, now, I've enabled 32bit instead of 16 bit.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/2 with vampprior
+does not work. it still crashes.
+now, I've normalized the target. ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/3
+it still does not help. it still crashes.
+
+vampprior gnode12/2207/D3-M3-S0-L0/4: larger batch size (8) and larger image size (128)
+no vampprior gnode14/2207/D3-M3-S0-L0/5: with same batch size as above and image size.
+
