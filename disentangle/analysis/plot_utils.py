@@ -1,12 +1,12 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import torch
 from typing import List, Union
 
-from disentangle.utils import PSNR
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+import torch
+
+from disentangle.analysis.critic_notebook_utils import get_label_separated_loss, get_mmse_dict
 from disentangle.analysis.lvae_utils import get_img_from_forward_output
-from disentangle.analysis.critic_notebook_utils import get_mmse_dict, get_label_separated_loss
 from disentangle.analysis.quantifying_uncertainty import get_regionwise_metric
 
 
@@ -126,7 +126,8 @@ def add_pixel_kde(ax, rect: List[float], data1: np.ndarray, data2: Union[np.ndar
     clean_for_xaxis_plot(inset_ax)
 
 
-def plot_imgs_from_idx(idx_list, val_dset, model, model_type, inset_pixel_kde=False, inset_rect=None,
+def plot_imgs_from_idx(idx_list, val_dset, model, model_type, psnr_type='range_invariant',
+                       inset_pixel_kde=False, inset_rect=None,
                        inset_min_labelsize=None,
                        color_ch1='red',
                        color_ch2='black',
@@ -150,15 +151,16 @@ def plot_imgs_from_idx(idx_list, val_dset, model, model_type, inset_pixel_kde=Fa
 
             recon_normalized, td_data = model(x_normalized)
             imgs = get_img_from_forward_output(recon_normalized, model)
-            loss_dic = get_mmse_dict(model, x_normalized, target_normalized, 1, model_type)
+            loss_dic = get_mmse_dict(model, x_normalized, target_normalized, 1, model_type,
+                                     psnr_type=psnr_type)
             ll1, ll2 = get_label_separated_loss(loss_dic['mmse_rec_loss'])
 
             inp = inp.cpu().numpy()
             tar = tar.cpu().numpy()
             imgs = imgs.cpu().numpy()
 
-            psnr1 = PSNR(tar[0, 0], imgs[0, 0])
-            psnr2 = PSNR(tar[0, 1], imgs[0, 1])
+            psnr1 = loss_dic['psnr_l1'][0]
+            psnr2 = loss_dic['psnr_l2'][0]
 
             ax[ax_idx, 0].imshow(inp[0, 0])
             if inset_pixel_kde:
