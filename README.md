@@ -706,6 +706,7 @@ since the context is the same. As the size of the input was decreased, the conte
 stochastic layer and one more context layer) to ensure this.
 
 node12/2207/D3-M3-S0-L0/0: baseline for 64*64 case. here, we don't have any multi-resolution done.
+gnode13/2207/D3-M3-S0-L0/2: baseline for 32*32 case. Here, we don't have multi-res. We have 16 as batch size.
 
 ruth /5 crashed. trying it again with a lower learning rate.
 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/6
@@ -715,9 +716,9 @@ ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/6
 I see that nan on mean/stdev happens specifically on few spatial pixels and not all pixels. So, it could make sense to
 quantify spatially as well.
 
-I see that with multiscale, there are some predictions which have a negative PSNR. That happens for those cases where
-the target pixels are near zero. In this case, the numerator becomes smaller than the average difference between target
-and prediction pixels. Interestingly enough, I don't see these happening for non-multiscale model.
+I see that with multiscale, there are some predictions which have a negative PSNR. In this case, the numerator becomes
+smaller than the average difference between target and prediction pixels. Interestingly enough, I don't see these
+happening for non-multiscale model.
 
 I'm now trying to skip updates where gradient is inf or nan.
 tur /home/ubuntu/ashesh/training/disentangle/2206/D3-M3-S0-L0/28
