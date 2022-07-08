@@ -339,6 +339,7 @@ class BottomUpLayer(nn.Module):
                  dropout: Union[None, float] = None,
                  res_block_type: str = None,
                  gated: bool = None,
+                 enable_multiscale: bool = False,
                  lowres_separate_branch=False, ):
         """
         Args:
@@ -351,9 +352,11 @@ class BottomUpLayer(nn.Module):
             res_block_type: Example: 'bacdbac'. It has the constitution of the residual block.
             gated: This is also an argument for the residual block. At the end of residual block, whether 
             there should be a gate or not.
+            enable_multiscale: Whether to enable multiscale or not.
 
         """
         super().__init__()
+        self.enable_multiscale = enable_multiscale
         self.lowres_separate_branch = lowres_separate_branch
         bu_blocks_downsized = []
         bu_blocks_samesize = []
@@ -380,6 +383,23 @@ class BottomUpLayer(nn.Module):
         self.net_downsized = nn.Sequential(*bu_blocks_downsized)
         self.net = nn.Sequential(*bu_blocks_samesize)
         # using the same net for the lowresolution (and larger sized image)
+        self.lowres_net = self.lowres_merge = None
+        if self.enable_multiscale:
+            self._init_multiscale(
+                n_filters=n_filters,
+                nonlin=nonlin,
+                batchnorm=batchnorm,
+                dropout=dropout,
+                res_block_type=res_block_type, )
+
+        print(f'[{self.__class__.__name__}] Multiscale:{int(enable_multiscale)}')
+
+    def _init_multiscale(self, n_filters=None,
+                         nonlin=None,
+                         batchnorm=None,
+                         dropout=None,
+                         res_block_type=None,
+                         ):
         self.lowres_net = self.net
 
         if self.lowres_separate_branch:
@@ -395,12 +415,12 @@ class BottomUpLayer(nn.Module):
         )
 
     def forward(self, x, lowres_x=None):
-
         primary_flow = self.net_downsized(x)
         primary_flow = self.net(primary_flow)
         if lowres_x is None:
             return primary_flow
 
+        assert self.enable_multiscale is True
         lowres_flow = self.lowres_net(lowres_x)
         return self.lowres_merge(primary_flow, lowres_flow)
 

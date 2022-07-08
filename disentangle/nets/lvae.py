@@ -121,6 +121,7 @@ class LadderVAE(pl.LightningModule):
             # Whether this is the top layer
             is_top = i == self.n_layers - 1
 
+            enable_multiscale = self._multiscale_count is not None and self._multiscale_count > i + 1
             # Add bottom-up deterministic layer at level i.
             # It's a sequence of residual blocks (BottomUpDeterministicResBlock)
             # possibly with downsampling between them.
@@ -135,6 +136,7 @@ class LadderVAE(pl.LightningModule):
                     res_block_type=self.res_block_type,
                     gated=self.gated,
                     lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
+                    enable_multiscale=enable_multiscale,
                 ))
 
             # Add top-down stochastic layer at level i.
