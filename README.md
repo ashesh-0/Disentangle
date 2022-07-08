@@ -754,4 +754,5 @@ no vampprior gnode14/2207/D3-M3-S0-L0/5: with same batch size as above and image
    look at the effect of averaging. => DONE. it does not improve things in general. I tried to average out in two ways:
    1 output of the model. 2. output of the likelihood fn. This is the normalized reconstruction. Both these two ways
    yield the same performance. performance fixed as I increase the count.
-3. 
+
+## Another variant of multiscale approach.
