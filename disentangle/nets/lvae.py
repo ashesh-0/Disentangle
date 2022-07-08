@@ -64,14 +64,6 @@ class LadderVAE(pl.LightningModule):
         self.vp_N = self.vp_enabled = self.vp_dummy_input = self.vp_means = self.vp_latent_ch = self.vp_hw = None
         self._init_vp(config)
 
-        # multiscale
-        self._multiscale_count = config.data.multiscale_lowres_count
-        if self._multiscale_count is None:
-            self._multiscale_count = 1
-
-        msg = "Multiscale count({}) should not exceed the number of bottom up layers ({}) by more than 1"
-        msg = msg.format(config.data.multiscale_lowres_count, len(config.model.z_dims))
-        assert self._multiscale_count <= 1 or config.data.multiscale_lowres_count <= 1 + len(config.model.z_dims), msg
         # enabling reconstruction loss on mixed input
         self.mixed_rec_w = 0
         self.enable_mixed_rec = False
@@ -118,23 +110,8 @@ class LadderVAE(pl.LightningModule):
                 dropout=self.dropout,
                 res_block_type=self.res_block_type,
             ))
-        msg = "if multiscale is enabled, then we are just working with monocrome images."
-        assert self._multiscale_count == 1 or self.color_ch == 1, msg
-        lowres_first_bottom_ups = []
-        for _ in range(1, self._multiscale_count):
-            first_bottom_up = nn.Sequential(
-                nn.Conv2d(self.color_ch, self.n_filters, 5, padding=2, stride=stride), nonlin(),
-                BottomUpDeterministicResBlock(
-                    c_in=self.n_filters,
-                    c_out=self.n_filters,
-                    nonlin=nonlin,
-                    batchnorm=self.batchnorm,
-                    dropout=self.dropout,
-                    res_block_type=self.res_block_type,
-                ))
-            lowres_first_bottom_ups.append(first_bottom_up)
-
-        self.lowres_first_bottom_ups = nn.ModuleList(lowres_first_bottom_ups) if len(lowres_first_bottom_ups) else None
+        self.lowres_first_bottom_ups = self._multiscale_count = None
+        self._init_multires(config)
 
         # Init lists of layers
         self.top_down_layers = nn.ModuleList([])
@@ -222,7 +199,42 @@ class LadderVAE(pl.LightningModule):
         self.grad_norm_bottom_up = 0.0
         self.grad_norm_top_down = 0.0
 
+    def _init_multires(self, config):
+        """
+        Initialize everything related to multiresolution approach.
+        """
+        stride = 1 if config.model.no_initial_downscaling else 2
+        nonlin = self.get_nonlin()
+        self._multiscale_count = config.data.multiscale_lowres_count
+        if self._multiscale_count is None:
+            self._multiscale_count = 1
+
+        msg = "Multiscale count({}) should not exceed the number of bottom up layers ({}) by more than 1"
+        msg = msg.format(config.data.multiscale_lowres_count, len(config.model.z_dims))
+        assert self._multiscale_count <= 1 or config.data.multiscale_lowres_count <= 1 + len(config.model.z_dims), msg
+
+        msg = "if multiscale is enabled, then we are just working with monocrome images."
+        assert self._multiscale_count == 1 or self.color_ch == 1, msg
+        lowres_first_bottom_ups = []
+        for _ in range(1, self._multiscale_count):
+            first_bottom_up = nn.Sequential(
+                nn.Conv2d(self.color_ch, self.n_filters, 5, padding=2, stride=stride), nonlin(),
+                BottomUpDeterministicResBlock(
+                    c_in=self.n_filters,
+                    c_out=self.n_filters,
+                    nonlin=nonlin,
+                    batchnorm=self.batchnorm,
+                    dropout=self.dropout,
+                    res_block_type=self.res_block_type,
+                ))
+            lowres_first_bottom_ups.append(first_bottom_up)
+
+        self.lowres_first_bottom_ups = nn.ModuleList(lowres_first_bottom_ups) if len(lowres_first_bottom_ups) else None
+
     def _init_vp(self, config):
+        """
+        Initialize things related to Vampprior approach.
+        """
         self.vp_enabled = config.model.use_vampprior
         if self.vp_enabled:
             self.vp_N = config.model.vampprior_N
@@ -460,7 +472,7 @@ class LadderVAE(pl.LightningModule):
 
         for i in range(self.n_layers):
             lowres_x = None
-            if i + 1 < inp.shape[1]:
+            if self._multiscale_count > 1 and i + 1 < inp.shape[1]:
                 lowres_x = self.lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
 
             x = self.bottom_up_layers[i](x, lowres_x=lowres_x)
