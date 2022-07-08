@@ -110,6 +110,8 @@ class LadderVAE(pl.LightningModule):
                 dropout=self.dropout,
                 res_block_type=self.res_block_type,
             ))
+
+        self.multiscale_retain_spatial_dims = config.model.multiscale_retain_spatial_dims
         self.lowres_first_bottom_ups = self._multiscale_count = None
         self._init_multires(config)
 
@@ -137,6 +139,8 @@ class LadderVAE(pl.LightningModule):
                     gated=self.gated,
                     lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
                     enable_multiscale=enable_multiscale,
+                    multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
+                    nth_bu_layer=i + 1,
                 ))
 
             # Add top-down stochastic layer at level i.
@@ -477,8 +481,10 @@ class LadderVAE(pl.LightningModule):
             if self._multiscale_count > 1 and i + 1 < inp.shape[1]:
                 lowres_x = self.lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
 
-            x = self.bottom_up_layers[i](x, lowres_x=lowres_x)
-            bu_values.append(x)
+            x, bu_value = self.bottom_up_layers[i](x, lowres_x=lowres_x)
+            import pdb
+            pdb.set_trace()
+            bu_values.append(bu_value)
 
         return bu_values
 

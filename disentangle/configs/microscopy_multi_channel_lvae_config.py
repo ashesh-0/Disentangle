@@ -57,6 +57,7 @@ def get_config():
     model.use_vampprior = False
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
+    model.multiscale_retain_spatial_dims = True
 
     training = config.training
     training.lr = 0.0001
@@ -68,6 +69,6 @@ def get_config():
     training.train_repeat_factor = None
     training.val_fraction = 0.2
     training.earlystop_patience = 100
-    training.precision = 16
+    # training.precision = 16
 
     return config
