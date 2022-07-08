@@ -15,7 +15,7 @@ def get_default_config():
     config.training = ml_collections.ConfigDict()
     config.training.batch_size = 32
 
-    config.training.grad_clip_norm_value = 0.05  # Taken from https://github.com/openai/vdvae/blob/main/hps.py#L38
+    config.training.grad_clip_norm_value = 0.5  # Taken from https://github.com/openai/vdvae/blob/main/hps.py#L38
     config.training.gradient_clip_algorithm = 'value'
     config.training.earlystop_patience = 100
     config.training.precision = 32

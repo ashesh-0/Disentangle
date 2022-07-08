@@ -756,3 +756,7 @@ no vampprior gnode14/2207/D3-M3-S0-L0/5: with same batch size as above and image
    yield the same performance. performance fixed as I increase the count.
 
 ## Another variant of multiscale approach.
+
+Both of them have identical configuration. hierarchical 'beam'
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/10
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/17 (GPU memory 4133MiB)
