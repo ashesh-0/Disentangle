@@ -340,7 +340,7 @@ class BottomUpLayer(nn.Module):
                  dropout: Union[None, float] = None,
                  res_block_type: str = None,
                  gated: bool = None,
-                 nth_bu_layer: int = None,
+                 multiscale_lowres_size_factor: int = None,
                  enable_multiscale: bool = False,
                  lowres_separate_branch=False,
                  multiscale_retain_spatial_dims: bool = False):
@@ -355,8 +355,7 @@ class BottomUpLayer(nn.Module):
             res_block_type: Example: 'bacdbac'. It has the constitution of the residual block.
             gated: This is also an argument for the residual block. At the end of residual block, whether 
             there should be a gate or not.
-            nth_bu_layer: What is the position of this bottomoup layer. We assume that each bottomup layer has exactly
-                            one downsampling operator. We also assume that the downsampling factor is 2.
+            multiscale_lowres_size_factor: How small is the bu_value when compared with low resolution tensor.
             enable_multiscale: Whether to enable multiscale or not.
             multiscale_retain_spatial_dims: typically the output of the bottom-up layer scales down spatially.
                                             However, with this set, we return the same spatially sized tensor.
@@ -390,7 +389,7 @@ class BottomUpLayer(nn.Module):
         self.net_downsized = nn.Sequential(*bu_blocks_downsized)
         self.net = nn.Sequential(*bu_blocks_samesize)
         # using the same net for the lowresolution (and larger sized image)
-        self.lowres_net = self.lowres_merge = None
+        self.lowres_net = self.lowres_merge = self.multiscale_lowres_size_factor = None
         if self.enable_multiscale:
             self._init_multiscale(
                 n_filters=n_filters,
@@ -399,10 +398,10 @@ class BottomUpLayer(nn.Module):
                 dropout=dropout,
                 res_block_type=res_block_type,
                 multiscale_retain_spatial_dims=multiscale_retain_spatial_dims,
-                nth_bu_layer=nth_bu_layer, )
+                multiscale_lowres_size_factor=multiscale_lowres_size_factor, )
 
-        print(f'[{self.__class__.__name__}] Multiscale:{int(enable_multiscale)} '
-              f'ParallelBeam:{int(multiscale_retain_spatial_dims)} {nth_bu_layer}th BU layer')
+        print(f'[{self.__class__.__name__}] McEnabled:{int(enable_multiscale)} '
+              f'McParallelBeam:{int(multiscale_retain_spatial_dims)} McFactor{multiscale_lowres_size_factor}')
 
     def _init_multiscale(self, n_filters=None,
                          nonlin=None,
@@ -410,10 +409,10 @@ class BottomUpLayer(nn.Module):
                          dropout=None,
                          res_block_type=None,
                          multiscale_retain_spatial_dims=None,
-                         nth_bu_layer=None,
+                         multiscale_lowres_size_factor=None,
                          ):
+        self.multiscale_lowres_size_factor = multiscale_lowres_size_factor
         self.lowres_net = self.net
-        self.lowres_to_latent_factor = pow(2, nth_bu_layer)
         if self.lowres_separate_branch:
             self.lowres_net = deepcopy(self.net)
 
@@ -425,24 +424,30 @@ class BottomUpLayer(nn.Module):
             dropout=dropout,
             res_block_type=res_block_type,
             multiscale_retain_spatial_dims=multiscale_retain_spatial_dims,
-            lowres_to_latent_factor=self.lowres_to_latent_factor,
+            multiscale_lowres_size_factor=self.multiscale_lowres_size_factor,
         )
 
     def forward(self, x, lowres_x=None):
         primary_flow = self.net_downsized(x)
         primary_flow = self.net(primary_flow)
-        if lowres_x is None:
+        if self.enable_multiscale is False:
+            assert lowres_x is None
             return primary_flow, primary_flow
 
-        assert self.enable_multiscale is True
-        lowres_flow = self.lowres_net(lowres_x)
-        merged = self.lowres_merge(primary_flow, lowres_flow)
+        if lowres_x is not None:
+            lowres_flow = self.lowres_net(lowres_x)
+            merged = self.lowres_merge(primary_flow, lowres_flow)
+        else:
+            merged = primary_flow
 
-        if self.multiscale_retain_spatial_dims:
-            value_to_use_in_topdown = crop_img_tensor(merged, primary_flow.shape[2:])
-            return merged, value_to_use_in_topdown
+        if self.multiscale_retain_spatial_dims is False:
+            return merged, merged
 
-        return merged, merged
+        fac = self.multiscale_lowres_size_factor
+        expected_shape = (merged.shape[-2] // fac, merged.shape[-1] // fac)
+        assert merged.shape[-2:] != expected_shape
+        value_to_use_in_topdown = crop_img_tensor(merged, expected_shape)
+        return merged, value_to_use_in_topdown
 
 
 class ResBlockWithResampling(nn.Module):
@@ -624,9 +629,7 @@ class MergeLowRes(MergeLayer):
 
     def __init__(self, *args, **kwargs):
         self.retain_spatial_dims = kwargs.pop('multiscale_retain_spatial_dims')
-        self.lowres_vs_latent_factor = kwargs.pop('lowres_vs_latent_factor')
-        import pdb
-        pdb.set_trace()
+        self.multiscale_lowres_size_factor = kwargs.pop('multiscale_lowres_size_factor')
         super().__init__(*args, **kwargs)
 
     def forward(self, latent, lowres):
@@ -634,8 +637,8 @@ class MergeLowRes(MergeLayer):
             latent = pad_img_tensor(latent, lowres.shape[2:])
         else:
             lh, lw = lowres.shape[-2:]
-            h = lh // self.lowres_vs_latent_factor
-            w = lw // self.lowres_vs_latent_factor
+            h = lh // self.multiscale_lowres_size_factor
+            w = lw // self.multiscale_lowres_size_factor
             h_pad = (lh - h) // 2
             w_pad = (lw - w) // 2
             lowres = lowres[:, :, h_pad:-h_pad, w_pad:-w_pad]

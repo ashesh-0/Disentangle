@@ -1,14 +1,16 @@
-import torch
-import numpy as np
 import time
+from glob import glob
+
+import numpy as np
+import torch
+from sklearn.feature_extraction import image
 from torch import nn
 from tqdm import tqdm
-from glob import glob
-from sklearn.feature_extraction import image
 
 
 class Interpolate(nn.Module):
     """Wrapper for torch.nn.functional.interpolate."""
+
     def __init__(self, size=None, scale=None, mode='bilinear', align_corners=False):
         super().__init__()
         assert (size is None) == (scale is not None)
@@ -31,6 +33,7 @@ class CropImage(nn.Module):
     Args:
         size
     """
+
     def __init__(self, size):
         super().__init__()
         self.size = size
