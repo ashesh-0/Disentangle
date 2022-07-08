@@ -749,8 +749,9 @@ no vampprior gnode14/2207/D3-M3-S0-L0/5: with same batch size as above and image
 ## ISSUE:
 
 1. So, there is an issue in plot_imgs_from_idx function. it shows values using PSNR fn. This is irrespective of the fact
-   that what psnr_type is used.
+   that what psnr_type is used. => DONE.
 2. Another thing to check is that I see psnr values fluctuate at individual level, quite a bit. So, it makes sense to
-   look at the effect of averaging. => it does not improve things in general. I tried to average out in two ways: 1.
-   output of the model. 2. output of the likelihood fn. This is the normalized reconstruction. Both these two ways yield
-   the same performance. performance fixed as I increase the count.
+   look at the effect of averaging. => DONE. it does not improve things in general. I tried to average out in two ways:
+   1 output of the model. 2. output of the likelihood fn. This is the normalized reconstruction. Both these two ways
+   yield the same performance. performance fixed as I increase the count.
+3. 
