@@ -760,3 +760,10 @@ no vampprior gnode14/2207/D3-M3-S0-L0/5: with same batch size as above and image
 Both of them have identical configuration. hierarchical 'beam'
 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/10
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/17 (GPU memory 4133MiB)
+They had different grad_clip_norm_value value(0.05). Now, training again with original grad_clip_norm_value value (0.5)
+same as previous runs.
+Things are crashing here, so I've trained them multiple times.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/18
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/19
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/20
+all of them crashed at some point.

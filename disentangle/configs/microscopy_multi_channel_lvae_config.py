@@ -57,7 +57,7 @@ def get_config():
     model.use_vampprior = False
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
-    model.multiscale_retain_spatial_dims = True
+    model.multiscale_retain_spatial_dims = False
 
     training = config.training
     training.lr = 0.001
