@@ -767,3 +767,5 @@ no real exp(). I think this can go to high values like 100.
 But the question is that why the stochasticity helps. So, the question is that if max value of qvar is 6 as opposed to
 max value of qvar is 100, why would the latter work better. Surely, more variance means more difficulty in pointing to
 some value.
+
+started a gnode15/ with 512 image size.
