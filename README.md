@@ -7,6 +7,7 @@ Example run:
 python disentangle/scripts/run.py --workdir=/home/ubuntu/ashesh/training/disentangle/ -mode=train
 --datadir=/mnt/ashesh/places365_noisy/
 --config=/home/ubuntu/ashesh/code/Disentangle/disentangle/configs/places_lvae_twindecoder_config.py
+****
 
 ## Exp 1
 
@@ -767,3 +768,13 @@ tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/18
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/19
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/20
 all of them crashed at some point.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/21 (GPU memory 3851MiB) this does not has beam
+configuration. idea is to check whether other configurations are identical as were before. this should therefore give
+identical performance as tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/5
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/12 is identical to previous model. Idea is to check it by
+running on two configurations. this would also give us some info on stablization.
+##TODO: Inspect the variance which is present in the decoder: variance. => variance is low.
+
+Results were slightly inferior for /21 and /5. So, I'm running the same commit code as in /5 now.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/23. This should necessarily give me the same result as /5.
+Otherwise, we would see that there is uncertainty issue.
