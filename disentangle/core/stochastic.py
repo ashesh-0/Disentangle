@@ -9,6 +9,8 @@ from torch import nn
 from torch.distributions import kl_divergence
 from torch.distributions.normal import Normal
 
+from disentangle.core.stable_exp import StableExponential, log_prob
+
 
 class NormalStochasticBlock2d(nn.Module):
     """
@@ -133,11 +135,7 @@ class NormalStochasticBlock2d(nn.Module):
         if var_clip_max is not None:
             p_lv = torch.clip(p_lv, max=var_clip_max)
 
-        try:
-            p = Normal(p_mu, (p_lv / 2).exp())
-        except:
-            import pdb
-            pdb.set_trace()
+        p = Normal(p_mu, StableExponential(p_lv / 2).exp())
         return p_mu, p_lv, p
 
     def process_q_params(self, q_params, var_clip_max):
@@ -147,11 +145,7 @@ class NormalStochasticBlock2d(nn.Module):
         if var_clip_max is not None:
             q_lv = torch.clip(q_lv, max=var_clip_max)
 
-        try:
-            q = Normal(q_mu, (q_lv / 2).exp())
-        except:
-            import pdb
-            pdb.set_trace()
+        q = Normal(q_mu, StableExponential(q_lv / 2).exp())
 
         return q_mu, q_lv, q
 
@@ -267,15 +261,11 @@ def kl_normal_mc(z, p_mulv, q_mulv):
     p_mu, p_lv = p_mulv
     q_mu, q_lv = q_mulv
 
-    p_std = (p_lv / 2).exp()
-    q_std = (q_lv / 2).exp()
+    p_std = StableExponential(p_lv / 2).exp()
+    q_std = StableExponential(q_lv / 2).exp()
 
-    try:
-        p_distrib = Normal(p_mu, p_std)
-        q_distrib = Normal(q_mu, q_std)
-    except:
-        import pdb
-        pdb.set_trace()
+    p_distrib = Normal(p_mu, p_std)
+    q_distrib = Normal(q_mu, q_std)
     return q_distrib.log_prob(z) - p_distrib.log_prob(z)
 
     # the prior
@@ -306,11 +296,14 @@ def vp_log_p_z(z_p_mean, z_p_logvar, z):
     # in computing the probablity of z, we sum over the latent dimension (20)
     # We need to divide by C (500) to keep it a valid distribution. Average of gaussians.
     # NOTE: check that whether we need to do sum
-    a = log_Normal_diag(z_expand, means, logvars) - math.log(C)  # MB x C (4 * 40)
+    a = log_prob(means, logvars, z_expand) - math.log(C)
+    # a = log_Normal_diag(z_expand, means, logvars) - math.log(C)  # MB x C (4 * 40)
     # a_max, _ = torch.max(a, 1)  # MB. sum would be a more accurate description. max() is close to the truth as
     # NOTE: This is equivalent to simply taking the log of (sum of exp(a)). They've done it simply to avoid overflows.
     # Now, one needs to take exp of (a - a_max) and not of a.
     # log_prior = (a_max + torch.log(torch.sum(torch.exp(a - a_max.unsqueeze(1)), 1)))  # MB
+    # As far as stability is concerned, this should work because, log_prob is actually taking the log. So, here, one
+    # can use torch.exp() and one should not use the different notation coded in StableExp
     log_prior = torch.log(torch.sum(torch.exp(a), 1))
     return log_prior
 
@@ -325,6 +318,6 @@ def kl_vampprior_mc(z, p_mulv, q_mulv):
     p_mu, p_lv = p_mulv
     q_mu, q_lv = q_mulv
 
-    q_std = (q_lv / 2).exp()
+    q_std = StableExponential(q_lv / 2).exp()
     q_distrib = Normal(q_mu, q_std)
     return q_distrib.log_prob(z) - vp_log_p_z(p_mu, p_lv, z)
