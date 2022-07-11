@@ -769,3 +769,5 @@ max value of qvar is 100, why would the latter work better. Surely, more varianc
 some value.
 
 started a gnode15/ with 512 image size.
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/16: same as tur /25 except that it has larger value for
+qvar_max value.
