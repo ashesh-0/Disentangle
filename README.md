@@ -759,6 +759,11 @@ no vampprior gnode14/2207/D3-M3-S0-L0/5: with same batch size as above and image
 
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/25: same as tur /5.
 gnode14/2207/D3-M3-S0-L0/6 working with 64*64 data, but with one more deeper level.
+stopped gnode14/2207/D3-M3-S0-L0/7: it was working with 32 bit precision.
+gnode14/2207/D3-M3-S0-L0/8: ran again with /7 config + 16 bit precision. same as tur /5.
 
-We want to see how good the performance becomes when we use 512*512 as input. Note that this is comparable to /5 and
-/25. In /25, we have two multi-scale levels. so essentially, we are looking at 512*512 context. 
+In these runs, note that I should in principal increase the qvar_max value. they are set to just 6. Now, that there is
+no real exp(). I think this can go to high values like 100.
+But the question is that why the stochasticity helps. So, the question is that if max value of qvar is 6 as opposed to
+max value of qvar is 100, why would the latter work better. Surely, more variance means more difficulty in pointing to
+some value.
