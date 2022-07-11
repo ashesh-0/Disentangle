@@ -21,7 +21,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 3
+    data.multiscale_lowres_count = None
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -68,6 +68,6 @@ def get_config():
     training.train_repeat_factor = None
     training.val_fraction = 0.2
     training.earlystop_patience = 100
-    training.precision = 16
+    # training.precision = 16
 
     return config

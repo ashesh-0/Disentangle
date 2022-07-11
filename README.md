@@ -758,3 +758,4 @@ no vampprior gnode14/2207/D3-M3-S0-L0/5: with same batch size as above and image
 ## Attempt to stablize with StableExponential class.
 
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/25: same as tur /5.
+gnode14/2207/D3-M3-S0-L0/6 working with 64*64 data, but with one more deeper level.
