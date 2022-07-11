@@ -759,3 +759,6 @@ no vampprior gnode14/2207/D3-M3-S0-L0/5: with same batch size as above and image
 
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/25: same as tur /5.
 gnode14/2207/D3-M3-S0-L0/6 working with 64*64 data, but with one more deeper level.
+
+We want to see how good the performance becomes when we use 512*512 as input. Note that this is comparable to /5 and
+/25. In /25, we have two multi-scale levels. so essentially, we are looking at 512*512 context. 
