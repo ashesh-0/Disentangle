@@ -757,7 +757,10 @@ no vampprior gnode14/2207/D3-M3-S0-L0/5: with same batch size as above and image
 
 ## Attempt to stablize with StableExponential class.
 
-tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/25: same as tur /5.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/25: same as tur /5. This crashed.
+gnode11/2207/D3-M3-S0-L0/10
+gnode11/2207/D3-M3-S0-L0/11
+both of above are identical to tur /25
 gnode14/2207/D3-M3-S0-L0/6 working with 64*64 data, but with one more deeper level.
 stopped gnode14/2207/D3-M3-S0-L0/7: it was working with 32 bit precision.
 gnode14/2207/D3-M3-S0-L0/8: ran again with /7 config + 16 bit precision. same as tur /5.
@@ -771,8 +774,8 @@ some value.
 started a gnode14/2207/D3-M3-S0-L0/9 with 512 image size. I see that it overfits well. training accuracy is better. but
 validation accuracy is not good enough.
 
-ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/16: same as tur /25 except that it has larger value for
-qvar_max value. => This looks slightly restrictive. but time will tell.
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/16: it has larger value for
+qvar_max value (20). There is no multiscale here.
 
 In tur /25, reconstruction loss increases first. this leads to
 
