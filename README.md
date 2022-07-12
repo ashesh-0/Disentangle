@@ -768,6 +768,15 @@ But the question is that why the stochasticity helps. So, the question is that i
 max value of qvar is 100, why would the latter work better. Surely, more variance means more difficulty in pointing to
 some value.
 
-started a gnode15/ with 512 image size.
+started a gnode14/2207/D3-M3-S0-L0/9 with 512 image size. I see that it overfits well. training accuracy is better. but
+validation accuracy is not good enough.
+
 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/16: same as tur /25 except that it has larger value for
-qvar_max value.
+qvar_max value. => This looks slightly restrictive. but time will tell.
+
+In tur /25, reconstruction loss increases first. this leads to
+
+1. increment in KL loss and the KL explodes.
+2. this increase leads to increase in variance of level 0.
+3. the gradient of top-down goes to 0.
+4. the gradient of bottom up also goes to 0.
