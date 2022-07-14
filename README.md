@@ -813,6 +813,11 @@ if it improves performance more significantly than what it does now.
 Lowerbound decoder logvar
 /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/32
 
-Training with lowerbound decoder's output. Also, I'm working with 32*32 size.
+Training with lowerbound decoder's output. Also, I'm working with 32 batch size and 64*64 patch size.
+Varying logvar_lowerbound variable.
 -2.49 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/35
 -5 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/19
+-10 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/36
+
+I see that things are pretty stable with this configuration. It could be because of the large batch size and also
+logvar_lowerbound. I'll now reduce the batch size to 4 to check. 
