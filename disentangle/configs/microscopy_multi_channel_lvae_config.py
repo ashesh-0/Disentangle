@@ -21,7 +21,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 3
+    data.multiscale_lowres_count = None
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -63,7 +63,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
-    training.batch_size = 4
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None

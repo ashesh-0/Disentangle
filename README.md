@@ -809,3 +809,8 @@ model. So, it does not make much sense to pursue the multiscale approach.
 #TODO: find the experiment where 512 was the best performing model. use that configuration with the multiscale to see
 if it improves performance more significantly than what it does now.
 #TODO: enable lowerbound on the variance of the decoder.
+
+Lowerbound decoder logvar
+/home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/32
+
+Training with
