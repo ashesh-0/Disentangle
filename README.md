@@ -783,3 +783,30 @@ In tur /25, reconstruction loss increases first. this leads to
 2. this increase leads to increase in variance of level 0.
 3. the gradient of top-down goes to 0.
 4. the gradient of bottom up also goes to 0.
+
+## July 12
+
+Just to be sure that I'm getting the good performance which I see in /5. I've started the training using that very
+commit. 2 runs have been started.
+
+Configs:
+gnode11/2207/D3-M3-S0-L0/12
+gnode12/2207/D3-M3-S0-L0/13
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/29 this crashed. running again.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/30
+
+/home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/12
+Rec:-0.760822 KL:0.038318
+Rec L1:-0.773517 Rec L2:-0.750618
+RMSE L1:0.1137 L2:0.1162
+PSNR L1:20.06 PSNR L2:27.67
+
+Since /12 achieved similar results, running the same on
+rutherford.
+/home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/17
+
+I see that in turing, a new conda environment was used on 20th June. There was an issue in the performance of the old
+model. So, it does not make much sense to pursue the multiscale approach.
+#TODO: find the experiment where 512 was the best performing model. use that configuration with the multiscale to see
+if it improves performance more significantly than what it does now.
+#TODO: enable lowerbound on the variance of the decoder.
