@@ -801,9 +801,8 @@ Rec L1:-0.773517 Rec L2:-0.750618
 RMSE L1:0.1137 L2:0.1162
 PSNR L1:20.06 PSNR L2:27.67
 
-Since /12 achieved similar results, running the same on
-rutherford.
-/home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/17
+Since /12 achieved similar results, running the same on rutherford.
+/home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/17 This is alwo training well.
 
 I see that in turing, a new conda environment was used on 20th June. There was an issue in the performance of the old
 model. So, it does not make much sense to pursue the multiscale approach.
