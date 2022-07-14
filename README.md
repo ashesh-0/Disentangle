@@ -820,4 +820,5 @@ Varying logvar_lowerbound variable.
 -10 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/36
 
 I see that things are pretty stable with this configuration. It could be because of the large batch size and also
-logvar_lowerbound. I'll now reduce the batch size to 4 to check. 
+logvar_lowerbound. I'll now reduce the batch size to 4 to check.
+-5 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/37: batchsize = 4 
