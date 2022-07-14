@@ -98,11 +98,11 @@ class NoiseModelLikelihood(LikelihoodModule):
 
 
 class GaussianLikelihood(LikelihoodModule):
-    def __init__(self, ch_in, color_channels, predict_logvar: Union[None, str] = None):
+    def __init__(self, ch_in, color_channels, predict_logvar: Union[None, str] = None, logvar_lowerbound=None):
         super().__init__()
         # If True, then we also predict pixelwise logvar.
         self.predict_logvar = predict_logvar
-
+        self.logvar_lowerbound = logvar_lowerbound
         assert self.predict_logvar in [None, 'global', 'pixelwise', 'channelwise']
         logvar_ch_needed = self.predict_logvar is not None
         self.parameter_net = nn.Conv2d(ch_in, color_channels * (1 + logvar_ch_needed), kernel_size=3, padding=1)
@@ -126,6 +126,9 @@ class GaussianLikelihood(LikelihoodModule):
 
                 lv = torch.mean(lv.reshape(N, -1), dim=1)
                 lv = lv.reshape(new_shape)
+
+        if self.logvar_lowerbound is not None:
+            lv = torch.clip(lv, min=self.logvar_lowerbound)
         else:
             mean = x
             lv = None
