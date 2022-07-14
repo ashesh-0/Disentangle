@@ -813,4 +813,5 @@ if it improves performance more significantly than what it does now.
 Lowerbound decoder logvar
 /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/32
 
-Training with
+Training with lowerbound decoder's output. Also, I'm working with 32*32 size.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/35
