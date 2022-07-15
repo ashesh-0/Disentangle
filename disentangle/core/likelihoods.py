@@ -128,8 +128,8 @@ class GaussianLikelihood(LikelihoodModule):
                 lv = torch.mean(lv.reshape(N, -1), dim=1)
                 lv = lv.reshape(new_shape)
 
-        if self.logvar_lowerbound is not None:
-            lv = torch.clip(lv, min=self.logvar_lowerbound)
+            if self.logvar_lowerbound is not None:
+                lv = torch.clip(lv, min=self.logvar_lowerbound)
         else:
             mean = x
             lv = None
