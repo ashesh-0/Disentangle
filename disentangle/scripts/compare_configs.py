@@ -53,6 +53,9 @@ def compare_raw_configs(config1, config2):
     df = pd.concat([val1_df, val2_df], axis=1)
     if 'workdir' in df.index:
         df = df.drop('workdir')
+    if 'exptname' in df.index:
+        df = df.drop('exptname')
+
     return df
 
 
