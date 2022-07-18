@@ -821,8 +821,8 @@ Varying logvar_lowerbound variable.
 
 I see that things are pretty stable with this configuration. It could be because of the large batch size and also
 logvar_lowerbound. I'll now reduce the batch size to 4 to check.
--5 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/37: batchsize = 4
+-5 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/37: batchsize = 4 => crashes.
 -2.49 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/38
 
 multiscale approach with 32 batch size.
-ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/22
+-10 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/22
