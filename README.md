@@ -818,6 +818,16 @@ Varying logvar_lowerbound variable.
 -2.49 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/35
 -5 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/19
 -10 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/36
+64:
+Rec:-0.755531 KL:0.038075
+Rec L1:-0.750180 Rec L2:-0.760266
+RMSE L1:0.1182 L2:0.1170
+PSNR 18.87 24.83
+256:
+Rec:-0.717610 KL:nan
+Rec L1:-0.717392 Rec L2:-0.717431
+RMSE L1:0.1194 L2:0.1193
+PSNR L1:21.36 PSNR L2:30.44
 
 I see that things are pretty stable with this configuration. It could be because of the large batch size and also
 logvar_lowerbound. I'll now reduce the batch size to 4 to check.
@@ -830,4 +840,16 @@ What I observe is that this model has a much lower training reconstruction loss 
 means is that it is able to overfit. However, in terms of the validation loss, I don't see any benefit. So, one more
 thing to try is to give more stochastic depth and then see if that works better.
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/39: stochastic depth increased by 2.
+after 5 epochs: PSNR: 19.00 24.97
+256:
+Rec:-0.803554 KL:nan
+Rec L1:-0.819813 Rec L2:-0.785757
+RMSE L1:0.1093 L2:0.1123
+PSNR L1:21.75 PSNR L2:30.81
+
 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/23: no multiscale. but otherwise identical to tur /39
+
+gnode15/2207/D3-M3-S0-L0/14: vampprior is enabled here with 300 inputs. Idea again is to see whether this gives us any
+benefit.
+since multiscale overfits well, another thing to try is to increase the dropout, and hopefully, it should yield better
+validation performance.

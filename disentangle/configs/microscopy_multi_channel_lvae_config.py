@@ -21,7 +21,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 5
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -43,7 +43,7 @@ def get_config():
     model.batchnorm = True
     model.stochastic_skip = True
     model.n_filters = 64
-    model.dropout = 0.1
+    model.dropout = 0.15
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
@@ -55,7 +55,7 @@ def get_config():
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
     model.logvar_lowerbound = -10  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
-    model.use_vampprior = True
+    model.use_vampprior = False
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
 
