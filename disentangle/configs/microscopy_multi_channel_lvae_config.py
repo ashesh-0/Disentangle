@@ -55,7 +55,7 @@ def get_config():
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
     model.logvar_lowerbound = -10  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
-    model.use_vampprior = False
+    model.use_vampprior = True
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
 

@@ -829,4 +829,5 @@ multiscale approach with 32 batch size.
 What I observe is that this model has a much lower training reconstruction loss over tur /2207/D3-M3-S0-L0/36. What this
 means is that it is able to overfit. However, in terms of the validation loss, I don't see any benefit. So, one more
 thing to try is to give more stochastic depth and then see if that works better.
-tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/39: stochastic depth increased by 2. 
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/39: stochastic depth increased by 2.
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/23: no multiscale. but otherwise identical to tur /39
