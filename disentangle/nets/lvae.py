@@ -12,6 +12,7 @@ from torch.autograd import Variable
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
 from disentangle.core.loss_type import LossType
+from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.losses import free_bits_kl
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
@@ -421,12 +422,17 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
-        recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
+        recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0], recons_img[:, 0])
+        psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1], recons_img[:, 1])
         recons_loss = recons_loss_dict['loss']
         kl_loss = self.get_kl_divergence_loss(td_data)
-
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
         self.log('val_loss', recons_loss, on_epoch=True)
+        self.log('val_psnr_l1', torch.mean(psnr_label1).item(), on_epoch=True)
+        self.log('val_psnr_l2', torch.mean(psnr_label2).item(), on_epoch=True)
+        self.log('val_psnr', torch.mean((psnr_label2 + psnr_label1) / 2).item(), on_epoch=True)
+
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples = []
             for i in range(20):
