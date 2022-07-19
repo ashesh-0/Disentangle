@@ -395,46 +395,6 @@ def normalize_minmse(x, target):
     return alpha * x + beta
 
 
-def PSNR(gt, pred, range_=None):
-    '''
-        Compute PSNR.
-        Parameters
-        ----------
-        gt: array
-            Ground truth image.
-        img: array
-            Predicted image.
-    '''
-    if range_ is None:
-        range_ = np.max(gt) - np.min(gt)
-    mse = np.mean((gt - pred) ** 2)
-    return 20 * np.log10((range_) / np.sqrt(mse))
-
-
-def zero_mean(x):
-    return x - np.mean(x)
-
-
-def fix_range(gt, x):
-    a = np.sum(gt * x) / (np.sum(x * x))
-    return x * a
-
-
-def fix(gt, x):
-    gt_ = zero_mean(gt)
-    return fix_range(gt_, zero_mean(x))
-
-
-def RangeInvariantPsnr(gt, pred):
-    """
-    Taken from https://github.com/juglab/ScaleInvPSNR/blob/master/psnr.py
-    It rescales the prediction to ensure that the prediction has the same range as the ground truth.
-    """
-    ra = (np.max(gt) - np.min(gt)) / np.std(gt)
-    gt_ = zero_mean(gt) / np.std(gt)
-    return PSNR(zero_mean(gt_), fix(gt_, pred), ra)
-
-
 def tta_forward(x):
     """
     Augments x 8-fold: all 90 deg rotations plus lr flip of the four rotated versions.

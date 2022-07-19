@@ -778,3 +778,115 @@ running on two configurations. this would also give us some info on stablization
 Results were slightly inferior for /21 and /5. So, I'm running the same commit code as in /5 now.
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/23. This should necessarily give me the same result as /5.
 Otherwise, we would see that there is uncertainty issue.
+=======
+
+## Attempt to stablize with StableExponential class.
+
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/25: same as tur /5. This crashed.
+gnode11/2207/D3-M3-S0-L0/10
+gnode11/2207/D3-M3-S0-L0/11
+both of above are identical to tur /25
+gnode14/2207/D3-M3-S0-L0/6 working with 64*64 data, but with one more deeper level.
+stopped gnode14/2207/D3-M3-S0-L0/7: it was working with 32 bit precision.
+gnode14/2207/D3-M3-S0-L0/8: ran again with /7 config + 16 bit precision. same as tur /5.
+
+In these runs, note that I should in principal increase the qvar_max value. they are set to just 6. Now, that there is
+no real exp(). I think this can go to high values like 100.
+But the question is that why the stochasticity helps. So, the question is that if max value of qvar is 6 as opposed to
+max value of qvar is 100, why would the latter work better. Surely, more variance means more difficulty in pointing to
+some value.
+
+started a gnode14/2207/D3-M3-S0-L0/9 with 512 image size. I see that it overfits well. training accuracy is better. but
+validation accuracy is not good enough.
+
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/16: it has larger value for
+qvar_max value (20). There is no multiscale here.
+
+In tur /25, reconstruction loss increases first. this leads to
+
+1. increment in KL loss and the KL explodes.
+2. this increase leads to increase in variance of level 0.
+3. the gradient of top-down goes to 0.
+4. the gradient of bottom up also goes to 0.
+
+## July 12
+
+Just to be sure that I'm getting the good performance which I see in /5. I've started the training using that very
+commit. 2 runs have been started.
+
+Configs:
+gnode11/2207/D3-M3-S0-L0/12
+gnode12/2207/D3-M3-S0-L0/13
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/29 this crashed. running again.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/30
+
+/home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/12
+Rec:-0.760822 KL:0.038318
+Rec L1:-0.773517 Rec L2:-0.750618
+RMSE L1:0.1137 L2:0.1162
+PSNR L1:20.06 PSNR L2:27.67
+
+Since /12 achieved similar results, running the same on rutherford.
+/home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/17 This is alwo training well.
+
+I see that in turing, a new conda environment was used on 20th June. There was an issue in the performance of the old
+model. So, it does not make much sense to pursue the multiscale approach.
+#TODO: find the experiment where 512 was the best performing model. use that configuration with the multiscale to see
+if it improves performance more significantly than what it does now.
+#TODO: enable lowerbound on the variance of the decoder.
+
+Lowerbound decoder logvar
+/home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/32
+
+Training with lowerbound decoder's output. Also, I'm working with 32 batch size and 64*64 patch size.
+Varying logvar_lowerbound variable.
+-2.49 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/35
+-5 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/19
+-10 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/36
+64:
+Rec:-0.755531 KL:0.038075
+Rec L1:-0.750180 Rec L2:-0.760266
+RMSE L1:0.1182 L2:0.1170
+PSNR 18.87 24.83
+256:
+Rec:-0.717610 KL:nan
+Rec L1:-0.717392 Rec L2:-0.717431
+RMSE L1:0.1194 L2:0.1193
+PSNR L1:21.36 PSNR L2:30.44
+
+I see that things are pretty stable with this configuration. It could be because of the large batch size and also
+logvar_lowerbound. I'll now reduce the batch size to 4 to check.
+-5 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/37: batchsize = 4 => crashes.
+-2.49 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/38 => does not crash.
+
+multiscale approach with 32 batch size.
+-10 ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/22 => does not crash.
+What I observe is that this model has a much lower training reconstruction loss over tur /2207/D3-M3-S0-L0/36. What this
+means is that it is able to overfit. However, in terms of the validation loss, I don't see any benefit. So, one more
+thing to try is to give more stochastic depth and then see if that works better.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/39: stochastic depth increased by 2.
+after 5 epochs: PSNR: 19.00 24.97
+256:
+Rec:-0.803554 KL:nan
+Rec L1:-0.819813 Rec L2:-0.785757
+RMSE L1:0.1093 L2:0.1123
+PSNR L1:21.75 PSNR L2:30.81
+
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/23: no multiscale. but otherwise identical to tur /39
+
+gnode15/2207/D3-M3-S0-L0/14: vampprior is enabled here with 300 inputs. Idea again is to see whether this gives us any
+benefit.
+since multiscale overfits well, another thing to try is to increase the dropout, and hopefully, it should yield better
+validation performance.
+dropout 0.15 gnode11/2207/D3-M3-S0-L0/16 with 2 stochastic layers and -3.5 logvar_lowerbound
+
+dropout 0.1 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/39
+dropout 0.25 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/40
+dropout 0.15 gnode11/2207/D3-M3-S0-L0/15
+
+## Try this out.
+
+1. The idea is to check the performance for very lean models. It could be the case that with enough context, the lean
+   models should do even better. the context should be in a beam fashion so as to yield maximum extraction of context.
+2. qvar_1 var reaches 20. I think I need to escalate it even further.
+

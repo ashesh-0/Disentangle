@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from disentangle.core.model_type import ModelType
-from disentangle.utils import PSNR, RangeInvariantPsnr
+from disentangle.core.psnr import PSNR, RangeInvariantPsnr
 
 
 def _get_critic_prediction(pred: torch.Tensor, tar: torch.Tensor, D) -> dict:
