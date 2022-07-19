@@ -43,7 +43,7 @@ def get_config():
     model.batchnorm = True
     model.stochastic_skip = True
     model.n_filters = 64
-    model.dropout = 0.25
+    model.dropout = 0.05
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'

@@ -853,3 +853,14 @@ gnode15/2207/D3-M3-S0-L0/14: vampprior is enabled here with 300 inputs. Idea aga
 benefit.
 since multiscale overfits well, another thing to try is to increase the dropout, and hopefully, it should yield better
 validation performance.
+dropout 0.15 gnode11/2207/D3-M3-S0-L0/16 with 2 stochastic layers and -3.5 logvar_lowerbound
+
+dropout 0.1 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/39
+dropout 0.25 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/40
+dropout 0.15 gnode11/2207/D3-M3-S0-L0/15
+
+## Try this out.
+
+1. The idea is to check the performance for very lean models. It could be the case that with enough context, the lean
+   models should do even better. the context should be in a beam fashion so as to yield maximum extraction of context.
+2. qvar_1 var reaches 20. I think I need to escalate it even further.
