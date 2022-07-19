@@ -1,8 +1,10 @@
-from disentangle.utils import RangeInvariantPsnr
-from disentangle.analysis.plot_utils import clean_ax
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
+
+from disentangle.analysis.plot_utils import clean_ax
+from disentangle.core.psnr import RangeInvariantPsnr
 
 
 def get_psnr(gt, pred):

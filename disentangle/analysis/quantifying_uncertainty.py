@@ -1,13 +1,15 @@
 """
 Here, we have functions which can be used to quantify uncertainty in the predictions.
 """
-import numpy as np
-from typing import List, Dict
-import torch
-from disentangle.analysis.lvae_utils import get_img_from_forward_output
-from disentangle.utils import PSNR, RangeInvariantPsnr
-import seaborn as sns
+from typing import Dict, List
+
 import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+import torch
+
+from disentangle.analysis.lvae_utils import get_img_from_forward_output
+from disentangle.core.psnr import PSNR, RangeInvariantPsnr
 
 
 def sample_images(model, dset, idx_list, sample_count: int = 5):
