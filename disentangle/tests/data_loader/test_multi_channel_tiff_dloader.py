@@ -1,6 +1,6 @@
 import numpy as np
 
-from disentangle.data_loader.multi_channel_tiff_dloader import _train_val_data
+from disentangle.data_loader.multi_channel_train_val_data import _train_val_data
 
 
 def test_train_val_data():
