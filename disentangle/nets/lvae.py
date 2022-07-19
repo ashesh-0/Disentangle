@@ -18,6 +18,10 @@ from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomU
                                           TopDownLayer)
 
 
+def torch_nanmean(inp):
+    return torch.mean(inp[~inp.isnan()])
+
+
 class LadderVAE(pl.LightningModule):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__()
@@ -429,9 +433,11 @@ class LadderVAE(pl.LightningModule):
         kl_loss = self.get_kl_divergence_loss(td_data)
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
         self.log('val_loss', recons_loss, on_epoch=True)
-        self.log('val_psnr_l1', torch.mean(psnr_label1).item(), on_epoch=True)
-        self.log('val_psnr_l2', torch.mean(psnr_label2).item(), on_epoch=True)
-        self.log('val_psnr', torch.mean((psnr_label2 + psnr_label1) / 2).item(), on_epoch=True)
+        val_psnr_l1 = torch_nanmean(psnr_label1).item()
+        val_psnr_l2 = torch_nanmean(psnr_label2).item()
+        self.log('val_psnr_l1', val_psnr_l1, on_epoch=True)
+        self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
+        self.log('val_psnr', (val_psnr_l1 + val_psnr_l2) / 2, on_epoch=True)
 
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples = []
