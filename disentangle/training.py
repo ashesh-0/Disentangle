@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
+from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.model_type import ModelType
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
@@ -145,12 +146,15 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
 
     model = create_model(config, data_mean, data_std)
     # print(model)
+    estop_monitor = config.model.get('monitor', 'val_loss')
+    estop_mode = MetricMonitor(estop_monitor).mode()
+
     callbacks = [
-        EarlyStopping(monitor='val_loss',
+        EarlyStopping(monitor=estop_monitor,
                       min_delta=1e-6,
                       patience=config.training.earlystop_patience,
                       verbose=True,
-                      mode='min'),
+                      mode=estop_mode),
         checkpoint_callback,
     ]
     if 'val_every_n_steps' in config.training and config.training.val_every_n_steps is not None:
@@ -177,21 +181,23 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             gradient_clip_val=config.training.grad_clip_norm_value,
             gradient_clip_algorithm=config.training.gradient_clip_algorithm,
             callbacks=callbacks,
-            #  fast_dev_run=100,
-            # overfit_batches=10,
+            # fast_dev_run=10,
+            overfit_batches=10,
             weights_summary=weights_summary,
             precision=config.training.precision)
     trainer.fit(model, train_loader, val_loader)
 
 
 def train_network(train_loader, val_loader, data_mean, data_std, config, model_name, logdir):
+    ckpt_monitor = config.model.get('monitor', 'val_loss')
+    ckpt_mode = MetricMonitor(ckpt_monitor).mode()
     checkpoint_callback = ModelCheckpoint(
-        monitor='val_loss',
+        monitor=ckpt_monitor,
         dirpath=config.workdir,
         filename=model_name + '_best',
         save_last=True,
         save_top_k=1,
-        mode='min',
+        mode=ckpt_mode,
     )
     checkpoint_callback.CHECKPOINT_NAME_LAST = model_name + "_last"
     logger = WandbLogger(name=os.path.join(config.hostname, config.exptname), save_dir=logdir,
