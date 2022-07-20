@@ -884,6 +884,9 @@ dropout 0.1 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/39
 dropout 0.25 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/40
 dropout 0.15 gnode11/2207/D3-M3-S0-L0/15
 
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/30
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/44 (with multires)
+
 ## Try this out.
 
 1. The idea is to check the performance for very lean models. It could be the case that with enough context, the lean

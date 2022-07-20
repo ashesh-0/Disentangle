@@ -21,7 +21,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = None
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -59,6 +59,7 @@ def get_config():
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = False
+    model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
     training = config.training
     training.lr = 0.001

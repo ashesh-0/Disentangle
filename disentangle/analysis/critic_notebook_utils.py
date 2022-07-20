@@ -79,12 +79,8 @@ def get_mmse_dict(model, x_normalized, target_normalized, mmse_count, model_type
         resN = len(td_data['kl_channelwise'])
         kl_loss_channelwise = [td_data['kl_channelwise'][i].detach().cpu().numpy() for i in range(resN)]
 
-    psnrl1 = np.array(
-        [psnr_fn(target_normalized[i, 0].cpu().numpy(), img_mmse[i, 0].cpu().numpy()) for i in
-         range(len(x_normalized))])
-    psnrl2 = np.array(
-        [psnr_fn(target_normalized[i, 1].cpu().numpy(), img_mmse[i, 1].cpu().numpy()) for i in
-         range(len(x_normalized))])
+    psnrl1 = psnr_fn(target_normalized[:, 0], img_mmse[:, 0]).cpu().numpy()
+    psnrl2 = psnr_fn(target_normalized[:, 1], img_mmse[:, 1]).cpu().numpy()
 
     output = {
         'mmse_img': img_mmse,

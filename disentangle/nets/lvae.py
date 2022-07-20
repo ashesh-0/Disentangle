@@ -12,10 +12,15 @@ from torch.autograd import Variable
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
 from disentangle.core.loss_type import LossType
+from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.losses import free_bits_kl
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
+
+
+def torch_nanmean(inp):
+    return torch.mean(inp[~inp.isnan()])
 
 
 class LadderVAE(pl.LightningModule):
@@ -61,6 +66,10 @@ class LadderVAE(pl.LightningModule):
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
+
+        # initialize the learning rate scheduler params.
+        self.lr_scheduler_monitor = self.lr_scheduler_mode = None
+        self._init_lr_scheduler_params(config)
 
         # vampprior
         self.vp_N = self.vp_enabled = self.vp_dummy_input = self.vp_means = self.vp_latent_ch = self.vp_hw = None
@@ -275,16 +284,20 @@ class LadderVAE(pl.LightningModule):
         """Global step."""
         return self._global_step
 
+    def _init_lr_scheduler_params(self, config):
+        self.lr_scheduler_monitor = config.model.get('monitor', 'val_loss')
+        self.lr_scheduler_mode = MetricMonitor(self.lr_scheduler_monitor).mode()
+
     def configure_optimizers(self):
         optimizer = optim.Adamax(self.parameters(), lr=self.lr, weight_decay=0)
         scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,
-                                                         'min',
+                                                         self.lr_scheduler_mode,
                                                          patience=self.lr_scheduler_patience,
                                                          factor=0.5,
                                                          min_lr=1e-12,
                                                          verbose=True)
 
-        return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': 'val_loss'}
+        return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': self.lr_scheduler_monitor}
 
     def get_kl_weight(self):
         if (self.kl_annealing == True):
@@ -436,9 +449,11 @@ class LadderVAE(pl.LightningModule):
         kl_loss = self.get_kl_divergence_loss(td_data)
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
         self.log('val_loss', recons_loss, on_epoch=True)
-        self.log('val_psnr_l1', torch.mean(psnr_label1).item(), on_epoch=True)
-        self.log('val_psnr_l2', torch.mean(psnr_label2).item(), on_epoch=True)
-        self.log('val_psnr', torch.mean((psnr_label2 + psnr_label1) / 2).item(), on_epoch=True)
+        val_psnr_l1 = torch_nanmean(psnr_label1).item()
+        val_psnr_l2 = torch_nanmean(psnr_label2).item()
+        self.log('val_psnr_l1', val_psnr_l1, on_epoch=True)
+        self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
+        self.log('val_psnr', (val_psnr_l1 + val_psnr_l2) / 2, on_epoch=True)
 
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples = []
@@ -454,7 +469,7 @@ class LadderVAE(pl.LightningModule):
             self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
             self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
 
-        return net_loss
+        # return net_loss
 
     def forward(self, x):
         img_size = x.size()[2:]
