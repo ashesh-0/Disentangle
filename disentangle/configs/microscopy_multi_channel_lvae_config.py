@@ -21,7 +21,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 5
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -36,8 +36,8 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128]
-    model.blocks_per_layer = 5
+    model.z_dims = [128, 128, 128, 128]
+    model.blocks_per_layer = 1
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True
@@ -58,7 +58,7 @@ def get_config():
     model.use_vampprior = False
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
-    model.multiscale_retain_spatial_dims = False
+    model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
     training = config.training

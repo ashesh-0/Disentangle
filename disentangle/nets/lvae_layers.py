@@ -430,6 +430,7 @@ class BottomUpLayer(nn.Module):
     def forward(self, x, lowres_x=None):
         primary_flow = self.net_downsized(x)
         primary_flow = self.net(primary_flow)
+
         if self.enable_multiscale is False:
             assert lowres_x is None
             return primary_flow, primary_flow
