@@ -51,7 +51,7 @@ def get_config():
     model.no_initial_downscaling = True
     model.analytical_kl = False
     model.mode_pred = False
-    model.blur_pool_filter_size = 2
+    model.blur_pool_filter_size = 3
     model.var_clip_max = 20
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
@@ -59,7 +59,7 @@ def get_config():
     model.use_vampprior = False
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
-    model.multiscale_retain_spatial_dims = True
+    model.multiscale_retain_spatial_dims = None
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
     training = config.training
