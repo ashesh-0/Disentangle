@@ -121,6 +121,8 @@ class LadderVAE(pl.LightningModule):
                 dropout=self.dropout,
                 res_block_type=self.res_block_type,
             ))
+
+        self.multiscale_retain_spatial_dims = config.model.multiscale_retain_spatial_dims
         self.lowres_first_bottom_ups = self._multiscale_count = None
         self._init_multires(config)
 
@@ -128,11 +130,14 @@ class LadderVAE(pl.LightningModule):
         self.top_down_layers = nn.ModuleList([])
         self.bottom_up_layers = nn.ModuleList([])
 
+        enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
+        multiscale_lowres_size_factor = 1
         for i in range(self.n_layers):
             # Whether this is the top layer
             is_top = i == self.n_layers - 1
-
-            enable_multiscale = self._multiscale_count is not None and self._multiscale_count > i + 1
+            layer_enable_multiscale = enable_multiscale and self._multiscale_count > i + 1
+            # if multiscale is enabled, this is the factor by which the lowres tensor will be larger than
+            multiscale_lowres_size_factor *= (1 + int(layer_enable_multiscale))
             # Add bottom-up deterministic layer at level i.
             # It's a sequence of residual blocks (BottomUpDeterministicResBlock)
             # possibly with downsampling between them.
@@ -148,6 +153,8 @@ class LadderVAE(pl.LightningModule):
                     gated=self.gated,
                     lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
                     enable_multiscale=enable_multiscale,
+                    multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
+                    multiscale_lowres_size_factor=multiscale_lowres_size_factor,
                 ))
 
             # Add top-down stochastic layer at level i.
@@ -500,8 +507,8 @@ class LadderVAE(pl.LightningModule):
             if self._multiscale_count > 1 and i + 1 < inp.shape[1]:
                 lowres_x = self.lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
 
-            x = self.bottom_up_layers[i](x, lowres_x=lowres_x)
-            bu_values.append(x)
+            x, bu_value = self.bottom_up_layers[i](x, lowres_x=lowres_x)
+            bu_values.append(bu_value)
 
         return bu_values
 

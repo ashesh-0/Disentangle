@@ -7,6 +7,7 @@ Example run:
 python disentangle/scripts/run.py --workdir=/home/ubuntu/ashesh/training/disentangle/ -mode=train
 --datadir=/mnt/ashesh/places365_noisy/
 --config=/home/ubuntu/ashesh/code/Disentangle/disentangle/configs/places_lvae_twindecoder_config.py
+****
 
 ## Exp 1
 
@@ -755,6 +756,30 @@ no vampprior gnode14/2207/D3-M3-S0-L0/5: with same batch size as above and image
    1 output of the model. 2. output of the likelihood fn. This is the normalized reconstruction. Both these two ways
    yield the same performance. performance fixed as I increase the count.
 
+## Another variant of multiscale approach.
+
+Both of them have identical configuration. hierarchical 'beam'
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/10
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/17 (GPU memory 4133MiB)
+They had different grad_clip_norm_value value(0.05). Now, training again with original grad_clip_norm_value value (0.5)
+same as previous runs.
+Things are crashing here, so I've trained them multiple times.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/18
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/19
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/20
+all of them crashed at some point.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/21 (GPU memory 3851MiB) this does not has beam
+configuration. idea is to check whether other configurations are identical as were before. this should therefore give
+identical performance as tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/5
+ruth /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/12 is identical to previous model. Idea is to check it by
+running on two configurations. this would also give us some info on stablization.
+##TODO: Inspect the variance which is present in the decoder: variance. => variance is low.
+
+Results were slightly inferior for /21 and /5. So, I'm running the same commit code as in /5 now.
+tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/23. This should necessarily give me the same result as /5.
+Otherwise, we would see that there is uncertainty issue.
+=======
+
 ## Attempt to stablize with StableExponential class.
 
 tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/25: same as tur /5. This crashed.
@@ -867,3 +892,4 @@ tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/44 (with multires)
 1. The idea is to check the performance for very lean models. It could be the case that with enough context, the lean
    models should do even better. the context should be in a beam fashion so as to yield maximum extraction of context.
 2. qvar_1 var reaches 20. I think I need to escalate it even further.
+

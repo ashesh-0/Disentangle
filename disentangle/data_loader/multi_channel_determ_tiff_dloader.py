@@ -50,7 +50,7 @@ class MultiChDeterministicTiffDloader:
             self._rotation_transform = A.Compose([A.Flip(), A.RandomRotate90()])
 
         msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
-        msg += f' Train:{int(is_train)} N:{self.N} Repeat:{self._repeat_factor}'
+        msg += f' Train:{int(is_train)} N:{self.N} NumPatchPerN:{self._repeat_factor}'
         msg += f' NormInp:{self._normalized_input}'
         msg += f' SingleNorm:{self._use_one_mu_std}'
         msg += f' Rot:{self._enable_rotation}'
