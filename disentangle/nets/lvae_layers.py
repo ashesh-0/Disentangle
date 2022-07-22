@@ -7,6 +7,7 @@ from typing import Union
 import torch
 from torch import nn
 
+from disentangle.core.blurpool import UnAliasedStridedConv
 from disentangle.core.data_utils import crop_img_tensor, pad_img_tensor
 from disentangle.core.nn_submodules import ResidualBlock, ResidualGatedBlock
 from disentangle.core.stochastic import NormalStochasticBlock2d
@@ -490,12 +491,14 @@ class ResBlockWithResampling(nn.Module):
         # Define first conv layer to change channels and/or up/downsample
         if resample:
             if mode == 'bottom-up':  # downsample
-                self.pre_conv = nn.Conv2d(in_channels=c_in,
-                                          out_channels=inner_filters,
-                                          kernel_size=3,
-                                          padding=1,
-                                          stride=2,
-                                          groups=groups)
+                self.pre_conv = UnAliasedStridedConv(in_channels=c_in,
+                                                     out_channels=inner_filters,
+                                                     kernel_size=3,
+                                                     nonlin=nonlin,
+                                                     padding=1,
+                                                     stride=2,
+                                                     groups=groups)
+
             elif mode == 'top-down':  # upsample
                 self.pre_conv = nn.ConvTranspose2d(in_channels=c_in,
                                                    out_channels=inner_filters,
