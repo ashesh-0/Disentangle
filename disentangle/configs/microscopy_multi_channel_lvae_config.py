@@ -51,6 +51,7 @@ def get_config():
     model.no_initial_downscaling = True
     model.analytical_kl = False
     model.mode_pred = False
+    model.blur_pool_filter_size = 3
     model.var_clip_max = 20
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'

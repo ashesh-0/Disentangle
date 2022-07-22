@@ -341,6 +341,7 @@ class BottomUpLayer(nn.Module):
                  dropout: Union[None, float] = None,
                  res_block_type: str = None,
                  gated: bool = None,
+                 blur_pool_filter_size: int = None,
                  multiscale_lowres_size_factor: int = None,
                  enable_multiscale: bool = False,
                  lowres_separate_branch=False,
@@ -356,6 +357,7 @@ class BottomUpLayer(nn.Module):
             res_block_type: Example: 'bacdbac'. It has the constitution of the residual block.
             gated: This is also an argument for the residual block. At the end of residual block, whether 
             there should be a gate or not.
+            blur_pool_filter_size: What should the size of filter for blurpool should be.
             multiscale_lowres_size_factor: How small is the bu_value when compared with low resolution tensor.
             enable_multiscale: Whether to enable multiscale or not.
             multiscale_retain_spatial_dims: typically the output of the bottom-up layer scales down spatially.
@@ -381,6 +383,7 @@ class BottomUpLayer(nn.Module):
                 dropout=dropout,
                 res_block_type=res_block_type,
                 gated=gated,
+                blur_pool_filter_size=blur_pool_filter_size,
             )
             if do_resample:
                 bu_blocks_downsized.append(block)
@@ -476,6 +479,7 @@ class ResBlockWithResampling(nn.Module):
                  resample=False,
                  res_block_kernel=None,
                  groups=1,
+                 blur_pool_filter_size=None,
                  batchnorm=True,
                  res_block_type=None,
                  dropout=None,
@@ -494,6 +498,7 @@ class ResBlockWithResampling(nn.Module):
                 self.pre_conv = UnAliasedStridedConv(in_channels=c_in,
                                                      out_channels=inner_filters,
                                                      kernel_size=3,
+                                                     bp_filt_size=blur_pool_filter_size,
                                                      nonlin=nonlin,
                                                      padding=1,
                                                      stride=2,

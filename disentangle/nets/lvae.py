@@ -151,6 +151,7 @@ class LadderVAE(pl.LightningModule):
                     dropout=self.dropout,
                     res_block_type=self.res_block_type,
                     gated=self.gated,
+                    blur_pool_filter_size=config.model.blur_pool_filter_size,
                     lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
                     enable_multiscale=enable_multiscale,
                     multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,

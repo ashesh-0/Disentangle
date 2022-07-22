@@ -90,7 +90,7 @@ class UnAliasedStridedConv(BlurPool):
     """
 
     def __init__(self, in_channels, out_channels, kernel_size, nonlin=None, padding=None, bp_pad_type='zero',
-                 bp_filt_size=4,
+                 bp_filt_size=1,
                  stride=2,
                  bp_pad_off=0,
                  groups=1):
