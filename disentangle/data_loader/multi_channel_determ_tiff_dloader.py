@@ -16,6 +16,7 @@ class MultiChDeterministicTiffDloader:
                  val_fraction=None,
                  normalized_input=None,
                  enable_rotation_aug: bool = False,
+                 enable_random_cropping: bool = False,
                  use_one_mu_std=None):
         """
         Here, an image is split into grids of size img_sz.
@@ -43,6 +44,7 @@ class MultiChDeterministicTiffDloader:
         self._std = None
         self._use_one_mu_std = use_one_mu_std
         self._enable_rotation = enable_rotation_aug
+        self._enable_random_cropping = enable_random_cropping
         # Randomly rotate [-90,90]
 
         self._rotation_transform = None
@@ -54,14 +56,19 @@ class MultiChDeterministicTiffDloader:
         msg += f' NormInp:{self._normalized_input}'
         msg += f' SingleNorm:{self._use_one_mu_std}'
         msg += f' Rot:{self._enable_rotation}'
+        msg += f' RandCrop:{self._enable_random_cropping}'
         print(msg)
 
-    def _crop_determinstic(self, index, img1: np.ndarray, img2: np.ndarray):
+    def _crop_imgs(self, index, img1: np.ndarray, img2: np.ndarray):
         h, w = img1.shape[-2:]
         if self._img_sz is None:
             return img1, img2, {'h': [0, h], 'w': [0, w], 'hflip': False, 'wflip': False}
 
-        h_start, w_start = self._get_deterministic_hw(index, h, w)
+        if self._enable_random_cropping:
+            h_start, w_start = self._get_random_hw(h, w)
+        else:
+            h_start, w_start = self._get_deterministic_hw(index, h, w)
+
         img1 = self._crop_flip_img(img1, h_start, w_start, False, False)
         img2 = self._crop_flip_img(img2, h_start, w_start, False, False)
 
@@ -137,13 +144,21 @@ class MultiChDeterministicTiffDloader:
             std = np.std(self._data, axis=(0, 1, 2))
             return mean[None, :, None, None], std[None, :, None, None]
 
+    def _get_random_hw(self, h: int, w: int):
+        """
+        Random starting position for the crop for the img with index `index`.
+        """
+        h_start = np.random.choice(h - self._img_sz)
+        w_start = np.random.choice(w - self._img_sz)
+        return h_start, w_start
+
     def _get_img(self, index: int):
         """
         Loads an image.
         Crops the image such that cropped image has content.
         """
         img1, img2 = self._load_img(index)
-        cropped_img1, cropped_img2 = self._crop_determinstic(index, img1, img2)[:2]
+        cropped_img1, cropped_img2 = self._crop_imgs(index, img1, img2)[:2]
         return cropped_img1, cropped_img2
 
     def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:

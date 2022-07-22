@@ -14,14 +14,14 @@ def get_config():
     data.channel_2 = 2
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
-    data.deterministic_grid = True
+    data.deterministic_grid = False
     data.normalized_input = True
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = None
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
