@@ -8,13 +8,13 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 32
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
     data.channel_2 = 2
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
-    data.deterministic_grid = False
+    data.deterministic_grid = True
     data.normalized_input = True
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
