@@ -21,6 +21,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
                  enable_rotation_aug: bool = False,
                  use_one_mu_std=None,
                  num_scales: int = None,
+                 enable_random_cropping=False,
                  ):
         """
         Args:
@@ -35,6 +36,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
                          val_fraction=val_fraction,
                          normalized_input=normalized_input,
                          enable_rotation_aug=enable_rotation_aug,
+                         enable_random_cropping=enable_random_cropping,
                          use_one_mu_std=use_one_mu_std)
         self.num_scales = num_scales
         assert self.num_scales is not None
@@ -72,7 +74,10 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         img1, img2 = self._load_img(index)
         assert self._img_sz is not None
         h, w = img1.shape[-2:]
-        h_start, w_start = self._get_deterministic_hw(index, h, w)
+        if self._enable_random_cropping:
+            h_start, w_start = self._get_random_hw(h, w)
+        else:
+            h_start, w_start = self._get_deterministic_hw(index, h, w)
         img1_cropped = self._crop_flip_img(img1, h_start, w_start, False, False)
         img2_cropped = self._crop_flip_img(img2, h_start, w_start, False, False)
 
