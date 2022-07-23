@@ -404,8 +404,10 @@ class BottomUpLayer(nn.Module):
                 multiscale_retain_spatial_dims=multiscale_retain_spatial_dims,
                 multiscale_lowres_size_factor=multiscale_lowres_size_factor, )
 
-        print(f'[{self.__class__.__name__}] McEnabled:{int(enable_multiscale)} '
-              f'McParallelBeam:{int(multiscale_retain_spatial_dims)} McFactor{multiscale_lowres_size_factor}')
+        msg = f'[{self.__class__.__name__}] McEnabled:{int(enable_multiscale)} '
+        if enable_multiscale:
+            msg += f'McParallelBeam:{int(multiscale_retain_spatial_dims)} McFactor{multiscale_lowres_size_factor}'
+        print(msg)
 
     def _init_multiscale(self, n_filters=None,
                          nonlin=None,
