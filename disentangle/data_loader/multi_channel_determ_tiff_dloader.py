@@ -92,18 +92,21 @@ class MultiChDeterministicTiffDloader:
 
         return new_img.astype(np.float32)
 
-    def _get_deterministic_hw(self, index: int, h: int, w: int):
+    def _get_deterministic_hw(self, index: int, h: int, w: int, img_sz=None):
         """
         Fixed starting position for the crop for the img with index `index`.
         """
+        if img_sz is None:
+            img_sz = self._img_sz
+            
         assert h == w
         factor = index // self.N
-        nrows = h // self._img_sz
+        nrows = h // img_sz
 
         ith_row = factor // nrows
         jth_col = factor % nrows
-        h_start = ith_row * self._img_sz
-        w_start = jth_col * self._img_sz
+        h_start = ith_row * img_sz
+        w_start = jth_col * img_sz
         return h_start, w_start
 
     def __len__(self):
