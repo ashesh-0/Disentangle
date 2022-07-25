@@ -98,7 +98,7 @@ class MultiChDeterministicTiffDloader:
         """
         if img_sz is None:
             img_sz = self._img_sz
-            
+
         assert h == w
         factor = index // self.N
         nrows = h // img_sz
@@ -112,8 +112,16 @@ class MultiChDeterministicTiffDloader:
     def __len__(self):
         return self.N * self._repeat_factor
 
+    def hwt_from_idx(self, index):
+        _, H, W, _ = self._data.shape
+        t = self.get_t()
+        return (*self._get_deterministic_hw(index, H, W), t)
+
+    def get_t(self, index):
+        return index % self.N
+
     def _load_img(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
-        imgs = self._data[index % self.N]
+        imgs = self._data[self.get_t(index)]
         return imgs[None, :, :, 0], imgs[None, :, :, 1]
 
     def get_mean_std(self):

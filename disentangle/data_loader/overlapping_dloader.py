@@ -18,7 +18,10 @@ def get_overlapping_dset(dset_class):
             self._repeat_factor = (self._data.shape[-2] // self._img_sz_for_hw) ** 2
             assert self._img_sz >= self._img_sz_for_hw
 
-        def padding_amount(self, start_pos):
+        def per_side_overlap_pixelcount(self):
+            return (self._img_sz - self._img_sz_for_hw) // 2
+
+        def get_begin_end_padding(self, start_pos):
             """
             This assumes for simplicity that image is square shaped.
             The effect is that the image with size self._img_sz_for_hw is in the center of the patch with sufficient
@@ -44,7 +47,7 @@ def get_overlapping_dset(dset_class):
             assert index < len(self)
             h_start, w_start = super(OverlappingDset, self)._get_deterministic_hw(index, h, w,
                                                                                   img_sz=self._img_sz_for_hw)
-            pad = (self._img_sz - self._img_sz_for_hw) // 2
+            pad = self.per_side_overlap_pixelcount()
             return h_start - pad, w_start - pad
 
         def _crop_img(self, img: np.ndarray, h_start: int, w_start: int):
@@ -54,17 +57,17 @@ def get_overlapping_dset(dset_class):
 
             assert h_start < H
             assert w_start < W
-            
+
             assert h_start + self._img_sz <= H or h_on_boundary
             assert w_start + self._img_sz <= W or w_on_boundary
             # max() is needed since h_start could be negative.
             new_img = img[..., max(0, h_start):h_start + self._img_sz, max(0, w_start):w_start + self._img_sz]
             padding = np.array([[0, 0], [0, 0], [0, 0]])
             if h_on_boundary:
-                pad = self.padding_amount(h_start)
+                pad = self.get_begin_end_padding(h_start)
                 padding[1] = pad
             if w_on_boundary:
-                pad = self.padding_amount(w_start)
+                pad = self.get_begin_end_padding(w_start)
                 padding[2] = pad
 
             if not np.all(padding == 0):
