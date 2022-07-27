@@ -37,6 +37,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
+    model.skip_bottom_layers_count = 2  # For how many bottom layers, do we not want to use the encoder's output.
     model.blocks_per_layer = 1
     model.nonlin = 'elu'
     model.merge_type = 'residual'
@@ -71,6 +72,6 @@ def get_config():
     training.train_repeat_factor = None
     training.val_fraction = 0.2
     training.earlystop_patience = 100
-    training.precision = 16
+    # training.precision = 16
 
     return config

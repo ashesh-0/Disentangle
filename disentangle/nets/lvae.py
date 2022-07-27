@@ -48,6 +48,8 @@ class LadderVAE(pl.LightningModule):
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
 
+        # For how many levels do we want to skip the encoder's output.
+        self.skip_bottom_layers_count = config.model.skip_bottom_layers_count
         self.noiseModel = None
         self.merge_type = config.model.merge_type
         self.analytical_kl = config.model.analytical_kl
@@ -219,6 +221,7 @@ class LadderVAE(pl.LightningModule):
         # gradient norms. updated while training. this is also logged.
         self.grad_norm_bottom_up = 0.0
         self.grad_norm_top_down = 0.0
+        print(f'[{self.__class__.__name__}] SkipLayersN:{self.skip_bottom_layers_count}')
 
     def _init_multires(self, config):
         """
@@ -340,13 +343,18 @@ class LadderVAE(pl.LightningModule):
     def get_kl_divergence_loss(self, topdown_layer_data_dict):
         # kl[i] for each i has length batch_size
         # resulting kl shape: (batch_size, layers)
-        kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']], dim=1)
-        nlayers = kl.shape[1]
-        for i in range(nlayers):
-            kl[:, i] = kl[:, i] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
+        # kl = [kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']]
+        kl_loss = 0
+        valid_kl_layer_count = 0
+        for i, one_layer_kl in enumerate(topdown_layer_data_dict['kl']):
+            if one_layer_kl is None:
+                continue
+            valid_kl_layer_count += 1
+            one_layer_kl = one_layer_kl.unsqueeze(1)
+            one_layer_kl[:, 0] = one_layer_kl[:, 0] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
+            kl_loss += free_bits_kl(one_layer_kl, self.free_bits).mean()
 
-        kl_loss = free_bits_kl(kl, self.free_bits).mean()
-        return kl_loss
+        return kl_loss / valid_kl_layer_count if valid_kl_layer_count > 0 else 0
 
     def _compute_gradient_norm(self, network):
         max_norm = 0
@@ -389,7 +397,8 @@ class LadderVAE(pl.LightningModule):
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):
-                self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
+                if x is not None:
+                    self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
 
             self.log('reconstruction_loss', recons_loss_dict['loss'], on_epoch=True)
             self.log('kl_loss', kl_loss, on_epoch=True)
@@ -451,9 +460,10 @@ class LadderVAE(pl.LightningModule):
         self.log('val_loss', recons_loss, on_epoch=True)
         val_psnr_l1 = torch_nanmean(psnr_label1).item()
         val_psnr_l2 = torch_nanmean(psnr_label2).item()
+        val_psnr = (val_psnr_l1 + val_psnr_l2) / 2
         self.log('val_psnr_l1', val_psnr_l1, on_epoch=True)
         self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
-        self.log('val_psnr', (val_psnr_l1 + val_psnr_l2) / 2, on_epoch=True)
+        self.log('val_psnr', val_psnr, on_epoch=True)
 
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples = []
@@ -469,8 +479,22 @@ class LadderVAE(pl.LightningModule):
             self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
             self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
 
-        # return net_loss
+        # Note that the only use of this return is in validation_epoch_end. One can as well skip this return
+        # if one does not need to do anything with it in validation_epoch_end().
+        return val_psnr
 
+    # def validation_epoch_end(self, validation_step_outputs):
+    #     """
+    #     This assumes that the validation_step() returns PSNR values.
+    #     """
+    #     psnr = np.mean(validation_step_outputs)
+
+    def update_skip_bottom_layers_count(self):
+        if self.skip_bottom_layers_count > 0:
+            self.skip_bottom_layers_count -= 1
+            print(f'[{self.__class__.__name__}] Updating skip_bottom_layers_count to {self.skip_bottom_layers_count}')
+
+    #         TODO: freeze top most layers?
     def forward(self, x):
         img_size = x.size()[2:]
 
@@ -487,6 +511,11 @@ class LadderVAE(pl.LightningModule):
             vp_dist_params = self._vp_compute_mu_logvar()
 
         # Top-down inference/generation
+
+        for i in range(self.skip_bottom_layers_count):
+            # NOTE: We skip encoder's bottom layers' output, those closer to input.
+            bu_values[i] = None
+
         out, td_data = self.topdown_pass(bu_values, vp_dist_params=vp_dist_params)
         # Restore original image size
         out = crop_img_tensor(out, img_size)
@@ -624,12 +653,8 @@ class LadderVAE(pl.LightningModule):
         # Top-down inference/generation loop
         out = out_pre_residual = None
         for i in reversed(range(self.n_layers)):
-
             # If available, get deterministic node from bottom-up inference
-            try:
-                bu_value = bu_values[i]
-            except TypeError:
-                bu_value = None
+            bu_value = bu_values[i]
 
             # Whether the current layer should be sampled from the mode
             use_mode = i in mode_layers

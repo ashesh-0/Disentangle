@@ -182,7 +182,7 @@ class NormalStochasticBlock2d(nn.Module):
                         (mu and logvar) for the P() distribution.
         """
 
-        debug_qvar_max = 0
+        debug_qvar_max = None
         assert (forced_latent is None) or (not use_mode)
         msg = "With vampprior, analytical KL divergence computation is not supported."
         msg += " One can only use one sample approximate."

@@ -281,7 +281,7 @@ class TopDownLayer(nn.Module):
                 if use_uncond_mode:
                     q_params = p_params
                 else:
-                    q_params = self.merge(bu_value, p_params)
+                    q_params = self.merge(bu_value, p_params) if bu_value is not None else None
 
         # In generative mode, q is not used
         else:
@@ -314,7 +314,8 @@ class TopDownLayer(nn.Module):
         keys = ['z', 'kl_samplewise', 'kl_spatial', 'kl_channelwise',
                 # 'logprob_p',
                 'logprob_q', 'qvar_max']
-        data = {k: data_stoch[k] for k in keys}
+        data = {k: data_stoch.get(k, None) for k in keys}
+
         data['q_mu'] = None
         data['q_lv'] = None
         if data_stoch['q_params'] is not None:

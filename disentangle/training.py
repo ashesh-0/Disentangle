@@ -144,6 +144,8 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
     if 'val_every_n_steps' in config.training and config.training.val_every_n_steps is not None:
         callbacks.append(ValEveryNSteps(config.training.val_every_n_steps))
 
+    from disentangle.core.metric_callback import ValMetricCallback
+    callbacks.append(ValMetricCallback())
     logger.experiment.config.update(config.to_dict())
     # wandb.init(config=config)
     if torch.cuda.is_available():
@@ -166,7 +168,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             gradient_clip_algorithm=config.training.gradient_clip_algorithm,
             callbacks=callbacks,
             # fast_dev_run=10,
-            # overfit_batches=10,
+            overfit_batches=10,
             weights_summary=weights_summary,
             precision=config.training.precision)
     trainer.fit(model, train_loader, val_loader)
