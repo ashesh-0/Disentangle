@@ -114,7 +114,7 @@ class MultiChDeterministicTiffDloader:
 
     def hwt_from_idx(self, index):
         _, H, W, _ = self._data.shape
-        t = self.get_t()
+        t = self.get_t(index)
         return (*self._get_deterministic_hw(index, H, W), t)
 
     def get_t(self, index):
