@@ -16,25 +16,25 @@ def get_overlapping_dset(dset_class):
             super().__init__(*args, **kwargs)
             self._img_sz_for_hw = image_size_for_grid_centers
             self._repeat_factor = (self._data.shape[-2] // self._img_sz_for_hw) ** 2
+            # used for multiscale data loader.
+            self.enable_padding_while_cropping = True
             assert self._img_sz >= self._img_sz_for_hw
 
         def per_side_overlap_pixelcount(self):
             return (self._img_sz - self._img_sz_for_hw) // 2
 
-        def get_begin_end_padding(self, start_pos):
+        def get_begin_end_padding(self, start_pos, max_len):
             """
             This assumes for simplicity that image is square shaped.
             The effect is that the image with size self._img_sz_for_hw is in the center of the patch with sufficient
             padding on all four sides so that the final patch size is self._img_sz.
             """
-            _, H, W, _ = self._data.shape
-            assert H == W
             pad_start = 0
             pad_end = 0
             if start_pos < 0:
                 pad_start = -1 * start_pos
 
-            pad_end = max(0, start_pos + self._img_sz - H)
+            pad_end = max(0, start_pos + self._img_sz - max_len)
 
             return pad_start, pad_end
 
@@ -64,10 +64,10 @@ def get_overlapping_dset(dset_class):
             new_img = img[..., max(0, h_start):h_start + self._img_sz, max(0, w_start):w_start + self._img_sz]
             padding = np.array([[0, 0], [0, 0], [0, 0]])
             if h_on_boundary:
-                pad = self.get_begin_end_padding(h_start)
+                pad = self.get_begin_end_padding(h_start, H)
                 padding[1] = pad
             if w_on_boundary:
-                pad = self.get_begin_end_padding(w_start)
+                pad = self.get_begin_end_padding(w_start, W)
                 padding[2] = pad
 
             if not np.all(padding == 0):

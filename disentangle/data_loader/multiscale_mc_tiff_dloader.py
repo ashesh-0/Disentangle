@@ -42,7 +42,9 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         assert self.num_scales is not None
         self._scaled_data = [self._data]
         assert isinstance(self.num_scales, int) and self.num_scales >= 1
-
+        # self.enable_padding_while_cropping is used only for overlapping_dloader. This is a hack and at some point be
+        # fixed properly
+        self.enable_padding_while_cropping = False
         for _ in range(1, self.num_scales):
             shape = self._scaled_data[-1].shape
             assert len(shape) == 4
@@ -93,6 +95,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
             img2_padded = np.zeros_like(img2_versions[-1])
             h_start = h_center - self._img_sz // 2
             w_start = w_center - self._img_sz // 2
+
             img1_cropped = self._crop_flip_img(img1, h_start, w_start, False, False)
             img2_cropped = self._crop_flip_img(img2, h_start, w_start, False, False)
 
@@ -100,8 +103,15 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
             w_start = max(0, -w_start)
             h_end = h_start + img1_cropped.shape[1]
             w_end = w_start + img1_cropped.shape[2]
-            img1_padded[:, h_start:h_end, w_start:w_end] = img1_cropped
-            img2_padded[:, h_start:h_end, w_start:w_end] = img2_cropped
+            if self.enable_padding_while_cropping:
+                assert img1_cropped.shape == img1_padded.shape
+                assert img2_cropped.shape == img2_padded.shape
+                img1_padded = img1_cropped
+                img2_padded = img2_cropped
+
+            else:
+                img1_padded[:, h_start:h_end, w_start:w_end] = img1_cropped
+                img2_padded[:, h_start:h_end, w_start:w_end] = img2_cropped
 
             img1_versions.append(img1_padded)
             img2_versions.append(img2_padded)
