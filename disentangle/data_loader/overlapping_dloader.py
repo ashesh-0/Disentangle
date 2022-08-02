@@ -13,12 +13,14 @@ def get_overlapping_dset(dset_class):
     class OverlappingDset(dset_class):
         def __init__(self, *args, **kwargs):
             image_size_for_grid_centers = kwargs.pop('image_size_for_grid_centers')
+            overlapping_padding_kwargs = kwargs.pop('overlapping_padding_kwargs')
             super().__init__(*args, **kwargs)
             self._img_sz_for_hw = image_size_for_grid_centers
             self._repeat_factor = (self._data.shape[-2] // self._img_sz_for_hw) ** 2
             # used for multiscale data loader.
             self.enable_padding_while_cropping = True
             assert self._img_sz >= self._img_sz_for_hw
+            self._overlapping_padding_kwargs = overlapping_padding_kwargs
 
         def per_side_overlap_pixelcount(self):
             return (self._img_sz - self._img_sz_for_hw) // 2
@@ -71,7 +73,7 @@ def get_overlapping_dset(dset_class):
                 padding[2] = pad
 
             if not np.all(padding == 0):
-                new_img = np.pad(new_img, padding)
+                new_img = np.pad(new_img, padding, **self._overlapping_padding_kwargs)
 
             return new_img
 

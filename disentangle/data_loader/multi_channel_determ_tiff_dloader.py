@@ -30,7 +30,8 @@ class MultiChDeterministicTiffDloader:
         """
         self._img_sz = img_sz
         self._fpath = fpath
-
+        self._channel_1 = channel_1
+        self._channel_2 = channel_2
         self._data = train_val_data(self._fpath, is_train, channel_1, channel_2, val_fraction=val_fraction)
 
         self._normalized_input = normalized_input
@@ -51,13 +52,17 @@ class MultiChDeterministicTiffDloader:
         if self._enable_rotation:
             self._rotation_transform = A.Compose([A.Flip(), A.RandomRotate90()])
 
-        msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
-        msg += f' Train:{int(is_train)} N:{self.N} NumPatchPerN:{self._repeat_factor}'
+        msg = self._init_msg()
+        print(msg)
+
+    def _init_msg(self, ):
+        msg = f'[{self.__class__.__name__}] Sz:{self._img_sz} Ch:{self._channel_1},{self._channel_2}'
+        msg += f' Train:{int(self._is_train)} N:{self.N} NumPatchPerN:{self._repeat_factor}'
         msg += f' NormInp:{self._normalized_input}'
         msg += f' SingleNorm:{self._use_one_mu_std}'
         msg += f' Rot:{self._enable_rotation}'
         msg += f' RandCrop:{self._enable_random_cropping}'
-        print(msg)
+        return msg
 
     def _crop_imgs(self, index, img1: np.ndarray, img2: np.ndarray):
         h, w = img1.shape[-2:]
