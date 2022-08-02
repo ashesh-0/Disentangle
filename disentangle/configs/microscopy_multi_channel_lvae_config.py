@@ -22,8 +22,9 @@ def get_config():
     data.train_aug_rotate = False
     data.randomized_channels = False
     data.multiscale_lowres_count = 5
-    data.padding_mode = 'constant'
-    data.padding_value = 237
+    data.padding_mode = 'reflect'
+    data.padding_value = None
+
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # loss.mixed_rec_weight = 1
