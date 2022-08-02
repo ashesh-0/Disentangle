@@ -18,6 +18,8 @@ from disentangle.losses import free_bits_kl
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
 
+from disentangle.metrics.running_psnr import RunningPSNR
+
 
 def torch_nanmean(inp):
     return torch.mean(inp[~inp.isnan()])
@@ -222,6 +224,9 @@ class LadderVAE(pl.LightningModule):
         self.grad_norm_bottom_up = 0.0
         self.grad_norm_top_down = 0.0
         print(f'[{self.__class__.__name__}] SkipLayersN:{self.skip_bottom_layers_count}')
+        # PSNR computation on validation.
+        self.label1_psnr = RunningPSNR()
+        self.label2_psnr = RunningPSNR()
 
     def _init_multires(self, config):
         """
@@ -452,6 +457,10 @@ class LadderVAE(pl.LightningModule):
 
         out, td_data = self.forward(x_normalized)
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+
+        self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
+        self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
+
         psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0], recons_img[:, 0])
         psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1], recons_img[:, 1])
         recons_loss = recons_loss_dict['loss']
@@ -463,7 +472,6 @@ class LadderVAE(pl.LightningModule):
         val_psnr = (val_psnr_l1 + val_psnr_l2) / 2
         self.log('val_psnr_l1', val_psnr_l1, on_epoch=True)
         self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
-        self.log('val_psnr', val_psnr, on_epoch=True)
 
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples = []
@@ -495,6 +503,15 @@ class LadderVAE(pl.LightningModule):
             print(f'[{self.__class__.__name__}] Updating skip_bottom_layers_count to {self.skip_bottom_layers_count}')
 
     #         TODO: freeze top most layers?
+
+    def on_validation_epoch_end(self):
+        psnrl1 = self.label1_psnr.get()
+        psnrl2 = self.label2_psnr.get()
+        psnr = (psnrl1 + psnrl2) / 2
+        self.log('val_psnr', psnr, on_epoch=True)
+        self.label1_psnr.reset()
+        self.label2_psnr.reset()
+
     def forward(self, x):
         img_size = x.size()[2:]
 
