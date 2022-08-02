@@ -491,12 +491,6 @@ class LadderVAE(pl.LightningModule):
         # if one does not need to do anything with it in validation_epoch_end().
         return val_psnr
 
-    # def validation_epoch_end(self, validation_step_outputs):
-    #     """
-    #     This assumes that the validation_step() returns PSNR values.
-    #     """
-    #     psnr = np.mean(validation_step_outputs)
-
     def update_skip_bottom_layers_count(self):
         if self.skip_bottom_layers_count > 0:
             self.skip_bottom_layers_count -= 1
