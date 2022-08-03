@@ -523,10 +523,6 @@ class LadderVAE(pl.LightningModule):
 
         # Top-down inference/generation
 
-        for i in range(self.skip_bottom_layers_count):
-            # NOTE: We skip encoder's bottom layers' output, those closer to input.
-            bu_values[i] = None
-
         out, td_data = self.topdown_pass(bu_values, vp_dist_params=vp_dist_params)
         # Restore original image size
         out = crop_img_tensor(out, img_size)
@@ -674,7 +670,7 @@ class LadderVAE(pl.LightningModule):
 
             # Input for skip connection
             skip_input = out  # TODO or out_pre_residual? or both?
-
+            sample_from_p = i < self.skip_bottom_layers_count
             # Full top-down layer, including sampling and deterministic part
             out, out_pre_residual, aux = top_down_layers[i](out,
                                                             skip_connection_input=skip_input,
@@ -687,7 +683,8 @@ class LadderVAE(pl.LightningModule):
                                                             mode_pred=self.mode_pred,
                                                             use_uncond_mode=use_uncond_mode,
                                                             var_clip_max=self._var_clip_max,
-                                                            vp_dist_params=vp_dist_params if i == self.n_layers - 1 else None)
+                                                            vp_dist_params=vp_dist_params if i == self.n_layers - 1 else None,
+                                                            sample_from_p=sample_from_p)
             z[i] = aux['z']  # sampled variable at this layer (batch, ch, h, w)
             kl[i] = aux['kl_samplewise']  # (batch, )
             kl_spatial[i] = aux['kl_spatial']  # (batch, h, w)

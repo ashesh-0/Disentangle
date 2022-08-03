@@ -159,7 +159,8 @@ class NormalStochasticBlock2d(nn.Module):
                 mode_pred: bool = False,
                 use_uncond_mode: bool = False,
                 var_clip_max: Union[None, float] = None,
-                vp_enabled: bool = False):
+                vp_enabled: bool = False,
+                sample_from_p: bool = False):
         """
         Args:
             p_params: this is passed from top layers.
@@ -180,6 +181,8 @@ class NormalStochasticBlock2d(nn.Module):
                         trainable custom inputs..
                         If vp_enabled is False, then p_params have the usual meaning: gaussian distribution params
                         (mu and logvar) for the P() distribution.
+            sample_from_p: If set to true then, it samples from the p distribution (and not q, even when q is present).
+            The idea is to simultanously (a) not use q for reconstruction and (b) use include q in the KL divergence loss.
         """
 
         debug_qvar_max = None
@@ -187,7 +190,7 @@ class NormalStochasticBlock2d(nn.Module):
         msg = "With vampprior, analytical KL divergence computation is not supported."
         msg += " One can only use one sample approximate."
         assert vp_enabled is False or (vp_enabled is True and analytical_kl is False), msg
-
+        p = q = None
         if vp_enabled is False:
             p_mu, p_lv, p = self.process_p_params(p_params, var_clip_max)
         else:
@@ -204,8 +207,10 @@ class NormalStochasticBlock2d(nn.Module):
             # Sample from q(z)
             sampling_distrib = q
         else:
-            # Sample from p(z)
             sampling_distrib = p
+
+        if sample_from_p:
+            z_from_p = p.rsample()
 
         # Generate latent variable (typically by sampling)
         z = self.get_z(sampling_distrib, forced_latent, use_mode, mode_pred, use_uncond_mode)
@@ -218,7 +223,10 @@ class NormalStochasticBlock2d(nn.Module):
                 p_params[0][0:1].expand_as(p_params[0]).clone(), p_params[1][0:1].expand_as(p_params[1]).clone())
 
         # Output of stochastic layer
-        out = self.conv_out(z)
+        if sample_from_p:
+            out = self.conv_out(z_from_p)
+        else:
+            out = self.conv_out(z)
 
         # Compute log p(z)# NOTE: disabling its computation.
         # if mode_pred is False:

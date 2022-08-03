@@ -240,7 +240,8 @@ class TopDownLayer(nn.Module):
                 mode_pred=False,
                 use_uncond_mode=False,
                 var_clip_max: Union[None, float] = None,
-                vp_dist_params: Union[None, torch.Tensor] = None):
+                vp_dist_params: Union[None, torch.Tensor] = None,
+                sample_from_p: bool = False):
         """
         Args:
             input_: output from previous top_down layer.
@@ -298,7 +299,8 @@ class TopDownLayer(nn.Module):
                                         mode_pred=mode_pred,
                                         use_uncond_mode=use_uncond_mode,
                                         var_clip_max=var_clip_max,
-                                        vp_enabled=vp_dist_params is not None)
+                                        vp_enabled=vp_dist_params is not None,
+                                        sample_from_p=sample_from_p)
 
         # Skip connection from previous layer
         if self.stochastic_skip and not self.is_top_layer:
