@@ -40,7 +40,7 @@ def get_config():
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
     model.skip_bottom_layers_count = 3  # For how many bottom layers, do we not want to use the encoder's output.
-    model.skip_bottom_layers_count_patience = 1
+    model.skip_bottom_layers_count_patience = 3
     model.blocks_per_layer = 1
     model.nonlin = 'elu'
     model.merge_type = 'residual'
