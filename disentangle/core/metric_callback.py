@@ -35,8 +35,9 @@ class ValMetricCallback(Callback):
             self._epochs_to_best += 1
 
         if self._epochs_to_best >= self._patience:
-            self._fn()
-            msg = f'[{self.__class__.__name__}] {self._fn.__name__}() was called '
-            msg += f'due to plateauing of {self._metric_name}'
-            print(msg)
+            change_made = self._fn()
+            if change_made:
+                msg = f'[{self.__class__.__name__}] {self._fn.__name__}() was called '
+                msg += f'due to plateauing of {self._metric_name}'
+                print(msg)
             self._epochs_to_best = 0

@@ -495,6 +495,8 @@ class LadderVAE(pl.LightningModule):
         if self.skip_bottom_layers_count > 0:
             self.skip_bottom_layers_count -= 1
             print(f'[{self.__class__.__name__}] Updating skip_bottom_layers_count to {self.skip_bottom_layers_count}')
+            return True
+        return False
 
     #         TODO: freeze top most layers?
 
