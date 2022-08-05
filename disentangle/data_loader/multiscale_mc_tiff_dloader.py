@@ -7,10 +7,12 @@ import numpy as np
 from skimage.transform import resize
 
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
+from disentangle.core.data_type import DataType
 
 
 class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
     def __init__(self,
+                 data_type: DataType,
                  img_sz: int,
                  fpath: str,
                  channel_1: int,
@@ -22,13 +24,16 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
                  use_one_mu_std=None,
                  num_scales: int = None,
                  enable_random_cropping=False,
+                 padding_kwargs: dict = None,
                  ):
         """
         Args:
             num_scales: The number of resolutions at which we want the input. Note that the target is formed at the
                         highest resolution.
         """
-        super().__init__(img_sz,
+        self._padding_kwargs = padding_kwargs  # mode=padding_mode, constant_values=constant_value
+        super().__init__(data_type,
+                         img_sz,
                          fpath,
                          channel_1,
                          channel_2,
@@ -45,12 +50,20 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         # self.enable_padding_while_cropping is used only for overlapping_dloader. This is a hack and at some point be
         # fixed properly
         self.enable_padding_while_cropping = False
+        assert isinstance(self._padding_kwargs, dict)
+        assert 'mode' in self._padding_kwargs
+
         for _ in range(1, self.num_scales):
             shape = self._scaled_data[-1].shape
             assert len(shape) == 4
             new_shape = (shape[0], shape[1] // 2, shape[2] // 2, shape[3])
             ds_data = resize(self._scaled_data[-1], new_shape)
             self._scaled_data.append(ds_data)
+
+    def _init_msg(self):
+        msg = super()._init_msg()
+        msg += f' Pad:{self._padding_kwargs}'
+        return msg
 
     def _load_scaled_img(self, scaled_index, index: int) -> Tuple[np.ndarray, np.ndarray]:
         imgs = self._scaled_data[scaled_index][index % self.N]
@@ -91,8 +104,8 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
             img1, img2 = self._load_scaled_img(scale_idx, index)
             h_center = h_center // 2
             w_center = w_center // 2
-            img1_padded = np.zeros_like(img1_versions[-1])
-            img2_padded = np.zeros_like(img2_versions[-1])
+            # img1_padded = np.zeros_like(img1_versions[-1])
+            # img2_padded = np.zeros_like(img2_versions[-1])
             h_start = h_center - self._img_sz // 2
             w_start = w_center - self._img_sz // 2
 
@@ -104,14 +117,21 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
             h_end = h_start + img1_cropped.shape[1]
             w_end = w_start + img1_cropped.shape[2]
             if self.enable_padding_while_cropping:
-                assert img1_cropped.shape == img1_padded.shape
-                assert img2_cropped.shape == img2_padded.shape
+                assert img1_cropped.shape == img1_versions[-1].shape
+                assert img2_cropped.shape == img2_versions[-1].shape
                 img1_padded = img1_cropped
                 img2_padded = img2_cropped
 
             else:
-                img1_padded[:, h_start:h_end, w_start:w_end] = img1_cropped
-                img2_padded[:, h_start:h_end, w_start:w_end] = img2_cropped
+                h_max, w_max = img1_versions[-1].shape[1:]
+                assert img1_versions[-1].shape == img2_versions[-1].shape
+                padding = np.array([[0, 0], [h_start, h_max - h_end], [w_start, w_max - w_end]])
+                # mode=padding_mode, constant_values=constant_value
+                img1_padded = np.pad(img1_cropped, padding, **self._padding_kwargs)
+                img2_padded = np.pad(img2_cropped, padding, **self._padding_kwargs)
+
+                # img1_padded[:, h_start:h_end, w_start:w_end] = img1_cropped
+                # img2_padded[:, h_start:h_end, w_start:w_end] = img2_cropped
 
             img1_versions.append(img1_padded)
             img2_versions.append(img2_padded)
