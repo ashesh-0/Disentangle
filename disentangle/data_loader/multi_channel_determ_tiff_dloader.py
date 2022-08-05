@@ -3,7 +3,6 @@ from typing import Tuple, Union
 import albumentations as A
 import numpy as np
 
-from disentangle.data_loader.multi_channel_train_val_data import train_val_data
 from disentangle.data_loader.train_val_data import get_train_val_data
 from disentangle.core.data_type import DataType
 
