@@ -35,8 +35,6 @@ class MultiChDeterministicTiffDloader:
         self._fpath = fpath
         self._channel_1 = channel_1
         self._channel_2 = channel_2
-        import pdb;
-        pdb.set_trace()
         self._data = get_train_val_data(data_type, self._fpath, is_train, channel_1, channel_2,
                                         val_fraction=val_fraction)
 

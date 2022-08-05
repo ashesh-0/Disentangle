@@ -15,5 +15,3 @@ class ValMetricCallback(Callback):
 
     def on_validation_end(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> None:
         psnr = trainer.callback_metrics['val_psnr']
-        import pdb
-        pdb.set_trace()
