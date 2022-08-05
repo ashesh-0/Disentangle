@@ -132,6 +132,7 @@ def sample_for_channel2(w_rangelist):
 
 
 def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64, max_rotation=math.pi / 8,
+                     max_shift_factor=0.9,
                      flip_w12_randomly=False):
     ch1_dset = []
     ch2_dset = []
@@ -148,17 +149,35 @@ def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64
 
     for _ in tqdm(range(size)):
         w1_list = [sample_for_channel1(w_rangelist) for _ in range(num_curves)]
-        w2_list = [sample_for_channel2(w_rangelist) for _ in range(num_curves)]
-        vertical_shifts = [np.random.rand() * img_sz for _ in range(num_curves)]
+        vertical_shifts = [np.random.rand() * img_sz * max_shift_factor for _ in range(num_curves)]
         rotate_radians = [sample_angle() for _ in range(num_curves)]
         img1 = get_img(w1_list, img_sz, vertical_shifts, rotate_radians, [curve_amplitude] * num_curves,
                        get_random_w12_flips())
+
+        w2_list = [sample_for_channel2(w_rangelist) for _ in range(num_curves)]
+        vertical_shifts = [np.random.rand() * img_sz * max_shift_factor for _ in range(num_curves)]
+        rotate_radians = [sample_angle() for _ in range(num_curves)]
         img2 = get_img(w2_list, img_sz, vertical_shifts, rotate_radians, [curve_amplitude] * num_curves,
                        get_random_w12_flips())
 
-        ch1_dset.append(img1)
-        ch2_dset.append(img2)
-    return ch1_dset, ch2_dset
+        ch1_dset.append(img1[None])
+        ch2_dset.append(img2[None])
+    return np.concatenate(ch1_dset, axis=0), np.concatenate(ch2_dset, axis=0)
+
+
+class SinosoidDataloader:
+    def __init__(self, frequency_range_list, image_size, curve_amplitude, num_curves, max_rotation):
+        self.w_rangelist = [Range(x[0], x[1]) for x in frequency_range_list]
+        self.img_sz = image_size
+        self.curve_amplitude = curve_amplitude
+        self.num_curves = num_curves
+        self.max_rotation = max_rotation
+        imgs1, imgs2 = generate_dataset(w_rangelist, size, img_sz, num_curves=3,
+                                        curve_amplitude=curve_amplitude,
+                                        max_rotation=math.pi / 8, flip_w12_randomly=True)
+        imgs1 = imgs1[..., None]
+        imgs2 = imgs2[..., None]
+        self._data = np.concatenate([imgs1, imgs2], axis=3)
 
 
 if __name__ == '__main__':
