@@ -4,10 +4,13 @@ import albumentations as A
 import numpy as np
 
 from disentangle.data_loader.multi_channel_train_val_data import train_val_data
+from disentangle.data_loader.train_val_data import get_train_val_data
+from disentangle.core.data_type import DataType
 
 
 class MultiChDeterministicTiffDloader:
     def __init__(self,
+                 data_type: DataType,
                  img_sz: int,
                  fpath: str,
                  channel_1: int,
@@ -32,7 +35,10 @@ class MultiChDeterministicTiffDloader:
         self._fpath = fpath
         self._channel_1 = channel_1
         self._channel_2 = channel_2
-        self._data = train_val_data(self._fpath, is_train, channel_1, channel_2, val_fraction=val_fraction)
+        import pdb;
+        pdb.set_trace()
+        self._data = get_train_val_data(data_type, self._fpath, is_train, channel_1, channel_2,
+                                        val_fraction=val_fraction)
 
         self._normalized_input = normalized_input
         max_val = np.quantile(self._data, 0.995)

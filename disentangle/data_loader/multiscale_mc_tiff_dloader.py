@@ -7,10 +7,12 @@ import numpy as np
 from skimage.transform import resize
 
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
+from disentangle.core.data_type import DataType
 
 
 class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
     def __init__(self,
+                 data_type: DataType,
                  img_sz: int,
                  fpath: str,
                  channel_1: int,
@@ -30,7 +32,8 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
                         highest resolution.
         """
         self._padding_kwargs = padding_kwargs  # mode=padding_mode, constant_values=constant_value
-        super().__init__(img_sz,
+        super().__init__(data_type,
+                         img_sz,
                          fpath,
                          channel_1,
                          channel_2,
