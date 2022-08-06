@@ -148,16 +148,19 @@ class MultiChDeterministicTiffDloader:
         Note that we must compute this only for training data.
         """
         assert self._is_train is True or allow_for_validation_data, 'This is just allowed for training data'
-        if self._use_one_mu_std:
+        if self._use_one_mu_std is True:
             mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
             std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
             mean = np.repeat(mean, 2, axis=1)
             std = np.repeat(std, 2, axis=1)
             return mean, std
-        else:
+        elif self._use_one_mu_std is False:
             mean = np.mean(self._data, axis=(0, 1, 2))
             std = np.std(self._data, axis=(0, 1, 2))
             return mean[None, :, None, None], std[None, :, None, None]
+
+        elif self._use_one_mu_std is None:
+            return 0.0, 1.0
 
     def _get_random_hw(self, h: int, w: int):
         """
