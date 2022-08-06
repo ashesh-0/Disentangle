@@ -168,21 +168,33 @@ def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64
     return np.concatenate(ch1_dset, axis=0), np.concatenate(ch2_dset, axis=0)
 
 
-def train_val_data(fpath, is_train, val_fraction, total_size, frequency_range_list, image_size, curve_amplitude,
-                   num_curves, max_rotation):
+def train_val_data(fpath, data_config, is_train, val_fraction=None):
+    total_size = data_config.total_size
+    frequency_range_list = data_config.frequency_range_list
+    frame_size = data_config.frame_size
+    curve_amplitude = data_config.curve_amplitude
+    num_curves = data_config.num_curves
+    max_rotation = data_config.max_rotation
+    # I think this needs to be True for the data to be only dependant on the pairing. And not who is on left/right.
+    flip_w12_randomly = True
+    data_dict = None
     if os.path.exists(fpath):
         with open(fpath, 'rb') as f:
-            data_dict = pickle.load(fpath)
+            data_dict = pickle.load(f)
             print('Loaded data from file.', fpath)
-            assert data_dict['total_size'] == total_size
-            assert data_dict['frequence_range_list'] == frequency_range_list
-            assert data_dict['image_size'] == image_size
-            assert data_dict['curve_amplitude'] == curve_amplitude
-            assert data_dict['num_curves'] == num_curves
-            assert data_dict['max_rotation'] == max_rotation
-    else:
+            correct_data = data_dict['total_size'] == total_size
+            correct_data = correct_data and data_dict['frequency_range_list'] == frequency_range_list
+            correct_data = correct_data and data_dict['frame_size'] == frame_size
+            correct_data = correct_data and data_dict['curve_amplitude'] == curve_amplitude
+            correct_data = correct_data and data_dict['num_curves'] == num_curves
+            correct_data = correct_data and data_dict['max_rotation'] == max_rotation
+            if correct_data is False:
+                data_dict = None
+
+    if data_dict is None:
+        print('Data not found in the file. generating the data')
         w_rangelist = [Range(x[0], x[1]) for x in frequency_range_list]
-        imgs1, imgs2 = generate_dataset(w_rangelist, total_size, img_sz, num_curves=num_curves,
+        imgs1, imgs2 = generate_dataset(w_rangelist, total_size, frame_size, num_curves=num_curves,
                                         curve_amplitude=curve_amplitude,
                                         max_rotation=max_rotation, flip_w12_randomly=flip_w12_randomly)
         imgs1 = imgs1[..., None]
@@ -192,7 +204,7 @@ def train_val_data(fpath, is_train, val_fraction, total_size, frequency_range_li
             val_size = int(total_size * val_fraction)
             data_dict = {'train': data[val_size:], 'val': data[:val_size], 'total_size': total_size,
                          'frequency_range_list': frequency_range_list,
-                         'image_size': image_size,
+                         'frame_size': frame_size,
                          'curve_amplitude': curve_amplitude, 'num_curves': num_curves, 'max_rotation': max_rotation}
             pickle.dump(data_dict, f)
 

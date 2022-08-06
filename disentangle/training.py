@@ -50,8 +50,12 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_data = None if skip_train_dataset else PlacesLoader(
             train_datapath, label1, label2, img_dsample=img_dsample)
         val_data = PlacesLoader(val_datapath, label1, label2, img_dsample=img_dsample)
-    elif config.data.data_type == DataType.OptiMEM100_014:
-        datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
+    elif config.data.data_type in [DataType.OptiMEM100_014, DataType.CustomSinosoid]:
+        if config.data.data_type == DataType.OptiMEM100_014:
+            datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
+        else:
+            datapath = os.path.join(datadir, 'sinosoid.pkl')
+            
         normalized_input = config.data.normalized_input
         use_one_mu_std = config.data.use_one_mu_std
         train_aug_rotate = config.data.train_aug_rotate

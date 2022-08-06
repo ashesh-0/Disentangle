@@ -15,6 +15,6 @@ def get_train_val_data(data_config, fpath, is_train: Union[None, bool], val_frac
     if data_config.data_type == DataType.OptiMEM100_014:
         return _loadOptiMEM100(fpath, data_config, is_train, val_fraction=val_fraction)
     elif data_config.data_type == DataType.CustomSinosoid:
-        return _loadsinosoid(fpath, is_train, val_fraction=val_fraction)
+        return _loadsinosoid(fpath, data_config, is_train, val_fraction=val_fraction)
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')
