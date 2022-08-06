@@ -16,7 +16,7 @@ def get_config():
     data.curve_amplitude = 64
     data.num_curves = 6
     data.max_rotation = math.pi / 8
-    data.frequency_range_list = [(0.05, 0.1), (0.15, 0.2), (0.25, 0.3), (0.35, 0.4)]
+    data.frequency_range_list = [(0.02, 0.05), (0.1, 0.13), (0.18, 0.21), (0.26, 0.29)]
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = True
