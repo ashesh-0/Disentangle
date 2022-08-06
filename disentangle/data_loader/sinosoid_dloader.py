@@ -1,3 +1,6 @@
+import os.path
+import pickle
+
 import numpy as np
 import math
 from tqdm import tqdm
@@ -165,19 +168,38 @@ def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64
     return np.concatenate(ch1_dset, axis=0), np.concatenate(ch2_dset, axis=0)
 
 
-class SinosoidDataloader:
-    def __init__(self, frequency_range_list, image_size, curve_amplitude, num_curves, max_rotation):
-        self.w_rangelist = [Range(x[0], x[1]) for x in frequency_range_list]
-        self.img_sz = image_size
-        self.curve_amplitude = curve_amplitude
-        self.num_curves = num_curves
-        self.max_rotation = max_rotation
-        imgs1, imgs2 = generate_dataset(w_rangelist, size, img_sz, num_curves=3,
+def train_val_data(fpath, is_train, val_fraction, total_size, frequency_range_list, image_size, curve_amplitude,
+                   num_curves, max_rotation):
+    if os.path.exists(fpath):
+        with open(fpath, 'rb') as f:
+            data_dict = pickle.load(fpath)
+            print('Loaded data from file.', fpath)
+            assert data_dict['total_size'] == total_size
+            assert data_dict['frequence_range_list'] == frequency_range_list
+            assert data_dict['image_size'] == image_size
+            assert data_dict['curve_amplitude'] == curve_amplitude
+            assert data_dict['num_curves'] == num_curves
+            assert data_dict['max_rotation'] == max_rotation
+    else:
+        w_rangelist = [Range(x[0], x[1]) for x in frequency_range_list]
+        imgs1, imgs2 = generate_dataset(w_rangelist, total_size, img_sz, num_curves=num_curves,
                                         curve_amplitude=curve_amplitude,
-                                        max_rotation=math.pi / 8, flip_w12_randomly=True)
+                                        max_rotation=max_rotation, flip_w12_randomly=flip_w12_randomly)
         imgs1 = imgs1[..., None]
         imgs2 = imgs2[..., None]
-        self._data = np.concatenate([imgs1, imgs2], axis=3)
+        data = np.concatenate([imgs1, imgs2], axis=3)
+        with open(fpath, 'wb') as f:
+            val_size = int(total_size * val_fraction)
+            data_dict = {'train': data[val_size:], 'val': data[:val_size], 'total_size': total_size,
+                         'frequency_range_list': frequency_range_list,
+                         'image_size': image_size,
+                         'curve_amplitude': curve_amplitude, 'num_curves': num_curves, 'max_rotation': max_rotation}
+            pickle.dump(data_dict, f)
+
+    if is_train:
+        return data_dict['train']
+    else:
+        return data_dict['val']
 
 
 if __name__ == '__main__':
