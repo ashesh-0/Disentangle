@@ -160,7 +160,7 @@ class MultiChDeterministicTiffDloader:
             return mean[None, :, None, None], std[None, :, None, None]
 
         elif self._use_one_mu_std is None:
-            return 0.0, 1.0
+            return np.array([0.0, 0.0]).reshape(1, 2, 1, 1), np.array([1.0, 1.0]).reshape(1, 2, 1, 1)
 
     def _get_random_hw(self, h: int, w: int):
         """
