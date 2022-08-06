@@ -12,11 +12,8 @@ from disentangle.core.data_type import DataType
 
 class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
     def __init__(self,
-                 data_type: DataType,
-                 img_sz: int,
+                 data_config,
                  fpath: str,
-                 channel_1: int,
-                 channel_2: int,
                  is_train: Union[None, bool] = None,
                  val_fraction=None,
                  normalized_input=None,
@@ -32,11 +29,8 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
                         highest resolution.
         """
         self._padding_kwargs = padding_kwargs  # mode=padding_mode, constant_values=constant_value
-        super().__init__(data_type,
-                         img_sz,
+        super().__init__(data_config,
                          fpath,
-                         channel_1,
-                         channel_2,
                          is_train=is_train,
                          val_fraction=val_fraction,
                          normalized_input=normalized_input,

@@ -62,11 +62,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 padding_kwargs['constant_values'] = config.data.padding_value
 
             train_data = None if skip_train_dataset else MultiScaleTiffDloader(
-                config.data.data_type,
-                config.data.image_size,
+                config.data,
                 datapath,
-                config.data.channel_1,
-                config.data.channel_2,
                 is_train=True,
                 val_fraction=config.training.val_fraction,
                 normalized_input=normalized_input,
@@ -76,11 +73,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 num_scales=config.data.multiscale_lowres_count,
                 padding_kwargs=padding_kwargs)
             val_data = MultiScaleTiffDloader(
-                config.data.data_type,
-                config.data.image_size,
+                config.data,
                 datapath,
-                config.data.channel_1,
-                config.data.channel_2,
                 is_train=False,
                 val_fraction=config.training.val_fraction,
                 normalized_input=normalized_input,
@@ -95,11 +89,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             data_class = (
                 MultiChDeterministicTiffRandDloader if config.data.randomized_channels else MultiChDeterministicTiffDloader)
             train_data = None if skip_train_dataset else data_class(
-                config.data.data_type,
-                config.data.image_size,
+                config.data,
                 datapath,
-                config.data.channel_1,
-                config.data.channel_2,
                 is_train=True,
                 val_fraction=config.training.val_fraction,
                 normalized_input=normalized_input,
@@ -107,11 +98,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 enable_rotation_aug=train_aug_rotate,
                 enable_random_cropping=enable_random_cropping)
             val_data = data_class(
-                config.data.data_type,
-                config.data.image_size,
+                config.data,
                 datapath,
-                config.data.channel_1,
-                config.data.channel_2,
                 is_train=False,
                 val_fraction=config.training.val_fraction,
                 normalized_input=normalized_input,

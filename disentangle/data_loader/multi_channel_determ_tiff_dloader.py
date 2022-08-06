@@ -9,11 +9,8 @@ from disentangle.core.data_type import DataType
 
 class MultiChDeterministicTiffDloader:
     def __init__(self,
-                 data_type: DataType,
-                 img_sz: int,
+                 data_config,
                  fpath: str,
-                 channel_1: int,
-                 channel_2: int,
                  is_train: Union[None, bool] = None,
                  val_fraction=None,
                  normalized_input=None,
@@ -30,12 +27,11 @@ class MultiChDeterministicTiffDloader:
                 for both channels. Otherwise, two different meean and stdev are used.
 
         """
-        self._img_sz = img_sz
+        self._img_sz = data_config.image_size
         self._fpath = fpath
-        self._channel_1 = channel_1
-        self._channel_2 = channel_2
-        self._data = get_train_val_data(data_type, self._fpath, is_train, channel_1, channel_2,
-                                        val_fraction=val_fraction)
+        self._channel_1 = data_config.channel_1
+        self._channel_2 = data_config.channel_2
+        self._data = get_train_val_data(data_config, self._fpath, is_train, val_fraction=val_fraction)
 
         self._normalized_input = normalized_input
         max_val = np.quantile(self._data, 0.995)
