@@ -12,9 +12,9 @@ def get_config():
     data.image_size = 64
     data.frame_size = 512
     data.data_type = DataType.CustomSinosoid
-    data.total_size = 1000
+    data.total_size = 256
     data.curve_amplitude = 64
-    data.num_curves = 3
+    data.num_curves = 6
     data.max_rotation = math.pi / 8
     data.frequency_range_list = [(0.05, 0.1), (0.15, 0.2), (0.25, 0.3), (0.35, 0.4)]
 
@@ -23,12 +23,12 @@ def get_config():
     data.normalized_input = True
     # If this is set to true, then one mean and stdev is used for both channels. If False, two different
     # meean and stdev are used. If None, 0 mean and 1 std is used.
-    data.use_one_mu_std = None
+    data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
-    data.padding_mode = 'reflect'
-    data.padding_value = None
+    data.multiscale_lowres_count = 4
+    data.padding_mode = 'constant'
+    data.padding_value = 0
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
