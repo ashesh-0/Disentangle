@@ -194,6 +194,7 @@ def train_val_data(fpath, data_config, is_train, val_fraction=None):
     curve_amplitude = data_config.curve_amplitude
     num_curves = data_config.num_curves
     max_rotation = data_config.max_rotation
+    curve_thickness = data_config.curve_thickness
     # I think this needs to be True for the data to be only dependant on the pairing. And not who is on left/right.
     flip_w12_randomly = True
     data_dict = None
@@ -207,6 +208,7 @@ def train_val_data(fpath, data_config, is_train, val_fraction=None):
             correct_data = correct_data and data_dict['curve_amplitude'] == curve_amplitude
             correct_data = correct_data and data_dict['num_curves'] == num_curves
             correct_data = correct_data and data_dict['max_rotation'] == max_rotation
+            correct_data = correct_data and data_dict['curve_thickness'] == curve_thickness
             if correct_data is False:
                 data_dict = None
 
