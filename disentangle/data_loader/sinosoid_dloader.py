@@ -217,7 +217,8 @@ def train_val_data(fpath, data_config, is_train, val_fraction=None):
         w_rangelist = [Range(x[0], x[1]) for x in frequency_range_list]
         imgs1, imgs2 = generate_dataset(w_rangelist, total_size, frame_size, num_curves=num_curves,
                                         curve_amplitude=curve_amplitude,
-                                        max_rotation=max_rotation, flip_w12_randomly=flip_w12_randomly)
+                                        max_rotation=max_rotation, flip_w12_randomly=flip_w12_randomly,
+                                        curve_thickness=curve_thickness)
         imgs1 = imgs1[..., None]
         imgs2 = imgs2[..., None]
         data = np.concatenate([imgs1, imgs2], axis=3)
@@ -226,7 +227,8 @@ def train_val_data(fpath, data_config, is_train, val_fraction=None):
             data_dict = {'train': data[val_size:], 'val': data[:val_size], 'total_size': total_size,
                          'frequency_range_list': frequency_range_list,
                          'frame_size': frame_size,
-                         'curve_amplitude': curve_amplitude, 'num_curves': num_curves, 'max_rotation': max_rotation}
+                         'curve_amplitude': curve_amplitude, 'num_curves': num_curves, 'max_rotation': max_rotation,
+                         'curve_thickness': curve_thickness}
             pickle.dump(data_dict, f)
 
     if is_train:
