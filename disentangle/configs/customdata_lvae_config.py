@@ -15,7 +15,7 @@ def get_config():
     data.total_size = 1000
     data.curve_amplitude = data.frame_size / 6
     data.num_curves = 1
-    data.max_rotation = math.pi / 12
+    data.max_rotation = 0.0
     data.curve_thickness = 11
     data.max_shift_factor = 0.8
     data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
@@ -46,7 +46,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
-    model.blocks_per_layer = 1
+    model.blocks_per_layer = 3
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True
