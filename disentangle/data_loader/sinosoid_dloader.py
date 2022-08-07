@@ -203,7 +203,7 @@ def train_val_data(fpath, data_config, is_train, val_fraction=None):
             data_dict = pickle.load(f)
             print('Loaded data from file.', fpath)
             correct_data = data_dict['total_size'] == total_size
-            correct_data = correct_data and data_dict['frequency_range_list'] == frequency_range_list
+            correct_data = correct_data and data_dict['frequency_range_list'] == tuple(frequency_range_list)
             correct_data = correct_data and data_dict['frame_size'] == frame_size
             correct_data = correct_data and data_dict['curve_amplitude'] == curve_amplitude
             correct_data = correct_data and data_dict['num_curves'] == num_curves
