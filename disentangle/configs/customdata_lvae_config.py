@@ -13,11 +13,11 @@ def get_config():
     data.frame_size = 128
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
-    data.curve_amplitude = data.frame_size / 6
+    data.curve_amplitude = data.frame_size / 12
     data.num_curves = 1
     data.max_rotation = 0.0
     data.curve_thickness = 11
-    data.max_shift_factor = 0.8
+    data.max_shift_factor = 0.6
     data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
 
     data.sampler_type = SamplerType.DefaultSampler
