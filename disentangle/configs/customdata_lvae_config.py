@@ -10,14 +10,15 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.frame_size = 64
+    data.frame_size = 128
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
-    data.curve_amplitude = 10.6
+    data.curve_amplitude = data.frame_size / 6
     data.num_curves = 1
     data.max_rotation = math.pi / 12
-    data.curve_thickness = 5
-    data.frequency_range_list = [(0.1, 0.12), (0.2, 0.22), (0.4, 0.42), (0.7, 0.72)]
+    data.curve_thickness = 11
+    data.max_shift_factor = 0.8
+    data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = True

@@ -153,7 +153,7 @@ def sample_for_channel2(w_rangelist):
 
 
 def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64, max_rotation=math.pi / 8,
-                     max_shift_factor=0.9,
+                     max_shift_factor=0.8,
                      flip_w12_randomly=False,
                      curve_thickness=31):
     ch1_dset = []
@@ -195,6 +195,7 @@ def train_val_data(fpath, data_config, is_train, val_fraction=None):
     num_curves = data_config.num_curves
     max_rotation = data_config.max_rotation
     curve_thickness = data_config.curve_thickness
+    max_shift_factor = data_config.max_shift_factor
     # I think this needs to be True for the data to be only dependant on the pairing. And not who is on left/right.
     flip_w12_randomly = True
     data_dict = None
@@ -217,7 +218,8 @@ def train_val_data(fpath, data_config, is_train, val_fraction=None):
         w_rangelist = [Range(x[0], x[1]) for x in frequency_range_list]
         imgs1, imgs2 = generate_dataset(w_rangelist, total_size, frame_size, num_curves=num_curves,
                                         curve_amplitude=curve_amplitude,
-                                        max_rotation=max_rotation, flip_w12_randomly=flip_w12_randomly,
+                                        max_rotation=max_rotation, max_shift_factor=max_shift_factor,
+                                        flip_w12_randomly=flip_w12_randomly,
                                         curve_thickness=curve_thickness)
         imgs1 = imgs1[..., None]
         imgs2 = imgs2[..., None]
