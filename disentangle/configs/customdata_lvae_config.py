@@ -28,7 +28,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 3
+    data.multiscale_lowres_count = None
     data.padding_mode = 'constant'
     data.padding_value = 0
 
@@ -71,7 +71,7 @@ def get_config():
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
     training = config.training
-    training.lr = 0.00005
+    training.lr = 0.001
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
     training.batch_size = 32
