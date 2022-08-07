@@ -71,7 +71,7 @@ def get_config():
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
     training = config.training
-    training.lr = 0.0001
+    training.lr = 0.00005
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
     training.batch_size = 32
