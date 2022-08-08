@@ -138,7 +138,7 @@ class LadderVAEMultipleEncoders(LadderVAE):
 
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
         if enable_logging:
-            self.log(f'reconstruction_loss_ch{optimizer_idx}', recons_loss_dict['loss'], on_epoch=True)
+            self.log(f'reconstruction_loss_ch{optimizer_idx}', recons_loss, on_epoch=True)
             self.log(f'kl_loss_ch{optimizer_idx}', kl_loss, on_epoch=True)
 
         output = {
