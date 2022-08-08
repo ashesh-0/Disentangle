@@ -62,6 +62,8 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
+    # stochastic layers below this are shared.
+    model.share_bottom_up_starting_idx = 2
 
     training = config.training
     training.lr = 0.001

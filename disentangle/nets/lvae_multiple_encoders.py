@@ -16,6 +16,7 @@ class LadderVAEMultipleEncoders(LadderVAE):
         self.first_bottom_up_ch1 = copy.deepcopy(self.first_bottom_up)
         self.first_bottom_up_ch2 = copy.deepcopy(self.first_bottom_up)
         self.lowres_first_bottom_ups_ch1 = self.lowres_first_bottom_ups_ch2 = None
+        self.share_bottom_up_starting_idx = config.model.share_bottom_up_starting_idx
         if self.lowres_first_bottom_ups is not None:
             self.lowres_first_bottom_ups_ch1 = copy.deepcopy(self.lowres_first_bottom_ups_ch1)
             self.lowres_first_bottom_ups_ch2 = copy.deepcopy(self.lowres_first_bottom_ups_ch2)
@@ -24,13 +25,17 @@ class LadderVAEMultipleEncoders(LadderVAE):
         multiscale_lowres_size_factor = 1
         for i in range(self.n_layers):
             # Whether this is the top layer
-            is_top = i == self.n_layers - 1
             layer_enable_multiscale = enable_multiscale and self._multiscale_count > i + 1
             # if multiscale is enabled, this is the factor by which the lowres tensor will be larger than
             multiscale_lowres_size_factor *= (1 + int(layer_enable_multiscale))
             # Add bottom-up deterministic layer at level i.
             # It's a sequence of residual blocks (BottomUpDeterministicResBlock)
             # possibly with downsampling between them.
+            if i >= self.share_bottom_up_starting_idx:
+                self.bottom_up_layers_ch1.append(self.bottom_up_layers[i])
+                self.bottom_up_layers_ch2.append(self.bottom_up_layers[i])
+                continue
+
             blayer = self.get_bottom_up_layer(i, config.model.multiscale_lowres_separate_branch,
                                               enable_multiscale, multiscale_lowres_size_factor)
             self.bottom_up_layers_ch1.append(blayer)
@@ -127,7 +132,6 @@ class LadderVAEMultipleEncoders(LadderVAE):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward_ch(target_normalized, optimizer_idx)
-
         recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
         if optimizer_idx == 1:
             recons_loss = recons_loss_dict['ch1_loss']
