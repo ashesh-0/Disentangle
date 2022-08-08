@@ -7,3 +7,5 @@ class ModelType(Enum):
     LadderVAECritic = 5
     # Separate vampprior: two optimizers
     LadderVaeSepVampprior = 6
+    # one encoder for mixed input, two for separate inputs.
+    LadderVaeSepEncoder = 7

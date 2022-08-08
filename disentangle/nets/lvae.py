@@ -329,8 +329,7 @@ class LadderVAE(pl.LightningModule):
         # Log likelihood
         ll, like_dict = self.likelihood(reconstruction, input)
         recons_loss = -ll.mean()
-        mixed_recons_loss = 0
-        output = {'loss': recons_loss}
+        output = {'loss': recons_loss, 'ch1_loss': -ll[:, 0].mean(), 'ch2_loss': -ll[:, 1].mean()}
         if self.enable_mixed_rec:
             mixed_target = torch.mean(input, dim=1, keepdim=True)
             mixed_prediction = torch.mean(like_dict['params']['mean'], dim=1, keepdim=True)
@@ -511,9 +510,12 @@ class LadderVAE(pl.LightningModule):
         return out, td_data
 
     def bottomup_pass(self, inp):
+        return self._bottomup_pass(inp, self.first_bottom_up, self.lowres_first_bottom_ups, self.bottom_up_layers)
+
+    def _bottomup_pass(self, inp, first_bottom_up, lowrs_first_bottom_ups, bottom_up_layers):
         # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
         # later channels are simply to yield more context.
-        x = self.first_bottom_up(inp[:, :1])
+        x = first_bottom_up(inp[:, :1])
 
         # Loop from bottom to top layer, store all deterministic nodes we
         # need in the top-down pass
@@ -522,9 +524,9 @@ class LadderVAE(pl.LightningModule):
         for i in range(self.n_layers):
             lowres_x = None
             if self._multiscale_count > 1 and i + 1 < inp.shape[1]:
-                lowres_x = self.lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
+                lowres_x = lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
 
-            x, bu_value = self.bottom_up_layers[i](x, lowres_x=lowres_x)
+            x, bu_value = bottom_up_layers[i](x, lowres_x=lowres_x)
             bu_values.append(bu_value)
 
         return bu_values
