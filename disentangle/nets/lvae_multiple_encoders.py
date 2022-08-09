@@ -130,7 +130,7 @@ class LadderVAEMultipleEncoders(LadderVAE):
 
         _, target = batch
         target_normalized = self.normalize_target(target)
-        out, td_data = self.forward_ch(target_normalized, optimizer_idx)
+        out, td_data = self.forward_ch(target_normalized[:, optimizer_idx - 1:optimizer_idx], optimizer_idx)
         recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
         if optimizer_idx == 1:
             recons_loss = recons_loss_dict['ch1_loss']
