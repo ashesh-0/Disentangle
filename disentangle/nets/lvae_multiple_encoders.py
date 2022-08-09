@@ -151,4 +151,8 @@ class LadderVAEMultipleEncoders(LadderVAE):
         if torch.isnan(net_loss).any():
             return None
 
+        # skipping inf loss
+        if torch.isinf(net_loss).any():
+            return None
+
         return output
