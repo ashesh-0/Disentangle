@@ -42,6 +42,7 @@ class LadderVAEMultipleEncoders(LadderVAE):
             blayer = self.get_bottom_up_layer(i, config.model.multiscale_lowres_separate_branch,
                                               enable_multiscale, multiscale_lowres_size_factor)
             self.bottom_up_layers_ch2.append(blayer)
+        print(f'[{self.__class__.__name__}] ShareStartIdx:{self.share_bottom_up_starting_idx}')
 
     def get_bottom_up_layer(self, ith_layer, lowres_separate_branch, enable_multiscale, multiscale_lowres_size_factor):
         return BottomUpLayer(
