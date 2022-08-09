@@ -3,7 +3,7 @@ import copy
 import torch
 from disentangle.nets.lvae import LadderVAE
 import torch.nn as nn
-from disentangle.nets.lvae_layers import BottomUpLayer
+from disentangle.nets.lvae_layers import BottomUpLayer, MergeLayer
 from disentangle.core.data_utils import crop_img_tensor
 import torch.optim as optim
 
@@ -23,6 +23,17 @@ class LadderVAEMultipleEncoders(LadderVAE):
 
         enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
         multiscale_lowres_size_factor = 1
+        if self.share_bottom_up_starting_idx < self.n_layers:
+            #     There is some sharing happening.
+            self.encoder_merge = MergeLayer(
+                channels=[config.model.n_filters] * 4,
+                merge_type=config.model.merge_type,
+                nonlin=self.get_nonlin(),
+                batchnorm=config.model.batchnorm,
+                dropout=config.model.dropout,
+                res_block_type=config.model.res_block_type,
+            )
+
         for i in range(self.n_layers):
             # Whether this is the top layer
             layer_enable_multiscale = enable_multiscale and self._multiscale_count > i + 1
@@ -105,7 +116,7 @@ class LadderVAEMultipleEncoders(LadderVAE):
         x_pad = self.pad_input(x)
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
-        bu_values = self.bottomup_pass_ch(x_pad, optimizer_idx)
+        bu_values = self.bottomup_pass(x_pad, optimizer_idx)
 
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values)
@@ -114,26 +125,54 @@ class LadderVAEMultipleEncoders(LadderVAE):
 
         return out, td_data
 
-    def bottomup_pass_ch(self, inp, optimizer_idx):
-        if optimizer_idx == 0:
-            return super().bottomup_pass(inp)
+    def _bottomup_pass(self, inp, first_bottom_up, lowrs_first_bottom_ups, bottom_up_layers, merge_idx):
+        # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
+        # later channels are simply to yield more context.
+        x = first_bottom_up(inp[:, :1])
 
+        # Loop from bottom to top layer, store all deterministic nodes we
+        # need in the top-down pass
+        bu_values = []
+
+        for i in range(self.n_layers):
+
+            # merge it.
+            if self.share_bottom_up_starting_idx == i:
+                tensors = [torch.zeros_like(x), torch.zeros_like(x)]
+                tensors.insert(merge_idx, x)
+                x = self.encoder_merge(*tensors)
+
+            x, bu_value = bottom_up_layers[i](x, lowres_x=None)
+            bu_values.append(bu_value)
+
+        return bu_values
+
+    def bottomup_pass(self, inp, optimizer_idx=0):
+        # by default it is necessary to feed 0, since in validation step it is required.
+        if optimizer_idx == 0:
+            return self._bottomup_pass(inp, self.first_bottom_up, self.lowres_first_bottom_ups,
+                                       self.bottom_up_layers, optimizer_idx)
         elif optimizer_idx == 1:
-            return super()._bottomup_pass(inp, self.first_bottom_up_ch1, self.lowres_first_bottom_ups_ch1,
-                                          self.bottom_up_layers_ch1)
+            return self._bottomup_pass(inp, self.first_bottom_up_ch1, self.lowres_first_bottom_ups_ch1,
+                                       self.bottom_up_layers_ch1, optimizer_idx)
         elif optimizer_idx == 2:
-            return super()._bottomup_pass(inp, self.first_bottom_up_ch2, self.lowres_first_bottom_ups_ch2,
-                                          self.bottom_up_layers_ch2)
+            return self._bottomup_pass(inp, self.first_bottom_up_ch2, self.lowres_first_bottom_ups_ch2,
+                                       self.bottom_up_layers_ch2, optimizer_idx)
 
     def training_step(self, batch, batch_idx, optimizer_idx, enable_logging=True):
-        if optimizer_idx == 0:
-            return super().training_step(batch, batch_idx, enable_logging=enable_logging)
 
-        _, target = batch
+        x, target = batch
+        x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
-        out, td_data = self.forward_ch(target_normalized[:, optimizer_idx - 1:optimizer_idx], optimizer_idx)
+        if optimizer_idx == 0:
+            out, td_data = self.forward_ch(x_normalized, optimizer_idx)
+        else:
+            out, td_data = self.forward_ch(target_normalized[:, optimizer_idx - 1:optimizer_idx], optimizer_idx)
+
         recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
-        if optimizer_idx == 1:
+        if optimizer_idx == 0:
+            recons_loss = recons_loss_dict['loss']
+        elif optimizer_idx == 1:
             recons_loss = recons_loss_dict['ch1_loss']
         elif optimizer_idx == 2:
             recons_loss = recons_loss_dict['ch2_loss']

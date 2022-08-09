@@ -596,7 +596,7 @@ class BottomUpDeterministicResBlock(ResBlockWithResampling):
 
 class MergeLayer(nn.Module):
     """
-    Merge two 4D input tensors by concatenating along dim=1 and passing the
+    Merge two/more than two 4D input tensors by concatenating along dim=1 and passing the
     result through 1) a convolutional 1x1 layer, or 2) a residual block
     """
 
@@ -609,19 +609,20 @@ class MergeLayer(nn.Module):
         else:  # it is iterable
             if len(channels) == 1:
                 channels = [channels[0]] * 3
-        assert len(channels) == 3
+
+        # assert len(channels) == 3
 
         if merge_type == 'linear':
-            self.layer = nn.Conv2d(channels[0] + channels[1], channels[2], 1)
+            self.layer = nn.Conv2d(sum(channels[:-1]), channels[-1], 1)
         elif merge_type == 'residual':
             self.layer = nn.Sequential(
-                nn.Conv2d(channels[0] + channels[1], channels[2], 1, padding=0),
-                ResidualGatedBlock(channels[2], nonlin, batchnorm=batchnorm, dropout=dropout,
+                nn.Conv2d(sum(channels[:-1]), channels[-1], 1, padding=0),
+                ResidualGatedBlock(channels[-1], nonlin, batchnorm=batchnorm, dropout=dropout,
                                    block_type=res_block_type),
             )
 
-    def forward(self, x, y):
-        x = torch.cat((x, y), dim=1)
+    def forward(self, *args):
+        x = torch.cat(args, dim=1)
         return self.layer(x)
 
 
