@@ -211,7 +211,7 @@ class CustomDataManager:
         gap = [fr[i + 1][0] - fr[i][1] for i in range(len(fr) - 1)]
 
         diff = int(np.mean(diff) * 100)
-        gap = int(np.mean(diff) * 100)
+        gap = int(np.mean(gap) * 100)
         fname += f'_FR-{diff}.{gap}'
         fname += '.xz'
         return fname
