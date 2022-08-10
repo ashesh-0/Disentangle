@@ -53,9 +53,10 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
     elif config.data.data_type in [DataType.OptiMEM100_014, DataType.CustomSinosoid]:
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
-        else:
-            datapath = os.path.join(datadir, 'sinosoid.pkl')
-            
+        elif config.data.data_type == DataType.CustomSinosoid:
+            # we create different filenames for different data configs.
+            datapath = datadir
+
         normalized_input = config.data.normalized_input
         use_one_mu_std = config.data.use_one_mu_std
         train_aug_rotate = config.data.train_aug_rotate

@@ -1,9 +1,11 @@
 import os.path
 import pickle
+from typing import Union
 
 import numpy as np
 import math
 from tqdm import tqdm
+import lzma
 
 
 def angle_shift(w1, w2, point):
@@ -187,7 +189,65 @@ def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64
     return np.concatenate(ch1_dset, axis=0), np.concatenate(ch2_dset, axis=0)
 
 
-def train_val_data(fpath, data_config, is_train, val_fraction=None):
+class CustomDataManager:
+    """
+    A class to manage(load/save) the data.
+    """
+
+    def __init__(self, data_dir, data_config):
+        self._dir = data_dir
+        self._dconfig = data_config
+
+    def fname(self):
+        fname = 'sin'
+        fname += f'_N-{self._dconfig.total_size}'
+        fname += f'_Fsz-{self._dconfig.frame_size}'
+        fname += f'_CA-{np.round(self._dconfig.curve_amplitude, 2)}'
+        fname += f'_CT-{self._dconfig.curve_thickness}'
+        fname += f'_CN-{self._dconfig.num_curves}'
+        fname += f'_MR-{self._dconfig.max_rotation}'
+        fr = self._dconfig.frequency_range_list
+        diff = [fr[i][1] - fr[i][0] for i in range(len(fr))]
+        gap = [fr[i + 1][0] - fr[i][1] for i in range(len(fr) - 1)]
+
+        diff = int(np.mean(diff) * 100)
+        gap = int(np.mean(diff) * 100)
+        fname += f'_FR-{diff}.{gap}'
+        fname += '.xz'
+        return fname
+
+    def exists(self):
+        return os.path.exists(os.path.join(self._dir, self.fname()))
+
+    def load(self, fname: Union[str, None] = None):
+        fpath = os.path.join(self._dir, self.fname())
+        if not os.path.exists(fpath):
+            print(f'File {fpath} does not exist.')
+            return None
+
+        with lzma.open(fpath, 'rb') as f:
+            data_dict = pickle.load(f)
+            print(f'Loaded from file {fpath}')
+
+        # Note that simpler arguments are already included in the name itself.
+        assert data_dict['frequency_range_list'] == tuple(self._dconfig.frequency_range_list)
+        return data_dict
+
+    def save(self, data_dict):
+        data_dict['frequency_range_list'] = self._dconfig.frequency_range_list
+        fpath = os.path.join(self._dir, self.fname())
+        with lzma.open(fpath, 'wb') as f:
+            pickle.dump(data_dict, f)
+            print(f'File {fpath} saved.')
+
+    def remove(self):
+        fpath = os.path.join(self._dir, self.fname())
+        if os.path.exists(fpath):
+            os.remove(fpath)
+
+
+def train_val_data(data_dir, data_config, is_train, val_fraction=None):
+    datamanager = CustomDataManager(data_dir, data_config)
     total_size = data_config.total_size
     frequency_range_list = data_config.frequency_range_list
     frame_size = data_config.frame_size
@@ -199,19 +259,8 @@ def train_val_data(fpath, data_config, is_train, val_fraction=None):
     # I think this needs to be True for the data to be only dependant on the pairing. And not who is on left/right.
     flip_w12_randomly = True
     data_dict = None
-    if os.path.exists(fpath):
-        with open(fpath, 'rb') as f:
-            data_dict = pickle.load(f)
-            print('Loaded data from file.', fpath)
-            correct_data = data_dict['total_size'] == total_size
-            correct_data = correct_data and data_dict['frequency_range_list'] == tuple(frequency_range_list)
-            correct_data = correct_data and data_dict['frame_size'] == frame_size
-            correct_data = correct_data and data_dict['curve_amplitude'] == curve_amplitude
-            correct_data = correct_data and data_dict['num_curves'] == num_curves
-            correct_data = correct_data and data_dict['max_rotation'] == max_rotation
-            correct_data = correct_data and data_dict['curve_thickness'] == curve_thickness
-            if correct_data is False:
-                data_dict = None
+    if datamanager.exists():
+        data_dict = datamanager.load()
 
     if data_dict is None:
         print('Data not found in the file. generating the data')
@@ -224,14 +273,9 @@ def train_val_data(fpath, data_config, is_train, val_fraction=None):
         imgs1 = imgs1[..., None]
         imgs2 = imgs2[..., None]
         data = np.concatenate([imgs1, imgs2], axis=3)
-        with open(fpath, 'wb') as f:
-            val_size = int(total_size * val_fraction)
-            data_dict = {'train': data[val_size:], 'val': data[:val_size], 'total_size': total_size,
-                         'frequency_range_list': frequency_range_list,
-                         'frame_size': frame_size,
-                         'curve_amplitude': curve_amplitude, 'num_curves': num_curves, 'max_rotation': max_rotation,
-                         'curve_thickness': curve_thickness}
-            pickle.dump(data_dict, f)
+        val_size = int(total_size * val_fraction)
+        data_dict = {'train': data[val_size:], 'val': data[:val_size], 'frequency_range_list': frequency_range_list}
+        datamanager.save(data_dict)
 
     if is_train:
         return data_dict['train']
