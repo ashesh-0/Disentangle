@@ -21,6 +21,14 @@ class LadderVAEMultipleEncoders(LadderVAE):
             self.lowres_first_bottom_ups_ch1 = copy.deepcopy(self.lowres_first_bottom_ups_ch1)
             self.lowres_first_bottom_ups_ch2 = copy.deepcopy(self.lowres_first_bottom_ups_ch2)
 
+        self._learnable_merge_tensors = config.model.learnable_merge_tensors
+        if self._learnable_merge_tensors:
+            hw = config.data.image_size // (2 ** self.share_bottom_up_starting_idx)
+            shape = (config.model.n_filters, hw, hw)
+            self._merge_tensor_ch1 = torch.zeros(shape).cuda()
+            self._merge_tensor_ch2 = torch.zeros(shape).cuda()
+            self._merge_tensor_mix = torch.zeros(shape).cuda()
+
         enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
         multiscale_lowres_size_factor = 1
         if self.share_bottom_up_starting_idx < self.n_layers:
@@ -53,7 +61,10 @@ class LadderVAEMultipleEncoders(LadderVAE):
             blayer = self.get_bottom_up_layer(i, config.model.multiscale_lowres_separate_branch,
                                               enable_multiscale, multiscale_lowres_size_factor)
             self.bottom_up_layers_ch2.append(blayer)
-        print(f'[{self.__class__.__name__}] ShareStartIdx:{self.share_bottom_up_starting_idx}')
+
+        msg = f'[{self.__class__.__name__}] ShareStartIdx:{self.share_bottom_up_starting_idx} ' \
+              f'LearnTensors:{self._learnable_merge_tensors}'
+        print(msg)
 
     def get_bottom_up_layer(self, ith_layer, lowres_separate_branch, enable_multiscale, multiscale_lowres_size_factor):
         return BottomUpLayer(
@@ -84,6 +95,9 @@ class LadderVAEMultipleEncoders(LadderVAE):
         if self.lowres_first_bottom_ups is not None:
             encoder_params.append(self.lowres_first_bottom_ups.parameters())
 
+        if self._learnable_merge_tensors:
+            encoder_params += [self._merge_tensor_ch1, self._merge_tensor_ch2]
+
         decoder_params = list(self.top_down_layers.parameters()) + list(self.final_top_down.parameters()) + list(
             self.likelihood.parameters())
         optimizer0 = optim.Adamax(encoder_params + decoder_params, lr=self.lr, weight_decay=0)
@@ -92,12 +106,18 @@ class LadderVAEMultipleEncoders(LadderVAE):
         encoder_ch1_params = list(self.first_bottom_up_ch1.parameters()) + list(self.bottom_up_layers_ch1.parameters())
         if self.lowres_first_bottom_ups_ch1 is not None:
             encoder_ch1_params.append(self.lowres_first_bottom_ups_ch1.parameters())
+        if self._learnable_merge_tensors:
+            encoder_ch1_params += [self._merge_tensor_mix, self._merge_tensor_ch2]
+
         optimizer1 = optim.Adamax(encoder_ch1_params + decoder_params, lr=self.lr, weight_decay=0)
 
         # channel 2 params
         encoder_ch2_params = list(self.first_bottom_up_ch2.parameters()) + list(self.bottom_up_layers_ch2.parameters())
         if self.lowres_first_bottom_ups_ch2 is not None:
             encoder_ch2_params.append(self.lowres_first_bottom_ups_ch2.parameters())
+        if self._learnable_merge_tensors:
+            encoder_ch2_params += [self._merge_tensor_mix, self._merge_tensor_ch1]
+
         optimizer2 = optim.Adamax(encoder_ch2_params + decoder_params, lr=self.lr, weight_decay=0)
 
         scheduler0 = self.get_scheduler(optimizer0)
@@ -125,7 +145,20 @@ class LadderVAEMultipleEncoders(LadderVAE):
 
         return out, td_data
 
-    def _bottomup_pass(self, inp, first_bottom_up, lowrs_first_bottom_ups, bottom_up_layers, merge_idx):
+    def _get_merge_input(self, x, optimizer_idx):
+        if self._learnable_merge_tensors is True:
+            N = len(x)
+            inputs = [self._merge_tensor_mix.repeat(N, 1, 1, 1), self._merge_tensor_ch1.repeat(N, 1, 1, 1),
+                      self._merge_tensor_ch2.repeat(N, 1, 1, 1)]
+            _ = inputs.pop(optimizer_idx)
+            inputs.insert(optimizer_idx, x)
+        else:
+            inputs = [torch.zeros_like(x), torch.zeros_like(x)]
+            inputs.insert(optimizer_idx, x)
+
+        return inputs
+
+    def _bottomup_pass(self, inp, first_bottom_up, lowrs_first_bottom_ups, bottom_up_layers, optimizer_idx):
         # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
         # later channels are simply to yield more context.
         x = first_bottom_up(inp[:, :1])
@@ -138,8 +171,7 @@ class LadderVAEMultipleEncoders(LadderVAE):
 
             # merge it.
             if self.share_bottom_up_starting_idx == i:
-                tensors = [torch.zeros_like(x), torch.zeros_like(x)]
-                tensors.insert(merge_idx, x)
+                tensors = self._get_merge_input(x, optimizer_idx)
                 x = self.encoder_merge(*tensors)
 
             x, bu_value = bottom_up_layers[i](x, lowres_x=None)
