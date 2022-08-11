@@ -23,6 +23,7 @@ class LadderVAEMultipleEncoders(LadderVAE):
             self.lowres_first_bottom_ups_ch2 = copy.deepcopy(self.lowres_first_bottom_ups_ch2)
 
         self._learnable_merge_tensors = config.model.learnable_merge_tensors
+        self._merge_tensor_ch1 = self._merge_tensor_ch2 = self._merge_tensor_mix = None
         if self._learnable_merge_tensors:
             hw = config.data.image_size // (2 ** self.share_bottom_up_starting_idx)
             shape = (config.model.n_filters, hw, hw)
