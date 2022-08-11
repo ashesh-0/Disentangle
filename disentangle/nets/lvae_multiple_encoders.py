@@ -26,9 +26,9 @@ class LadderVAEMultipleEncoders(LadderVAE):
         if self._learnable_merge_tensors:
             hw = config.data.image_size // (2 ** self.share_bottom_up_starting_idx)
             shape = (config.model.n_filters, hw, hw)
-            self._merge_tensor_ch1 = torch.zeros(shape).cuda()
-            self._merge_tensor_ch2 = torch.zeros(shape).cuda()
-            self._merge_tensor_mix = torch.zeros(shape).cuda()
+            self._merge_tensor_ch1 = nn.Parameter(torch.zeros(shape, requires_grad=True))
+            self._merge_tensor_ch2 = nn.Parameter(torch.zeros(shape, requires_grad=True))
+            self._merge_tensor_mix = nn.Parameter(torch.zeros(shape, requires_grad=True))
 
         enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
         multiscale_lowres_size_factor = 1
@@ -96,8 +96,9 @@ class LadderVAEMultipleEncoders(LadderVAE):
         if self.lowres_first_bottom_ups is not None:
             encoder_params.append(self.lowres_first_bottom_ups.parameters())
 
+        new_vars = [self._merge_tensor_ch1, self._merge_tensor_ch2, self._merge_tensor_mix]
         if self._learnable_merge_tensors:
-            encoder_params += [self._merge_tensor_ch1, self._merge_tensor_ch2]
+            encoder_params += new_vars
 
         decoder_params = list(self.top_down_layers.parameters()) + list(self.final_top_down.parameters()) + list(
             self.likelihood.parameters())
@@ -108,7 +109,8 @@ class LadderVAEMultipleEncoders(LadderVAE):
         if self.lowres_first_bottom_ups_ch1 is not None:
             encoder_ch1_params.append(self.lowres_first_bottom_ups_ch1.parameters())
         if self._learnable_merge_tensors:
-            encoder_ch1_params += [self._merge_tensor_mix, self._merge_tensor_ch2]
+            # encoder_ch1_params += [self._merge_tensor_mix, self._merge_tensor_ch2]
+            encoder_ch1_params += new_vars
 
         optimizer1 = optim.Adamax(encoder_ch1_params + decoder_params, lr=self.lr, weight_decay=0)
 
@@ -117,8 +119,8 @@ class LadderVAEMultipleEncoders(LadderVAE):
         if self.lowres_first_bottom_ups_ch2 is not None:
             encoder_ch2_params.append(self.lowres_first_bottom_ups_ch2.parameters())
         if self._learnable_merge_tensors:
-            encoder_ch2_params += [self._merge_tensor_mix, self._merge_tensor_ch1]
-
+            # encoder_ch2_params += [self._merge_tensor_mix, self._merge_tensor_ch1]
+            encoder_ch2_params += new_vars
         optimizer2 = optim.Adamax(encoder_ch2_params + decoder_params, lr=self.lr, weight_decay=0)
 
         scheduler0 = self.get_scheduler(optimizer0)
@@ -149,6 +151,11 @@ class LadderVAEMultipleEncoders(LadderVAE):
     def _get_merge_input(self, x, optimizer_idx):
         if self._learnable_merge_tensors is True:
             N = len(x)
+            if self._merge_tensor_mix.device != x.device:
+                self._merge_tensor_mix = self._merge_tensor_mix.to(x.device)
+                self._merge_tensor_ch1 = self._merge_tensor_ch1.to(x.device)
+                self._merge_tensor_ch2 = self._merge_tensor_ch2.to(x.device)
+
             inputs = [self._merge_tensor_mix.repeat(N, 1, 1, 1), self._merge_tensor_ch1.repeat(N, 1, 1, 1),
                       self._merge_tensor_ch2.repeat(N, 1, 1, 1)]
             _ = inputs.pop(optimizer_idx)
