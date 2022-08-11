@@ -17,6 +17,7 @@ class LadderVAEMultipleEncoders(LadderVAE):
         self.first_bottom_up_ch2 = copy.deepcopy(self.first_bottom_up)
         self.lowres_first_bottom_ups_ch1 = self.lowres_first_bottom_ups_ch2 = None
         self.share_bottom_up_starting_idx = config.model.share_bottom_up_starting_idx
+        self.use_random_for_missing_inp = config.model.use_random_for_missing_inp
         if self.lowres_first_bottom_ups is not None:
             self.lowres_first_bottom_ups_ch1 = copy.deepcopy(self.lowres_first_bottom_ups_ch1)
             self.lowres_first_bottom_ups_ch2 = copy.deepcopy(self.lowres_first_bottom_ups_ch2)
@@ -153,7 +154,10 @@ class LadderVAEMultipleEncoders(LadderVAE):
             _ = inputs.pop(optimizer_idx)
             inputs.insert(optimizer_idx, x)
         else:
-            inputs = [torch.zeros_like(x), torch.zeros_like(x)]
+            if self.use_random_for_missing_inp is True:
+                inputs = [torch.rand_like(x), torch.rand_like(x)]
+            else:
+                inputs = [torch.zeros_like(x), torch.zeros_like(x)]
             inputs.insert(optimizer_idx, x)
 
         return inputs
