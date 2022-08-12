@@ -56,16 +56,16 @@ def get_config():
     model.var_clip_max = 20
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
-    model.logvar_lowerbound = -2.5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
+    model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.use_vampprior = False
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     # stochastic layers below this are shared.
-    model.share_bottom_up_starting_idx = 1
-    model.learnable_merge_tensors = False
-    model.use_random_for_missing_inp = True
+    model.share_bottom_up_starting_idx = 3
+    model.learnable_merge_tensors = True
+    model.use_random_for_missing_inp = False
     assert model.learnable_merge_tensors is False or model.use_random_for_missing_inp is False
 
     training = config.training
