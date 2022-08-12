@@ -24,6 +24,7 @@ def get_config():
     data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
+    data.fractional_target = True
 
     loss = config.loss
     loss.loss_type = LossType.Elbo

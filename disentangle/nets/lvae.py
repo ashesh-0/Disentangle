@@ -378,7 +378,9 @@ class LadderVAE(pl.LightningModule):
     def training_step(self, batch, batch_idx, enable_logging=True):
         x, target = batch
         x_normalized = self.normalize_input(x)
-        target_normalized = self.normalize_target(target)
+        # we already have target in [0,1]
+        target_normalized = target
+        # target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
         recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
@@ -444,7 +446,8 @@ class LadderVAE(pl.LightningModule):
         self.set_params_to_same_device_as(target)
 
         x_normalized = self.normalize_input(x)
-        target_normalized = self.normalize_target(target)
+        # target_normalized = self.normalize_target(target)
+        target_normalized = target
 
         out, td_data = self.forward(x_normalized)
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)

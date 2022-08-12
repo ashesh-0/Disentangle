@@ -45,8 +45,8 @@ class MultiChDeterministicTiffDloader:
         self._use_one_mu_std = use_one_mu_std
         self._enable_rotation = enable_rotation_aug
         self._enable_random_cropping = enable_random_cropping
+        self._fractional_target = data_config.fractional_target
         # Randomly rotate [-90,90]
-
         self._rotation_transform = None
         if self._enable_rotation:
             self._rotation_transform = A.Compose([A.Flip(), A.RandomRotate90()])
@@ -60,6 +60,7 @@ class MultiChDeterministicTiffDloader:
         msg += f' NormInp:{self._normalized_input}'
         msg += f' SingleNorm:{self._use_one_mu_std}'
         msg += f' Rot:{self._enable_rotation}'
+        msg += f' FracTar:{self._fractional_target}'
         msg += f' RandCrop:{self._enable_random_cropping}'
         return msg
 
@@ -179,6 +180,17 @@ class MultiChDeterministicTiffDloader:
         cropped_img1, cropped_img2 = self._crop_imgs(index, img1, img2)[:2]
         return cropped_img1, cropped_img2
 
+    def _make_target_fractional(self, target):
+        """
+        For LC (lateral context) approach, first channel is assumed to have the input which needs to be reconstructed.
+        """
+        eps = 1e-5
+        # now, input is the sum of the two channels.
+        inp = target[0] + target[1]
+        target[0] = target[0] / (inp[0] + eps)
+        target[1] = target[1] / (inp[0] + eps)
+        return target
+
     def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
         img1, img2 = self._get_img(index)
         if self._enable_rotation:
@@ -187,8 +199,12 @@ class MultiChDeterministicTiffDloader:
             img1 = rot_dic['image'][None]
             img2 = rot_dic['mask'][None]
         target = np.concatenate([img1, img2], axis=0)
+        if self._fractional_target:
+            target = self._make_target_fractional(target)
+
         if self._normalized_input:
             img1, img2 = self.normalize_img(img1, img2)
 
         inp = (0.5 * img1 + 0.5 * img2).astype(np.float32)
+
         return inp, target
