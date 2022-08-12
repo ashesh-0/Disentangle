@@ -32,7 +32,7 @@ class MultiChDeterministicTiffDloader:
         self._channel_1 = data_config.channel_1
         self._channel_2 = data_config.channel_2
         self._data = get_train_val_data(data_config, self._fpath, is_train, val_fraction=val_fraction)
-
+        self._min_val = self._data.min()
         self._normalized_input = normalized_input
         max_val = np.quantile(self._data, 0.995)
         self._data[self._data > max_val] = max_val
@@ -185,10 +185,13 @@ class MultiChDeterministicTiffDloader:
         For LC (lateral context) approach, first channel is assumed to have the input which needs to be reconstructed.
         """
         eps = 1e-5
+        # import pdb;
+        # pdb.set_trace()
         # now, input is the sum of the two channels.
+        target = target - self._min_val
         inp = target[0] + target[1]
-        target[0] = target[0] / (inp[0] + eps)
-        target[1] = target[1] / (inp[0] + eps)
+        target[0] = target[0] / (inp + eps)
+        target[1] = target[1] / (inp + eps)
         return target
 
     def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
