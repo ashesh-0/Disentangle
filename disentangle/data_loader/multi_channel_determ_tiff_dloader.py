@@ -188,7 +188,6 @@ class MultiChDeterministicTiffDloader:
         # import pdb;
         # pdb.set_trace()
         # now, input is the sum of the two channels.
-        target = target - self._min_val
         inp = target[0] + target[1]
         target[0] = target[0] / (inp + eps)
         target[1] = target[1] / (inp + eps)
@@ -196,12 +195,15 @@ class MultiChDeterministicTiffDloader:
 
     def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
         img1, img2 = self._get_img(index)
+        min_val = img1.min()
+        min_val = min(min_val, img2.min())
+        min_val = min(200, min_val)
         if self._enable_rotation:
             # passing just the 2D input. 3rd dimension messes up things.
             rot_dic = self._rotation_transform(image=img1[0], mask=img2[0])
             img1 = rot_dic['image'][None]
             img2 = rot_dic['mask'][None]
-        target = np.concatenate([img1, img2], axis=0)
+        target = np.concatenate([img1 - min_val, img2 - min_val], axis=0)
         if self._fractional_target:
             target = self._make_target_fractional(target)
 
