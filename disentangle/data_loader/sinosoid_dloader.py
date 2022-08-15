@@ -230,7 +230,7 @@ class CustomDataManager:
             print(f'Loaded from file {fpath}')
 
         # Note that simpler arguments are already included in the name itself.
-        assert data_dict['frequency_range_list'] == tuple(self._dconfig.frequency_range_list)
+        assert tuple(data_dict['frequency_range_list']) == tuple(self._dconfig.frequency_range_list)
         return data_dict
 
     def save(self, data_dict):
