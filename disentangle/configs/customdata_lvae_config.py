@@ -13,7 +13,7 @@ def get_config():
     data.frame_size = 128
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
-    data.curve_amplitude = data.frame_size / 12
+    data.curve_amplitude = 8
     data.num_curves = 1
     data.max_rotation = 0.0
     data.curve_thickness = 21
@@ -73,7 +73,7 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 15
+    training.lr_scheduler_patience = 30
     training.max_epochs = 400
     training.batch_size = 32
     training.num_workers = 4
