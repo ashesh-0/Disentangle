@@ -10,7 +10,7 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.frame_size = 128
+    data.frame_size = 96
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
     data.curve_amplitude = 8
@@ -29,7 +29,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 2
+    data.multiscale_lowres_count = None
     data.padding_mode = 'constant'
     data.padding_value = 0
 
@@ -73,7 +73,7 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 30
+    training.lr_scheduler_patience = 15
     training.max_epochs = 400
     training.batch_size = 32
     training.num_workers = 4
