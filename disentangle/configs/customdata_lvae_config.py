@@ -16,7 +16,7 @@ def get_config():
     data.curve_amplitude = 8
     data.num_curves = 1
     data.max_rotation = 0.0
-    data.curve_thickness = 21
+    data.curve_thickness = 11
     data.max_vshift_factor = 0.6
     data.max_hshift_factor = 0.3
     data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
@@ -29,7 +29,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 2
     data.padding_mode = 'constant'
     data.padding_value = 0
 
