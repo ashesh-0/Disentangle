@@ -49,8 +49,8 @@ def apply_rotation(xy, radians):
 
 def post_processing(x, curve, img_sz):
     x = x.astype(np.int)
-    assert min(x) >= 0
-    x_filtr = x < img_sz
+    # x can be < 0 due to horizontal shift.
+    x_filtr = np.logical_and(x < img_sz, x >= 0)
     x = x[x_filtr]
     curve = curve[x_filtr]
     curve = curve.astype(np.int)
@@ -74,14 +74,16 @@ def rotate_curve(x, curve, rotate_radian):
     return x, curve
 
 
-def get_img(w_list, img_sz, vertical_shifts: list, rotate_radians: list, curve_amplitudes: list,
+def get_img(w_list, img_sz, vertical_shifts: list, horizontal_shifts: list, rotate_radians: list,
+            curve_amplitudes: list,
             random_w12_flips: list, curve_thickness):
     assert len(vertical_shifts) == len(rotate_radians)
     assert len(vertical_shifts) == len(curve_amplitudes)
     img = np.zeros((img_sz, img_sz))
     for i in range(len(w_list)):
         w1, w2 = w_list[i]
-        add_to_img(img, w1, w2, vertical_shift=vertical_shifts[i], flip_about_vertical=random_w12_flips[i],
+        add_to_img(img, w1, w2, vertical_shift=vertical_shifts[i], horizontal_shift=horizontal_shifts[i],
+                   flip_about_vertical=random_w12_flips[i],
                    rotate_radian=rotate_radians[i], curve_amplitude=curve_amplitudes[i], thickness=curve_thickness)
 
     return img
@@ -102,10 +104,11 @@ def add_thickness(img, thickness, x, curve):
             img[temp_curve[filtr], temp_x[filtr]] += 1 / (np.sqrt(0.5 * (col_shift ** 2 + row_shift ** 2)))
 
 
-def add_to_img(img, w1, w2, vertical_shift=0, flip_about_vertical=False, rotate_radian=0, curve_amplitude=64,
-               thickness=31):
+def add_to_img(img, w1, w2, vertical_shift=None, horizontal_shift: int = 0.0, flip_about_vertical=False,
+               rotate_radian=None, curve_amplitude=None,
+               thickness=None):
     assert thickness % 2 == 1
-    max_angle = img.shape[-1]
+    max_angle = img.shape[-1] + abs(int(horizontal_shift))
     granularity = 0.1
     curve, x = generate_one_curve(w1, w2, max_angle, granularity=granularity)
     curve *= curve_amplitude
@@ -120,6 +123,8 @@ def add_to_img(img, w1, w2, vertical_shift=0, flip_about_vertical=False, rotate_
     if rotate_radian != 0:
         x, curve = rotate_curve(x, curve, rotate_radian)
 
+    if horizontal_shift:
+        x += horizontal_shift
     x, curve = post_processing(x, curve, img.shape[-1])
     img[curve, x] += 1
     add_thickness(img, thickness, x, curve)
@@ -155,7 +160,8 @@ def sample_for_channel2(w_rangelist):
 
 
 def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64, max_rotation=math.pi / 8,
-                     max_shift_factor=0.8,
+                     max_vertical_shift_factor=0.8,
+                     max_horizontal_shift_factor=0.3,
                      flip_w12_randomly=False,
                      curve_thickness=31):
     ch1_dset = []
@@ -171,17 +177,25 @@ def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64
             random_w12_flips = [False] * num_curves
         return random_w12_flips
 
+    def get_shifts():
+        rand_vertical_shifts = [np.random.rand() * img_sz * max_vertical_shift_factor for _ in range(num_curves)]
+        rand_horizontal_shifts = [np.random.rand() * img_sz * max_horizontal_shift_factor for _ in range(num_curves)]
+        rand_horizontal_shifts = [x * -1 if np.random.rand() > 0.5 else x for x in rand_horizontal_shifts]
+        return rand_vertical_shifts, rand_horizontal_shifts
+
     for _ in tqdm(range(size)):
         w1_list = [sample_for_channel1(w_rangelist) for _ in range(num_curves)]
-        vertical_shifts = [np.random.rand() * img_sz * max_shift_factor for _ in range(num_curves)]
         rotate_radians = [sample_angle() for _ in range(num_curves)]
-        img1 = get_img(w1_list, img_sz, vertical_shifts, rotate_radians, [curve_amplitude] * num_curves,
+        vertical_shifts, horizontal_shifts = get_shifts()
+        img1 = get_img(w1_list, img_sz, vertical_shifts, horizontal_shifts, rotate_radians,
+                       [curve_amplitude] * num_curves,
                        get_random_w12_flips(), curve_thickness)
 
         w2_list = [sample_for_channel2(w_rangelist) for _ in range(num_curves)]
-        vertical_shifts = [np.random.rand() * img_sz * max_shift_factor for _ in range(num_curves)]
+        vertical_shifts, horizontal_shifts = get_shifts()
         rotate_radians = [sample_angle() for _ in range(num_curves)]
-        img2 = get_img(w2_list, img_sz, vertical_shifts, rotate_radians, [curve_amplitude] * num_curves,
+        img2 = get_img(w2_list, img_sz, vertical_shifts, horizontal_shifts, rotate_radians,
+                       [curve_amplitude] * num_curves,
                        get_random_w12_flips(), curve_thickness)
 
         ch1_dset.append(img1[None])
@@ -206,6 +220,9 @@ class CustomDataManager:
         fname += f'_CT-{self._dconfig.curve_thickness}'
         fname += f'_CN-{self._dconfig.num_curves}'
         fname += f'_MR-{self._dconfig.max_rotation}'
+        fname += f'_VF-{self._dconfig.max_vshift_factor}'
+        fname += f'_HF-{self._dconfig.max_hshift_factor}'
+
         fr = self._dconfig.frequency_range_list
         diff = [fr[i][1] - fr[i][0] for i in range(len(fr))]
         gap = [fr[i + 1][0] - fr[i][1] for i in range(len(fr) - 1)]
@@ -255,7 +272,8 @@ def train_val_data(data_dir, data_config, is_train, val_fraction=None):
     num_curves = data_config.num_curves
     max_rotation = data_config.max_rotation
     curve_thickness = data_config.curve_thickness
-    max_shift_factor = data_config.max_shift_factor
+    max_vertical_shift_factor = data_config.max_vshift_factor
+    max_horizontal_shift_factor = data_config.max_hshift_factor
     # I think this needs to be True for the data to be only dependant on the pairing. And not who is on left/right.
     flip_w12_randomly = True
     data_dict = None
@@ -267,7 +285,9 @@ def train_val_data(data_dir, data_config, is_train, val_fraction=None):
         w_rangelist = [Range(x[0], x[1]) for x in frequency_range_list]
         imgs1, imgs2 = generate_dataset(w_rangelist, total_size, frame_size, num_curves=num_curves,
                                         curve_amplitude=curve_amplitude,
-                                        max_rotation=max_rotation, max_shift_factor=max_shift_factor,
+                                        max_rotation=max_rotation,
+                                        max_vertical_shift_factor=max_vertical_shift_factor,
+                                        max_horizontal_shift_factor=max_horizontal_shift_factor,
                                         flip_w12_randomly=flip_w12_randomly,
                                         curve_thickness=curve_thickness)
         imgs1 = imgs1[..., None]
