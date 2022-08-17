@@ -3,15 +3,14 @@ from typing import Tuple, Union
 import albumentations as A
 import numpy as np
 
-from disentangle.data_loader.multi_channel_train_val_data import train_val_data
+from disentangle.data_loader.train_val_data import get_train_val_data
+from disentangle.core.data_type import DataType
 
 
 class MultiChDeterministicTiffDloader:
     def __init__(self,
-                 img_sz: int,
+                 data_config,
                  fpath: str,
-                 channel_1: int,
-                 channel_2: int,
                  is_train: Union[None, bool] = None,
                  val_fraction=None,
                  normalized_input=None,
@@ -28,10 +27,11 @@ class MultiChDeterministicTiffDloader:
                 for both channels. Otherwise, two different meean and stdev are used.
 
         """
-        self._img_sz = img_sz
+        self._img_sz = data_config.image_size
         self._fpath = fpath
-
-        self._data = train_val_data(self._fpath, is_train, channel_1, channel_2, val_fraction=val_fraction)
+        self._channel_1 = data_config.channel_1
+        self._channel_2 = data_config.channel_2
+        self._data = get_train_val_data(data_config, self._fpath, is_train, val_fraction=val_fraction)
 
         self._normalized_input = normalized_input
         max_val = np.quantile(self._data, 0.995)
@@ -51,13 +51,17 @@ class MultiChDeterministicTiffDloader:
         if self._enable_rotation:
             self._rotation_transform = A.Compose([A.Flip(), A.RandomRotate90()])
 
-        msg = f'[{self.__class__.__name__}] Sz:{img_sz} Ch:{channel_1},{channel_2}'
-        msg += f' Train:{int(is_train)} N:{self.N} NumPatchPerN:{self._repeat_factor}'
+        msg = self._init_msg()
+        print(msg)
+
+    def _init_msg(self, ):
+        msg = f'[{self.__class__.__name__}] Sz:{self._img_sz} Ch:{self._channel_1},{self._channel_2}'
+        msg += f' Train:{int(self._is_train)} N:{self.N} NumPatchPerN:{self._repeat_factor}'
         msg += f' NormInp:{self._normalized_input}'
         msg += f' SingleNorm:{self._use_one_mu_std}'
         msg += f' Rot:{self._enable_rotation}'
         msg += f' RandCrop:{self._enable_random_cropping}'
-        print(msg)
+        return msg
 
     def _crop_imgs(self, index, img1: np.ndarray, img2: np.ndarray):
         h, w = img1.shape[-2:]
@@ -92,25 +96,36 @@ class MultiChDeterministicTiffDloader:
 
         return new_img.astype(np.float32)
 
-    def _get_deterministic_hw(self, index: int, h: int, w: int):
+    def _get_deterministic_hw(self, index: int, h: int, w: int, img_sz=None):
         """
         Fixed starting position for the crop for the img with index `index`.
         """
+        if img_sz is None:
+            img_sz = self._img_sz
+
         assert h == w
         factor = index // self.N
-        nrows = h // self._img_sz
+        nrows = h // img_sz
 
         ith_row = factor // nrows
         jth_col = factor % nrows
-        h_start = ith_row * self._img_sz
-        w_start = jth_col * self._img_sz
+        h_start = ith_row * img_sz
+        w_start = jth_col * img_sz
         return h_start, w_start
 
     def __len__(self):
         return self.N * self._repeat_factor
 
+    def hwt_from_idx(self, index):
+        _, H, W, _ = self._data.shape
+        t = self.get_t(index)
+        return (*self._get_deterministic_hw(index, H, W), t)
+
+    def get_t(self, index):
+        return index % self.N
+
     def _load_img(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
-        imgs = self._data[index % self.N]
+        imgs = self._data[self.get_t(index)]
         return imgs[None, :, :, 0], imgs[None, :, :, 1]
 
     def get_mean_std(self):
@@ -133,16 +148,19 @@ class MultiChDeterministicTiffDloader:
         Note that we must compute this only for training data.
         """
         assert self._is_train is True or allow_for_validation_data, 'This is just allowed for training data'
-        if self._use_one_mu_std:
+        if self._use_one_mu_std is True:
             mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
             std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
             mean = np.repeat(mean, 2, axis=1)
             std = np.repeat(std, 2, axis=1)
             return mean, std
-        else:
+        elif self._use_one_mu_std is False:
             mean = np.mean(self._data, axis=(0, 1, 2))
             std = np.std(self._data, axis=(0, 1, 2))
             return mean[None, :, None, None], std[None, :, None, None]
+
+        elif self._use_one_mu_std is None:
+            return np.array([0.0, 0.0]).reshape(1, 2, 1, 1), np.array([1.0, 1.0]).reshape(1, 2, 1, 1)
 
     def _get_random_hw(self, h: int, w: int):
         """

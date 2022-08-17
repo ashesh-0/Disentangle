@@ -6,3 +6,4 @@ class DataType(Enum):
     Places365 = 1
     NotMNIST = 2
     OptiMEM100_014 = 3
+    CustomSinosoid = 4
