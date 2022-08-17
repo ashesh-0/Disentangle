@@ -20,10 +20,10 @@ def get_config():
     # meean and stdev are used.
     data.use_one_mu_std = True
     data.train_aug_rotate = False
-    data.randomized_channels = True
+    data.randomized_channels = False
     data.multiscale_lowres_count = None
-    data.padding_mode = 'reflect'
-    data.padding_value = None
+    data.padding_mode = 'constant'  # constant,reflect
+    data.padding_value = 0
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -39,6 +39,8 @@ def get_config():
     model = config.model
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
+    model.skip_bottom_layers_count = 1  # For how many bottom layers, do we not want to use the encoder's output.
+    model.skip_bottom_layers_count_patience = 6
     model.blocks_per_layer = 1
     model.nonlin = 'elu'
     model.merge_type = 'residual'

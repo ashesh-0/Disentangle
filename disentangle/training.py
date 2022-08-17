@@ -12,6 +12,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from torch.utils.data import DataLoader
 
+from disentangle.core.metric_callback import ValMetricCallback
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
@@ -142,6 +143,12 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
     if 'val_every_n_steps' in config.training and config.training.val_every_n_steps is not None:
         callbacks.append(ValEveryNSteps(config.training.val_every_n_steps))
 
+    if 'skip_bottom_layers_count' in config.model and config.model.skip_bottom_layers_count > 0:
+        callbacks.append(ValMetricCallback(MetricMonitor(config.model.monitor).mode(),
+                                           config.model.monitor,
+                                           config.model.skip_bottom_layers_count_patience,
+                                           model.update_skip_bottom_layers_count)
+                         )
     logger.experiment.config.update(config.to_dict())
     # wandb.init(config=config)
     if torch.cuda.is_available():
@@ -152,6 +159,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             gradient_clip_val=config.training.grad_clip_norm_value,
             gradient_clip_algorithm=config.training.gradient_clip_algorithm,
             logger=logger,
+            # overfit_batches=10,
             #  profiler=profiler,
             callbacks=callbacks,
             weights_summary=weights_summary,
