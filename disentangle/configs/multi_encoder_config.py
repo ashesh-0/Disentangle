@@ -64,8 +64,8 @@ def get_config():
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     # stochastic layers below this are shared.
     model.share_bottom_up_starting_idx = 3
-    model.learnable_merge_tensors = True
-    model.use_random_for_missing_inp = False
+    model.learnable_merge_tensors = False
+    model.use_random_for_missing_inp = True
     assert model.learnable_merge_tensors is False or model.use_random_for_missing_inp is False
 
     training = config.training
