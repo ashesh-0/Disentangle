@@ -40,7 +40,7 @@ def get_config():
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
     model.skip_bottom_layers_count = 1  # For how many bottom layers, do we not want to use the encoder's output.
-    model.skip_bottom_layers_count_patience = 6
+    model.skip_bottom_layers_count_patience = 3
     model.blocks_per_layer = 1
     model.nonlin = 'elu'
     model.merge_type = 'residual'
@@ -59,7 +59,7 @@ def get_config():
     model.var_clip_max = 20
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
-    model.logvar_lowerbound = -2.5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
+    model.logvar_lowerbound = -10  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.use_vampprior = False
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
