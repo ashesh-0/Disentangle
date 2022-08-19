@@ -20,7 +20,7 @@ def get_config():
     # meean and stdev are used.
     data.use_one_mu_std = True
     data.train_aug_rotate = False
-    data.randomized_channels = True
+    data.randomized_channels = False
     data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
