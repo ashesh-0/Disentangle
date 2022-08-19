@@ -63,7 +63,7 @@ def get_mmse_dict(model, x_normalized, target_normalized, mmse_count, model_type
         if model.predict_logvar:
             if avg_logvar is None:
                 avg_logvar = 0
-            avg_logvar += dic['logvar']
+            avg_logvar += dic['logvar'] / mmse_count
 
     ll, dic = model.likelihood(recon_normalized, target_normalized)
     mse = (img_mmse - target_normalized) ** 2
