@@ -57,6 +57,9 @@ class MultiChDeterministicTiffDloader:
         msg = self._init_msg()
         print(msg)
 
+    def get_img_sz(self):
+        return self._img_sz
+    
     def set_img_sz(self, image_size):
         """
         If one wants to change the image size on the go, then this can be used.
