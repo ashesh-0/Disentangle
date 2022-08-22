@@ -39,6 +39,9 @@ class MultiChDeterministicTiffDloader:
         self.N = len(self._data)
         self._img_sz = self._repeat_factor = None
         self.set_img_sz(data_config.image_size)
+        # For overlapping dloader, image_size and repeat_factors are not related. hence a different function.
+        self.set_repeat_factor()
+
         self._is_train = is_train
         self._mean = None
         self._std = None
@@ -60,6 +63,8 @@ class MultiChDeterministicTiffDloader:
         This is typically used during evaluation.
         """
         self._img_sz = image_size
+
+    def set_repeat_factor(self):
         self._repeat_factor = (self._data.shape[-2] // self._img_sz) ** 2
 
     def _init_msg(self, ):
