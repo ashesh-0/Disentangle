@@ -191,40 +191,48 @@ class LadderVAE(pl.LightningModule):
                     vp_enabled=is_top and self.vp_enabled,
                 ))
 
-        # Final top-down layer
-        modules = list()
-        if not self.no_initial_downscaling:
-            modules.append(Interpolate(scale=2))
-        for i in range(self.blocks_per_layer):
-            modules.append(
-                TopDownDeterministicResBlock(
-                    c_in=self.n_filters,
-                    c_out=self.n_filters,
-                    nonlin=nonlin,
-                    batchnorm=self.batchnorm,
-                    dropout=self.dropout,
-                    res_block_type=self.res_block_type,
-                    gated=self.gated,
-                ))
-        self.final_top_down = nn.Sequential(*modules)
 
-        # Define likelihood
-        if self.likelihood_form == 'gaussian':
-            self.likelihood = GaussianLikelihood(self.n_filters, self.target_ch,
-                                                 predict_logvar=self.predict_logvar,
-                                                 logvar_lowerbound=self.logvar_lowerbound)
-        elif self.likelihood_form == 'noise_model':
-            self.likelihood = NoiseModelLikelihood(self.n_filters, self.target_ch, data_mean, data_std, self.noiseModel)
-        else:
-            msg = "Unrecognized likelihood '{}'".format(self.likelihood_form)
-            raise RuntimeError(msg)
+        self.final_top_down = self.create_final_topdown_layer(not self.no_initial_downscaling)
+        self.likelihood = self.create_likelihood()
+
         # gradient norms. updated while training. this is also logged.
         self.grad_norm_bottom_up = 0.0
         self.grad_norm_top_down = 0.0
         # PSNR computation on validation.
         self.label1_psnr = RunningPSNR()
         self.label2_psnr = RunningPSNR()
+        self.final_top_down_lowres = None
 
+    def create_likelihood(self):
+        # Define likelihood
+        if self.likelihood_form == 'gaussian':
+            likelihood = GaussianLikelihood(self.n_filters, self.target_ch,
+                                                 predict_logvar=self.predict_logvar,
+                                                 logvar_lowerbound=self.logvar_lowerbound)
+
+        elif self.likelihood_form == 'noise_model':
+            likelihood = NoiseModelLikelihood(self.n_filters, self.target_ch, data_mean, data_std, self.noiseModel)
+        else:
+            msg = "Unrecognized likelihood '{}'".format(self.likelihood_form)
+            raise RuntimeError(msg)
+        return likelihood
+    def create_final_topdown_layer(self, upsample):
+        # Final top-down layer
+        modules = list()
+        if upsample:
+            modules.append(Interpolate(scale=2))
+        for i in range(self.blocks_per_layer):
+            modules.append(
+                TopDownDeterministicResBlock(
+                    c_in=self.n_filters,
+                    c_out=self.n_filters,
+                    nonlin=self.get_nonlin(),
+                    batchnorm=self.batchnorm,
+                    dropout=self.dropout,
+                    res_block_type=self.res_block_type,
+                    gated=self.gated,
+                ))
+        return nn.Sequential(*modules)
     def _init_multires(self, config):
         """
         Initialize everything related to multiresolution approach.
@@ -321,20 +329,22 @@ class LadderVAE(pl.LightningModule):
             kl_weight = 1.0
         return kl_weight
 
-    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False):
+    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False,likelihood_obj=None):
         """
         Args:
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
+        if likelihood_obj is None:
+            likelihood_obj = self.likelihood
         # Log likelihood
-        ll, like_dict = self.likelihood(reconstruction, input)
+        ll, like_dict = likelihood_obj(reconstruction, input)
         recons_loss = -ll.mean()
         mixed_recons_loss = 0
         output = {'loss': recons_loss}
         if self.enable_mixed_rec:
             mixed_target = torch.mean(input, dim=1, keepdim=True)
             mixed_prediction = torch.mean(like_dict['params']['mean'], dim=1, keepdim=True)
-            mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_prediction})
+            mixed_recons_ll = likelihood_obj.log_likelihood(mixed_target, {'mean': mixed_prediction})
             output['mixed_loss'] = -1 * mixed_recons_ll.mean()
 
         if return_predicted_img:
@@ -444,7 +454,10 @@ class LadderVAE(pl.LightningModule):
         self.set_params_to_same_device_as(target)
 
         x_normalized = self.normalize_input(x)
-        target_normalized = self.normalize_target(target)
+        if self._lowres_supervision:
+            target_normalized = self.normalize_target(target[:,0])
+        else:
+            target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
@@ -632,6 +645,7 @@ class LadderVAE(pl.LightningModule):
         debug_qvar_max = [None] * self.n_layers
 
         kl_channelwise = [None] * self.n_layers
+        out_lowres = [None] * self.n_layers
         if forced_latent is None:
             forced_latent = [None] * self.n_layers
 
@@ -669,6 +683,9 @@ class LadderVAE(pl.LightningModule):
                                                             use_uncond_mode=use_uncond_mode,
                                                             var_clip_max=self._var_clip_max,
                                                             vp_dist_params=vp_dist_params if i == self.n_layers - 1 else None)
+
+            if self.final_top_down_lowres:
+                out_lowres[i] = self.final_top_down_lowres[i](out)
             z[i] = aux['z']  # sampled variable at this layer (batch, ch, h, w)
             kl[i] = aux['kl_samplewise']  # (batch, )
             kl_spatial[i] = aux['kl_spatial']  # (batch, h, w)
@@ -693,6 +710,7 @@ class LadderVAE(pl.LightningModule):
             'q_mu': q_mu,
             'q_lv': q_lv,
             'debug_qvar_max': debug_qvar_max,
+            'out_lowres':out_lowres,
         }
         return out, data
 
