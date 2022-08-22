@@ -7,3 +7,4 @@ class ModelType(Enum):
     LadderVAECritic = 5
     # Separate vampprior: two optimizers
     LadderVaeSepVampprior = 6
+    LadderVAEMultiTarget = 8
