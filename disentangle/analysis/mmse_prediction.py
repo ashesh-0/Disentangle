@@ -3,7 +3,8 @@ from tqdm import tqdm
 from typing import Tuple
 
 
-def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, prediction_size: int, batch_size=16) -> \
+def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, prediction_size: int, batch_size=16,
+                        track_progress: bool = True) -> \
         Tuple[
             torch.Tensor, torch.Tensor]:
     """
@@ -37,7 +38,11 @@ def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, pred
         inp = inp.cuda()
         tar = tar.cuda()
         recon_img_list = []
-        for i in tqdm(range(0, mmse_count, batch_size)):
+        range_mmse = range(0, mmse_count, batch_size)
+        if track_progress:
+            range_mmse = tqdm(range_mmse)
+
+        for i in range_mmse:
             end = min(i + batch_size, mmse_count) - i
             x_normalized = model.normalize_input(inp[:end])
             tar_normalized = model.normalize_target(tar[:end])
