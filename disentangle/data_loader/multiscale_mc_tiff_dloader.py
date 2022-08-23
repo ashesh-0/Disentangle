@@ -143,7 +143,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         img1, img2 = self._get_img(index)
         assert self._enable_rotation is False
         if self._lowres_supervision:
-            target = np.concatenate([img1[None], img2[None]], axis=0)
+            target = np.concatenate([img1[:, None], img2[:, None]], axis=1)
         else:
             target = np.concatenate([img1[:1], img2[:1]], axis=0)
         if self._normalized_input:

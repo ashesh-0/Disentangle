@@ -41,6 +41,7 @@ class LadderVAE(pl.LightningModule):
         self.n_layers = len(self.z_dims)
         self.stochastic_skip = config.model.stochastic_skip
         self.batchnorm = config.model.batchnorm
+
         self.n_filters = config.model.n_filters
         self.dropout = config.model.dropout
         self.learn_top_prior = config.model.learn_top_prior
