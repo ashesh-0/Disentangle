@@ -21,7 +21,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 2
+    data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
     data.padding_value = None
 
@@ -38,8 +38,8 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVAEMultiTarget
-    model.z_dims = [128, 128]
-    model.blocks_per_layer = 5
+    model.z_dims = [128, 128, 128, 128]
+    model.blocks_per_layer = 1
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True
