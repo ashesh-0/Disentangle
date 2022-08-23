@@ -56,9 +56,12 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
             ds_data = resize(self._scaled_data[-1], new_shape)
             self._scaled_data.append(ds_data)
 
-    def _init_msg(self):
-        msg = super()._init_msg()
+        print(self._ms_init_msg())
+
+    def _ms_init_msg(self):
+        msg = f'[{self.__class__.__name__}] '
         msg += f' Pad:{self._padding_kwargs}'
+        msg += f' LRes:{self._lowres_supervision}'
         return msg
 
     def _load_scaled_img(self, scaled_index, index: int) -> Tuple[np.ndarray, np.ndarray]:

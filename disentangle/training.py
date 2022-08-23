@@ -61,6 +61,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             if 'padding_value' in config.data and config.data.padding_value is not None:
                 padding_kwargs['constant_values'] = config.data.padding_value
 
+            lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
             train_data = None if skip_train_dataset else MultiScaleTiffDloader(
                 config.data,
                 datapath,
@@ -71,7 +72,9 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 enable_rotation_aug=train_aug_rotate,
                 enable_random_cropping=enable_random_cropping,
                 num_scales=config.data.multiscale_lowres_count,
-                padding_kwargs=padding_kwargs)
+                padding_kwargs=padding_kwargs,
+                lowres_supervision=lowres_supervision,
+            )
             val_data = MultiScaleTiffDloader(
                 config.data,
                 datapath,
@@ -84,6 +87,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 # No random cropping on validation. Validation is evaluated on determistic grids
                 num_scales=config.data.multiscale_lowres_count,
                 padding_kwargs=padding_kwargs,
+                lowres_supervision=lowres_supervision,
             )
         else:
             data_class = (
