@@ -28,8 +28,6 @@ class MultiChDeterministicTiffDloader:
 
         """
         self._fpath = fpath
-        self._channel_1 = data_config.channel_1
-        self._channel_2 = data_config.channel_2
         self._data = get_train_val_data(data_config, self._fpath, is_train, val_fraction=val_fraction)
 
         self._normalized_input = normalized_input
@@ -71,7 +69,7 @@ class MultiChDeterministicTiffDloader:
         self._repeat_factor = (self._data.shape[-2] // self._img_sz) ** 2
 
     def _init_msg(self, ):
-        msg = f'[{self.__class__.__name__}] Sz:{self._img_sz} Ch:{self._channel_1},{self._channel_2}'
+        msg = f'[{self.__class__.__name__}] Sz:{self._img_sz}'
         msg += f' Train:{int(self._is_train)} N:{self.N} NumPatchPerN:{self._repeat_factor}'
         msg += f' NormInp:{self._normalized_input}'
         msg += f' SingleNorm:{self._use_one_mu_std}'
