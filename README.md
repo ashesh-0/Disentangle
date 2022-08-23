@@ -893,3 +893,8 @@ tur /home/ubuntu/ashesh/training/disentangle/2207/D3-M3-S0-L0/44 (with multires)
    models should do even better. the context should be in a beam fashion so as to yield maximum extraction of context.
 2. qvar_1 var reaches 20. I think I need to escalate it even further.
 
+Aug 22
+HPC /home/ashesh.ashesh/training/disentangle/2208/D3-M3-S0-L0/22
+Here, I'm training with no determistic grids. I want to inspect whether the behavioral difference between boundary
+pixels and central pixels still remain or not. I see that the performance in central pixels saturate as I increase the
+padding more and more. 
