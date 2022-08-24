@@ -73,14 +73,14 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 15
-    training.max_epochs = 400
+    training.lr_scheduler_patience = 45
+    training.max_epochs = 1200
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.2
-    training.earlystop_patience = 100
+    training.earlystop_patience = 300
     training.precision = 16
 
     if model.model_type == ModelType.LadderVAEMultiTarget:
