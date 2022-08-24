@@ -62,7 +62,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.lres_recloss_w = [0.9, 0.1]
+    model.lres_recloss_w = [0.99, 0.01]
 
     training = config.training
     training.lr = 0.001
