@@ -62,6 +62,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
+    model.lres_recloss_w = [0.9, 0.1]
 
     training = config.training
     training.lr = 0.001
@@ -74,5 +75,9 @@ def get_config():
     training.val_fraction = 0.2
     training.earlystop_patience = 100
     training.precision = 16
-
+    if model.model_type == ModelType.LadderVAEMultiTarget:
+        assert model.lres_recloss_w is None or len(model.lres_recloss_w) == data.multiscale_lowres_count
+        assert data.multiscale_lowres_count is not None
+        if model.lres_recloss_w is not None:
+            assert sum(model.lres_recloss_w) == 1
     return config

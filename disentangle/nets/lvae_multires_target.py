@@ -21,8 +21,9 @@ class LadderVAEMultiTarget(LadderVAE):
         self._lres_likelihoods = nn.ModuleList()
         for _ in range(self._multiscale_count - 1):
             self._lres_likelihoods.append(self.create_likelihood())
-
-        print(f'[{self.__class__.__name__}] LowResSupLen:{len(self._lres_likelihoods)}')
+        self._lres_recloss_w = config.model.get('lres_recloss_w', [
+            1 / config.data.multiscale_lowres_count] * config.data.multiscale_lowres_count)
+        print(f'[{self.__class__.__name__}] LowResSupLen:{len(self._lres_likelihoods)} rec_w:{self._lres_recloss_w}')
 
     def validation_step(self, batch, batch_idx):
         x, target = batch
@@ -57,6 +58,7 @@ class LadderVAEMultiTarget(LadderVAE):
 
         recons_loss = 0
         assert self._multiscale_count == target_normalized.shape[1]
+
         for ith_res in range(self._multiscale_count):
             if ith_res == 0:
                 recons_loss_dict = self.get_reconstruction_loss(out, target_normalized[:, 0])
@@ -68,7 +70,7 @@ class LadderVAEMultiTarget(LadderVAE):
                 recons_loss_dict = self.get_reconstruction_loss(lowres_outs[ith_res - 1],
                                                                 tar_res,
                                                                 likelihood_obj=self._lres_likelihoods[ith_res - 1])
-            recons_loss += recons_loss_dict['loss'] / self._multiscale_count
+            recons_loss += recons_loss_dict['loss'] * self._lres_recloss_w[ith_res]
         return recons_loss
 
     def training_step(self, batch, batch_idx, enable_logging=True):
