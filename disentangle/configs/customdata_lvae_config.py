@@ -10,7 +10,7 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.frame_size = 96
+    data.frame_size = 128
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
     data.curve_amplitude = 8.0
@@ -29,7 +29,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 2
     data.padding_mode = 'constant'
     data.padding_value = 0
 
@@ -45,7 +45,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVAEMultiTarget
     model.z_dims = [128, 128, 128, 128]
     model.blocks_per_layer = 3
     model.nonlin = 'elu'
@@ -83,4 +83,6 @@ def get_config():
     training.earlystop_patience = 100
     training.precision = 16
 
+    if model.model_type == ModelType.LadderVAEMultiTarget:
+        assert data.multiscale_lowres_count is not None
     return config

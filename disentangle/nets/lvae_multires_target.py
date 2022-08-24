@@ -28,6 +28,24 @@ class LadderVAEMultiTarget(LadderVAE):
         x, target = batch
         return super().validation_step((x, target[:, 0]), batch_idx)
 
+    def get_allres_predictions(self, x_normalized):
+        """
+        Get all disentangled predictions at all levels.
+        Args:
+            x_normalized:
+
+        Returns:
+
+        """
+        out, td_data = self.forward(x_normalized)
+        lowres_outs = [self.likelihood.parameter_net(out)]
+        for l_to_h_idx in range(self._multiscale_count - 1):
+            out_temp = self._lres_conv_for_z[l_to_h_idx](td_data['z'][l_to_h_idx])
+            lowres_out = self._lres_final_top_down[l_to_h_idx](out_temp)
+            lowres_out = self._lres_likelihoods[l_to_h_idx].parameter_net(lowres_out)
+            lowres_outs.append(lowres_out)
+        return lowres_outs
+
     def get_all_res_reconstruction_loss(self, out, td_data, target_normalized):
         """
         Reconstruction loss from all resolutions
