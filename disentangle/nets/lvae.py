@@ -25,6 +25,11 @@ def torch_nanmean(inp):
     return torch.mean(inp[~inp.isnan()])
 
 
+def compute_batch_mean(x):
+    N = len(x)
+    return x.view(N, -1).mean(dim=1)
+
+
 class LadderVAE(pl.LightningModule):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__()
@@ -322,19 +327,48 @@ class LadderVAE(pl.LightningModule):
         return kl_weight
 
     def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False):
+        output = self._get_reconstruction_loss_vector(reconstruction, input,
+                                                      return_predicted_img=return_predicted_img)
+        loss_dict = output[0] if return_predicted_img else output
+        loss_dict['loss'] = torch.mean(loss_dict['loss'])
+        loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'])
+        loss_dict['ch2_loss'] = torch.mean(loss_dict['ch2_loss'])
+        if 'mixed_loss' in loss_dict:
+            loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'])
+        if return_predicted_img:
+            assert len(output) == 2
+            return loss_dict, output[1]
+        else:
+            return loss_dict
+
+    def _get_mixed_reconstruction_loss_vector(self, reconstruction, mixed_input):
+        """
+        Computes the reconstruction loss on the mixed input and mixed prediction
+        """
+        dist_params = self.likelihood.distr_params(reconstruction)
+        mixed_prediction = torch.mean(dist_params['mean'], dim=1, keepdim=True)
+        dist_params['mean'] = mixed_prediction
+        mixed_recons_ll = self.likelihood.log_likelihood(mixed_input, dist_params)
+        return compute_batch_mean(mixed_recons_ll)
+
+    def _get_reconstruction_loss_vector(self, reconstruction, input, return_predicted_img=False):
         """
         Args:
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
+
         # Log likelihood
         ll, like_dict = self.likelihood(reconstruction, input)
-        recons_loss = -ll.mean()
-        output = {'loss': recons_loss, 'ch1_loss': -ll[:, 0].mean(), 'ch2_loss': -ll[:, 1].mean()}
+        recons_loss = compute_batch_mean(-1 * ll)
+        output = {'loss': recons_loss,
+                  'ch1_loss': compute_batch_mean(-ll[:, 0]),
+                  'ch2_loss': compute_batch_mean(-ll[:, 1]),
+                  }
         if self.enable_mixed_rec:
             mixed_target = torch.mean(input, dim=1, keepdim=True)
             mixed_prediction = torch.mean(like_dict['params']['mean'], dim=1, keepdim=True)
             mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_prediction})
-            output['mixed_loss'] = -1 * mixed_recons_ll.mean()
+            output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
         if return_predicted_img:
             return output, like_dict['params']['mean']

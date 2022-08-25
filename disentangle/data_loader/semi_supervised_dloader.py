@@ -44,13 +44,13 @@ class SemiSupDloader(MultiChDeterministicTiffDloader):
 
     def _get_supervised_indices(self):
         N = len(self)
-        return np.random.randint(N, size=int(N * self._supervised_data_fraction),
-                                 replace=False)
+        arr = np.random.permutation(N)
+        return arr[:int(N * self._supervised_data_fraction)]
 
     def __getitem__(self, index):
         if index in self._supervised_indices:
             mixed, singlechannnels = super().__getitem__(index)
-            return mixed, singlechannnels, np.array([1])
+            return mixed, singlechannnels, True  # np.array([1])
 
         elif self._mixed_input_type == MixedInputType.Aligned:
             mixed, _ = super().__getitem__(index)
@@ -60,4 +60,4 @@ class SemiSupDloader(MultiChDeterministicTiffDloader):
             index = np.random.randint(len(self))
             _, img2 = self._get_img(index)
             singlechannels = np.concatenate([img1, img2], axis=0)
-            return mixed, singlechannels, np.array([0])
+            return mixed, singlechannels, False  # np.array([0])

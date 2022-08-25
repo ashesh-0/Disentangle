@@ -203,23 +203,36 @@ class LadderVAEMultipleEncoders(LadderVAE):
             return self._bottomup_pass(inp, self.first_bottom_up_ch2, self.lowres_first_bottom_ups_ch2,
                                        self.bottom_up_layers_ch2, optimizer_idx)
 
+    def validation_step(self, batch, batch_idx):
+        x, target, supervised_mask = batch
+        assert supervised_mask.sum() == len(x)
+        return super().validation_step((x, target), batch_idx)
+
     def training_step(self, batch, batch_idx, optimizer_idx, enable_logging=True):
 
-        x, target = batch
+        x, target, supervised_mask = batch
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
         if optimizer_idx == 0:
             out, td_data = self.forward_ch(x_normalized, optimizer_idx)
+            recons_loss = 0
+            if supervised_mask.sum() > 0:
+                recons_loss_dict = self._get_reconstruction_loss_vector(out[supervised_mask],
+                                                                        target_normalized[supervised_mask])
+                recons_loss = recons_loss_dict['loss'].sum()
+            if (~supervised_mask).sum() > 0:
+                # todo: check if x_normalized does not have any extra pre-processing.
+                recons_loss += self._get_mixed_reconstruction_loss_vector(out[~supervised_mask],
+                                                                          x_normalized[~supervised_mask]).sum()
+            N = len(x)
+            recons_loss = recons_loss / N
         else:
             out, td_data = self.forward_ch(target_normalized[:, optimizer_idx - 1:optimizer_idx], optimizer_idx)
-
-        recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
-        if optimizer_idx == 0:
-            recons_loss = recons_loss_dict['loss']
-        elif optimizer_idx == 1:
-            recons_loss = recons_loss_dict['ch1_loss']
-        elif optimizer_idx == 2:
-            recons_loss = recons_loss_dict['ch2_loss']
+            recons_loss_dict = self._get_reconstruction_loss_vector(out, target_normalized)
+            if optimizer_idx == 1:
+                recons_loss = recons_loss_dict['ch1_loss'].mean()
+            elif optimizer_idx == 2:
+                recons_loss = recons_loss_dict['ch2_loss'].mean()
 
         kl_loss = self.get_kl_divergence_loss(td_data)
 
