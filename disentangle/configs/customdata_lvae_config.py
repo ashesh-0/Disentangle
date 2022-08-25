@@ -3,27 +3,35 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
+import math
 
 
 def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.data_type = DataType.OptiMEM100_014
-    data.channel_1 = 0
-    data.channel_2 = 2
+    data.frame_size = 96
+    data.data_type = DataType.CustomSinosoid
+    data.total_size = 1000
+    data.curve_amplitude = 8.0
+    data.num_curves = 1
+    data.max_rotation = 0.0
+    data.curve_thickness = 21
+    data.max_vshift_factor = 0.6
+    data.max_hshift_factor = 0.3
+    data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
+
     data.sampler_type = SamplerType.DefaultSampler
-    data.threshold = 0.02
     data.deterministic_grid = False
     data.normalized_input = True
-    # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
-    # meean and stdev are used.
+    # If this is set to true, then one mean and stdev is used for both channels. If False, two different
+    # meean and stdev are used. If None, 0 mean and 1 std is used.
     data.use_one_mu_std = True
     data.train_aug_rotate = False
-    data.randomized_channels = True
+    data.randomized_channels = False
     data.multiscale_lowres_count = None
-    data.padding_mode = 'reflect'
-    data.padding_value = None
+    data.padding_mode = 'constant'
+    data.padding_value = 0
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -38,8 +46,8 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128]
-    model.blocks_per_layer = 5
+    model.z_dims = [128, 128, 128, 128]
+    model.blocks_per_layer = 3
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True
@@ -53,10 +61,10 @@ def get_config():
     model.no_initial_downscaling = True
     model.analytical_kl = False
     model.mode_pred = False
-    model.var_clip_max = 20
+    model.var_clip_max = 2.5
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
-    model.logvar_lowerbound = -2.49  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
+    model.logvar_lowerbound = -10  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.use_vampprior = False
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
@@ -66,7 +74,7 @@ def get_config():
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 15
-    training.max_epochs = 200
+    training.max_epochs = 400
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None

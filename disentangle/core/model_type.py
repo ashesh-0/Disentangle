@@ -9,3 +9,4 @@ class ModelType(Enum):
     LadderVaeSepVampprior = 6
     # one encoder for mixed input, two for separate inputs.
     LadderVaeSepEncoder = 7
+    LadderVAEMultiTarget = 8

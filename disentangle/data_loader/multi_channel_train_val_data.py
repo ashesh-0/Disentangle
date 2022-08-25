@@ -6,6 +6,7 @@ from disentangle.core.tiff_reader import load_tiff
 
 
 def train_val_data(fpath, data_config, is_train: Union[None, bool], val_fraction=None):
+    print(f'Loading {fpath} with Channels {data_config.channel_1},{data_config.channel_2}, is_train:{is_train}')
     data = load_tiff(fpath)
     return _train_val_data(data, is_train, data_config.channel_1, data_config.channel_2, val_fraction=val_fraction)
 

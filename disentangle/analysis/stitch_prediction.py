@@ -6,7 +6,7 @@ from disentangle.analysis.lvae_utils import get_img_from_forward_output
 from disentangle.data_loader.overlapping_dloader import get_overlapping_dset
 
 
-def get_predictions(model, dset, batch_size, num_workers=4):
+def get_predictions(model, dset, batch_size, mmse_count=1, num_workers=4):
     dloader = DataLoader(dset,
                          pin_memory=False,
                          num_workers=num_workers,
@@ -22,14 +22,21 @@ def get_predictions(model, dset, batch_size, num_workers=4):
             x_normalized = model.normalize_input(inp)
             tar = tar.cuda()
             tar_normalized = model.normalize_target(tar)
-            recon_normalized, td_data = model(x_normalized)
+
+            recon_img_list = []
+            for _ in range(mmse_count):
+                recon_normalized, td_data = model(x_normalized)
+                rec_loss, imgs = model.get_reconstruction_loss(recon_normalized, tar_normalized,
+                                                               return_predicted_img=True)
+                recon_img_list.append(imgs.cpu()[None])
+
+            mmse_imgs = torch.mean(torch.cat(recon_img_list, dim=0), dim=0)
 
             q_dic = model.likelihood.distr_params(recon_normalized)
             logvar_arr.append(q_dic['logvar'].cpu().numpy())
 
-            rec_loss, imgs = model.get_reconstruction_loss(recon_normalized, tar_normalized, return_predicted_img=True)
             losses.append(rec_loss['loss'].cpu().numpy())
-            predictions.append(imgs.cpu().numpy())
+            predictions.append(mmse_imgs.cpu().numpy())
     return np.concatenate(predictions, axis=0), np.array(losses), np.concatenate(logvar_arr)
 
 
