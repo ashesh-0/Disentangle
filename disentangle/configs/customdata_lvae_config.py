@@ -14,9 +14,10 @@ def get_config():
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
     data.curve_amplitude = 8.0
-    data.num_curves = 1
-    data.max_rotation = 0.0
+    data.num_curves = 2
+    data.max_rotation = math.pi / 8
     data.curve_thickness = 21
+
     data.max_vshift_factor = 0.7
     data.max_hshift_factor = 0.3
     data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
