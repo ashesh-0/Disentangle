@@ -77,6 +77,7 @@ class LadderVAETwinDecoder(LadderVAE):
         self.likelihood = None
         self.likelihood_l1 = GaussianLikelihood(self.n_filters // 2, self.target_ch, predict_logvar=self.predict_logvar)
         self.likelihood_l2 = GaussianLikelihood(self.n_filters // 2, self.target_ch, predict_logvar=self.predict_logvar)
+        print(f'[{self.__class__.__name__}]')
 
     def get_final_top_down(self):
         modules = list()
@@ -152,10 +153,12 @@ class LadderVAETwinDecoder(LadderVAE):
         # Restore original image size
         out_l1 = crop_img_tensor(out_l1, img_size)
         out_l2 = crop_img_tensor(out_l2, img_size)
+
         td_data = {
-            'kl': [(td_data_l1['kl'][i] + td_data_l2['kl'][i]) / 2 for i in range(len(td_data_l1['kl']))],
             'z': [torch.cat([td_data_l1['z'][i], td_data_l2['z'][i]], dim=1) for i in range(len(td_data_l1['z']))],
         }
+        if td_data_l2['kl'][0] is not None:
+            td_data['kl'] = [(td_data_l1['kl'][i] + td_data_l2['kl'][i]) / 2 for i in range(len(td_data_l1['kl']))]
         return out_l1, out_l2, td_data
 
     def get_reconstruction_loss(self, reconstruction_l1, reconstruction_l2, target, return_predicted_img=False):
