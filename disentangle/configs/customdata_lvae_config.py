@@ -32,6 +32,8 @@ def get_config():
     data.multiscale_lowres_count = 2
     data.padding_mode = 'constant'
     data.padding_value = 0
+    data.encourage_non_overlap_single_channel = False
+    # data.vertical_min_spacing = data.curve_amplitude * 2
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
