@@ -25,7 +25,7 @@ def get_config():
     data.padding_mode = 'reflect'
     data.padding_value = None
     data.mixed_input_type = 'aligned'
-    data.supervised_data_fraction = 0.9
+    data.supervised_data_fraction = 0.5
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
