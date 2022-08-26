@@ -10,7 +10,7 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.frame_size = 96
+    data.frame_size = 128
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
     data.curve_amplitude = 8.0
@@ -45,7 +45,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVaeTwinDecoder
     model.z_dims = [128, 128, 128, 128]
     model.blocks_per_layer = 3
     model.nonlin = 'elu'

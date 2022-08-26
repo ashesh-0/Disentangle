@@ -21,6 +21,7 @@ class RunningPSNR:
         else:
             self.max = max(self.max, ins_max)
             self.min = min(self.min, ins_min)
+
         mse = (rec - tar) ** 2
         elementwise_mse = torch.mean(mse.view(len(mse), -1), dim=1)
         self.mse_sum += torch.nansum(elementwise_mse)
