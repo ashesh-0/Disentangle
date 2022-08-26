@@ -158,15 +158,19 @@ class LadderVAETwinDecoder(LadderVAE):
         }
         return out_l1, out_l2, td_data
 
-    def get_reconstruction_loss(self, reconstruction_l1, reconstruction_l2, target):
+    def get_reconstruction_loss(self, reconstruction_l1, reconstruction_l2, target, return_predicted_img=False):
         # Log likelihood
-        ll, _ = self.likelihood_l1(reconstruction_l1, target[:, 0:1])
+        ll, like1_dict = self.likelihood_l1(reconstruction_l1, target[:, 0:1])
         recons_loss_l1 = -ll.mean()
 
-        ll, _ = self.likelihood_l2(reconstruction_l2, target[:, 1:])
+        ll, like2_dict = self.likelihood_l2(reconstruction_l2, target[:, 1:])
         recons_loss_l2 = -ll.mean()
+        recon_loss = (recons_loss_l1 + recons_loss_l2) / 2
+        if return_predicted_img:
+            rec_imgs = [like1_dict['params']['mean'], like2_dict['params']['mean']]
+            return recon_loss, rec_imgs
 
-        return (recons_loss_l1 + recons_loss_l2) / 2
+        return recon_loss
 
     def compute_gradient_norm(self):
         grad_norm_bottom_up = self._compute_gradient_norm(self.bottom_up_layers)
@@ -206,7 +210,12 @@ class LadderVAETwinDecoder(LadderVAE):
         target_normalized = self.normalize_target(target)
 
         out_l1, out_l2, td_data = self.forward(x_normalized)
-        recons_loss = self.get_reconstruction_loss(out_l1, out_l2, target_normalized)
+
+        recons_loss, recons_img_list = self.get_reconstruction_loss(out_l1, out_l2, target_normalized,
+                                                                    return_predicted_img=True)
+        self.label1_psnr.update(recons_img_list[0][:, 0], target_normalized[:, 0])
+        self.label2_psnr.update(recons_img_list[1][:, 0], target_normalized[:, 1])
+
         kl_loss = self.get_kl_divergence_loss(td_data)
 
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
