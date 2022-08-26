@@ -144,8 +144,11 @@ class NormalStochasticBlock2d(nn.Module):
         q_mu, q_lv = q_params.chunk(2, dim=1)
         if var_clip_max is not None:
             q_lv = torch.clip(q_lv, max=var_clip_max)
-
-        q = Normal(q_mu, StableExponential(q_lv / 2).exp())
+        try:
+            q = Normal(q_mu, StableExponential(q_lv / 2).exp())
+        except:
+            import pdb;
+            pdb.set_trace()
 
         return q_mu, q_lv, q
 
@@ -189,7 +192,11 @@ class NormalStochasticBlock2d(nn.Module):
         assert vp_enabled is False or (vp_enabled is True and analytical_kl is False), msg
 
         if vp_enabled is False:
-            p_mu, p_lv, p = self.process_p_params(p_params, var_clip_max)
+            try:
+                p_mu, p_lv, p = self.process_p_params(p_params, var_clip_max)
+            except:
+                import pdb;
+                pdb.set_trace()
         else:
             # with VP enabled, we need to pass through the q (complete q) to get averaged posterior
             # so, we need to go though this as well.
