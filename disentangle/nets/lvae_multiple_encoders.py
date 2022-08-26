@@ -6,6 +6,7 @@ import torch.nn as nn
 from disentangle.nets.lvae_layers import BottomUpLayer, MergeLayer
 from disentangle.core.data_utils import crop_img_tensor
 import torch.optim as optim
+from disentangle.core.mixed_input_type import MixedInputType
 
 
 class LadderVAEMultipleEncoders(LadderVAE):
@@ -18,6 +19,7 @@ class LadderVAEMultipleEncoders(LadderVAE):
         self.lowres_first_bottom_ups_ch1 = self.lowres_first_bottom_ups_ch2 = None
         self.share_bottom_up_starting_idx = config.model.share_bottom_up_starting_idx
         self.use_random_for_missing_inp = config.model.use_random_for_missing_inp
+        self.mixed_input_type = config.data.mixed_input_type
         if self.lowres_first_bottom_ups is not None:
             self.lowres_first_bottom_ups_ch1 = copy.deepcopy(self.lowres_first_bottom_ups_ch1)
             self.lowres_first_bottom_ups_ch2 = copy.deepcopy(self.lowres_first_bottom_ups_ch2)
@@ -215,17 +217,22 @@ class LadderVAEMultipleEncoders(LadderVAE):
         target_normalized = self.normalize_target(target)
         if optimizer_idx == 0:
             out, td_data = self.forward_ch(x_normalized, optimizer_idx)
-            recons_loss = 0
-            if supervised_mask.sum() > 0:
-                recons_loss_dict = self._get_reconstruction_loss_vector(out[supervised_mask],
-                                                                        target_normalized[supervised_mask])
-                recons_loss = recons_loss_dict['loss'].sum()
-            if (~supervised_mask).sum() > 0:
-                # todo: check if x_normalized does not have any extra pre-processing.
-                recons_loss += self._get_mixed_reconstruction_loss_vector(out[~supervised_mask],
-                                                                          x_normalized[~supervised_mask]).sum()
-            N = len(x)
-            recons_loss = recons_loss / N
+            if self.mixed_input_type == MixedInputType.ConsistentWithSingleInputs:
+                recons_loss_dict = self._get_reconstruction_loss_vector(out, target_normalized)
+                recons_loss = recons_loss_dict['loss'].mean()
+            else:
+                assert self.mixed_input_type == MixedInputType.Aligned
+                recons_loss = 0
+                if supervised_mask.sum() > 0:
+                    recons_loss_dict = self._get_reconstruction_loss_vector(out[supervised_mask],
+                                                                            target_normalized[supervised_mask])
+                    recons_loss = recons_loss_dict['loss'].sum()
+                if (~supervised_mask).sum() > 0:
+                    # todo: check if x_normalized does not have any extra pre-processing.
+                    recons_loss += self._get_mixed_reconstruction_loss_vector(out[~supervised_mask],
+                                                                              x_normalized[~supervised_mask]).sum()
+                N = len(x)
+                recons_loss = recons_loss / N
         else:
             out, td_data = self.forward_ch(target_normalized[:, optimizer_idx - 1:optimizer_idx], optimizer_idx)
             recons_loss_dict = self._get_reconstruction_loss_vector(out, target_normalized)
