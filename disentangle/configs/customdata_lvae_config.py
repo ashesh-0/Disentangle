@@ -10,11 +10,11 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.frame_size = 128
+    data.frame_size = 256
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
     data.curve_amplitude = 8.0
-    data.num_curves = 1
+    data.num_curves = 3
     data.max_rotation = 0.0
     data.curve_thickness = 21
     data.max_vshift_factor = 0.7
@@ -29,11 +29,11 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 2
+    data.multiscale_lowres_count = 3
     data.padding_mode = 'constant'
     data.padding_value = 0
-    data.encourage_non_overlap_single_channel = False
-    # data.vertical_min_spacing = data.curve_amplitude * 2
+    data.encourage_non_overlap_single_channel = True
+    data.vertical_min_spacing = data.curve_amplitude * 2
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
