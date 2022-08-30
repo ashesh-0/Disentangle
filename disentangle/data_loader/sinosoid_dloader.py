@@ -274,7 +274,7 @@ def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64
         return random_w12_flips
 
     def get_shifts():
-        if encourage_non_overlap_single_channel:
+        if encourage_non_overlap_single_channel and num_curves > 1:
             rand_vertical_shifts = spaced_out_vertical_shifts(img_sz * max_vertical_shift_factor, num_curves,
                                                               vertical_min_spacing)
         else:
@@ -323,7 +323,7 @@ class CustomDataManager:
         fname += f'_VF-{self._dconfig.max_vshift_factor}'
         fname += f'_HF-{self._dconfig.max_hshift_factor}'
         fname += f'_CfL-{self._dconfig.connecting_w_len}'
-        
+
         if self._dconfig.encourage_non_overlap_single_channel:
             fname += f'_NO-{self._dconfig.vertical_min_spacing}'
 
