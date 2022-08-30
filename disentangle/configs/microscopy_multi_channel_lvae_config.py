@@ -38,7 +38,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128]
+    model.z_dims = [128, 128, 128, 128]
     model.blocks_per_layer = 5
     model.nonlin = 'elu'
     model.merge_type = 'residual'
@@ -62,7 +62,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.lres_recloss_w = [0.99, 0.01]
+    # model.lres_recloss_w = [0.99, 0.01]
 
     training = config.training
     training.lr = 0.001
