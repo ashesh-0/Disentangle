@@ -431,10 +431,9 @@ class BottomUpLayer(nn.Module):
 
     def forward(self, x, lowres_x=None):
         primary_flow = self.net_downsized(x)
-        primary_flow = self.net(primary_flow)
-
         if self.enable_multiscale is False:
             assert lowres_x is None
+            primary_flow = self.net(primary_flow)
             return primary_flow, primary_flow
 
         if lowres_x is not None:
@@ -443,6 +442,7 @@ class BottomUpLayer(nn.Module):
         else:
             merged = primary_flow
 
+        merged = self.net(merged)
         if self.multiscale_retain_spatial_dims is False:
             return merged, merged
 
