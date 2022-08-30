@@ -18,7 +18,7 @@ def get_config():
     data.max_rotation = 0.0
     data.curve_thickness = 21
     data.max_vshift_factor = 0.7
-    data.max_hshift_factor = 0.3
+    data.max_hshift_factor = 0.1
     data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -34,6 +34,8 @@ def get_config():
     data.padding_value = 0
     data.encourage_non_overlap_single_channel = True
     data.vertical_min_spacing = data.curve_amplitude * 2
+    # 0.5 would mean that 50% of the points would be covered with the connecting w.
+    data.connecting_w_len = 0.5
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -47,7 +49,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVAEMultiTarget
     model.z_dims = [128, 128, 128, 128]
     model.blocks_per_layer = 3
     model.nonlin = 'elu'

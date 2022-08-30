@@ -8,7 +8,7 @@ from tqdm import tqdm
 import lzma
 
 
-def angle_shift(w1, w2, point):
+def angle_shift(w1, w2, point, best_possible=True):
     """
     Find x such that:    cos(w2*(point +x) = cos(w1*point)
     """
@@ -16,23 +16,45 @@ def angle_shift(w1, w2, point):
     # if I select the correct point, then I don't need to shift
     # d/dx(sin(w2*point +d)) = d/dx(sin(w1*point))
     # w2*cos() = w1*cos()
-    assert w2 >= w1, 'w2 must be larger than w1. otherwise angle is not always possible'
-    theta = np.arccos(w1 * np.cos(w1 * point) / w2)
-    return theta - w2 * point
+
+    #
+    possible_cos_val = w1 * np.cos(w1 * point) / w2
+    if best_possible:
+        possible_cos_val = max(-1, possible_cos_val)
+        possible_cos_val = min(1, possible_cos_val)
+    else:
+        assert w2 >= w1, 'w2 must be larger than w1. otherwise angle is not always possible'
+
+    theta = np.arccos(possible_cos_val)
+    return theta
 
 
-def generate_one_curve(w1, w2, max_angle, granularity=0.1):
-    r1 = np.arange(0, max_angle // 2, granularity)
-    shift = angle_shift(w1, w2, r1[-1])
-    first_val = r1[-1] + shift / w2
-    r2 = np.arange(first_val, first_val + max_angle // 2, granularity)
-    lefthalf = np.sin(w1 * r1)
-    value_shift = np.sin(w1 * r1[-1]) - np.sin(w2 * r2[0])
-    righthalf = np.sin(w2 * r2) + value_shift
+def generate_one_curve(w_list, num_points, initial_phase=None, granularity=0.1):
+    N = len(w_list)
+    if initial_phase is None:
+        first_x = np.random.rand() * 2 * math.pi / w_list[0]
+    else:
+        first_x = initial_phase / w_list[0]
 
-    y = np.concatenate([lefthalf[:-1], righthalf])
-    x = np.concatenate([r1[:-1], r2 - shift / w2])
-    return y, x
+    prev_w = None
+    prev_last_y = None
+    y_shift = 0
+    all_y = []
+    for step, w in zip(num_points, w_list):
+        if prev_w:
+            x_shift = angle_shift(prev_w, w, x_space[-1])
+            first_x = x_shift / w
+
+        x_space = np.arange(first_x, first_x + step, granularity)
+        if prev_last_y:
+            y_shift = prev_last_y - np.sin(w * x_space[0])
+
+        y_space = np.sin(w * x_space) + y_shift
+        all_y.append(y_space[:-1])
+        prev_last_y = y_space[-1]
+        prev_w = w
+    y = np.concatenate(all_y)
+    return y
 
 
 def apply_rotation(xy, radians):
@@ -76,15 +98,15 @@ def rotate_curve(x, curve, rotate_radian):
 
 def get_img(w_list, img_sz, vertical_shifts: list, horizontal_shifts: list, rotate_radians: list,
             curve_amplitudes: list,
-            random_w12_flips: list, curve_thickness):
+            random_w12_flips: list, curve_thickness, connecting_w_len: float):
     assert len(vertical_shifts) == len(rotate_radians)
     assert len(vertical_shifts) == len(curve_amplitudes)
     img = np.zeros((img_sz, img_sz))
     for i in range(len(w_list)):
-        w1, w2 = w_list[i]
-        add_to_img(img, w1, w2, vertical_shift=vertical_shifts[i], horizontal_shift=horizontal_shifts[i],
+        add_to_img(img, w_list[i], vertical_shift=vertical_shifts[i], horizontal_shift=horizontal_shifts[i],
                    flip_about_vertical=random_w12_flips[i],
-                   rotate_radian=rotate_radians[i], curve_amplitude=curve_amplitudes[i], thickness=curve_thickness)
+                   rotate_radian=rotate_radians[i], curve_amplitude=curve_amplitudes[i], thickness=curve_thickness,
+                   connecting_w_len=connecting_w_len)
 
     return img
 
@@ -104,13 +126,35 @@ def add_thickness(img, thickness, x, curve):
             img[temp_curve[filtr], temp_x[filtr]] += 1 / (np.sqrt(0.5 * (col_shift ** 2 + row_shift ** 2)))
 
 
-def add_to_img(img, w1, w2, vertical_shift=None, horizontal_shift: int = 0.0, flip_about_vertical=False,
+def get_num_points(tot_points, num_w, connecting_w_len):
+    """
+    Returns number of points we need for each sine curve with frequency w.
+    Args:
+        tot_points:Total number of points to be generated.
+        num_w: Number of frequencies in one curve
+        connecting_w_len: What fraction of points to be allocated for central curve.
+
+    Returns:
+
+    """
+    if connecting_w_len is None:
+        num_points = [tot_points // num_w] * num_w
+    else:
+        assert num_w == 3
+        connecting_points = int(connecting_w_len * tot_points)
+        edge_points = (tot_points - connecting_points) // 2
+        num_points = [edge_points, connecting_points, edge_points]
+    return num_points
+
+
+def add_to_img(img, w_list, vertical_shift=None, horizontal_shift: int = 0.0, flip_about_vertical=False,
                rotate_radian=None, curve_amplitude=None,
-               thickness=None):
+               thickness=None, connecting_w_len=None):
     assert thickness % 2 == 1
-    max_angle = img.shape[-1] + abs(int(horizontal_shift))
+    num_points = get_num_points(img.shape[1] + abs(horizontal_shift), len(w_list), connecting_w_len)
     granularity = 0.1
-    curve, x = generate_one_curve(w1, w2, max_angle, granularity=granularity)
+    curve = generate_one_curve(w_list, num_points, granularity=granularity)
+    x = np.arange(len(curve)) * granularity
     curve *= curve_amplitude
     if flip_about_vertical:
         min_x = min(x)
@@ -143,20 +187,20 @@ class Range:
         return np.random.rand() * (self.max - self.min) + self.min
 
 
-def sample_for_channel1(w_rangelist):
+def sample_for_channel1(w_rangelist, joining_frequency):
     assert len(w_rangelist) == 4
     if np.random.rand() > 0.5:
-        return w_rangelist[0].sample(), w_rangelist[2].sample()
+        return w_rangelist[0].sample(), joining_frequency, w_rangelist[2].sample()
     else:
-        return w_rangelist[1].sample(), w_rangelist[3].sample()
+        return w_rangelist[1].sample(), joining_frequency, w_rangelist[3].sample()
 
 
-def sample_for_channel2(w_rangelist):
+def sample_for_channel2(w_rangelist, joining_frequency):
     assert len(w_rangelist) == 4
     if np.random.rand() > 0.5:
-        return w_rangelist[0].sample(), w_rangelist[3].sample()
+        return w_rangelist[0].sample(), joining_frequency, w_rangelist[3].sample()
     else:
-        return w_rangelist[1].sample(), w_rangelist[2].sample()
+        return w_rangelist[1].sample(), joining_frequency, w_rangelist[2].sample()
 
 
 def spaced_out_vertical_shifts(max_value, num_curves, min_spacing):
@@ -193,7 +237,9 @@ def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64
                      flip_w12_randomly=False,
                      curve_thickness=31,
                      encourage_non_overlap_single_channel=False,
-                     vertical_min_spacing=0
+                     vertical_min_spacing=0,
+                     joining_frequency=0.01,
+                     connecting_w_len=0.5,
                      ):
     """
 
@@ -238,19 +284,19 @@ def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64
         return rand_vertical_shifts, rand_horizontal_shifts
 
     for _ in tqdm(range(size)):
-        w1_list = [sample_for_channel1(w_rangelist) for _ in range(num_curves)]
+        w1_list = [sample_for_channel1(w_rangelist, joining_frequency) for _ in range(num_curves)]
         rotate_radians = [sample_angle() for _ in range(num_curves)]
         vertical_shifts, horizontal_shifts = get_shifts()
         img1 = get_img(w1_list, img_sz, vertical_shifts, horizontal_shifts, rotate_radians,
                        [curve_amplitude] * num_curves,
-                       get_random_w12_flips(), curve_thickness)
+                       get_random_w12_flips(), curve_thickness, connecting_w_len)
 
-        w2_list = [sample_for_channel2(w_rangelist) for _ in range(num_curves)]
+        w2_list = [sample_for_channel2(w_rangelist, joining_frequency) for _ in range(num_curves)]
         vertical_shifts, horizontal_shifts = get_shifts()
         rotate_radians = [sample_angle() for _ in range(num_curves)]
         img2 = get_img(w2_list, img_sz, vertical_shifts, horizontal_shifts, rotate_radians,
                        [curve_amplitude] * num_curves,
-                       get_random_w12_flips(), curve_thickness)
+                       get_random_w12_flips(), curve_thickness, connecting_w_len)
 
         ch1_dset.append(img1[None])
         ch2_dset.append(img2[None])
@@ -276,6 +322,8 @@ class CustomDataManager:
         fname += f'_MR-{self._dconfig.max_rotation}'
         fname += f'_VF-{self._dconfig.max_vshift_factor}'
         fname += f'_HF-{self._dconfig.max_hshift_factor}'
+        fname += f'_CfL-{self._dconfig.connecting_w_len}'
+        
         if self._dconfig.encourage_non_overlap_single_channel:
             fname += f'_NO-{self._dconfig.vertical_min_spacing}'
 
@@ -331,6 +379,7 @@ def train_val_data(data_dir, data_config, is_train, val_fraction=None):
     max_vertical_shift_factor = data_config.max_vshift_factor
     max_horizontal_shift_factor = data_config.max_hshift_factor
     encourage_non_overlap_single_channel = data_config.encourage_non_overlap_single_channel
+    connecting_w_len = data_config.connecting_w_len
     if encourage_non_overlap_single_channel:
         vertical_min_spacing = data_config.vertical_min_spacing
     else:
@@ -352,7 +401,7 @@ def train_val_data(data_dir, data_config, is_train, val_fraction=None):
                                         flip_w12_randomly=flip_w12_randomly,
                                         curve_thickness=curve_thickness,
                                         encourage_non_overlap_single_channel=encourage_non_overlap_single_channel,
-                                        vertical_min_spacing=vertical_min_spacing)
+                                        vertical_min_spacing=vertical_min_spacing, connecting_w_len=connecting_w_len)
         imgs1 = imgs1[..., None]
         imgs2 = imgs2[..., None]
         data = np.concatenate([imgs1, imgs2], axis=3)
