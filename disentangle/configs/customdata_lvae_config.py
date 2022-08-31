@@ -13,29 +13,30 @@ def get_config():
     data.frame_size = 128
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
-    data.curve_amplitude = 8.0
-    data.num_curves = 1
-    data.max_rotation = 0.0
-    data.curve_thickness = 21
+    data.curve_amplitude = 11.0
+    data.num_curves = 2
+    data.max_rotation = math.pi / 24
+    data.curve_thickness = 5
     data.max_vshift_factor = 0.7
     data.max_hshift_factor = 0.1
-    data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
+    data.frequency_range_list = [(0.1, 0.12), (0.2, 0.22), (0.4, 0.42), (0.7, 0.72)]
 
     data.sampler_type = SamplerType.DefaultSampler
-    data.deterministic_grid = False
+    data.deterministic_grid = True
     data.normalized_input = True
     # If this is set to true, then one mean and stdev is used for both channels. If False, two different
     # meean and stdev are used. If None, 0 mean and 1 std is used.
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 2
+    data.multiscale_lowres_count = None
     data.padding_mode = 'constant'
     data.padding_value = 0
-    data.encourage_non_overlap_single_channel = True
+    data.encourage_non_overlap_single_channel = False
     data.vertical_min_spacing = data.curve_amplitude * 2
     # 0.5 would mean that 50% of the points would be covered with the connecting w.
-    data.connecting_w_len = 0.4
+    data.connecting_w_len = 0.2
+    data.curve_initial_phase = 0.0
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -49,8 +50,8 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVAEMultiTarget
-    model.z_dims = [128, 128, 128, 128]
+    model.model_type = ModelType.LadderVae
+    model.z_dims = [128, 128, 128]
     model.blocks_per_layer = 3
     model.nonlin = 'elu'
     model.merge_type = 'residual'
