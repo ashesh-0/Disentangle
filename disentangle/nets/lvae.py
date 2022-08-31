@@ -1,6 +1,7 @@
 """
 Ladder VAE. Adapted from from https://github.com/juglab/HDN/blob/main/models/lvae.py
 """
+
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -448,7 +449,6 @@ class LadderVAE(pl.LightningModule):
 
         out, td_data = self.forward(x_normalized)
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
-
         self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
         self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
 

@@ -13,13 +13,13 @@ def get_config():
     data.frame_size = 64
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
-    data.curve_amplitude = 8.0
+    data.curve_amplitude = 5.0
     data.num_curves = 1
     data.max_rotation = 0.0
     data.curve_thickness = 5
-    data.max_vshift_factor = 0.7
+    data.max_vshift_factor = 0.6
     data.max_hshift_factor = 0.1
-    data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
+    data.frequency_range_list = [(0.1, 0.12), (0.2, 0.22), (0.4, 0.42), (0.7, 0.72)]
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = True
@@ -36,6 +36,7 @@ def get_config():
     data.vertical_min_spacing = data.curve_amplitude * 2
     # 0.5 would mean that 50% of the points would be covered with the connecting w.
     data.connecting_w_len = 0.2
+    data.curve_initial_phase = 0.0
 
     loss = config.loss
     loss.loss_type = LossType.Elbo

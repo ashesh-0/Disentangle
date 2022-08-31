@@ -53,6 +53,7 @@ def generate_one_curve(w_list, num_points, initial_phase=None, granularity=0.1):
         all_y.append(y_space[:-1])
         prev_last_y = y_space[-1]
         prev_w = w
+
     y = np.concatenate(all_y)
     return y
 
@@ -98,7 +99,7 @@ def rotate_curve(x, curve, rotate_radian):
 
 def get_img(w_list, img_sz, vertical_shifts: list, horizontal_shifts: list, rotate_radians: list,
             curve_amplitudes: list,
-            random_w12_flips: list, curve_thickness, connecting_w_len: float):
+            random_w12_flips: list, curve_thickness, connecting_w_len: float, curve_initial_phase=None):
     assert len(vertical_shifts) == len(rotate_radians)
     assert len(vertical_shifts) == len(curve_amplitudes)
     img = np.zeros((img_sz, img_sz))
@@ -106,7 +107,7 @@ def get_img(w_list, img_sz, vertical_shifts: list, horizontal_shifts: list, rota
         add_to_img(img, w_list[i], vertical_shift=vertical_shifts[i], horizontal_shift=horizontal_shifts[i],
                    flip_about_vertical=random_w12_flips[i],
                    rotate_radian=rotate_radians[i], curve_amplitude=curve_amplitudes[i], thickness=curve_thickness,
-                   connecting_w_len=connecting_w_len)
+                   connecting_w_len=connecting_w_len, curve_initial_phase=curve_initial_phase)
 
     return img
 
@@ -149,11 +150,11 @@ def get_num_points(tot_points, num_w, connecting_w_len):
 
 def add_to_img(img, w_list, vertical_shift=None, horizontal_shift: int = 0.0, flip_about_vertical=False,
                rotate_radian=None, curve_amplitude=None,
-               thickness=None, connecting_w_len=None):
+               thickness=None, connecting_w_len=None, curve_initial_phase=None):
     assert thickness % 2 == 1
     num_points = get_num_points(img.shape[1] + abs(horizontal_shift), len(w_list), connecting_w_len)
     granularity = 0.1
-    curve = generate_one_curve(w_list, num_points, granularity=granularity)
+    curve = generate_one_curve(w_list, num_points, granularity=granularity, initial_phase=curve_initial_phase)
     x = np.arange(len(curve)) * granularity
     curve *= curve_amplitude
     if flip_about_vertical:
@@ -240,6 +241,7 @@ def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64
                      vertical_min_spacing=0,
                      joining_frequency=0.01,
                      connecting_w_len=0.5,
+                     curve_initial_phase=None,
                      ):
     """
 
@@ -289,14 +291,16 @@ def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64
         vertical_shifts, horizontal_shifts = get_shifts()
         img1 = get_img(w1_list, img_sz, vertical_shifts, horizontal_shifts, rotate_radians,
                        [curve_amplitude] * num_curves,
-                       get_random_w12_flips(), curve_thickness, connecting_w_len)
+                       get_random_w12_flips(), curve_thickness, connecting_w_len,
+                       curve_initial_phase=curve_initial_phase)
 
         w2_list = [sample_for_channel2(w_rangelist, joining_frequency) for _ in range(num_curves)]
         vertical_shifts, horizontal_shifts = get_shifts()
         rotate_radians = [sample_angle() for _ in range(num_curves)]
         img2 = get_img(w2_list, img_sz, vertical_shifts, horizontal_shifts, rotate_radians,
                        [curve_amplitude] * num_curves,
-                       get_random_w12_flips(), curve_thickness, connecting_w_len)
+                       get_random_w12_flips(), curve_thickness, connecting_w_len,
+                       curve_initial_phase=curve_initial_phase)
 
         ch1_dset.append(img1[None])
         ch2_dset.append(img2[None])
@@ -323,9 +327,11 @@ class CustomDataManager:
         fname += f'_VF-{self._dconfig.max_vshift_factor}'
         fname += f'_HF-{self._dconfig.max_hshift_factor}'
         fname += f'_CfL-{self._dconfig.connecting_w_len}'
-        
+
         if self._dconfig.encourage_non_overlap_single_channel:
             fname += f'_NO-{self._dconfig.vertical_min_spacing}'
+        if self._dconfig.curve_initial_phase is not None:
+            fname += f'_ph-{self._dconfig.curve_initial_phase}'
 
         fr = self._dconfig.frequency_range_list
         diff = [fr[i][1] - fr[i][0] for i in range(len(fr))]
@@ -380,6 +386,7 @@ def train_val_data(data_dir, data_config, is_train, val_fraction=None):
     max_horizontal_shift_factor = data_config.max_hshift_factor
     encourage_non_overlap_single_channel = data_config.encourage_non_overlap_single_channel
     connecting_w_len = data_config.connecting_w_len
+    curve_initial_phase = data_config.curve_initial_phase
     if encourage_non_overlap_single_channel:
         vertical_min_spacing = data_config.vertical_min_spacing
     else:
@@ -401,7 +408,9 @@ def train_val_data(data_dir, data_config, is_train, val_fraction=None):
                                         flip_w12_randomly=flip_w12_randomly,
                                         curve_thickness=curve_thickness,
                                         encourage_non_overlap_single_channel=encourage_non_overlap_single_channel,
-                                        vertical_min_spacing=vertical_min_spacing, connecting_w_len=connecting_w_len)
+                                        vertical_min_spacing=vertical_min_spacing,
+                                        connecting_w_len=connecting_w_len,
+                                        curve_initial_phase=curve_initial_phase)
         imgs1 = imgs1[..., None]
         imgs2 = imgs2[..., None]
         data = np.concatenate([imgs1, imgs2], axis=3)
