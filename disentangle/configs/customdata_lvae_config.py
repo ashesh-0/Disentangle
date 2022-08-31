@@ -17,7 +17,7 @@ def get_config():
     data.num_curves = 3
     data.max_rotation = 0.0
     data.curve_thickness = 5
-    data.max_vshift_factor = 0.7
+    data.max_vshift_factor = 0.9
     data.max_hshift_factor = 0.1
     data.frequency_range_list = [(0.1, 0.12), (0.2, 0.22), (0.4, 0.42), (0.7, 0.72)]
 
