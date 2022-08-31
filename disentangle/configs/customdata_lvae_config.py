@@ -29,13 +29,13 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 3
     data.padding_mode = 'constant'
     data.padding_value = 0
     data.encourage_non_overlap_single_channel = False
     data.vertical_min_spacing = data.curve_amplitude * 2
     # 0.5 would mean that 50% of the points would be covered with the connecting w.
-    data.connecting_w_len = 0.2
+    data.connecting_w_len = 0.4
     data.curve_initial_phase = 0.0
 
     loss = config.loss
@@ -50,7 +50,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVAEMultiTarget
     model.z_dims = [128, 128, 128]
     model.blocks_per_layer = 3
     model.nonlin = 'elu'
