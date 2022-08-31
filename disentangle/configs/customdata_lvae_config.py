@@ -22,7 +22,7 @@ def get_config():
     data.frequency_range_list = [(0.1, 0.12), (0.2, 0.22), (0.4, 0.42), (0.7, 0.72)]
 
     data.sampler_type = SamplerType.DefaultSampler
-    data.deterministic_grid = True
+    data.deterministic_grid = False
     data.normalized_input = True
     # If this is set to true, then one mean and stdev is used for both channels. If False, two different
     # meean and stdev are used. If None, 0 mean and 1 std is used.
