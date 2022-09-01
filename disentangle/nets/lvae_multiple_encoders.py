@@ -18,7 +18,6 @@ class LadderVAEMultipleEncoders(LadderVAE):
         self.first_bottom_up_ch2 = copy.deepcopy(self.first_bottom_up)
         self.lowres_first_bottom_ups_ch1 = self.lowres_first_bottom_ups_ch2 = None
         self.share_bottom_up_starting_idx = config.model.share_bottom_up_starting_idx
-        self.use_random_for_missing_inp = config.model.use_random_for_missing_inp
         self.mixed_input_type = config.data.mixed_input_type
         self.separate_mix_branch_training = config.model.separate_mix_branch_training
         if self.lowres_first_bottom_ups is not None:

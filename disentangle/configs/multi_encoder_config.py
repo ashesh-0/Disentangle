@@ -65,12 +65,9 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     # stochastic layers below this are shared.
-    model.share_bottom_up_starting_idx = 2
-    model.learnable_merge_tensors = False
-    model.use_random_for_missing_inp = True
+    model.share_bottom_up_starting_idx = 1
     # if true, then the mixed branch does not effect the vae training. it only updates its own weights.
     model.separate_mix_branch_training = False
-    assert model.learnable_merge_tensors is False or model.use_random_for_missing_inp is False
 
     training = config.training
     training.lr = 0.001
