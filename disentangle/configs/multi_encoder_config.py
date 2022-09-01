@@ -69,7 +69,7 @@ def get_config():
     model.learnable_merge_tensors = False
     model.use_random_for_missing_inp = True
     # if true, then the mixed branch does not effect the vae training. it only updates its own weights.
-    model.separate_mix_branch_training = True
+    model.separate_mix_branch_training = False
     assert model.learnable_merge_tensors is False or model.use_random_for_missing_inp is False
 
     training = config.training
