@@ -547,7 +547,7 @@ class LadderVAE(pl.LightningModule):
     def bottomup_pass(self, inp):
         return self._bottomup_pass(inp, self.first_bottom_up, self.lowres_first_bottom_ups, self.bottom_up_layers)
 
-    def _bottomup_pass(self, inp, first_bottom_up, lowrs_first_bottom_ups, bottom_up_layers):
+    def _bottomup_pass(self, inp, first_bottom_up, lowres_first_bottom_ups, bottom_up_layers):
 
         if self._multiscale_count > 1:
             # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.

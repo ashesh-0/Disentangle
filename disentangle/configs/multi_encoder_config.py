@@ -24,8 +24,8 @@ def get_config():
     data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
-    data.mixed_input_type = 'aligned'
-    data.supervised_data_fraction = 0.5
+    data.mixed_input_type = 'consistent_with_single_inputs'
+    data.supervised_data_fraction = 0.0
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -68,6 +68,8 @@ def get_config():
     model.share_bottom_up_starting_idx = 2
     model.learnable_merge_tensors = False
     model.use_random_for_missing_inp = True
+    # if true, then the mixed branch does not effect the vae training. it only updates its own weights.
+    model.separate_mix_branch_training = True
     assert model.learnable_merge_tensors is False or model.use_random_for_missing_inp is False
 
     training = config.training
