@@ -14,6 +14,7 @@ class SemiSupDloader(MultiChDeterministicTiffDloader):
                  enable_rotation_aug: bool = False,
                  use_one_mu_std=None,
                  mixed_input_type=None,
+                 return_supervision_mask=True,
                  supervised_data_fraction=0.0,
                  ):
         super().__init__(data_config,
@@ -34,11 +35,13 @@ class SemiSupDloader(MultiChDeterministicTiffDloader):
         """
         assert self._enable_rotation is False
         self._mixed_input_type = mixed_input_type
+        self._return_supervision_mask = return_supervision_mask
         assert MixedInputType.contains(self._mixed_input_type)
 
         self._supervised_data_fraction = supervised_data_fraction
         self._supervised_indices = self._get_supervised_indices()
-        print(f'[{self.__class__.__name__}] Supf:{self._supervised_data_fraction}')
+        print(f'[{self.__class__.__name__}] Supf:{self._supervised_data_fraction} '
+              f'ReturnMask:{self._return_supervision_mask}')
 
     def _get_supervised_indices(self):
         N = len(self)
@@ -46,9 +49,10 @@ class SemiSupDloader(MultiChDeterministicTiffDloader):
         return arr[:int(N * self._supervised_data_fraction)]
 
     def __getitem__(self, index):
+
         if index in self._supervised_indices:
-            mixed, singlechannnels = super().__getitem__(index)
-            return mixed, singlechannnels, True  # np.array([1])
+            mixed, singlechannels = super().__getitem__(index)
+            supervision_mask = True
 
         elif self._mixed_input_type == MixedInputType.Aligned:
             mixed, _ = super().__getitem__(index)
@@ -57,7 +61,7 @@ class SemiSupDloader(MultiChDeterministicTiffDloader):
             index = np.random.randint(len(self))
             _, img2 = self._get_img(index)
             singlechannels = np.concatenate([img1, img2], axis=0)
-            return mixed, singlechannels, False  # np.array([0])
+            supervision_mask = False
 
         elif self._mixed_input_type == MixedInputType.ConsistentWithSingleInputs:
             index = np.random.randint(len(self))
@@ -69,4 +73,9 @@ class SemiSupDloader(MultiChDeterministicTiffDloader):
                 img1, img2 = self.normalize_img(img1, img2)
 
             mixed = (0.5 * img1 + 0.5 * img2).astype(np.float32)
-            return mixed, singlechannels, False
+            supervision_mask = False
+
+        if self._return_supervision_mask:
+            return mixed, singlechannels, supervision_mask
+        else:
+            return mixed, singlechannels

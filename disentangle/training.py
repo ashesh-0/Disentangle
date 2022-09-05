@@ -12,6 +12,7 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from torch.utils.data import DataLoader
 
+from disentangle.core.dloader_type import DloaderType
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
@@ -94,14 +95,18 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         else:
             train_data_kwargs = {}
             val_data_kwargs = {}
-            if config.model.model_type == ModelType.LadderVaeSepEncoder:
+
+            if config.model.model_type == ModelType.LadderVaeSepEncoder or (
+                    config.data.dloader_type == DloaderType.SemiSupervised):
                 data_class = SemiSupDloader
-                # mixed_input_type = None,
-                # supervised_data_fraction = 0.0,
+                return_supervision_mask = config.data.get('return_supervision_mask', True)
                 train_data_kwargs['mixed_input_type'] = config.data.mixed_input_type
                 train_data_kwargs['supervised_data_fraction'] = config.data.supervised_data_fraction
+                train_data_kwargs['return_supervision_mask'] = return_supervision_mask
+
                 val_data_kwargs['mixed_input_type'] = config.data.mixed_input_type
                 val_data_kwargs['supervised_data_fraction'] = 1.0
+                val_data_kwargs['return_supervision_mask'] = return_supervision_mask
             else:
                 train_data_kwargs['enable_random_cropping'] = enable_random_cropping
                 val_data_kwargs['enable_random_cropping'] = False

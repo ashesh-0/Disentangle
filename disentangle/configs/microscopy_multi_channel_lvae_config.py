@@ -3,6 +3,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
+from disentangle.core.dloader_type import DloaderType
 
 
 def get_config():
@@ -10,6 +11,11 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
+    data.dloader_type = DloaderType.SemiSupervised
+    data.return_supervision_mask = False
+    data.mixed_input_type = 'consistent_with_single_inputs'
+    data.supervised_data_fraction = 0.5
+
     data.channel_1 = 0
     data.channel_2 = 2
     data.sampler_type = SamplerType.DefaultSampler
