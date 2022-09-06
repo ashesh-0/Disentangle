@@ -223,7 +223,7 @@ class LadderVAE(pl.LightningModule):
             modules.append(BottomUpDeterministicResBlock(
                 c_in=self.n_filters,
                 c_out=self.n_filters,
-                nonlin=nonlin(),
+                nonlin=nonlin,
                 batchnorm=self.batchnorm,
                 dropout=self.dropout,
                 res_block_type=self.res_block_type,
