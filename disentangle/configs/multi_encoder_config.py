@@ -24,7 +24,7 @@ def get_config():
     data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
-    data.mixed_input_type = 'aligned'
+    data.mixed_input_type = 'consistent_with_single_inputs'
     data.supervised_data_fraction = 0.5
 
     loss = config.loss
@@ -48,7 +48,7 @@ def get_config():
     model.stochastic_skip = True
     model.n_filters = 64
     model.dropout = 0.1
-    model.learn_top_prior = False
+    model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
     model.gated = True
@@ -65,7 +65,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     # stochastic layers below this are shared.
-    model.share_bottom_up_starting_idx = 2
+    model.share_bottom_up_starting_idx = 3
     model.learnable_merge_tensors = False
     model.use_random_for_missing_inp = True
     assert model.learnable_merge_tensors is False or model.use_random_for_missing_inp is False
