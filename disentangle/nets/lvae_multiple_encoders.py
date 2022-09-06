@@ -14,8 +14,10 @@ class LadderVAEMultipleEncoders(LadderVAE):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
         self.bottom_up_layers_ch1 = nn.ModuleList([])
         self.bottom_up_layers_ch2 = nn.ModuleList([])
-        self.first_bottom_up_ch1 = copy.deepcopy(self.first_bottom_up)
-        self.first_bottom_up_ch2 = copy.deepcopy(self.first_bottom_up)
+        stride = 1 if config.model.no_initial_downscaling else 2
+        fbu_num_blocks = config.model.fbu_num_blocks
+        self.first_bottom_up_ch1 = self.create_first_bottom_up(stride, num_blocks=fbu_num_blocks)
+        self.first_bottom_up_ch2 = self.create_first_bottom_up(stride, num_blocks=fbu_num_blocks)
         self.lowres_first_bottom_ups_ch1 = self.lowres_first_bottom_ups_ch2 = None
         self.share_bottom_up_starting_idx = config.model.share_bottom_up_starting_idx
         self.use_random_for_missing_inp = config.model.use_random_for_missing_inp
@@ -67,7 +69,8 @@ class LadderVAEMultipleEncoders(LadderVAE):
             self.bottom_up_layers_ch2.append(blayer)
 
         msg = f'[{self.__class__.__name__}] ShareStartIdx:{self.share_bottom_up_starting_idx} ' \
-              f'LearnTensors:{self._learnable_merge_tensors}'
+              f'LearnTensors:{self._learnable_merge_tensors} ' \
+              f'FirstBUNumBlocks:{fbu_num_blocks}'
         print(msg)
 
     def get_bottom_up_layer(self, ith_layer, lowres_separate_branch, enable_multiscale, multiscale_lowres_size_factor):
