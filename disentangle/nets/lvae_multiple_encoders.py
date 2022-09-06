@@ -16,6 +16,8 @@ class LadderVAEMultipleEncoders(LadderVAE):
         self.bottom_up_layers_ch2 = nn.ModuleList([])
         stride = 1 if config.model.no_initial_downscaling else 2
         fbu_num_blocks = config.model.fbu_num_blocks
+        del self.first_bottom_up
+        self.first_bottom_up = self.create_first_bottom_up(stride, num_blocks=fbu_num_blocks)
         self.first_bottom_up_ch1 = self.create_first_bottom_up(stride, num_blocks=fbu_num_blocks)
         self.first_bottom_up_ch2 = self.create_first_bottom_up(stride, num_blocks=fbu_num_blocks)
         self.lowres_first_bottom_ups_ch1 = self.lowres_first_bottom_ups_ch2 = None
