@@ -14,7 +14,7 @@ def get_config():
     data.dloader_type = DloaderType.SemiSupervised
     data.return_supervision_mask = False
     data.mixed_input_type = 'consistent_with_single_inputs'
-    data.supervised_data_fraction = 0.5
+    data.supervised_data_fraction = 0.0
 
     data.channel_1 = 0
     data.channel_2 = 2
