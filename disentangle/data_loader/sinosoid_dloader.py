@@ -159,11 +159,61 @@ def sample_for_channel2(w_rangelist):
         return w_rangelist[1].sample(), w_rangelist[2].sample()
 
 
+def spaced_out_vertical_shifts(max_value, num_curves, min_spacing):
+    """
+    Sometimes the vertical shifts are too close.The idea is to generate them in such a way that they don't
+    overlap on each other
+    min_spacing: enforces the minimum distance between the start point of the curves
+    """
+    if num_curves == 1:
+        return np.random.rand() * max_value
+
+    bucket_size = 1 / num_curves
+    # normalizing min_spacing
+    min_spacing = min_spacing / max_value
+
+    assert bucket_size > min_spacing, 'min_spacing is too small'
+
+    # adding bucket_size/10 ensures that 1 also comes in this range.
+    disjoint_ranges = np.arange(0, 1 + bucket_size / 10, bucket_size)
+    output = []
+    range_s = 0
+    for range_e in disjoint_ranges[1:]:
+        # generate a value between [start_s+min_spacing/2, end_s-min_spacing/2]
+        norm_shift = np.random.rand() * (bucket_size - min_spacing) + range_s + min_spacing / 2
+        output.append(norm_shift * max_value)
+        range_s = range_e
+    assert len(output) == num_curves
+    return output
+
+
 def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64, max_rotation=math.pi / 8,
                      max_vertical_shift_factor=0.8,
                      max_horizontal_shift_factor=0.3,
                      flip_w12_randomly=False,
-                     curve_thickness=31):
+                     curve_thickness=31,
+                     encourage_non_overlap_single_channel=False,
+                     vertical_min_spacing=0
+                     ):
+    """
+
+    Args:
+        w_rangelist:
+        size:
+        img_sz:
+        num_curves:
+        curve_amplitude:
+        max_rotation:
+        max_vertical_shift_factor:
+        max_horizontal_shift_factor:
+        flip_w12_randomly:
+        encourage_non_overlap_single_channel: If True, curves of a single channel are well spaced vertically to prevent
+                                overlap. Note that there is overlap of curves between the two channels.
+        curve_thickness:
+
+    Returns:
+
+    """
     ch1_dset = []
     ch2_dset = []
 
@@ -178,7 +228,11 @@ def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64
         return random_w12_flips
 
     def get_shifts():
-        rand_vertical_shifts = [np.random.rand() * img_sz * max_vertical_shift_factor for _ in range(num_curves)]
+        if encourage_non_overlap_single_channel:
+            rand_vertical_shifts = spaced_out_vertical_shifts(img_sz * max_vertical_shift_factor, num_curves,
+                                                              vertical_min_spacing)
+        else:
+            rand_vertical_shifts = [np.random.rand() * img_sz * max_vertical_shift_factor for _ in range(num_curves)]
         rand_horizontal_shifts = [np.random.rand() * img_sz * max_horizontal_shift_factor for _ in range(num_curves)]
         rand_horizontal_shifts = [x * -1 if np.random.rand() > 0.5 else x for x in rand_horizontal_shifts]
         return rand_vertical_shifts, rand_horizontal_shifts
@@ -222,6 +276,8 @@ class CustomDataManager:
         fname += f'_MR-{self._dconfig.max_rotation}'
         fname += f'_VF-{self._dconfig.max_vshift_factor}'
         fname += f'_HF-{self._dconfig.max_hshift_factor}'
+        if self._dconfig.encourage_non_overlap_single_channel:
+            fname += f'_NO-{self._dconfig.vertical_min_spacing}'
 
         fr = self._dconfig.frequency_range_list
         diff = [fr[i][1] - fr[i][0] for i in range(len(fr))]
@@ -274,6 +330,11 @@ def train_val_data(data_dir, data_config, is_train, val_fraction=None):
     curve_thickness = data_config.curve_thickness
     max_vertical_shift_factor = data_config.max_vshift_factor
     max_horizontal_shift_factor = data_config.max_hshift_factor
+    encourage_non_overlap_single_channel = data_config.encourage_non_overlap_single_channel
+    if encourage_non_overlap_single_channel:
+        vertical_min_spacing = data_config.vertical_min_spacing
+    else:
+        vertical_min_spacing = 0
     # I think this needs to be True for the data to be only dependant on the pairing. And not who is on left/right.
     flip_w12_randomly = True
     data_dict = None
@@ -289,7 +350,9 @@ def train_val_data(data_dir, data_config, is_train, val_fraction=None):
                                         max_vertical_shift_factor=max_vertical_shift_factor,
                                         max_horizontal_shift_factor=max_horizontal_shift_factor,
                                         flip_w12_randomly=flip_w12_randomly,
-                                        curve_thickness=curve_thickness)
+                                        curve_thickness=curve_thickness,
+                                        encourage_non_overlap_single_channel=encourage_non_overlap_single_channel,
+                                        vertical_min_spacing=vertical_min_spacing)
         imgs1 = imgs1[..., None]
         imgs2 = imgs2[..., None]
         data = np.concatenate([imgs1, imgs2], axis=3)
