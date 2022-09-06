@@ -65,7 +65,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     # stochastic layers below this are shared.
-    model.share_bottom_up_starting_idx = 0
+    model.share_bottom_up_starting_idx = 1
     # number of residual blocks in first bottom up
     model.fbu_num_blocks = 4
     model.learnable_merge_tensors = False
