@@ -319,7 +319,8 @@ class CustomDataManager:
             os.remove(fpath)
 
 
-def train_val_data(data_dir, data_config, is_train, val_fraction=None):
+def train_val_data(data_dir, data_config, is_train, val_fraction=None, allow_generation=False):
+    assert isinstance(allow_generation, bool)
     datamanager = CustomDataManager(data_dir, data_config)
     total_size = data_config.total_size
     frequency_range_list = data_config.frequency_range_list
@@ -337,9 +338,12 @@ def train_val_data(data_dir, data_config, is_train, val_fraction=None):
         vertical_min_spacing = 0
     # I think this needs to be True for the data to be only dependant on the pairing. And not who is on left/right.
     flip_w12_randomly = True
-    data_dict = None
     if datamanager.exists():
         data_dict = datamanager.load()
+    else:
+        data_dict = None
+        fpath = os.path.join(data_dir, datamanager.fname())
+        assert allow_generation is True, f"{fpath} does not exist and Data generation is not allowed"
 
     if data_dict is None:
         print('Data not found in the file. generating the data')
