@@ -114,16 +114,7 @@ class LadderVAE(pl.LightningModule):
         # First bottom-up layer: change num channels + downsample by factor 2
         # unless we want to prevent this
         stride = 1 if config.model.no_initial_downscaling else 2
-        self.first_bottom_up = nn.Sequential(
-            nn.Conv2d(self.color_ch, self.n_filters, 5, padding=2, stride=stride), nonlin(),
-            BottomUpDeterministicResBlock(
-                c_in=self.n_filters,
-                c_out=self.n_filters,
-                nonlin=nonlin,
-                batchnorm=self.batchnorm,
-                dropout=self.dropout,
-                res_block_type=self.res_block_type,
-            ))
+        self.first_bottom_up = self.create_first_bottom_up(stride)
 
         self.multiscale_retain_spatial_dims = config.model.multiscale_retain_spatial_dims
         self.lowres_first_bottom_ups = self._multiscale_count = None
@@ -225,6 +216,20 @@ class LadderVAE(pl.LightningModule):
         # PSNR computation on validation.
         self.label1_psnr = RunningPSNR()
         self.label2_psnr = RunningPSNR()
+
+    def create_first_bottom_up(self, init_stride, num_blocks=1):
+        nonlin = self.get_nonlin()
+        modules = [nn.Conv2d(self.color_ch, self.n_filters, 5, padding=2, stride=init_stride), nonlin()]
+        for _ in range(num_blocks):
+            modules.append(BottomUpDeterministicResBlock(
+                c_in=self.n_filters,
+                c_out=self.n_filters,
+                nonlin=nonlin,
+                batchnorm=self.batchnorm,
+                dropout=self.dropout,
+                res_block_type=self.res_block_type,
+            ))
+        return nn.Sequential(*modules)
 
     def _init_multires(self, config):
         """
