@@ -22,6 +22,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
                  num_scales: int = None,
                  enable_random_cropping=False,
                  padding_kwargs: dict = None,
+                 allow_generation: bool = False,
                  ):
         """
         Args:
@@ -36,7 +37,8 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
                          normalized_input=normalized_input,
                          enable_rotation_aug=enable_rotation_aug,
                          enable_random_cropping=enable_random_cropping,
-                         use_one_mu_std=use_one_mu_std)
+                         use_one_mu_std=use_one_mu_std,
+                         allow_generation=allow_generation)
         self.num_scales = num_scales
         assert self.num_scales is not None
         self._scaled_data = [self._data]

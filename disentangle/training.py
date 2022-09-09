@@ -76,7 +76,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 enable_rotation_aug=train_aug_rotate,
                 enable_random_cropping=enable_random_cropping,
                 num_scales=config.data.multiscale_lowres_count,
-                padding_kwargs=padding_kwargs)
+                padding_kwargs=padding_kwargs,
+                allow_generation=True)
             val_data = MultiScaleTiffDloader(
                 config.data,
                 datapath,
@@ -89,6 +90,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 # No random cropping on validation. Validation is evaluated on determistic grids
                 num_scales=config.data.multiscale_lowres_count,
                 padding_kwargs=padding_kwargs,
+                allow_generation=False,
             )
         else:
             data_class = (
@@ -101,7 +103,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 normalized_input=normalized_input,
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=train_aug_rotate,
-                enable_random_cropping=enable_random_cropping)
+                enable_random_cropping=enable_random_cropping,
+                allow_generation=True)
             val_data = data_class(
                 config.data,
                 datapath,
@@ -111,6 +114,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=False,  # No rotation aug on validation
                 enable_random_cropping=False,
+                allow_generation=False
                 # No random cropping on validation. Validation is evaluated on determistic grids
             )
 
