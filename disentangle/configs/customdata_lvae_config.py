@@ -13,29 +13,29 @@ def get_config():
     data.frame_size = 128
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
-    data.curve_amplitude = 11.0
-    data.num_curves = 2
-    data.max_rotation = math.pi / 24
+    data.curve_amplitude = 5.0
+    data.num_curves = 3
+    data.max_rotation = 0.0
     data.curve_thickness = 5
-    data.max_vshift_factor = 0.7
+    data.max_vshift_factor = 0.9
     data.max_hshift_factor = 0.1
     data.frequency_range_list = [(0.1, 0.12), (0.2, 0.22), (0.4, 0.42), (0.7, 0.72)]
 
     data.sampler_type = SamplerType.DefaultSampler
-    data.deterministic_grid = True
+    data.deterministic_grid = False
     data.normalized_input = True
     # If this is set to true, then one mean and stdev is used for both channels. If False, two different
     # meean and stdev are used. If None, 0 mean and 1 std is used.
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 3
     data.padding_mode = 'constant'
     data.padding_value = 0
     data.encourage_non_overlap_single_channel = False
     data.vertical_min_spacing = data.curve_amplitude * 2
     # 0.5 would mean that 50% of the points would be covered with the connecting w.
-    data.connecting_w_len = 0.2
+    data.connecting_w_len = 0.4
     data.curve_initial_phase = 0.0
 
     loss = config.loss
@@ -68,7 +68,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 2.5
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'global'
+    model.predict_logvar = 'pixelwise'
     model.logvar_lowerbound = -10  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.use_vampprior = False
     model.vampprior_N = 300
@@ -78,14 +78,14 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 45
-    training.max_epochs = 1200
+    training.lr_scheduler_patience = 135
+    training.max_epochs = 3600
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.2
-    training.earlystop_patience = 300
+    training.earlystop_patience = 900
     training.precision = 16
 
     return config
