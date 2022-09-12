@@ -14,7 +14,7 @@ def get_config():
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
     data.curve_amplitude = 8.0
-    data.num_curves = 3
+    data.num_curves = 1
     data.max_rotation = 0.0
     data.curve_thickness = 21
     data.max_vshift_factor = 0.7
@@ -32,7 +32,7 @@ def get_config():
     data.multiscale_lowres_count = 2
     data.padding_mode = 'constant'
     data.padding_value = 0
-    data.encourage_non_overlap_single_channel = True
+    data.encourage_non_overlap_single_channel = False
     data.vertical_min_spacing = data.curve_amplitude * 2
 
     loss = config.loss

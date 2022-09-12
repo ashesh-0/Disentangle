@@ -16,7 +16,8 @@ class MultiChDeterministicTiffDloader:
                  normalized_input=None,
                  enable_rotation_aug: bool = False,
                  enable_random_cropping: bool = False,
-                 use_one_mu_std=None):
+                 use_one_mu_std=None,
+                 allow_generation=False):
         """
         Here, an image is split into grids of size img_sz.
         Args:
@@ -28,7 +29,8 @@ class MultiChDeterministicTiffDloader:
 
         """
         self._fpath = fpath
-        self._data = get_train_val_data(data_config, self._fpath, is_train, val_fraction=val_fraction)
+        self._data = get_train_val_data(data_config, self._fpath, is_train, val_fraction=val_fraction,
+                                        allow_generation=allow_generation)
 
         self._normalized_input = normalized_input
         max_val = np.quantile(self._data, 0.995)
@@ -57,7 +59,7 @@ class MultiChDeterministicTiffDloader:
 
     def get_img_sz(self):
         return self._img_sz
-    
+
     def set_img_sz(self, image_size):
         """
         If one wants to change the image size on the go, then this can be used.
