@@ -35,8 +35,8 @@ def get_config():
     data.encourage_non_overlap_single_channel = False
     data.vertical_min_spacing = data.curve_amplitude * 2
     # 0.5 would mean that 50% of the points would be covered with the connecting w.
-    data.connecting_w_len = 0.0
-    data.curve_initial_phase = 0.05
+    data.connecting_w_len = 0.05
+    data.curve_initial_phase = 0.0
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
