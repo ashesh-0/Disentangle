@@ -36,7 +36,7 @@ def get_config():
     data.vertical_min_spacing = data.curve_amplitude * 2
     # 0.5 would mean that 50% of the points would be covered with the connecting w.
     data.connecting_w_len = 0.0
-    data.curve_initial_phase = 0.0
+    data.curve_initial_phase = 0.05
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
