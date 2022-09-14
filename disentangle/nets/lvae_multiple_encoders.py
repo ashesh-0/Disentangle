@@ -24,6 +24,9 @@ class LadderVAEMultipleEncoders(LadderVAE):
         self.share_bottom_up_starting_idx = config.model.share_bottom_up_starting_idx
         self.use_random_for_missing_inp = config.model.use_random_for_missing_inp
         self.mixed_input_type = config.data.mixed_input_type
+
+        self.skip_disentanglement_for_nonaligned_data = config.model.skip_disentanglement_for_nonaligned_data
+
         if self.lowres_first_bottom_ups is not None:
             self.lowres_first_bottom_ups_ch1 = copy.deepcopy(self.lowres_first_bottom_ups_ch1)
             self.lowres_first_bottom_ups_ch2 = copy.deepcopy(self.lowres_first_bottom_ups_ch2)
@@ -223,8 +226,16 @@ class LadderVAEMultipleEncoders(LadderVAE):
         if optimizer_idx == 0:
             out, td_data = self.forward_ch(x_normalized, optimizer_idx)
             if self.mixed_input_type == MixedInputType.ConsistentWithSingleInputs:
-                recons_loss_dict = self._get_reconstruction_loss_vector(out, target_normalized)
-                recons_loss = recons_loss_dict['loss'].mean()
+                if self.skip_disentanglement_for_nonaligned_data:
+                    if supervised_mask.sum() > 0:
+                        recons_loss_dict = self._get_reconstruction_loss_vector(out[supervised_mask],
+                                                                                target_normalized[supervised_mask])
+                        recons_loss = recons_loss_dict['loss'].mean()
+                    else:
+                        recons_loss = 0.0
+                else:
+                    recons_loss_dict = self._get_reconstruction_loss_vector(out, target_normalized)
+                    recons_loss = recons_loss_dict['loss'].mean()
             else:
                 assert self.mixed_input_type == MixedInputType.Aligned
                 recons_loss = 0

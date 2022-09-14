@@ -25,7 +25,7 @@ def get_config():
     data.padding_mode = 'reflect'
     data.padding_value = None
     data.mixed_input_type = 'consistent_with_single_inputs'
-    data.supervised_data_fraction = 0.0
+    data.supervised_data_fraction = 0.5
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -65,9 +65,10 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     # stochastic layers below this are shared.
-    model.share_bottom_up_starting_idx = 0
+    model.share_bottom_up_starting_idx = 3
     # number of residual blocks in first bottom up
-    model.fbu_num_blocks = 4
+    model.fbu_num_blocks = 1
+    model.skip_disentanglement_for_nonaligned_data = True
     model.learnable_merge_tensors = False
     model.use_random_for_missing_inp = True
     assert model.learnable_merge_tensors is False or model.use_random_for_missing_inp is False
