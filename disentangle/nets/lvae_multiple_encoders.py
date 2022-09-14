@@ -14,8 +14,16 @@ class LadderVAEMultipleEncoders(LadderVAE):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
         self.bottom_up_layers_ch1 = nn.ModuleList([])
         self.bottom_up_layers_ch2 = nn.ModuleList([])
-        self.first_bottom_up_ch1 = copy.deepcopy(self.first_bottom_up)
-        self.first_bottom_up_ch2 = copy.deepcopy(self.first_bottom_up)
+
+        fbu_num_blocks = config.model.fbu_num_blocks
+        del self.first_bottom_up
+        self.first_bottom_up = self.create_first_bottom_up(stride, num_blocks=fbu_num_blocks)
+        self.first_bottom_up_ch1 = self.create_first_bottom_up(stride, num_blocks=fbu_num_blocks)
+        self.first_bottom_up_ch2 = self.create_first_bottom_up(stride, num_blocks=fbu_num_blocks)
+        shape = (1, config.data.image_size, config.data.image_size)
+        self._inp_tensor_ch1 = nn.Parameter(torch.zeros(shape, requires_grad=True))
+        self._inp_tensor_ch2 = nn.Parameter(torch.zeros(shape, requires_grad=True))
+
         self.lowres_first_bottom_ups_ch1 = self.lowres_first_bottom_ups_ch2 = None
         self.share_bottom_up_starting_idx = config.model.share_bottom_up_starting_idx
         self.mixed_input_type = config.data.mixed_input_type
@@ -109,14 +117,14 @@ class LadderVAEMultipleEncoders(LadderVAE):
             'monitor': self.lr_scheduler_monitor,
         } for scheduler in [scheduler0, scheduler1]]
 
-    def forward_ch(self, x, optimizer_idx):
+    def _forward_mix(self, x, optimizer_idx):
         img_size = x.size()[2:]
 
         # Pad input to make everything easier with conv strides
         x_pad = self.pad_input(x)
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
-        bu_values = self.bottomup_pass(x_pad, optimizer_idx)
+        bu_values = self.bottomup_pass(mix_inp=x_pad, optimizer_idx=optimizer_idx)
 
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values)
@@ -125,11 +133,33 @@ class LadderVAEMultipleEncoders(LadderVAE):
 
         return out, td_data
 
-    def _bottomup_pass_ch(self, inp):
+    def _forward_separate_ch(self, ch1_inp, ch2_inp):
+        img_size = ch1_inp.size()[2:] if ch1_inp is not None else ch2_inp.size()[2:]
+
+        # Pad input to make everything easier with conv strides
+        ch1_inp = self.pad_input(ch1_inp) if ch1_inp else None
+        ch2_inp = self.pad_input(ch2_inp) if ch2_inp else None
+
+        # Bottom-up inference: return list of length n_layers (bottom to top)
+        bu_values = self.bottomup_pass(ch1_inp=ch1_inp, ch2_inp=ch2_inp)
+
+        # Top-down inference/generation
+        out, td_data = self.topdown_pass(bu_values)
+        # Restore original image size
+        out = crop_img_tensor(out, img_size)
+
+        return out, td_data
+
+    def _bottomup_pass_ch(self, ch1_inp, ch2_inp):
         # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
         # later channels are simply to yield more context.
-        x1 = self.first_bottom_up_ch1(inp[:, :1])
-        x2 = self.first_bottom_up_ch2(inp[:, 1:2])
+        if ch1_inp is None:
+            ch1_inp = self._inp_tensor_ch1
+        if ch2_inp is None:
+            ch2_inp = self._inp_tensor_ch2
+
+        x1 = self.first_bottom_up_ch1(ch1_inp)
+        x2 = self.first_bottom_up_ch2(ch2_inp)
         # Loop from bottom to top layer, store all deterministic nodes we
         # need in the top-down pass
         bu_values = []
@@ -150,12 +180,12 @@ class LadderVAEMultipleEncoders(LadderVAE):
 
         return bu_values
 
-    def bottomup_pass(self, inp, optimizer_idx=0):
+    def bottomup_pass(self, mix_inp=None, ch1_inp=None, ch2_inp=None):
         # by default it is necessary to feed 0, since in validation step it is required.
-        if optimizer_idx == 0:
-            return super().bottomup_pass(inp)
-        elif optimizer_idx == 1:
-            return self._bottomup_pass_ch(inp)
+        if mix_inp is not None:
+            return super().bottomup_pass(mix_inp)
+        else:
+            return self._bottomup_pass_ch(ch1_inp, ch2_inp)
 
     def validation_step(self, batch, batch_idx):
         x, target, supervised_mask = batch
@@ -168,12 +198,12 @@ class LadderVAEMultipleEncoders(LadderVAE):
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
         if optimizer_idx == 0:
-            out, td_data = self.forward_ch(x_normalized, optimizer_idx)
+            out, td_data = self._forward_mix(x_normalized)
             assert self.mixed_input_type == MixedInputType.ConsistentWithSingleInputs
             recons_loss_dict = self._get_reconstruction_loss_vector(out, target_normalized)
             recons_loss = recons_loss_dict['loss'].mean()
         else:
-            out, td_data = self.forward_ch(target_normalized, optimizer_idx)
+            out, td_data = self._forward_separate_ch(target_normalized[:, :1], target_normalized[:, 1:2])
             recons_loss_dict = self._get_reconstruction_loss_vector(out, target_normalized)
             recons_loss = recons_loss_dict['loss'].mean()
 
