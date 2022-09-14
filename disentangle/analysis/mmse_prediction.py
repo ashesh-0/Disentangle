@@ -1,7 +1,8 @@
-import torch
-from tqdm import tqdm
 from typing import Tuple
-
+import numpy as np
+import torch
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
 def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, prediction_size: int, batch_size=16,
                         track_progress: bool = True) -> \
@@ -61,3 +62,36 @@ def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, pred
 
     dset.set_img_sz(old_img_sz)
     return mmse_img, tar_normalized.cpu()
+
+def get_dset_predictions(model, dset, batch_size, mmse_count=1, num_workers=4):
+    dloader = DataLoader(dset,
+                         pin_memory=False,
+                         num_workers=num_workers,
+                         shuffle=False,
+                         batch_size=batch_size)
+
+    predictions = []
+    losses = []
+    logvar_arr = []
+    with torch.no_grad():
+        for inp, tar in tqdm(dloader):
+            inp = inp.cuda()
+            x_normalized = model.normalize_input(inp)
+            tar = tar.cuda()
+            tar_normalized = model.normalize_target(tar)
+
+            recon_img_list = []
+            for _ in range(mmse_count):
+                recon_normalized, td_data = model(x_normalized)
+                rec_loss, imgs = model.get_reconstruction_loss(recon_normalized, tar_normalized,
+                                                               return_predicted_img=True)
+                recon_img_list.append(imgs.cpu()[None])
+
+            mmse_imgs = torch.mean(torch.cat(recon_img_list, dim=0), dim=0)
+
+            q_dic = model.likelihood.distr_params(recon_normalized)
+            logvar_arr.append(q_dic['logvar'].cpu().numpy())
+
+            losses.append(rec_loss['loss'].cpu().numpy())
+            predictions.append(mmse_imgs.cpu().numpy())
+    return np.concatenate(predictions, axis=0), np.array(losses), np.concatenate(logvar_arr)

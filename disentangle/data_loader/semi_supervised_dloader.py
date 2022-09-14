@@ -15,6 +15,7 @@ class SemiSupDloader(MultiChDeterministicTiffDloader):
                  use_one_mu_std=None,
                  mixed_input_type=None,
                  supervised_data_fraction=0.0,
+                 allow_generation=False,
                  ):
         super().__init__(data_config,
                          fpath,
@@ -23,7 +24,8 @@ class SemiSupDloader(MultiChDeterministicTiffDloader):
                          normalized_input=normalized_input,
                          enable_rotation_aug=enable_rotation_aug,
                          enable_random_cropping=False,
-                         use_one_mu_std=use_one_mu_std, )
+                         use_one_mu_std=use_one_mu_std,
+                         allow_generation=allow_generation)
         """
         Args:
             mixed_input_type: If set to 'aligned', the mixed input always comes from the co-aligned channels mixing. If 

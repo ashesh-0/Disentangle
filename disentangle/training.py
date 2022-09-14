@@ -77,7 +77,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 enable_rotation_aug=train_aug_rotate,
                 enable_random_cropping=enable_random_cropping,
                 num_scales=config.data.multiscale_lowres_count,
-                padding_kwargs=padding_kwargs)
+                padding_kwargs=padding_kwargs,
+                allow_generation=True)
             val_data = MultiScaleTiffDloader(
                 config.data,
                 datapath,
@@ -90,10 +91,11 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 # No random cropping on validation. Validation is evaluated on determistic grids
                 num_scales=config.data.multiscale_lowres_count,
                 padding_kwargs=padding_kwargs,
+                allow_generation=False,
             )
         else:
-            train_data_kwargs = {}
-            val_data_kwargs = {}
+            train_data_kwargs = {'allow_generation': True}
+            val_data_kwargs = {'allow_generation': False}
             if config.model.model_type == ModelType.LadderVaeSepEncoder:
                 data_class = SemiSupDloader
                 # mixed_input_type = None,
@@ -107,6 +109,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 val_data_kwargs['enable_random_cropping'] = False
                 data_class = (
                     MultiChDeterministicTiffRandDloader if config.data.randomized_channels else MultiChDeterministicTiffDloader)
+
             train_data = None if skip_train_dataset else data_class(
                 config.data,
                 datapath,
@@ -127,7 +130,6 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=False,  # No rotation aug on validation
                 **val_data_kwargs,
-                # No random cropping on validation. Validation is evaluated on determistic grids
             )
 
         # For normalizing, we should be using the training data's mean and std.
