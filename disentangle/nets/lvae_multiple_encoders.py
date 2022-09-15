@@ -17,6 +17,7 @@ class LadderVAEMultipleEncoders(LadderVAE):
 
         fbu_num_blocks = config.model.fbu_num_blocks
         del self.first_bottom_up
+        stride = 1 if config.model.no_initial_downscaling else 2
         self.first_bottom_up = self.create_first_bottom_up(stride, num_blocks=fbu_num_blocks)
         self.first_bottom_up_ch1 = self.create_first_bottom_up(stride, num_blocks=fbu_num_blocks)
         self.first_bottom_up_ch2 = self.create_first_bottom_up(stride, num_blocks=fbu_num_blocks)
@@ -83,22 +84,38 @@ class LadderVAEMultipleEncoders(LadderVAE):
                                                     min_lr=1e-12,
                                                     verbose=True)
 
-    def configure_optimizers(self):
+    def get_encoder_params(self):
         encoder_params = list(self.first_bottom_up.parameters()) + list(self.bottom_up_layers.parameters())
         if self.lowres_first_bottom_ups is not None:
             encoder_params.append(self.lowres_first_bottom_ups.parameters())
+        return encoder_params
 
-        decoder_params = list(self.top_down_layers.parameters()) + list(self.final_top_down.parameters()) + list(
-            self.likelihood.parameters())
-
-        # channel 1 params
+    def get_ch1_branch_params(self):
         encoder_ch1_params = list(self.first_bottom_up_ch1.parameters()) + list(self.bottom_up_layers_ch1.parameters())
         if self.lowres_first_bottom_ups_ch1 is not None:
             encoder_ch1_params.append(self.lowres_first_bottom_ups_ch1.parameters())
+        encoder_ch1_params.append(self._inp_tensor_ch1)
+        return encoder_ch1_params
 
+    def get_ch2_branch_params(self):
         encoder_ch2_params = list(self.first_bottom_up_ch2.parameters()) + list(self.bottom_up_layers_ch2.parameters())
         if self.lowres_first_bottom_ups_ch2 is not None:
             encoder_ch2_params.append(self.lowres_first_bottom_ups_ch2.parameters())
+        encoder_ch2_params.append(self._inp_tensor_ch2)
+        return encoder_ch2_params
+
+    def get_decoder_params(self):
+        decoder_params = list(self.top_down_layers.parameters()) + list(self.final_top_down.parameters()) + list(
+            self.likelihood.parameters())
+        return decoder_params
+
+    def configure_optimizers(self):
+
+        encoder_params = self.get_encoder_params()
+        decoder_params = self.get_decoder_params()
+        encoder_ch1_params = self.get_ch1_branch_params()
+        encoder_ch2_params = self.get_ch2_branch_params()
+        # channel 1 params
 
         if self.separate_mix_branch_training:
             optimizer0 = optim.Adamax(encoder_params, lr=self.lr, weight_decay=0)
@@ -106,8 +123,6 @@ class LadderVAEMultipleEncoders(LadderVAE):
             optimizer0 = optim.Adamax(encoder_params + decoder_params, lr=self.lr, weight_decay=0)
         optimizer1 = optim.Adamax(encoder_ch1_params + encoder_ch2_params + decoder_params,
                                   lr=self.lr, weight_decay=0)
-
-        # channel 2 params
 
         scheduler0 = self.get_scheduler(optimizer0)
         scheduler1 = self.get_scheduler(optimizer1)

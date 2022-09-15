@@ -14,6 +14,7 @@ from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
 from disentangle.nets.lvae_with_critic import LadderVAECritic
 from disentangle.nets.lvae_sep_vampprior import LadderVaeSepVampprior
 from disentangle.nets.lvae_multiple_encoders import LadderVAEMultipleEncoders
+from disentangle.nets.lvae_multiple_encoder_single_opt import LadderVAEMulEncoder1Optim
 
 
 def create_model(config, data_mean, data_std):
@@ -27,6 +28,8 @@ def create_model(config, data_mean, data_std):
         model = LadderVaeSepVampprior(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVaeSepEncoder:
         model = LadderVAEMultipleEncoders(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVaeSepEncoderSingleOptim:
+        model = LadderVAEMulEncoder1Optim(data_mean, data_std, config)
     return model
 
 

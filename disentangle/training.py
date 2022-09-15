@@ -96,7 +96,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         else:
             train_data_kwargs = {'allow_generation': True}
             val_data_kwargs = {'allow_generation': False}
-            if config.model.model_type == ModelType.LadderVaeSepEncoder:
+            if config.model.model_type in [ModelType.LadderVaeSepEncoder, ModelType.LadderVaeSepEncoderSingleOptim]:
                 data_class = SemiSupDloader
                 # mixed_input_type = None,
                 # supervised_data_fraction = 0.0,

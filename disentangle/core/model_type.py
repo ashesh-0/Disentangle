@@ -10,3 +10,4 @@ class ModelType(Enum):
     # one encoder for mixed input, two for separate inputs.
     LadderVaeSepEncoder = 7
     LadderVAEMultiTarget = 8
+    LadderVaeSepEncoderSingleOptim = 9
