@@ -166,12 +166,15 @@ class LadderVAEMultipleEncoders(LadderVAE):
         return out, td_data
 
     def _bottomup_pass_ch(self, ch1_inp, ch2_inp):
-        # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
-        # later channels are simply to yield more context.
         if ch1_inp is None:
-            ch1_inp = self._inp_tensor_ch1
+            ch1_inp = self._inp_tensor_ch1[None]
+            assert ch2_inp is not None
+            ch1_inp = torch.tile(ch1_inp, (len(ch2_inp), 1, 1, 1))
+
         if ch2_inp is None:
-            ch2_inp = self._inp_tensor_ch2
+            ch2_inp = self._inp_tensor_ch2[None]
+            assert ch1_inp is not None
+            ch2_inp = torch.tile(ch2_inp, (len(ch1_inp), 1, 1, 1))
 
         x1 = self.first_bottom_up_ch1(ch1_inp)
         x2 = self.first_bottom_up_ch2(ch2_inp)
@@ -207,12 +210,52 @@ class LadderVAEMultipleEncoders(LadderVAE):
         assert supervised_mask.sum() == len(x)
         return super().validation_step((x, target), batch_idx)
 
+    # TODO: TRAINING STEP FOR semi_supervised_v3. I need to use this.
+    # def training_step(self, batch, batch_idx, optimizer_idx, enable_logging=True):
+    #
+    #     x, target, supervised_mask = batch
+    #     x_normalized = self.normalize_input(x)
+    #     target_normalized = self.normalize_target(target)
+    #     if optimizer_idx == 0:
+    #         out, td_data = self.forward_ch(x_normalized, optimizer_idx)
+    #         if self.mixed_input_type == MixedInputType.ConsistentWithSingleInputs:
+    #             if self.skip_disentanglement_for_nonaligned_data:
+    #                 if supervised_mask.sum() > 0:
+    #                     recons_loss_dict = self._get_reconstruction_loss_vector(out[supervised_mask],
+    #                                                                             target_normalized[supervised_mask])
+    #                     recons_loss = recons_loss_dict['loss'].mean()
+    #                 else:
+    #                     recons_loss = 0.0
+    #             else:
+    #                 recons_loss_dict = self._get_reconstruction_loss_vector(out, target_normalized)
+    #                 recons_loss = recons_loss_dict['loss'].mean()
+    #         else:
+    #             assert self.mixed_input_type == MixedInputType.Aligned
+    #             recons_loss = 0
+    #             if supervised_mask.sum() > 0:
+    #                 recons_loss_dict = self._get_reconstruction_loss_vector(out[supervised_mask],
+    #                                                                         target_normalized[supervised_mask])
+    #                 recons_loss = recons_loss_dict['loss'].sum()
+    #             if (~supervised_mask).sum() > 0:
+    #                 # todo: check if x_normalized does not have any extra pre-processing.
+    #                 recons_loss += self._get_mixed_reconstruction_loss_vector(out[~supervised_mask],
+    #                                                                           x_normalized[~supervised_mask]).sum()
+    #             N = len(x)
+    #             recons_loss = recons_loss / N
+    #     else:
+    #         out, td_data = self.forward_ch(target_normalized[:, optimizer_idx - 1:optimizer_idx], optimizer_idx)
+    #         recons_loss_dict = self._get_reconstruction_loss_vector(out, target_normalized)
+    #         if optimizer_idx == 1:
+    #             recons_loss = recons_loss_dict['ch1_loss'].mean()
+    #         elif optimizer_idx == 2:
+    #             recons_loss = recons_loss_dict['ch2_loss'].mean()
+    #
     def training_step(self, batch, batch_idx, optimizer_idx, enable_logging=True):
 
         x, target, _ = batch
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
-        if optimizesr_idx == 0:
+        if optimizer_idx == 0:
             out, td_data = self._forward_mix(x_normalized)
             assert self.mixed_input_type == MixedInputType.ConsistentWithSingleInputs
             recons_loss_dict = self._get_reconstruction_loss_vector(out, target_normalized)

@@ -25,7 +25,7 @@ def get_config():
     data.padding_mode = 'reflect'
     data.padding_value = None
     data.mixed_input_type = 'consistent_with_single_inputs'
-    data.supervised_data_fraction = 0.0
+    data.supervised_data_fraction = 0.5
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -39,7 +39,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVaeSepEncoder
+    model.model_type = ModelType.LadderVaeSepEncoderSingleOptim
     model.z_dims = [128, 128, 128, 128]
     model.blocks_per_layer = 1
     model.nonlin = 'elu'
