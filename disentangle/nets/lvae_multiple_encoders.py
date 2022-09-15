@@ -132,14 +132,14 @@ class LadderVAEMultipleEncoders(LadderVAE):
             'monitor': self.lr_scheduler_monitor,
         } for scheduler in [scheduler0, scheduler1]]
 
-    def _forward_mix(self, x, optimizer_idx):
+    def _forward_mix(self, x):
         img_size = x.size()[2:]
 
         # Pad input to make everything easier with conv strides
         x_pad = self.pad_input(x)
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
-        bu_values = self.bottomup_pass(mix_inp=x_pad, optimizer_idx=optimizer_idx)
+        bu_values = self.bottomup_pass(mix_inp=x_pad)
 
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values)
@@ -152,8 +152,8 @@ class LadderVAEMultipleEncoders(LadderVAE):
         img_size = ch1_inp.size()[2:] if ch1_inp is not None else ch2_inp.size()[2:]
 
         # Pad input to make everything easier with conv strides
-        ch1_inp = self.pad_input(ch1_inp) if ch1_inp else None
-        ch2_inp = self.pad_input(ch2_inp) if ch2_inp else None
+        ch1_inp = self.pad_input(ch1_inp) if ch1_inp is not None else None
+        ch2_inp = self.pad_input(ch2_inp) if ch2_inp is not None else None
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(ch1_inp=ch1_inp, ch2_inp=ch2_inp)
@@ -212,7 +212,7 @@ class LadderVAEMultipleEncoders(LadderVAE):
         x, target, _ = batch
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
-        if optimizer_idx == 0:
+        if optimizesr_idx == 0:
             out, td_data = self._forward_mix(x_normalized)
             assert self.mixed_input_type == MixedInputType.ConsistentWithSingleInputs
             recons_loss_dict = self._get_reconstruction_loss_vector(out, target_normalized)

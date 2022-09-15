@@ -65,7 +65,8 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     # stochastic layers below this are shared.
-    model.share_bottom_up_starting_idx = 1
+    model.share_bottom_up_starting_idx = 0
+    model.fbu_num_blocks = 3
     # if true, then the mixed branch does not effect the vae training. it only updates its own weights.
     model.separate_mix_branch_training = False
 
