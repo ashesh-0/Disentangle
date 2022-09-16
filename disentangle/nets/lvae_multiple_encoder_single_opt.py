@@ -31,8 +31,6 @@ class LadderVAEMulEncoder1Optim(LadderVAEMultipleEncoders):
         if supervised_mask.sum() > 0:
             out, td_data = self._forward_mix(x_normalized[supervised_mask])
             recons_loss_dict = self._get_reconstruction_loss_vector(out, target_normalized[supervised_mask])
-            import pdb;
-            pdb.set_trace()
             recons_loss = recons_loss_dict['loss'].sum()
             kl_loss = self.get_kl_divergence_loss(td_data) * supervised_mask.sum()
             # todo: one can also apply mixed reconstruction loss here. input mix and reconstruct mix.
@@ -53,8 +51,6 @@ class LadderVAEMulEncoder1Optim(LadderVAEMultipleEncoders):
                 out_mix, td_datamix = self._forward_mix(x_normalized[~supervised_mask])
                 recons_loss_mix = self._get_mixed_reconstruction_loss_vector(out_mix, x_normalized[~supervised_mask])
                 kl_loss_mix = self.get_kl_divergence_loss(td_datamix)
-                import pdb;
-                pdb.set_trace()
                 recons_loss += (recons_loss_ch0.sum() + recons_loss_ch1.sum() + recons_loss_mix.sum()) / 3
                 kl_loss += (kl_loss0 + kl_loss1 + kl_loss_mix) / 3 * len(target_indep)
             else:
@@ -72,8 +68,6 @@ class LadderVAEMulEncoder1Optim(LadderVAEMultipleEncoders):
 
         recons_loss = recons_loss / len(x)
         kl_loss = kl_loss / len(x)
-        import pdb;
-        pdb.set_trace()
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
         if enable_logging:
             self.log('kl_loss', kl_loss, on_epoch=True)
