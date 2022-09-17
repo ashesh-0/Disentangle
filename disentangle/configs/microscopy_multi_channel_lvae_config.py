@@ -18,10 +18,10 @@ def get_config():
     data.normalized_input = True
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
-    data.use_one_mu_std = True
+    data.use_one_mu_std = False
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 2
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
 
@@ -56,7 +56,7 @@ def get_config():
     model.var_clip_max = 20
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
-    model.logvar_lowerbound = -2.5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
+    model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.use_vampprior = False
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
