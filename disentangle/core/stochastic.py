@@ -9,7 +9,8 @@ from torch import nn
 from torch.distributions import kl_divergence
 from torch.distributions.normal import Normal
 
-from disentangle.core.stable_exp import StableExponential, log_prob
+from disentangle.core.stable_exp import log_prob
+from disentangle.core.stable_dist_params import StableLogVar, StableMean
 
 
 class NormalStochasticBlock2d(nn.Module):
@@ -131,11 +132,12 @@ class NormalStochasticBlock2d(nn.Module):
 
         # Define p(z)
         p_mu, p_lv = p_params.chunk(2, dim=1)
-
         if var_clip_max is not None:
             p_lv = torch.clip(p_lv, max=var_clip_max)
 
-        p = Normal(p_mu, StableExponential(p_lv / 2).exp())
+        p_mu = StableMean(p_mu)
+        p_lv = StableLogVar(p_lv)
+        p = Normal(p_mu.get(), p_lv.get_std())
         return p_mu, p_lv, p
 
     def process_q_params(self, q_params, var_clip_max):
@@ -144,11 +146,10 @@ class NormalStochasticBlock2d(nn.Module):
         q_mu, q_lv = q_params.chunk(2, dim=1)
         if var_clip_max is not None:
             q_lv = torch.clip(q_lv, max=var_clip_max)
-        try:
-            q = Normal(q_mu, StableExponential(q_lv / 2).exp())
-        except:
-            import pdb;
-            pdb.set_trace()
+
+        q_mu = StableMean(q_mu)
+        q_lv = StableLogVar(q_lv)
+        q = Normal(q_mu.get(), q_lv.get_std())
 
         return q_mu, q_lv, q
 
@@ -207,7 +208,7 @@ class NormalStochasticBlock2d(nn.Module):
         if q_params is not None:
             q_mu, q_lv, q = self.process_q_params(q_params, var_clip_max)
             q_params = (q_mu, q_lv)
-            debug_qvar_max = torch.max(q_lv)
+            debug_qvar_max = torch.max(q_lv.get())
             # Sample from q(z)
             sampling_distrib = q
         else:
@@ -268,11 +269,11 @@ def kl_normal_mc(z, p_mulv, q_mulv):
     p_mu, p_lv = p_mulv
     q_mu, q_lv = q_mulv
 
-    p_std = StableExponential(p_lv / 2).exp()
-    q_std = StableExponential(q_lv / 2).exp()
+    p_std = p_lv.get_std()
+    q_std = q_lv.get_std()
 
-    p_distrib = Normal(p_mu, p_std)
-    q_distrib = Normal(q_mu, q_std)
+    p_distrib = Normal(p_mu.get(), p_std)
+    q_distrib = Normal(q_mu.get(), q_std)
     return q_distrib.log_prob(z) - p_distrib.log_prob(z)
 
     # the prior
@@ -284,7 +285,7 @@ def log_Normal_diag(x, mean, log_var):
     return log_normal
 
 
-def vp_log_p_z(z_p_mean, z_p_logvar, z):
+def vp_log_p_z(z_p_mean: torch.Tensor, z_p_logvar: torch.Tensor, z: torch.Tensor):
     """
     Taken from vae_vamprior code https://github.com/jmtomczak/vae_vampprior/blob/master/models/PixelHVAE_2level.py#L326
     """
