@@ -41,33 +41,33 @@ class NormalStochasticBlock2d(nn.Module):
         self.conv_in_q = nn.Conv2d(c_in, 2 * c_vars, kernel, padding=pad)
         self.conv_out = nn.Conv2d(c_vars, c_out, kernel, padding=pad)
 
-    def forward_swapped(self, p_params, q_mu, q_lv):
-
-        if self.transform_p_params:
-            p_params = self.conv_in_p(p_params)
-        else:
-            assert p_params.size(1) == 2 * self.c_vars
-
-        # Define p(z)
-        p_mu, p_lv = p_params.chunk(2, dim=1)
-        p = Normal(p_mu, (p_lv / 2).exp())
-
-        # Define q(z)
-        q = Normal(q_mu, (q_lv / 2).exp())
-        # Sample from q(z)
-        sampling_distrib = q
-
-        # Generate latent variable (typically by sampling)
-        z = sampling_distrib.rsample()
-
-        # Output of stochastic layer
-        out = self.conv_out(z)
-
-        data = {
-            'z': z,  # sampled variable at this layer (batch, ch, h, w)
-            'p_params': p_params,  # (b, ch, h, w) where b is 1 or batch size
-        }
-        return out, data
+    # def forward_swapped(self, p_params, q_mu, q_lv):
+    #
+    #     if self.transform_p_params:
+    #         p_params = self.conv_in_p(p_params)
+    #     else:
+    #         assert p_params.size(1) == 2 * self.c_vars
+    #
+    #     # Define p(z)
+    #     p_mu, p_lv = p_params.chunk(2, dim=1)
+    #     p = Normal(p_mu, (p_lv / 2).exp())
+    #
+    #     # Define q(z)
+    #     q = Normal(q_mu, (q_lv / 2).exp())
+    #     # Sample from q(z)
+    #     sampling_distrib = q
+    #
+    #     # Generate latent variable (typically by sampling)
+    #     z = sampling_distrib.rsample()
+    #
+    #     # Output of stochastic layer
+    #     out = self.conv_out(z)
+    #
+    #     data = {
+    #         'z': z,  # sampled variable at this layer (batch, ch, h, w)
+    #         'p_params': p_params,  # (b, ch, h, w) where b is 1 or batch size
+    #     }
+    #     return out, data
 
     def get_z(self, sampling_distrib, forced_latent, use_mode, mode_pred, use_uncond_mode):
         # Generate latent variable (typically by sampling)
