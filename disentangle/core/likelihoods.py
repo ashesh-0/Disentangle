@@ -4,6 +4,7 @@ from typing import Union
 import numpy as np
 import torch
 from torch import nn
+from disentangle.core.stable_exp import StableExponential
 
 
 class LikelihoodModule(nn.Module):
@@ -180,6 +181,6 @@ def log_normal(x, mean, logvar):
     :param logvar: tensor with log-variance of distribution, shape has to be
                    either scalar or broadcastable
     """
-    var = torch.exp(logvar)
+    var = StableExponential(logvar).exp()
     log_prob = -0.5 * (((x - mean) ** 2) / var + logvar + torch.tensor(2 * math.pi).log())
     return log_prob
