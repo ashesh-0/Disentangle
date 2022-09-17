@@ -49,6 +49,7 @@ def log_prob(nn_output_mu, nn_output_logvar, x):
             stability.
         x: input for which the log_prob needs to be computed.
     """
+    assert False, "This code is not compatible with Stable exponential. Ideally, StableLogVar should be passed here."
     mu = nn_output_mu
     # compute the
     var_gen = StableExponential(nn_output_logvar)
