@@ -351,6 +351,8 @@ class LadderVAE(pl.LightningModule):
         Computes the reconstruction loss on the mixed input and mixed prediction
         """
         dist_params = self.likelihood.distr_params(reconstruction)
+        import pdb;
+        pdb.set()
         mixed_prediction = torch.mean(dist_params['mean'], dim=1, keepdim=True)
         dist_params['mean'] = mixed_prediction
         mixed_recons_ll = self.likelihood.log_likelihood(mixed_input, dist_params)
