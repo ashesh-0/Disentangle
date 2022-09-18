@@ -352,7 +352,7 @@ class LadderVAE(pl.LightningModule):
         """
         dist_params = self.likelihood.distr_params(reconstruction)
         import pdb;
-        pdb.set()
+        pdb.set_trace()
         mixed_prediction = torch.mean(dist_params['mean'], dim=1, keepdim=True)
         dist_params['mean'] = mixed_prediction
         mixed_recons_ll = self.likelihood.log_likelihood(mixed_input, dist_params)
