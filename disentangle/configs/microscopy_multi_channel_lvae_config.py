@@ -21,7 +21,7 @@ def get_config():
     data.use_one_mu_std = False
     data.train_aug_rotate = False
     data.randomized_channels = True
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
     data.padding_value = None
 
