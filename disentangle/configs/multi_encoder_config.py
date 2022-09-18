@@ -48,7 +48,7 @@ def get_config():
     model.stochastic_skip = True
     model.n_filters = 64
     model.dropout = 0.1
-    model.learn_top_prior = False
+    model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
     model.gated = True
