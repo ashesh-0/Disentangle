@@ -354,7 +354,10 @@ class LadderVAE(pl.LightningModule):
         mixed_prediction = torch.mean(dist_params['mean'], dim=1, keepdim=True)
         dist_params['mean'] = mixed_prediction
         mixed_recons_ll = self.likelihood.log_likelihood(mixed_input, dist_params)
-        output = compute_batch_mean(mixed_recons_ll)
+        output = compute_batch_mean(-1 * mixed_recons_ll)
+        if output.min() < -5:
+            import pdb;
+            pdb.set_trace()
         return output
 
     def _get_reconstruction_loss_vector(self, reconstruction, input, return_predicted_img=False):
