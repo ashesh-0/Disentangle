@@ -20,7 +20,7 @@ def get_config():
     # meean and stdev are used.
     data.use_one_mu_std = False
     data.train_aug_rotate = False
-    data.randomized_channels = True
+    data.randomized_channels = False
     data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
     data.padding_value = None
@@ -46,7 +46,7 @@ def get_config():
     model.stochastic_skip = True
     model.n_filters = 64
     model.dropout = 0.1
-    model.learn_top_prior = False
+    model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
     model.gated = True
@@ -56,7 +56,7 @@ def get_config():
     model.var_clip_max = 20
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
-    model.logvar_lowerbound = -2.49  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
+    model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.use_vampprior = False
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
