@@ -57,7 +57,7 @@ class LadderVAEMulEncoder1Optim(LadderVAEMultipleEncoders):
                 out_mixsep, td_datamixsep = self._forward_mix(x_normalized[~supervised_mask])
                 recons_loss_dict_mixsep = self._get_reconstruction_loss_vector(out_mixsep,
                                                                                target_normalized[~supervised_mask])
-                recons_loss_mixsep = recons_loss_dict['loss'].sum()
+                recons_loss_mixsep = recons_loss_dict_mixsep['loss'].sum()
                 kl_loss_mixsep = self.get_kl_divergence_loss(td_datamixsep)
 
                 recons_loss += (recons_loss_ch0.sum() + recons_loss_ch1.sum() + recons_loss_mixsep.sum()) / 3
