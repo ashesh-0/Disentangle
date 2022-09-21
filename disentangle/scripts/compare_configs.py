@@ -59,7 +59,7 @@ def compare_raw_configs(config1, config2):
     return df
 
 
-def _df_column_name(path):
+def get_df_column_name(path):
     if path[-1] == '/':
         path = path[:-1]
     tokens = []
@@ -87,25 +87,28 @@ def compare_config(config1_path, config2_path):
     """
     config1 = load_config(config1_path)
     config2 = load_config(config2_path)
+    c1_name, c2_name = get_df_column_name(config1_path), get_df_column_name(config2_path)
+    df = get_comparison_df(config1, config2, c1_name, c2_name)
+    return df, get_changed_files(*list(df.loc[get_commit_key()].values))
+
+
+def get_commit_key():
+    return 'git.latest_commit'
+
+
+def get_comparison_df(config1, config2, config1_name, config2_name):
     df = compare_raw_configs(config1, config2)
-    df.columns = [_df_column_name(config1_path), _df_column_name(config2_path)]
+    df.columns = [config1_name, config2_name]
     df = df.sort_index()
 
-    commit_key = 'git.latest_commit'
+    commit_key = get_commit_key()
     if commit_key not in df.index:
         df.loc[commit_key] = [config1.git.latest_commit] * 2
 
-    return df, get_changed_files(*list(df.loc[commit_key].values))
+    return df
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('config1', type=str)
-    parser.add_argument('config2', type=str)
-    args = parser.parse_args()
-    assert os.path.exists(args.config1)
-    assert os.path.exists(args.config2)
-    df, changed_files = compare_config(args.config1, args.config2)
+def display_changes(df, changed_files):
     print('')
     print('************CHANGED FILES************')
     commit1, commit2 = list(df.loc['git.latest_commit'].values)
@@ -117,3 +120,14 @@ if __name__ == '__main__':
 
     df = df.drop('git.latest_commit')
     print(df)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config1', type=str)
+    parser.add_argument('config2', type=str)
+    args = parser.parse_args()
+    assert os.path.exists(args.config1)
+    assert os.path.exists(args.config2)
+    df, changed_files = compare_config(args.config1, args.config2)
+    display_changes(df, changed_files)
