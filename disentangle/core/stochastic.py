@@ -196,7 +196,7 @@ class NormalStochasticBlock2d(nn.Module):
             try:
                 p_mu, p_lv, p = self.process_p_params(p_params, var_clip_max)
             except:
-                import pdb;
+                import pdb
                 pdb.set_trace()
         else:
             # with VP enabled, we need to pass through the q (complete q) to get averaged posterior
@@ -222,8 +222,8 @@ class NormalStochasticBlock2d(nn.Module):
         # This is used when doing experiment from the prior - q is not used.
         if force_constant_output:
             z = z[0:1].expand_as(z).clone()
-            p_params = (
-                p_params[0][0:1].expand_as(p_params[0]).clone(), p_params[1][0:1].expand_as(p_params[1]).clone())
+            p_params = (p_params[0][0:1].expand_as(p_params[0]).clone(),
+                        p_params[1][0:1].expand_as(p_params[1]).clone())
 
         # Output of stochastic layer
         out = self.conv_out(z)
@@ -280,7 +280,7 @@ def kl_normal_mc(z, p_mulv, q_mulv):
 
 
 def log_Normal_diag(x, mean, log_var):
-    constant = - 0.5 * torch.log(torch.Tensor([2 * math.pi])).item()
+    constant = -0.5 * torch.log(torch.Tensor([2 * math.pi])).item()
     log_normal = constant + -0.5 * (log_var + torch.pow(x - mean, 2) / torch.exp(log_var))
     return log_normal
 
