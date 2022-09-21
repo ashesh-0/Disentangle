@@ -24,7 +24,11 @@ def _compare_config(config1, config2, prefix_key=''):
             val2 += nested_val2
         else:
             if key in config2:
-                if config1[key] != config2[key]:
+                if isinstance(config1[key],list) or isinstance(config1[key],tuple):
+                    unequal = tuple(config1[key]) != tuple(config2[key])
+                else:
+                    unequal = config1[key] != config2[key]
+                if unequal:
                     keys.append(prefix_key + key)
                     val1.append(config1[key])
                     val2.append(config2[key])
