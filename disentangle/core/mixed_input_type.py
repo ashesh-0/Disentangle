@@ -1,4 +1,4 @@
-from disentangle.core.enum import Enum
+from disentangle.core.custom_enum import Enum
 
 
 class MixedInputType(Enum):
