@@ -30,7 +30,6 @@ class TopDownLayer(nn.Module):
     is used directly as q_params, and p_params are defined in this layer
     (while they are usually taken from the previous layer), and can be learned.
     """
-
     def __init__(self,
                  z_dim: int,
                  n_res_blocks: int,
@@ -150,12 +149,12 @@ class TopDownLayer(nn.Module):
                 )
 
     def forward_swapped(
-            self,
-            q_mu,
-            q_lv,
-            input_=None,
-            skip_connection_input=None,
-            n_img_prior=None,
+        self,
+        q_mu,
+        q_lv,
+        input_=None,
+        skip_connection_input=None,
+        n_img_prior=None,
     ):
 
         # Check consistency of arguments
@@ -314,11 +313,16 @@ class TopDownLayer(nn.Module):
         # Last top-down block (sequence of residual blocks)
         x = self.deterministic_block(x)
 
-        keys = ['z', 'kl_samplewise', 'kl_spatial', 'kl_channelwise',
-                # 'logprob_p',
-                'logprob_q', 'qvar_max']
+        keys = [
+            'z',
+            'kl_samplewise',
+            'kl_spatial',
+            'kl_channelwise',
+            # 'logprob_p',
+            'logprob_q',
+            'qvar_max'
+        ]
         data = {k: data_stoch.get(k, None) for k in keys}
-
         data['q_mu'] = None
         data['q_lv'] = None
         if data_stoch['q_params'] is not None:
@@ -334,7 +338,6 @@ class BottomUpLayer(nn.Module):
     small deterministic Resnet in top-down layers. Consists of a sequence of
     bottom-up deterministic residual blocks with downsampling.
     """
-
     def __init__(self,
                  n_res_blocks: int,
                  n_filters: int,
@@ -405,21 +408,24 @@ class BottomUpLayer(nn.Module):
                 dropout=dropout,
                 res_block_type=res_block_type,
                 multiscale_retain_spatial_dims=multiscale_retain_spatial_dims,
-                multiscale_lowres_size_factor=multiscale_lowres_size_factor, )
+                multiscale_lowres_size_factor=multiscale_lowres_size_factor,
+            )
 
         msg = f'[{self.__class__.__name__}] McEnabled:{int(enable_multiscale)} '
         if enable_multiscale:
             msg += f'McParallelBeam:{int(multiscale_retain_spatial_dims)} McFactor{multiscale_lowres_size_factor}'
         print(msg)
 
-    def _init_multiscale(self, n_filters=None,
-                         nonlin=None,
-                         batchnorm=None,
-                         dropout=None,
-                         res_block_type=None,
-                         multiscale_retain_spatial_dims=None,
-                         multiscale_lowres_size_factor=None,
-                         ):
+    def _init_multiscale(
+        self,
+        n_filters=None,
+        nonlin=None,
+        batchnorm=None,
+        dropout=None,
+        res_block_type=None,
+        multiscale_retain_spatial_dims=None,
+        multiscale_lowres_size_factor=None,
+    ):
         self.multiscale_lowres_size_factor = multiscale_lowres_size_factor
         self.lowres_net = self.net
         if self.lowres_separate_branch:
@@ -475,7 +481,6 @@ class ResBlockWithResampling(nn.Module):
     whether the residual path has a gate layer at the end. There are a few
     residual block structures to choose from.
     """
-
     def __init__(self,
                  mode,
                  c_in,
@@ -607,10 +612,9 @@ class BottomUpDeterministicResBlock(ResBlockWithResampling):
 
 class MergeLayer(nn.Module):
     """
-    Merge two 4D input tensors by concatenating along dim=1 and passing the
+    Merge two/more than two 4D input tensors by concatenating along dim=1 and passing the
     result through 1) a convolutional 1x1 layer, or 2) a residual block
     """
-
     def __init__(self, channels, merge_type, nonlin=nn.LeakyReLU, batchnorm=True, dropout=None, res_block_type=None):
         super().__init__()
         try:
@@ -620,19 +624,23 @@ class MergeLayer(nn.Module):
         else:  # it is iterable
             if len(channels) == 1:
                 channels = [channels[0]] * 3
-        assert len(channels) == 3
+
+        # assert len(channels) == 3
 
         if merge_type == 'linear':
-            self.layer = nn.Conv2d(channels[0] + channels[1], channels[2], 1)
+            self.layer = nn.Conv2d(sum(channels[:-1]), channels[-1], 1)
         elif merge_type == 'residual':
             self.layer = nn.Sequential(
-                nn.Conv2d(channels[0] + channels[1], channels[2], 1, padding=0),
-                ResidualGatedBlock(channels[2], nonlin, batchnorm=batchnorm, dropout=dropout,
+                nn.Conv2d(sum(channels[:-1]), channels[-1], 1, padding=0),
+                ResidualGatedBlock(channels[-1],
+                                   nonlin,
+                                   batchnorm=batchnorm,
+                                   dropout=dropout,
                                    block_type=res_block_type),
             )
 
-    def forward(self, x, y):
-        x = torch.cat((x, y), dim=1)
+    def forward(self, *args):
+        x = torch.cat(args, dim=1)
         return self.layer(x)
 
 
@@ -640,7 +648,6 @@ class MergeLowRes(MergeLayer):
     """
     Here, we merge the lowresolution input (which has higher size)
     """
-
     def __init__(self, *args, **kwargs):
         self.retain_spatial_dims = kwargs.pop('multiscale_retain_spatial_dims')
         self.multiscale_lowres_size_factor = kwargs.pop('multiscale_lowres_size_factor')

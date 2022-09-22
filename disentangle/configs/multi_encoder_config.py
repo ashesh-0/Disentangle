@@ -18,12 +18,14 @@ def get_config():
     data.normalized_input = True
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
-    data.use_one_mu_std = False
+    data.use_one_mu_std = True
     data.train_aug_rotate = False
-    data.randomized_channels = False
-    data.multiscale_lowres_count = 3
+    data.randomized_channels = True
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
+    data.mixed_input_type = 'consistent_with_single_inputs'
+    data.supervised_data_fraction = 0.02
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -37,10 +39,8 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVaeSepEncoderSingleOptim
     model.z_dims = [128, 128, 128, 128]
-    model.skip_bottom_layers_count = 2  # For how many bottom layers, do we not want to use the encoder's output.
-    model.skip_bottom_layers_count_patience = 1
     model.blocks_per_layer = 1
     model.nonlin = 'elu'
     model.merge_type = 'residual'
@@ -55,16 +55,20 @@ def get_config():
     model.no_initial_downscaling = True
     model.analytical_kl = False
     model.mode_pred = False
-    model.blur_pool_filter_size = 3
     model.var_clip_max = 20
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
-    model.logvar_lowerbound = -10  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
+    model.logvar_lowerbound = -2.49  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.use_vampprior = False
     model.vampprior_N = 300
     model.multiscale_lowres_separate_branch = False
-    model.multiscale_retain_spatial_dims = None
+    model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
+    # stochastic layers below this are shared.
+    model.share_bottom_up_starting_idx = 0
+    model.fbu_num_blocks = 3
+    # if true, then the mixed branch does not effect the vae training. it only updates its own weights.
+    model.separate_mix_branch_training = False
 
     training = config.training
     training.lr = 0.001

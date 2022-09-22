@@ -25,6 +25,11 @@ def torch_nanmean(inp):
     return torch.mean(inp[~inp.isnan()])
 
 
+def compute_batch_mean(x):
+    N = len(x)
+    return x.view(N, -1).mean(dim=1)
+
+
 class LadderVAE(pl.LightningModule):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__()
@@ -115,16 +120,7 @@ class LadderVAE(pl.LightningModule):
         # First bottom-up layer: change num channels + downsample by factor 2
         # unless we want to prevent this
         stride = 1 if config.model.no_initial_downscaling else 2
-        self.first_bottom_up = nn.Sequential(
-            nn.Conv2d(self.color_ch, self.n_filters, 5, padding=2, stride=stride), nonlin(),
-            BottomUpDeterministicResBlock(
-                c_in=self.n_filters,
-                c_out=self.n_filters,
-                nonlin=nonlin,
-                batchnorm=self.batchnorm,
-                dropout=self.dropout,
-                res_block_type=self.res_block_type,
-            ))
+        self.first_bottom_up = self.create_first_bottom_up(stride)
 
         self.multiscale_retain_spatial_dims = config.model.multiscale_retain_spatial_dims
         self.lowres_first_bottom_ups = self._multiscale_count = None
@@ -229,6 +225,20 @@ class LadderVAE(pl.LightningModule):
         self.label1_psnr = RunningPSNR()
         self.label2_psnr = RunningPSNR()
 
+    def create_first_bottom_up(self, init_stride, num_blocks=1):
+        nonlin = self.get_nonlin()
+        modules = [nn.Conv2d(self.color_ch, self.n_filters, 5, padding=2, stride=init_stride), nonlin()]
+        for _ in range(num_blocks):
+            modules.append(BottomUpDeterministicResBlock(
+                c_in=self.n_filters,
+                c_out=self.n_filters,
+                nonlin=nonlin,
+                batchnorm=self.batchnorm,
+                dropout=self.dropout,
+                res_block_type=self.res_block_type,
+            ))
+        return nn.Sequential(*modules)
+
     def _init_multires(self, config):
         """
         Initialize everything related to multiresolution approach.
@@ -326,20 +336,49 @@ class LadderVAE(pl.LightningModule):
         return kl_weight
 
     def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False):
+        output = self._get_reconstruction_loss_vector(reconstruction, input,
+                                                      return_predicted_img=return_predicted_img)
+        loss_dict = output[0] if return_predicted_img else output
+        loss_dict['loss'] = torch.mean(loss_dict['loss'])
+        loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'])
+        loss_dict['ch2_loss'] = torch.mean(loss_dict['ch2_loss'])
+        if 'mixed_loss' in loss_dict:
+            loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'])
+        if return_predicted_img:
+            assert len(output) == 2
+            return loss_dict, output[1]
+        else:
+            return loss_dict
+
+    def _get_mixed_reconstruction_loss_vector(self, reconstruction, mixed_input):
+        """
+        Computes the reconstruction loss on the mixed input and mixed prediction
+        """
+        dist_params = self.likelihood.distr_params(reconstruction)
+        mixed_prediction = torch.mean(dist_params['mean'], dim=1, keepdim=True)
+        dist_params['mean'] = mixed_prediction
+        mixed_recons_ll = self.likelihood.log_likelihood(mixed_input, dist_params)
+        output = compute_batch_mean(-1 * mixed_recons_ll)
+        return output
+
+    def _get_reconstruction_loss_vector(self, reconstruction, input, return_predicted_img=False):
         """
         Args:
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
+
         # Log likelihood
         ll, like_dict = self.likelihood(reconstruction, input)
-        recons_loss = -ll.mean()
-        mixed_recons_loss = 0
-        output = {'loss': recons_loss}
+        recons_loss = compute_batch_mean(-1 * ll)
+        output = {'loss': recons_loss,
+                  'ch1_loss': compute_batch_mean(-ll[:, 0]),
+                  'ch2_loss': compute_batch_mean(-ll[:, 1]),
+                  }
         if self.enable_mixed_rec:
             mixed_target = torch.mean(input, dim=1, keepdim=True)
             mixed_prediction = torch.mean(like_dict['params']['mean'], dim=1, keepdim=True)
             mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_prediction})
-            output['mixed_loss'] = -1 * mixed_recons_ll.mean()
+            output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
         if return_predicted_img:
             return output, like_dict['params']['mean']
@@ -533,9 +572,16 @@ class LadderVAE(pl.LightningModule):
         return out, td_data
 
     def bottomup_pass(self, inp):
-        # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
-        # later channels are simply to yield more context.
-        x = self.first_bottom_up(inp[:, :1])
+        return self._bottomup_pass(inp, self.first_bottom_up, self.lowres_first_bottom_ups, self.bottom_up_layers)
+
+    def _bottomup_pass(self, inp, first_bottom_up, lowres_first_bottom_ups, bottom_up_layers):
+
+        if self._multiscale_count > 1:
+            # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
+            # later channels are simply to yield more context.
+            x = first_bottom_up(inp[:, :1])
+        else:
+            x = first_bottom_up(inp)
 
         # Loop from bottom to top layer, store all deterministic nodes we
         # need in the top-down pass
@@ -544,9 +590,9 @@ class LadderVAE(pl.LightningModule):
         for i in range(self.n_layers):
             lowres_x = None
             if self._multiscale_count > 1 and i + 1 < inp.shape[1]:
-                lowres_x = self.lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
+                lowres_x = lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
 
-            x, bu_value = self.bottom_up_layers[i](x, lowres_x=lowres_x)
+            x, bu_value = bottom_up_layers[i](x, lowres_x=lowres_x)
             bu_values.append(bu_value)
 
         return bu_values

@@ -3,8 +3,8 @@ from typing import Tuple, Union
 import albumentations as A
 import numpy as np
 
-from disentangle.data_loader.train_val_data import get_train_val_data
 from disentangle.core.data_type import DataType
+from disentangle.data_loader.train_val_data import get_train_val_data
 
 
 class MultiChDeterministicTiffDloader:
@@ -16,7 +16,8 @@ class MultiChDeterministicTiffDloader:
                  normalized_input=None,
                  enable_rotation_aug: bool = False,
                  enable_random_cropping: bool = False,
-                 use_one_mu_std=None):
+                 use_one_mu_std=None,
+                 allow_generation=False):
         """
         Here, an image is split into grids of size img_sz.
         Args:
@@ -27,18 +28,20 @@ class MultiChDeterministicTiffDloader:
                 for both channels. Otherwise, two different meean and stdev are used.
 
         """
-        self._img_sz = data_config.image_size
         self._fpath = fpath
-        self._channel_1 = data_config.channel_1
-        self._channel_2 = data_config.channel_2
-        self._data = get_train_val_data(data_config, self._fpath, is_train, val_fraction=val_fraction)
+        self._data = get_train_val_data(data_config, self._fpath, is_train, val_fraction=val_fraction,
+                                        allow_generation=allow_generation)
 
         self._normalized_input = normalized_input
         max_val = np.quantile(self._data, 0.995)
         self._data[self._data > max_val] = max_val
 
         self.N = len(self._data)
-        self._repeat_factor = (self._data.shape[-2] // self._img_sz) ** 2
+        self._img_sz = self._repeat_factor = None
+        self.set_img_sz(data_config.image_size)
+        # For overlapping dloader, image_size and repeat_factors are not related. hence a different function.
+        self.set_repeat_factor()
+
         self._is_train = is_train
         self._mean = None
         self._std = None
@@ -54,8 +57,21 @@ class MultiChDeterministicTiffDloader:
         msg = self._init_msg()
         print(msg)
 
+    def get_img_sz(self):
+        return self._img_sz
+
+    def set_img_sz(self, image_size):
+        """
+        If one wants to change the image size on the go, then this can be used.
+        This is typically used during evaluation.
+        """
+        self._img_sz = image_size
+
+    def set_repeat_factor(self):
+        self._repeat_factor = (self._data.shape[-2] // self._img_sz) ** 2
+
     def _init_msg(self, ):
-        msg = f'[{self.__class__.__name__}] Sz:{self._img_sz} Ch:{self._channel_1},{self._channel_2}'
+        msg = f'[{self.__class__.__name__}] Sz:{self._img_sz}'
         msg += f' Train:{int(self._is_train)} N:{self.N} NumPatchPerN:{self._repeat_factor}'
         msg += f' NormInp:{self._normalized_input}'
         msg += f' SingleNorm:{self._use_one_mu_std}'
