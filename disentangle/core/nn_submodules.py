@@ -3,6 +3,7 @@ Taken from https://github.com/juglab/HDN/blob/e30edf7ec2cd55c902e469b890d8fe44d1
 """
 import torch
 from torch import nn
+import torchvision.transforms.functional as F
 
 
 class ResidualBlock(nn.Module):
@@ -33,7 +34,8 @@ class ResidualBlock(nn.Module):
                  batchnorm: bool = True,
                  block_type: str = None,
                  dropout=None,
-                 gated=None):
+                 gated=None,
+                 skip_padding=False):
         super().__init__()
         if kernel is None:
             kernel = self.default_kernel_size
@@ -43,9 +45,10 @@ class ResidualBlock(nn.Module):
             raise ValueError("kernel has to be None, int, or an iterable of length 2")
         assert all([k % 2 == 1 for k in kernel]), "kernel sizes have to be odd"
         kernel = list(kernel)
-        pad = [k // 2 for k in kernel]
+        self.skip_padding = skip_padding
+        pad = [0] * len(kernel) if self.skip_padding else [k // 2 for k in kernel]
+        print(pad, kernel)
         self.gated = gated
-
         modules = []
 
         if block_type == 'cabdcabd':
@@ -85,7 +88,12 @@ class ResidualBlock(nn.Module):
         self.block = nn.Sequential(*modules)
 
     def forward(self, x):
-        return self.block(x) + x
+
+        out = self.block(x)
+        if out.shape != x.shape:
+            return out + F.center_crop(x, out.shape[-2:])
+        else:
+            return out + x
 
 
 class ResidualGatedBlock(ResidualBlock):
