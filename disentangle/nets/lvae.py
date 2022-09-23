@@ -42,12 +42,18 @@ class LadderVAE(pl.LightningModule):
         self.target_ch = target_ch
 
         self.z_dims = config.model.z_dims
-        self.blocks_per_layer = config.model.blocks_per_layer
+        self.encoder_blocks_per_layer = config.model.encoder.blocks_per_layer
+        self.decoder_blocks_per_layer = config.model.decoder.blocks_per_layer
+
         self.n_layers = len(self.z_dims)
         self.stochastic_skip = config.model.stochastic_skip
         self.batchnorm = config.model.batchnorm
-        self.n_filters = config.model.n_filters
-        self.dropout = config.model.dropout
+        self.encoder_n_filters = config.model.encoder.n_filters
+        self.decoder_n_filters = config.model.decoder.n_filters
+
+        self.encoder_dropout = config.model.encoder.dropout
+        self.decoder_dropout = config.model.decoder.dropout
+
         self.learn_top_prior = config.model.learn_top_prior
         self.img_shape = (config.data.image_size, config.data.image_size)
         self.res_block_type = config.model.res_block_type
@@ -111,7 +117,7 @@ class LadderVAE(pl.LightningModule):
         if not config.model.no_initial_downscaling:  # by default do another downscaling
             self.overall_downscale_factor *= 2
 
-        assert max(self.downsample) <= self.blocks_per_layer
+        assert max(self.downsample) <= self.encoder_blocks_per_layer
         assert len(self.downsample) == self.n_layers
 
         # Get class of nonlinear activation from string description
@@ -142,12 +148,12 @@ class LadderVAE(pl.LightningModule):
             # possibly with downsampling between them.
             self.bottom_up_layers.append(
                 BottomUpLayer(
-                    n_res_blocks=self.blocks_per_layer,
-                    n_filters=self.n_filters,
+                    n_res_blocks=self.encoder_blocks_per_layer,
+                    n_filters=self.encoder_n_filters,
                     downsampling_steps=self.downsample[i],
                     nonlin=nonlin,
                     batchnorm=self.batchnorm,
-                    dropout=self.dropout,
+                    dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
                     res_block_kernel=self.res_block_kernel,
                     res_block_skip_padding=self.res_block_skip_padding,
@@ -172,14 +178,14 @@ class LadderVAE(pl.LightningModule):
             self.top_down_layers.append(
                 TopDownLayer(
                     z_dim=self.z_dims[i],
-                    n_res_blocks=self.blocks_per_layer,
-                    n_filters=self.n_filters,
+                    n_res_blocks=self.decoder_blocks_per_layer,
+                    n_filters=self.decoder_n_filters,
                     is_top_layer=is_top,
                     downsampling_steps=self.downsample[i],
                     nonlin=nonlin,
                     merge_type=self.merge_type,
                     batchnorm=self.batchnorm,
-                    dropout=self.dropout,
+                    dropout=self.decoder_dropout,
                     stochastic_skip=self.stochastic_skip,
                     learn_top_prior=self.learn_top_prior,
                     top_prior_param_shape=self.get_top_prior_param_shape(),
@@ -193,14 +199,14 @@ class LadderVAE(pl.LightningModule):
         modules = list()
         if not self.no_initial_downscaling:
             modules.append(Interpolate(scale=2))
-        for i in range(self.blocks_per_layer):
+        for i in range(self.decoder_blocks_per_layer):
             modules.append(
                 TopDownDeterministicResBlock(
-                    c_in=self.n_filters,
-                    c_out=self.n_filters,
+                    c_in=self.decoder_n_filters,
+                    c_out=self.decoder_n_filters,
                     nonlin=nonlin,
                     batchnorm=self.batchnorm,
-                    dropout=self.dropout,
+                    dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
                     gated=self.gated,
                 ))
@@ -208,12 +214,17 @@ class LadderVAE(pl.LightningModule):
 
         # Define likelihood
         if self.likelihood_form == 'gaussian':
+<<<<<<< HEAD
             self.likelihood = GaussianLikelihood(self.n_filters,
+=======
+            self.likelihood = GaussianLikelihood(self.decoder_n_filters,
+>>>>>>> master
                                                  self.target_ch,
                                                  predict_logvar=self.predict_logvar,
                                                  logvar_lowerbound=self.logvar_lowerbound)
         elif self.likelihood_form == 'noise_model':
-            self.likelihood = NoiseModelLikelihood(self.n_filters, self.target_ch, data_mean, data_std, self.noiseModel)
+            self.likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, data_mean, data_std,
+                                                   self.noiseModel)
         else:
             msg = "Unrecognized likelihood '{}'".format(self.likelihood_form)
             raise RuntimeError(msg)
@@ -228,10 +239,11 @@ class LadderVAE(pl.LightningModule):
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
         nonlin = self.get_nonlin()
-        modules = [nn.Conv2d(self.color_ch, self.n_filters, 5, padding=2, stride=init_stride), nonlin()]
+        modules = [nn.Conv2d(self.color_ch, self.encoder_n_filters, 5, padding=2, stride=init_stride), nonlin()]
         for _ in range(num_blocks):
             modules.append(
                 BottomUpDeterministicResBlock(
+<<<<<<< HEAD
                     c_in=self.n_filters,
                     c_out=self.n_filters,
                     nonlin=nonlin,
@@ -240,6 +252,14 @@ class LadderVAE(pl.LightningModule):
                     res_block_type=self.res_block_type,
                     res_block_kernel=self.res_block_kernel,
                     skip_padding=self.res_block_skip_padding,
+=======
+                    c_in=self.encoder_n_filters,
+                    c_out=self.encoder_n_filters,
+                    nonlin=nonlin,
+                    batchnorm=self.batchnorm,
+                    dropout=self.encoder_dropout,
+                    res_block_type=self.res_block_type,
+>>>>>>> master
                 ))
         return nn.Sequential(*modules)
 
@@ -262,13 +282,13 @@ class LadderVAE(pl.LightningModule):
         lowres_first_bottom_ups = []
         for _ in range(1, self._multiscale_count):
             first_bottom_up = nn.Sequential(
-                nn.Conv2d(self.color_ch, self.n_filters, 5, padding=2, stride=stride), nonlin(),
+                nn.Conv2d(self.color_ch, self.encoder_n_filters, 5, padding=2, stride=stride), nonlin(),
                 BottomUpDeterministicResBlock(
-                    c_in=self.n_filters,
-                    c_out=self.n_filters,
+                    c_in=self.encoder_n_filters,
+                    c_out=self.encoder_n_filters,
                     nonlin=nonlin,
                     batchnorm=self.batchnorm,
-                    dropout=self.dropout,
+                    dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
                     skip_padding=self.res_block_skip_padding,
                 ))

@@ -36,7 +36,8 @@ def get_config():
     model = config.model
     model.model_type = ModelType.LadderVaeTwinDecoder
     model.z_dims = [128]
-    model.blocks_per_layer = 5
+    model.encoder.blocks_per_layer = 5
+    model.decoder.blocks_per_layer = 5
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True

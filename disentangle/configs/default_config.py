@@ -10,6 +10,9 @@ def get_default_config():
 
     config.model = ml_collections.ConfigDict()
     config.model.use_vampprior = False
+    config.model.encoder = ml_collections.ConfigDict()
+    config.model.decoder = ml_collections.ConfigDict()
+
     config.loss = ml_collections.ConfigDict()
 
     config.training = ml_collections.ConfigDict()
