@@ -33,14 +33,14 @@ class LadderVAETwinDecoder(LadderVAE):
             self.top_down_layers_l1.append(
                 TopDownLayer(
                     z_dim=self.z_dims[i],
-                    n_res_blocks=self.blocks_per_layer,
-                    n_filters=self.n_filters // 2,
+                    n_res_blocks=self.decoder_blocks_per_layer,
+                    n_filters=self.decoder_n_filters // 2,
                     is_top_layer=is_top,
                     downsampling_steps=self.downsample[i],
                     nonlin=nonlin,
                     merge_type=self.merge_type,
                     batchnorm=self.batchnorm,
-                    dropout=self.dropout,
+                    dropout=self.decoder_dropout,
                     stochastic_skip=self.stochastic_skip,
                     learn_top_prior=self.learn_top_prior,
                     top_prior_param_shape=self.get_top_prior_param_shape(),
@@ -52,14 +52,14 @@ class LadderVAETwinDecoder(LadderVAE):
             self.top_down_layers_l2.append(
                 TopDownLayer(
                     z_dim=self.z_dims[i],
-                    n_res_blocks=self.blocks_per_layer,
-                    n_filters=self.n_filters // 2,
+                    n_res_blocks=self.decoder_blocks_per_layer,
+                    n_filters=self.decoder_n_filters // 2,
                     is_top_layer=is_top,
                     downsampling_steps=self.downsample[i],
                     nonlin=nonlin,
                     merge_type=self.merge_type,
                     batchnorm=self.batchnorm,
-                    dropout=self.dropout,
+                    dropout=self.decoder_dropout,
                     stochastic_skip=self.stochastic_skip,
                     learn_top_prior=self.learn_top_prior,
                     top_prior_param_shape=self.get_top_prior_param_shape(),
@@ -75,8 +75,12 @@ class LadderVAETwinDecoder(LadderVAE):
         assert self.likelihood_form == 'gaussian'
         del self.likelihood
         self.likelihood = None
-        self.likelihood_l1 = GaussianLikelihood(self.n_filters // 2, self.target_ch, predict_logvar=self.predict_logvar)
-        self.likelihood_l2 = GaussianLikelihood(self.n_filters // 2, self.target_ch, predict_logvar=self.predict_logvar)
+        self.likelihood_l1 = GaussianLikelihood(self.decoder_n_filters // 2,
+                                                self.target_ch,
+                                                predict_logvar=self.predict_logvar)
+        self.likelihood_l2 = GaussianLikelihood(self.decoder_n_filters // 2,
+                                                self.target_ch,
+                                                predict_logvar=self.predict_logvar)
         print(f'[{self.__class__.__name__}]')
 
     def get_final_top_down(self):
@@ -84,14 +88,14 @@ class LadderVAETwinDecoder(LadderVAE):
         nonlin = self.get_nonlin()
         if not self.no_initial_downscaling:
             modules.append(Interpolate(scale=2))
-        for i in range(self.blocks_per_layer):
+        for i in range(self.decoder_blocks_per_layer):
             modules.append(
                 TopDownDeterministicResBlock(
-                    c_in=self.n_filters // 2,
-                    c_out=self.n_filters // 2,
+                    c_in=self.decoder_n_filters // 2,
+                    c_out=self.decoder_n_filters // 2,
                     nonlin=nonlin,
                     batchnorm=self.batchnorm,
-                    dropout=self.dropout,
+                    dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
                     gated=self.gated,
                 ))
@@ -108,11 +112,15 @@ class LadderVAETwinDecoder(LadderVAE):
         bu_values = self.bottomup_pass(x_pad)
         bu_values_l1, bu_values_l2 = self.get_separate_bu_values(bu_values)
 
-        sample1 = self._sample_from_q(bu_values_l1, top_down_layers=self.top_down_layers_l1,
-                                      final_top_down_layer=self.final_top_down_l1, masks=masks)
+        sample1 = self._sample_from_q(bu_values_l1,
+                                      top_down_layers=self.top_down_layers_l1,
+                                      final_top_down_layer=self.final_top_down_l1,
+                                      masks=masks)
 
-        sample2 = self._sample_from_q(bu_values_l2, top_down_layers=self.top_down_layers_l2,
-                                      final_top_down_layer=self.final_top_down_l2, masks=masks)
+        sample2 = self._sample_from_q(bu_values_l2,
+                                      top_down_layers=self.top_down_layers_l2,
+                                      final_top_down_layer=self.final_top_down_l2,
+                                      masks=masks)
         return sample1, sample2
 
     @staticmethod
@@ -214,7 +222,9 @@ class LadderVAETwinDecoder(LadderVAE):
 
         out_l1, out_l2, td_data = self.forward(x_normalized)
 
-        recons_loss, recons_img_list = self.get_reconstruction_loss(out_l1, out_l2, target_normalized,
+        recons_loss, recons_img_list = self.get_reconstruction_loss(out_l1,
+                                                                    out_l2,
+                                                                    target_normalized,
                                                                     return_predicted_img=True)
         self.label1_psnr.update(recons_img_list[0][:, 0], target_normalized[:, 0])
         self.label2_psnr.update(recons_img_list[1][:, 0], target_normalized[:, 1])

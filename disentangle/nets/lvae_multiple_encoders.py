@@ -49,11 +49,11 @@ class LadderVAEMultipleEncoders(LadderVAE):
                 self.bottom_up_layers_ch2.append(self.bottom_up_layers[i])
                 continue
 
-            blayer = self.get_bottom_up_layer(i, config.model.multiscale_lowres_separate_branch,
-                                              enable_multiscale, multiscale_lowres_size_factor)
+            blayer = self.get_bottom_up_layer(i, config.model.multiscale_lowres_separate_branch, enable_multiscale,
+                                              multiscale_lowres_size_factor)
             self.bottom_up_layers_ch1.append(blayer)
-            blayer = self.get_bottom_up_layer(i, config.model.multiscale_lowres_separate_branch,
-                                              enable_multiscale, multiscale_lowres_size_factor)
+            blayer = self.get_bottom_up_layer(i, config.model.multiscale_lowres_separate_branch, enable_multiscale,
+                                              multiscale_lowres_size_factor)
             self.bottom_up_layers_ch2.append(blayer)
 
         msg = f'[{self.__class__.__name__}] ShareStartIdx:{self.share_bottom_up_starting_idx} '
@@ -62,12 +62,12 @@ class LadderVAEMultipleEncoders(LadderVAE):
 
     def get_bottom_up_layer(self, ith_layer, lowres_separate_branch, enable_multiscale, multiscale_lowres_size_factor):
         return BottomUpLayer(
-            n_res_blocks=self.blocks_per_layer,
-            n_filters=self.n_filters,
+            n_res_blocks=self.encoder_blocks_per_layer,
+            n_filters=self.encoder_n_filters,
             downsampling_steps=self.downsample[ith_layer],
             nonlin=self.get_nonlin(),
             batchnorm=self.batchnorm,
-            dropout=self.dropout,
+            dropout=self.encoder_dropout,
             res_block_type=self.res_block_type,
             gated=self.gated,
             lowres_separate_branch=lowres_separate_branch,
@@ -121,8 +121,7 @@ class LadderVAEMultipleEncoders(LadderVAE):
             optimizer0 = optim.Adamax(encoder_params, lr=self.lr, weight_decay=0)
         else:
             optimizer0 = optim.Adamax(encoder_params + decoder_params, lr=self.lr, weight_decay=0)
-        optimizer1 = optim.Adamax(encoder_ch1_params + encoder_ch2_params + decoder_params,
-                                  lr=self.lr, weight_decay=0)
+        optimizer1 = optim.Adamax(encoder_ch1_params + encoder_ch2_params + decoder_params, lr=self.lr, weight_decay=0)
 
         scheduler0 = self.get_scheduler(optimizer0)
         scheduler1 = self.get_scheduler(optimizer1)
