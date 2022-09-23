@@ -38,15 +38,19 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128]
+    model.z_dims = [128, 128, 128]
 
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
+    model.encoder.res_block_kernel = 1
+    model.encoder.res_block_skip_padding = False
 
     model.decoder.n_filters = 64
     model.decoder.blocks_per_layer = 1
     model.decoder.dropout = 0.1
+    model.decoder.res_block_kernel = 1
+    model.decoder.res_block_skip_padding = False
 
     model.nonlin = 'elu'
     model.merge_type = 'residual'
@@ -55,8 +59,6 @@ def get_config():
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
-    model.res_block_kernel = 1
-    model.res_block_skip_padding = True
 
     model.gated = True
     model.no_initial_downscaling = True

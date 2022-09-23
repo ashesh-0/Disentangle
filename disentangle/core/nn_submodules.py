@@ -47,7 +47,7 @@ class ResidualBlock(nn.Module):
         kernel = list(kernel)
         self.skip_padding = skip_padding
         pad = [0] * len(kernel) if self.skip_padding else [k // 2 for k in kernel]
-        print(pad, kernel)
+        print(kernel, pad)
         self.gated = gated
         modules = []
 

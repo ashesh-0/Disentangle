@@ -41,6 +41,8 @@ class TopDownLayer(nn.Module):
                  dropout: Union[None, float] = None,
                  stochastic_skip: bool = False,
                  res_block_type=None,
+                 res_block_kernel=None,
+                 res_block_skip_padding=None,
                  gated=None,
                  learn_top_prior=False,
                  top_prior_param_shape=None,
@@ -113,6 +115,8 @@ class TopDownLayer(nn.Module):
                     batchnorm=batchnorm,
                     dropout=dropout,
                     res_block_type=res_block_type,
+                    res_block_kernel=res_block_kernel,
+                    skip_padding=res_block_skip_padding,
                     gated=gated,
                 ))
         self.deterministic_block = nn.Sequential(*block_list)
@@ -136,6 +140,7 @@ class TopDownLayer(nn.Module):
                 batchnorm=batchnorm,
                 dropout=dropout,
                 res_block_type=res_block_type,
+                res_block_kernel=res_block_kernel,
             )
 
             # Skip connection that goes around the stochastic top-down layer
@@ -613,7 +618,7 @@ class MergeLayer(nn.Module):
     Merge two/more than two 4D input tensors by concatenating along dim=1 and passing the
     result through 1) a convolutional 1x1 layer, or 2) a residual block
     """
-    def __init__(self, channels, merge_type, nonlin=nn.LeakyReLU, batchnorm=True, dropout=None, res_block_type=None):
+    def __init__(self, channels, merge_type, nonlin=nn.LeakyReLU, batchnorm=True, dropout=None, res_block_type=None,res_kernel_type=None):
         super().__init__()
         try:
             iter(channels)
@@ -630,11 +635,14 @@ class MergeLayer(nn.Module):
         elif merge_type == 'residual':
             self.layer = nn.Sequential(
                 nn.Conv2d(sum(channels[:-1]), channels[-1], 1, padding=0),
-                ResidualGatedBlock(channels[-1],
-                                   nonlin,
-                                   batchnorm=batchnorm,
-                                   dropout=dropout,
-                                   block_type=res_block_type),
+                ResidualGatedBlock(
+                    channels[-1],
+                    nonlin,
+                    batchnorm=batchnorm,
+                    dropout=dropout,
+                    block_type=res_block_type,
+                    kernel=res_kernel_type,
+                ),
             )
 
     def forward(self, *args):
