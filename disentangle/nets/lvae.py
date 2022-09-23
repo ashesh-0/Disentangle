@@ -214,6 +214,8 @@ class LadderVAE(pl.LightningModule):
                     batchnorm=self.batchnorm,
                     dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
+                    res_block_kernel=self.decoder_res_block_kernel,
+                    skip_padding=self.decoder_res_block_skip_padding,
                     gated=self.gated,
                 ))
         self.final_top_down = nn.Sequential(*modules)
@@ -253,6 +255,7 @@ class LadderVAE(pl.LightningModule):
                     dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
                     skip_padding=self.encoder_res_block_skip_padding,
+                    res_block_kernel=self.encoder_res_block_kernel,
                 ))
         return nn.Sequential(*modules)
 

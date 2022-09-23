@@ -151,6 +151,8 @@ class TopDownLayer(nn.Module):
                     batchnorm=batchnorm,
                     dropout=dropout,
                     res_block_type=res_block_type,
+                    res_block_kernel=res_block_kernel,
+                    res_block_skip_padding=res_block_skip_padding,
                 )
 
     def forward_swapped(
@@ -618,7 +620,15 @@ class MergeLayer(nn.Module):
     Merge two/more than two 4D input tensors by concatenating along dim=1 and passing the
     result through 1) a convolutional 1x1 layer, or 2) a residual block
     """
-    def __init__(self, channels, merge_type, nonlin=nn.LeakyReLU, batchnorm=True, dropout=None, res_block_type=None,res_kernel_type=None):
+    def __init__(self,
+                 channels,
+                 merge_type,
+                 nonlin=nn.LeakyReLU,
+                 batchnorm=True,
+                 dropout=None,
+                 res_block_type=None,
+                 res_block_kernel=None,
+                 res_block_skip_padding=False):
         super().__init__()
         try:
             iter(channels)
@@ -641,7 +651,8 @@ class MergeLayer(nn.Module):
                     batchnorm=batchnorm,
                     dropout=dropout,
                     block_type=res_block_type,
-                    kernel=res_kernel_type,
+                    kernel=res_block_kernel,
+                    skip_padding=res_block_skip_padding,
                 ),
             )
 
@@ -680,5 +691,19 @@ class SkipConnectionMerger(MergeLayer):
 
     merge_type = 'residual'
 
-    def __init__(self, channels, nonlin, batchnorm, dropout, res_block_type):
-        super().__init__(channels, self.merge_type, nonlin, batchnorm, dropout=dropout, res_block_type=res_block_type)
+    def __init__(self,
+                 channels,
+                 nonlin,
+                 batchnorm,
+                 dropout,
+                 res_block_type,
+                 res_block_kernel=None,
+                 res_block_skip_padding=False):
+        super().__init__(channels,
+                         self.merge_type,
+                         nonlin,
+                         batchnorm,
+                         dropout=dropout,
+                         res_block_type=res_block_type,
+                         res_block_kernel=res_block_kernel,
+                         res_block_skip_padding=res_block_skip_padding)
