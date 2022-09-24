@@ -24,7 +24,7 @@ def _compare_config(config1, config2, prefix_key=''):
             val2 += nested_val2
         else:
             if key in config2:
-                if isinstance(config1[key],list) or isinstance(config1[key],tuple):
+                if isinstance(config1[key], list) or isinstance(config1[key], tuple):
                     unequal = tuple(config1[key]) != tuple(config2[key])
                 else:
                     unequal = config1[key] != config2[key]
@@ -47,7 +47,7 @@ def compare_raw_configs(config1, config2):
         if key_v2 in keys:
             continue
         assert val1_v2[
-                   idx] is None, 'Since this key is not present in keys, it means that it was not present in config1. So it must be none'
+            idx] is None, 'Since this key is not present in keys, it means that it was not present in config1. So it must be none'
         keys.append(key_v2)
         val1.append(val1_v2[idx])
         val2.append(val2_v2[idx])
@@ -91,6 +91,16 @@ def compare_config(config1_path, config2_path):
     """
     config1 = load_config(config1_path)
     config2 = load_config(config2_path)
+    if 'encoder' not in config1.model:
+        config1.encoder = ml_collections.ConfigDict()
+        assert 'decoder' not in config1.model
+        config1.decoder = ml_collections.ConfigDict()
+
+    if 'encoder' not in config2.model:
+        config2.encoder = ml_collections.ConfigDict()
+        assert 'decoder' not in config2.model
+        config2.decoder = ml_collections.ConfigDict()
+
     c1_name, c2_name = get_df_column_name(config1_path), get_df_column_name(config2_path)
     df = get_comparison_df(config1, config2, c1_name, c2_name)
     return df, get_changed_files(*list(df.loc[get_commit_key()].values))
