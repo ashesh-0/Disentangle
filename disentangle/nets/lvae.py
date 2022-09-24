@@ -244,7 +244,14 @@ class LadderVAE(pl.LightningModule):
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
         nonlin = self.get_nonlin()
-        modules = [nn.Conv2d(self.color_ch, self.encoder_n_filters, 5, padding=2, stride=init_stride), nonlin()]
+        modules = [
+            nn.Conv2d(self.color_ch,
+                      self.encoder_n_filters,
+                      self.encoder_res_block_kernel,
+                      padding=0 if self.encoder_res_block_skip_padding else self.encoder_res_block_kernel // 2,
+                      stride=init_stride),
+            nonlin()
+        ]
         for _ in range(num_blocks):
             modules.append(
                 BottomUpDeterministicResBlock(
