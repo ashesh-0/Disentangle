@@ -8,7 +8,7 @@ import torch.optim as optim
 import wandb
 from torch import nn
 from torch.autograd import Variable
-
+import torchvision.transforms.functional as F
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
 from disentangle.core.loss_type import LossType
@@ -86,6 +86,7 @@ class LadderVAE(pl.LightningModule):
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
 
+        self.skip_nboundary_pixels_from_loss = config.model.skip_nboundary_pixels_from_loss
         # initialize the learning rate scheduler params.
         self.lr_scheduler_monitor = self.lr_scheduler_mode = None
         self._init_lr_scheduler_params(config)
@@ -396,6 +397,11 @@ class LadderVAE(pl.LightningModule):
 
         # Log likelihood
         ll, like_dict = self.likelihood(reconstruction, input)
+        if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
+            pad = self.skip_nboundary_pixels_from_loss
+            ll = ll[:, :, pad:-pad, pad:-pad]
+            like_dict['params']['mean'] = like_dict['params']['mean'][:, :, pad:-pad, pad:-pad]
+
         recons_loss = compute_batch_mean(-1 * ll)
         output = {
             'loss': recons_loss,
@@ -452,7 +458,13 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
+
         recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
+
+        if self.skip_nboundary_pixels_from_loss:
+            pad = self.skip_nboundary_pixels_from_loss
+            target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
+
         recons_loss = recons_loss_dict['loss']
 
         if self.loss_type == LossType.ElboMixedReconstruction:
@@ -519,12 +531,15 @@ class LadderVAE(pl.LightningModule):
 
         out, td_data = self.forward(x_normalized)
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        if self.skip_nboundary_pixels_from_loss:
+            pad = self.skip_nboundary_pixels_from_loss
+            target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
         self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
 
-        psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0], recons_img[:, 0])
-        psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1], recons_img[:, 1])
+        psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0].clone(), recons_img[:, 0].clone())
+        psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1].clone(), recons_img[:, 1].clone())
         recons_loss = recons_loss_dict['loss']
         kl_loss = self.get_kl_divergence_loss(td_data)
         net_loss = recons_loss + self.get_kl_weight() * kl_loss

@@ -52,6 +52,7 @@ def get_config():
     model.decoder.res_block_kernel = 1
     model.decoder.res_block_skip_padding = False
 
+    model.skip_nboundary_pixels_from_loss = 8
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True
