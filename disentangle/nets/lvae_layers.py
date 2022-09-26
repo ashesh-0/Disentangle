@@ -6,6 +6,7 @@ from typing import Union
 
 import torch
 from torch import nn
+import torchvision.transforms.functional as F
 
 from disentangle.core.data_utils import crop_img_tensor, pad_img_tensor
 from disentangle.core.nn_submodules import ResidualBlock, ResidualGatedBlock
@@ -47,6 +48,7 @@ class TopDownLayer(nn.Module):
                  learn_top_prior=False,
                  top_prior_param_shape=None,
                  analytical_kl=False,
+                 no_padding_mode=False,
                  vp_enabled=False):
         """
             Args:
@@ -85,6 +87,7 @@ class TopDownLayer(nn.Module):
         self.learn_top_prior = learn_top_prior
         self.analytical_kl = analytical_kl
         self.vp_enabled = vp_enabled
+        self.no_padding_mode = no_padding_mode
         assert vp_enabled is False or (vp_enabled is True and is_top_layer is True)
         # Define top layer prior parameters, possibly learnable
         if is_top_layer:
@@ -288,6 +291,10 @@ class TopDownLayer(nn.Module):
                 if use_uncond_mode:
                     q_params = p_params
                 else:
+                    if bu_value.shape[-2:] != p_params.shape[-2:]:
+                        assert self.no_padding_mode is True
+                        assert bu_value.shape[-1] > p_params.shape[-1]
+                        bu_value = F.center_crop(bu_value, p_params.shape[-2:])
                     q_params = self.merge(bu_value, p_params)
 
         # In generative mode, q is not used

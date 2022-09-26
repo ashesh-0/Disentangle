@@ -86,6 +86,8 @@ class LadderVAE(pl.LightningModule):
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
 
+        self.no_padding_mode = config.model.encoder.res_block_skip_padding is True and config.model.encoder.res_block_kernel > 1
+
         self.skip_nboundary_pixels_from_loss = config.model.skip_nboundary_pixels_from_loss
         # initialize the learning rate scheduler params.
         self.lr_scheduler_monitor = self.lr_scheduler_mode = None
@@ -199,6 +201,8 @@ class LadderVAE(pl.LightningModule):
                     res_block_skip_padding=self.decoder_res_block_skip_padding,
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
+                    # in no_padding_mode, what gets passed from the encoder are not multiples of 2 and so merging operation does not work natively.
+                    no_padding_mode=self.no_padding_mode,
                     vp_enabled=is_top and self.vp_enabled,
                 ))
         # Final top-down layer
@@ -458,7 +462,9 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
-
+        if self.no_padding_mode:
+            target_normalized = F.center_crop(target_normalized, out.shape[-2:])
+        
         recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
 
         if self.skip_nboundary_pixels_from_loss:
@@ -530,6 +536,9 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
+        if self.no_padding_mode:
+            target_normalized = F.center_crop(target_normalized, out.shape[-2:])
+
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
@@ -591,8 +600,10 @@ class LadderVAE(pl.LightningModule):
 
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values, vp_dist_params=vp_dist_params)
-        # Restore original image size
-        out = crop_img_tensor(out, img_size)
+
+        if out.shape[-1] > img_size[-1]:
+            # Restore original image size
+            out = crop_img_tensor(out, img_size)
 
         return out, td_data
 

@@ -4,10 +4,12 @@ Adapted from https://github.com/juglab/HDN/blob/e30edf7ec2cd55c902e469b890d8fe44
 import math
 from typing import Union
 
+import numpy as np
 import torch
 from torch import nn
 from torch.distributions import kl_divergence
 from torch.distributions.normal import Normal
+import torchvision.transforms.functional as F
 
 from disentangle.core.stable_exp import log_prob
 from disentangle.core.stable_dist_params import StableLogVar, StableMean
@@ -19,7 +21,6 @@ class NormalStochasticBlock2d(nn.Module):
     same for p(z), then sample z ~ q(z) and return conv(z).
     If q's parameters are not given, do the same but sample from p(z).
     """
-
     def __init__(self, c_in: int, c_vars: int, c_out, kernel: int = 3, transform_p_params: bool = True):
         """
         Args:
@@ -147,6 +148,13 @@ class NormalStochasticBlock2d(nn.Module):
         if var_clip_max is not None:
             q_lv = torch.clip(q_lv, max=var_clip_max)
 
+        if q_mu.shape[-1] % 2 == 1:
+            q_mu = F.center_crop(q_mu, q_mu.shape[-1] - 1)
+            q_lv = F.center_crop(q_lv, q_lv.shape[-1] - 1)
+            # clip_start = np.random.rand() > 0.5
+            # q_mu = q_mu[:, :, 1:, 1:] if clip_start else q_mu[:, :, :-1, :-1]
+            # q_lv = q_lv[:, :, 1:, 1:] if clip_start else q_lv[:, :, :-1, :-1]
+
         q_mu = StableMean(q_mu)
         q_lv = StableLogVar(q_lv)
         q = Normal(q_mu.get(), q_lv.get_std())
@@ -205,12 +213,17 @@ class NormalStochasticBlock2d(nn.Module):
             p = None
 
         p_params = (p_mu, p_lv)
+
         if q_params is not None:
             q_mu, q_lv, q = self.process_q_params(q_params, var_clip_max)
             q_params = (q_mu, q_lv)
             debug_qvar_max = torch.max(q_lv.get())
             # Sample from q(z)
             sampling_distrib = q
+            q_size = q_mu.get().shape[-1]
+            if p_mu.get().shape[-1] != q_size:
+                p_mu.centercrop_to_size(q_size)
+                p_lv.centercrop_to_size(q_size)
         else:
             # Sample from p(z)
             sampling_distrib = p
