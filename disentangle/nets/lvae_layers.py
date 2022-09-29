@@ -48,8 +48,7 @@ class TopDownLayer(nn.Module):
                  learn_top_prior=False,
                  top_prior_param_shape=None,
                  analytical_kl=False,
-                 no_padding_mode=False,
-                 vp_enabled=False):
+                 no_padding_mode=False):
         """
             Args:
                 z_dim:          This is the dimension of the latent space.
@@ -76,7 +75,6 @@ class TopDownLayer(nn.Module):
                                         of the prior (which is normal distribution) for the top most layer.
                 analytical_kl:  If True, typical KL divergence is calculated. Otherwise, an approximate of it is 
                             calculated.
-                vp_enabled: If True, then the vampprior is enabled.
         """
 
         super().__init__()
@@ -86,16 +84,9 @@ class TopDownLayer(nn.Module):
         self.stochastic_skip = stochastic_skip
         self.learn_top_prior = learn_top_prior
         self.analytical_kl = analytical_kl
-        self.vp_enabled = vp_enabled
-        self.no_padding_mode = no_padding_mode
-        assert vp_enabled is False or (vp_enabled is True and is_top_layer is True)
         # Define top layer prior parameters, possibly learnable
         if is_top_layer:
-            if self.vp_enabled:
-                # if vamprior is enabled, the prior should come from the q() and not fixed here.
-                pass
-            else:
-                self.top_prior_params = nn.Parameter(torch.zeros(top_prior_param_shape), requires_grad=learn_top_prior)
+            self.top_prior_params = nn.Parameter(torch.zeros(top_prior_param_shape), requires_grad=learn_top_prior)
 
         # Downsampling steps left to do in this layer
         dws_left = downsampling_steps
@@ -158,48 +149,6 @@ class TopDownLayer(nn.Module):
                     res_block_skip_padding=res_block_skip_padding,
                 )
 
-    def forward_swapped(
-        self,
-        q_mu,
-        q_lv,
-        input_=None,
-        skip_connection_input=None,
-        n_img_prior=None,
-    ):
-
-        # Check consistency of arguments
-        inputs_none = input_ is None and skip_connection_input is None
-        if self.is_top_layer and not inputs_none:
-            raise ValueError("In top layer, inputs should be None")
-
-        # If top layer, define parameters of prior p(z_L)
-        if self.is_top_layer:
-            p_params = self.top_prior_params
-
-            # Sample specific number of images by expanding the prior
-            if n_img_prior is not None:
-                p_params = p_params.expand(n_img_prior, -1, -1, -1)
-
-        # Else the input from the layer above is the prior parameters
-        else:
-            p_params = input_
-
-        x, data_stoch = self.stochastic.forward_swapped(p_params, q_mu, q_lv)
-        # Skip connection from previous layer
-        if self.stochastic_skip and not self.is_top_layer:
-            x = self.skip_connection_merger(x, skip_connection_input)
-
-        # Save activation before residual block: could be the skip
-        # connection input in the next layer
-        x_pre_residual = x
-
-        # Last top-down block (sequence of residual blocks)
-        x = self.deterministic_block(x)
-
-        keys = ['z']
-        data = {k: data_stoch[k] for k in keys}
-        return x, x_pre_residual, data
-
     def sample_from_q(self, input_, bu_value, var_clip_max=None, mask=None):
         """
         We sample from q
@@ -208,10 +157,8 @@ class TopDownLayer(nn.Module):
             q_params = bu_value
         else:
             # NOTE: Here the assumption is that the vampprior is only applied on the top layer.
-            assert self.vp_enabled is False
-            vp_dist_params = None
             n_img_prior = None
-            p_params = self.get_p_params(input_, vp_dist_params, n_img_prior)
+            p_params = self.get_p_params(input_, n_img_prior)
             q_params = self.merge(bu_value, p_params)
 
         sample = self.stochastic.sample_from_q(q_params, var_clip_max)
@@ -219,18 +166,15 @@ class TopDownLayer(nn.Module):
             return sample[mask]
         return sample
 
-    def get_p_params(self, input_, vp_dist_params, n_img_prior):
+    def get_p_params(self, input_, n_img_prior):
         p_params = None
         # If top layer, define parameters of prior p(z_L)
         if self.is_top_layer:
-            if self.vp_enabled is False:
-                p_params = self.top_prior_params
+            p_params = self.top_prior_params
 
-                # Sample specific number of images by expanding the prior
-                if n_img_prior is not None:
-                    p_params = p_params.expand(n_img_prior, -1, -1, -1)
-            else:
-                p_params = vp_dist_params
+            # Sample specific number of images by expanding the prior
+            if n_img_prior is not None:
+                p_params = p_params.expand(n_img_prior, -1, -1, -1)
 
         # Else the input from the layer above is the prior parameters
         else:
@@ -249,8 +193,7 @@ class TopDownLayer(nn.Module):
                 force_constant_output=False,
                 mode_pred=False,
                 use_uncond_mode=False,
-                var_clip_max: Union[None, float] = None,
-                vp_dist_params: Union[None, torch.Tensor] = None):
+                var_clip_max: Union[None, float] = None):
         """
         Args:
             input_: output from previous top_down layer.
@@ -269,18 +212,13 @@ class TopDownLayer(nn.Module):
             mode_pred: If True, then only prediction happens. Otherwise, KL divergence loss also gets computed.
             use_uncond_mode: Used only when mode_pred=True
             var_clip_max: This is the maximum value the log of the variance of the latent vector for any layer can reach.
-            vp_dist_params: This contains the vampprior distribution params. Essentially the mean+logvar concatenated
-                            vector for each of the config.model.vampprior_N many trainable custom inputs.
         """
         # Check consistency of arguments
         inputs_none = input_ is None and skip_connection_input is None
         if self.is_top_layer and not inputs_none:
             raise ValueError("In top layer, inputs should be None")
 
-        if vp_dist_params is not None and not self.is_top_layer:
-            raise ValueError("VampPrior is implemented only in topmost layer right now")
-
-        p_params = self.get_p_params(input_, vp_dist_params, n_img_prior)
+        p_params = self.get_p_params(input_, n_img_prior)
 
         # In inference mode, get parameters of q from inference path,
         # merging with top-down path if it's not the top layer
@@ -311,8 +249,7 @@ class TopDownLayer(nn.Module):
                                         analytical_kl=self.analytical_kl,
                                         mode_pred=mode_pred,
                                         use_uncond_mode=use_uncond_mode,
-                                        var_clip_max=var_clip_max,
-                                        vp_enabled=vp_dist_params is not None)
+                                        var_clip_max=var_clip_max)
 
         # Skip connection from previous layer
         if self.stochastic_skip and not self.is_top_layer:
@@ -430,16 +367,14 @@ class BottomUpLayer(nn.Module):
             msg += f'McParallelBeam:{int(multiscale_retain_spatial_dims)} McFactor{multiscale_lowres_size_factor}'
         print(msg)
 
-    def _init_multiscale(
-        self,
-        n_filters=None,
-        nonlin=None,
-        batchnorm=None,
-        dropout=None,
-        res_block_type=None,
-        multiscale_retain_spatial_dims=None,
-        multiscale_lowres_size_factor=None,
-    ):
+    def _init_multiscale(self,
+                         n_filters=None,
+                         nonlin=None,
+                         batchnorm=None,
+                         dropout=None,
+                         res_block_type=None,
+                         multiscale_retain_spatial_dims=None,
+                         multiscale_lowres_size_factor=None):
         self.multiscale_lowres_size_factor = multiscale_lowres_size_factor
         self.lowres_net = self.net
         if self.lowres_separate_branch:
