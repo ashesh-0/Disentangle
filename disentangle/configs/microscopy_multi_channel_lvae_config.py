@@ -44,7 +44,7 @@ def get_config():
     model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
-    model.encoder.res_block_skip_padding = True
+    model.encoder.res_block_skip_padding = False
 
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
