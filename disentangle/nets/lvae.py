@@ -84,10 +84,6 @@ class LadderVAE(pl.LightningModule):
         self.lr_scheduler_monitor = self.lr_scheduler_mode = None
         self._init_lr_scheduler_params(config)
 
-        # vampprior
-        self.vp_N = self.vp_enabled = self.vp_dummy_input = self.vp_means = self.vp_latent_ch = self.vp_hw = None
-        self._init_vp(config)
-
         # enabling reconstruction loss on mixed input
         self.mixed_rec_w = 0
         self.enable_mixed_rec = False
@@ -190,7 +186,6 @@ class LadderVAE(pl.LightningModule):
                     res_block_type=self.res_block_type,
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
-                    vp_enabled=is_top and self.vp_enabled,
                 ))
 
         # Final top-down layer
@@ -275,20 +270,6 @@ class LadderVAE(pl.LightningModule):
             lowres_first_bottom_ups.append(first_bottom_up)
 
         self.lowres_first_bottom_ups = nn.ModuleList(lowres_first_bottom_ups) if len(lowres_first_bottom_ups) else None
-
-    def _init_vp(self, config):
-        """
-        Initialize things related to Vampprior approach.
-        """
-        self.vp_enabled = config.model.use_vampprior
-        if self.vp_enabled:
-            self.vp_N = config.model.vampprior_N
-            # create an idle input for calling pseudo-inputs
-            self.vp_dummy_input = Variable(torch.eye(self.vp_N, self.vp_N), requires_grad=False)
-            nonlinearity = nn.Hardtanh(min_val=0.0, max_val=1.0)
-            self.vp_means = nn.Sequential(nn.Linear(self.vp_N, int(np.prod(self.img_shape)), bias=False), nonlinearity)
-            self.vp_latent_ch = config.model.z_dims[-1]
-            self.vp_hw = self.img_shape[0]
 
     def get_nonlin(self):
         nonlin = {
@@ -544,15 +525,9 @@ class LadderVAE(pl.LightningModule):
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
-        vp_dist_params = None
-        if self.vp_enabled:
-            if self.vp_dummy_input.device != x_pad.device:
-                self.vp_dummy_input = self.vp_dummy_input.to(x_pad.device)
-
-            vp_dist_params = self._vp_compute_mu_logvar()
 
         # Top-down inference/generation
-        out, td_data = self.topdown_pass(bu_values, vp_dist_params=vp_dist_params)
+        out, td_data = self.topdown_pass(bu_values)
         # Restore original image size
         out = crop_img_tensor(out, img_size)
 
@@ -583,15 +558,6 @@ class LadderVAE(pl.LightningModule):
             bu_values.append(bu_value)
 
         return bu_values
-
-    def _vp_compute_mu_logvar(self):
-        X = self.vp_means(self.vp_dummy_input)  # 500*784, where 500 is the number of psudo inputs.
-        X = X.view(-1, 1, self.vp_hw, self.vp_hw)  # 500*1*28*28
-        # This is the mean and the var of the individual distribution of psudo inputs.
-        # -1 ensures that we just pick the deepest layer. in future, we can simply learn an input of the shape of
-        # a penultimate layer and then just use the last bottom_up layer
-        p_mu_logvar = self.bottomup_pass(X)[-1]
-        return p_mu_logvar
 
     def sample_from_q(self, x, masks=None):
         img_size = x.size()[2:]
@@ -630,8 +596,7 @@ class LadderVAE(pl.LightningModule):
                      constant_layers=None,
                      forced_latent=None,
                      top_down_layers=None,
-                     final_top_down_layer=None,
-                     vp_dist_params=None):
+                     final_top_down_layer=None):
         """
         Args:
             bu_values: Output of the bottom-up pass. It will have values from multiple layers of the ladder.
@@ -641,7 +606,6 @@ class LadderVAE(pl.LightningModule):
             constant_layers: Here, a single instance's z is copied over the entire batch. Also, bottom-up path is not used.
                             So, only prior is used here.
             forced_latent: Here, latent vector is not sampled but taken from here.
-            vp_dist_params: This is the vampprior's distribution params (mean and logvar concatenated)
         """
         if top_down_layers is None:
             top_down_layers = self.top_down_layers
@@ -720,9 +684,7 @@ class LadderVAE(pl.LightningModule):
                                                             forced_latent=forced_latent[i],
                                                             mode_pred=self.mode_pred,
                                                             use_uncond_mode=use_uncond_mode,
-                                                            var_clip_max=self._var_clip_max,
-                                                            vp_dist_params=vp_dist_params if i == self.n_layers -
-                                                            1 else None)
+                                                            var_clip_max=self._var_clip_max)
             z[i] = aux['z']  # sampled variable at this layer (batch, ch, h, w)
             kl[i] = aux['kl_samplewise']  # (batch, )
             kl_spatial[i] = aux['kl_spatial']  # (batch, h, w)
