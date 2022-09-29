@@ -150,22 +150,21 @@ class LadderVAE(pl.LightningModule):
             # It's a sequence of residual blocks (BottomUpDeterministicResBlock)
             # possibly with downsampling between them.
             self.bottom_up_layers.append(
-                BottomUpLayer(
-                    n_res_blocks=self.encoder_blocks_per_layer,
-                    n_filters=self.encoder_n_filters,
-                    downsampling_steps=self.downsample[i],
-                    nonlin=nonlin,
-                    batchnorm=self.batchnorm,
-                    dropout=self.encoder_dropout,
-                    res_block_type=self.res_block_type,
-                    res_block_kernel=self.encoder_res_block_kernel,
-                    res_block_skip_padding=self.encoder_res_block_skip_padding,
-                    gated=self.gated,
-                    lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
-                    enable_multiscale=enable_multiscale,
-                    multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
-                    multiscale_lowres_size_factor=multiscale_lowres_size_factor,
-                ))
+                BottomUpLayer(n_res_blocks=self.encoder_blocks_per_layer,
+                              n_filters=self.encoder_n_filters,
+                              downsampling_steps=self.downsample[i],
+                              nonlin=nonlin,
+                              batchnorm=self.batchnorm,
+                              dropout=self.encoder_dropout,
+                              res_block_type=self.res_block_type,
+                              res_block_kernel=self.encoder_res_block_kernel,
+                              res_block_skip_padding=self.encoder_res_block_skip_padding,
+                              gated=self.gated,
+                              lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
+                              enable_multiscale=enable_multiscale,
+                              multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
+                              multiscale_lowres_size_factor=multiscale_lowres_size_factor,
+                              output_expected_shape=(self.img_shape[0] // 2**(i + 1), self.img_shape[1] // 2**(i + 1))))
             # Add top-down stochastic layer at level i.
             # The architecture when doing inference is roughly as follows:
             #    p_params = output of top-down layer above
@@ -442,7 +441,7 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
-        if self.no_padding_mode:
+        if self.no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
         recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
@@ -516,7 +515,7 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
-        if self.no_padding_mode:
+        if self.no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
@@ -596,7 +595,6 @@ class LadderVAE(pl.LightningModule):
         # Loop from bottom to top layer, store all deterministic nodes we
         # need in the top-down pass
         bu_values = []
-
         for i in range(self.n_layers):
             lowres_x = None
             if self._multiscale_count > 1 and i + 1 < inp.shape[1]:

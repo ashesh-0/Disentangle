@@ -21,7 +21,7 @@ def get_config():
     data.use_one_mu_std = False
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 5
     data.padding_mode = 'reflect'
     data.padding_value = None
 
@@ -38,10 +38,10 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128]
+    model.z_dims = [128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1
-    model.encoder.n_filters = 256
+    model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = True

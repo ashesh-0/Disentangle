@@ -302,7 +302,8 @@ class BottomUpLayer(nn.Module):
                  multiscale_lowres_size_factor: int = None,
                  enable_multiscale: bool = False,
                  lowres_separate_branch=False,
-                 multiscale_retain_spatial_dims: bool = False):
+                 multiscale_retain_spatial_dims: bool = False,
+                 output_expected_shape=None):
         """
         Args:
             n_res_blocks: Number of BottomUpDeterministicResBlock blocks present in this layer.
@@ -319,11 +320,15 @@ class BottomUpLayer(nn.Module):
             enable_multiscale: Whether to enable multiscale or not.
             multiscale_retain_spatial_dims: typically the output of the bottom-up layer scales down spatially.
                                             However, with this set, we return the same spatially sized tensor.
+            output_expected_shape: What should be the shape of the output of this layer. Only used if enable_multiscale is True.
         """
         super().__init__()
         self.enable_multiscale = enable_multiscale
         self.lowres_separate_branch = lowres_separate_branch
         self.multiscale_retain_spatial_dims = multiscale_retain_spatial_dims
+        self.output_expected_shape = output_expected_shape
+        assert self.output_expected_shape is None or self.enable_multiscale is True
+
         bu_blocks_downsized = []
         bu_blocks_samesize = []
         for _ in range(n_res_blocks):
@@ -409,9 +414,13 @@ class BottomUpLayer(nn.Module):
         if self.multiscale_retain_spatial_dims is False:
             return merged, merged
 
-        fac = self.multiscale_lowres_size_factor
-        expected_shape = (merged.shape[-2] // fac, merged.shape[-1] // fac)
-        assert merged.shape[-2:] != expected_shape
+        if self.output_expected_shape is not None:
+            expected_shape = self.output_expected_shape
+        else:
+            fac = self.multiscale_lowres_size_factor
+            expected_shape = (merged.shape[-2] // fac, merged.shape[-1] // fac)
+            assert merged.shape[-2:] != expected_shape
+
         value_to_use_in_topdown = crop_img_tensor(merged, expected_shape)
         return merged, value_to_use_in_topdown
 
