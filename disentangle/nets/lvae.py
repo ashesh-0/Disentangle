@@ -31,6 +31,7 @@ def compute_batch_mean(x):
 
 
 class LadderVAE(pl.LightningModule):
+
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__()
         self.lr = config.training.lr
@@ -361,6 +362,11 @@ class LadderVAE(pl.LightningModule):
         else:
             return loss_dict
 
+    def reset_for_different_output_size(self, output_size):
+        for i in range(self.n_layers):
+            sz = output_size // 2**(1 + i)
+            self.bottom_up_layers[i].output_expected_shape = (sz, sz)
+
     def _get_mixed_reconstruction_loss_vector(self, reconstruction, mixed_input):
         """
         Computes the reconstruction loss on the mixed input and mixed prediction
@@ -570,7 +576,8 @@ class LadderVAE(pl.LightningModule):
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
-
+        import pdb
+        pdb.set_trace()
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values)
 
@@ -675,7 +682,8 @@ class LadderVAE(pl.LightningModule):
                    "if and only if we're not doing inference")
             raise RuntimeError(msg)
         if inference_mode and prior_experiment:
-            msg = ("Prior experiments (e.g. sampling from mode) are not" " compatible with inference mode")
+            msg = ("Prior experiments (e.g. sampling from mode) are not"
+                   " compatible with inference mode")
             raise RuntimeError(msg)
 
         # Sampled latent variables at each layer
