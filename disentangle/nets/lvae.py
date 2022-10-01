@@ -149,6 +149,8 @@ class LadderVAE(pl.LightningModule):
             # Add bottom-up deterministic layer at level i.
             # It's a sequence of residual blocks (BottomUpDeterministicResBlock)
             # possibly with downsampling between them.
+            output_expected_shape = (self.img_shape[0] // 2**(i + 1),
+                                     self.img_shape[1] // 2**(i + 1)) if self._multiscale_count > 1 else None
             self.bottom_up_layers.append(
                 BottomUpLayer(n_res_blocks=self.encoder_blocks_per_layer,
                               n_filters=self.encoder_n_filters,
@@ -164,7 +166,7 @@ class LadderVAE(pl.LightningModule):
                               enable_multiscale=enable_multiscale,
                               multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
                               multiscale_lowres_size_factor=multiscale_lowres_size_factor,
-                              output_expected_shape=(self.img_shape[0] // 2**(i + 1), self.img_shape[1] // 2**(i + 1))))
+                              output_expected_shape=output_expected_shape))
             # Add top-down stochastic layer at level i.
             # The architecture when doing inference is roughly as follows:
             #    p_params = output of top-down layer above
@@ -728,7 +730,7 @@ class LadderVAE(pl.LightningModule):
 
             # Input for skip connection
             skip_input = out  # TODO or n? or both?
-            
+
             # Full top-down layer, including sampling and deterministic part
             out, out_pre_residual, aux = top_down_layers[i](out,
                                                             skip_connection_input=skip_input,
