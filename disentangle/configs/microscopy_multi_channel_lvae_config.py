@@ -10,7 +10,7 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
-    data.channel_1 = 2
+    data.channel_1 = 0
     data.channel_2 = 3
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -44,7 +44,7 @@ def get_config():
     model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
-    model.encoder.res_block_skip_padding = True
+    model.encoder.res_block_skip_padding = False
 
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
