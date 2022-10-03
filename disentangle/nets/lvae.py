@@ -131,6 +131,7 @@ class LadderVAE(pl.LightningModule):
         stride = 1 if config.model.no_initial_downscaling else 2
         self.first_bottom_up = self.create_first_bottom_up(stride)
         self.multiscale_retain_spatial_dims = config.model.multiscale_retain_spatial_dims
+        self.multiscale_decoder_retain_spatial_dims = config.model.multiscale_decoder_retain_spatial_dims
         self.lowres_first_bottom_ups = self._multiscale_count = None
         self._init_multires(config)
 
@@ -166,6 +167,7 @@ class LadderVAE(pl.LightningModule):
                               enable_multiscale=enable_multiscale,
                               multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
                               multiscale_lowres_size_factor=multiscale_lowres_size_factor,
+                              decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
                               output_expected_shape=output_expected_shape))
             # Add top-down stochastic layer at level i.
             # The architecture when doing inference is roughly as follows:
@@ -199,7 +201,9 @@ class LadderVAE(pl.LightningModule):
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
                     # in no_padding_mode, what gets passed from the encoder are not multiples of 2 and so merging operation does not work natively.
-                    no_padding_mode=self.no_padding_mode))
+                    no_padding_mode=self.no_padding_mode,
+                    retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
+                    input_image_shape=self.img_shape))
         # Final top-down layer
 
         modules = list()
@@ -817,7 +821,7 @@ class LadderVAE(pl.LightningModule):
 
     def get_top_prior_param_shape(self, n_imgs=1):
         # TODO num channels depends on random variable we're using
-        dwnsc = self.overall_downscale_factor
+        dwnsc = self.overall_downscale_factor if self.multiscale_decoder_retain_spatial_dims is False else 1
         sz = self.get_padded_size(self.img_shape)
         h = sz[0] // dwnsc
         w = sz[1] // dwnsc

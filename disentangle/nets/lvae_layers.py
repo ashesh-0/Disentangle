@@ -2,7 +2,7 @@
 Taken from https://github.com/juglab/HDN/blob/main/models/lvae_layers.py
 """
 from copy import deepcopy
-from typing import Union
+from typing import Union, Tuple
 
 import torch
 from torch import nn
@@ -48,7 +48,9 @@ class TopDownLayer(nn.Module):
                  learn_top_prior=False,
                  top_prior_param_shape=None,
                  analytical_kl=False,
-                 no_padding_mode=False):
+                 no_padding_mode=False,
+                 retain_spatial_dims: bool = False,
+                 input_image_shape: Union[None, Tuple[int, int]] = None):
         """
             Args:
                 z_dim:          This is the dimension of the latent space.
@@ -75,6 +77,9 @@ class TopDownLayer(nn.Module):
                                         of the prior (which is normal distribution) for the top most layer.
                 analytical_kl:  If True, typical KL divergence is calculated. Otherwise, an approximate of it is 
                             calculated.
+                retain_spatial_dims: If True, the the latent space of encoder remains at image_shape spatial resolution for each topdown layer. What this means for one topdown layer is that the input spatial size remains the output spatial size.
+                            To achieve this, we centercrop the intermediate representation.
+                input_image_shape: This is the shape of the input patch. when retain_spatial_dims is set to True, then this is used to ensure that the output of this layer has this shape. 
         """
 
         super().__init__()
@@ -85,6 +90,8 @@ class TopDownLayer(nn.Module):
         self.learn_top_prior = learn_top_prior
         self.analytical_kl = analytical_kl
         self.no_padding_mode = no_padding_mode
+        self.retain_spatial_dims = retain_spatial_dims
+        self.latent_shape = input_image_shape
         # Define top layer prior parameters, possibly learnable
         if is_top_layer:
             self.top_prior_params = nn.Parameter(torch.zeros(top_prior_param_shape), requires_grad=learn_top_prior)
@@ -260,6 +267,13 @@ class TopDownLayer(nn.Module):
         # connection input in the next layer
         x_pre_residual = x
 
+        if self.retain_spatial_dims:
+            # this means that the x should be of the same size as config.data.image_size. So, we have to centercrop by a factor of 2 at this point.
+            assert x.shape[-2:] == self.latent_shape
+            # we assume that one topdown layer will have exactly one upscaling layer.
+            new_latent_shape = (self.latent_shape[0] // 2, self.latent_shape[1] // 2)
+            x = F.center_crop(x, new_latent_shape)
+
         # Last top-down block (sequence of residual blocks)
         x = self.deterministic_block(x)
 
@@ -303,6 +317,7 @@ class BottomUpLayer(nn.Module):
                  enable_multiscale: bool = False,
                  lowres_separate_branch=False,
                  multiscale_retain_spatial_dims: bool = False,
+                 decoder_retain_spatial_dims: bool = False,
                  output_expected_shape=None):
         """
         Args:
@@ -327,6 +342,7 @@ class BottomUpLayer(nn.Module):
         self.lowres_separate_branch = lowres_separate_branch
         self.multiscale_retain_spatial_dims = multiscale_retain_spatial_dims
         self.output_expected_shape = output_expected_shape
+        self.decoder_retain_spatial_dims = decoder_retain_spatial_dims
         assert self.output_expected_shape is None or self.enable_multiscale is True
 
         bu_blocks_downsized = []
@@ -411,7 +427,7 @@ class BottomUpLayer(nn.Module):
         else:
             merged = primary_flow
 
-        if self.multiscale_retain_spatial_dims is False:
+        if self.multiscale_retain_spatial_dims is False or self.decoder_retain_spatial_dims is True:
             return merged, merged
 
         if self.output_expected_shape is not None:
