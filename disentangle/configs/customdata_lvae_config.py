@@ -56,7 +56,7 @@ def get_config():
     model.batchnorm = True
     model.stochastic_skip = True
     model.encoder.n_filters = 64
-    model.encoder.n_filters = 64
+    model.decoder.n_filters = 64
 
     model.encoder.dropout = 0.1
     model.decoder.dropout = 0.1
