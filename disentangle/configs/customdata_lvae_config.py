@@ -55,8 +55,12 @@ def get_config():
     model.merge_type = 'residual'
     model.batchnorm = True
     model.stochastic_skip = True
-    model.n_filters = 64
-    model.dropout = 0.1
+    model.encoder.n_filters = 64
+    model.encoder.n_filters = 64
+
+    model.encoder.dropout = 0.1
+    model.decoder.dropout = 0.1
+
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
