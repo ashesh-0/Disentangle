@@ -86,7 +86,8 @@ class LadderVAE(pl.LightningModule):
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
 
-        self.no_padding_mode = config.model.encoder.res_block_skip_padding is True and config.model.encoder.res_block_kernel > 1
+        self.encoder_no_padding_mode = config.model.encoder.res_block_skip_padding is True and config.model.encoder.res_block_kernel > 1
+        self.decoder_no_padding_mode = config.model.decoder.res_block_skip_padding is True and config.model.decoder.res_block_kernel > 1
 
         self.skip_nboundary_pixels_from_loss = config.model.skip_nboundary_pixels_from_loss
         # initialize the learning rate scheduler params.
@@ -131,7 +132,7 @@ class LadderVAE(pl.LightningModule):
         stride = 1 if config.model.no_initial_downscaling else 2
         self.first_bottom_up = self.create_first_bottom_up(stride)
         self.multiscale_retain_spatial_dims = config.model.multiscale_retain_spatial_dims
-        self.multiscale_decoder_retain_spatial_dims = config.model.multiscale_decoder_retain_spatial_dims
+        self.multiscale_decoder_retain_spatial_dims = config.model.decoder.multiscale_retain_spatial_dims
         self.lowres_first_bottom_ups = self._multiscale_count = None
         self._init_multires(config)
 
@@ -201,7 +202,8 @@ class LadderVAE(pl.LightningModule):
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
                     # in no_padding_mode, what gets passed from the encoder are not multiples of 2 and so merging operation does not work natively.
-                    no_padding_mode=self.no_padding_mode,
+                    bottomup_no_padding_mode=self.encoder_no_padding_mode,
+                    topdown_no_padding_mode=self.decoder_no_padding_mode,
                     retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
                     input_image_shape=self.img_shape))
         # Final top-down layer
@@ -452,7 +454,7 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
-        if self.no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
+        if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
         recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
@@ -526,7 +528,7 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
-        if self.no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
+        if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)

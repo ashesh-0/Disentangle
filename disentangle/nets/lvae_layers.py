@@ -48,7 +48,8 @@ class TopDownLayer(nn.Module):
                  learn_top_prior=False,
                  top_prior_param_shape=None,
                  analytical_kl=False,
-                 no_padding_mode=False,
+                 bottomup_no_padding_mode=False,
+                 topdown_no_padding_mode=False,
                  retain_spatial_dims: bool = False,
                  input_image_shape: Union[None, Tuple[int, int]] = None):
         """
@@ -89,7 +90,8 @@ class TopDownLayer(nn.Module):
         self.stochastic_skip = stochastic_skip
         self.learn_top_prior = learn_top_prior
         self.analytical_kl = analytical_kl
-        self.no_padding_mode = no_padding_mode
+        self.bottomup_no_padding_mode = bottomup_no_padding_mode
+        self.topdown_no_padding_mode = topdown_no_padding_mode
         self.retain_spatial_dims = retain_spatial_dims
         self.latent_shape = input_image_shape
         # Define top layer prior parameters, possibly learnable
@@ -190,6 +192,22 @@ class TopDownLayer(nn.Module):
 
         return p_params
 
+    def align_pparams_buvalue(self, p_params, bu_value):
+        """
+        In case the padding is not used either (or both) in encoder and decoder, we could have a mismatch. Doing a centercrop to ensure that both remain aligned.
+        """
+        if bu_value.shape[-2:] != p_params.shape[-2:]:
+            assert self.bottomup_no_padding_mode is True
+            if self.topdown_no_padding_mode is False:
+                assert bu_value.shape[-1] > p_params.shape[-1]
+                bu_value = F.center_crop(bu_value, p_params.shape[-2:])
+            else:
+                if bu_value.shape[-1] > p_params.shape[-1]:
+                    bu_value = F.center_crop(bu_value, p_params.shape[-2:])
+                else:
+                    p_params = F.center_crop(p_params, bu_value.shape[-2:])
+        return p_params, bu_value
+
     def forward(self,
                 input_: Union[None, torch.Tensor] = None,
                 skip_connection_input=None,
@@ -233,14 +251,12 @@ class TopDownLayer(nn.Module):
         if inference_mode:
             if self.is_top_layer:
                 q_params = bu_value
+                p_params, bu_value = self.align_pparams_buvalue(p_params, bu_value)
             else:
                 if use_uncond_mode:
                     q_params = p_params
                 else:
-                    if bu_value.shape[-2:] != p_params.shape[-2:]:
-                        assert self.no_padding_mode is True
-                        assert bu_value.shape[-1] > p_params.shape[-1]
-                        bu_value = F.center_crop(bu_value, p_params.shape[-2:])
+                    p_params, bu_value = self.align_pparams_buvalue(p_params, bu_value)
                     q_params = self.merge(bu_value, p_params)
 
         # In generative mode, q is not used
@@ -261,21 +277,29 @@ class TopDownLayer(nn.Module):
 
         # Skip connection from previous layer
         if self.stochastic_skip and not self.is_top_layer:
+            if self.topdown_no_padding_mode is True:
+                # the output of last TopDown layer was of size 64*64. Due to lack of padding, currecnt x has become, say 60*60.
+                skip_connection_input = F.center_crop(skip_connection_input, x.shape[-2:])
+
             x = self.skip_connection_merger(x, skip_connection_input)
 
         # Save activation before residual block: could be the skip
         # connection input in the next layer
         x_pre_residual = x
-
         if self.retain_spatial_dims:
+            # when we don't want to do padding in topdown as well, we need to spare some boundary pixels which would be used up.
+            extra_len = (self.topdown_no_padding_mode is True) * 3
             # this means that the x should be of the same size as config.data.image_size. So, we have to centercrop by a factor of 2 at this point.
-            assert x.shape[-2:] == self.latent_shape
+            assert x.shape[-1] >= self.latent_shape[-1] // 2 + extra_len
             # we assume that one topdown layer will have exactly one upscaling layer.
-            new_latent_shape = (self.latent_shape[0] // 2, self.latent_shape[1] // 2)
+            new_latent_shape = (self.latent_shape[0] // 2 + extra_len, self.latent_shape[1] // 2 + extra_len)
             x = F.center_crop(x, new_latent_shape)
 
         # Last top-down block (sequence of residual blocks)
         x = self.deterministic_block(x)
+
+        if self.topdown_no_padding_mode:
+            x = F.center_crop(x, self.latent_shape)
 
         keys = [
             'z',
