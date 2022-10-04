@@ -99,6 +99,9 @@ class LadderVAE(pl.LightningModule):
         if self.loss_type == LossType.ElboMixedReconstruction:
             self.mixed_rec_w = config.loss.mixed_rec_weight
             self.enable_mixed_rec = True
+            raise NotImplementedError(
+                "This cannot work since now, different channels have different mean. One needs to reweigh the "
+                "predicted channels and then take their sum. This would then be equivalent to the input.")
 
         self._global_step = 0
 

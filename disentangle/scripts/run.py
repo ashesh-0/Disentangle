@@ -140,7 +140,10 @@ def main(argv):
         log_config(config, cur_workdir)
 
         train_data, val_data = create_dataset(config, FLAGS.datadir, raw_data_dict=raw_data_dict)
-        data_mean, data_std = train_data.get_mean_std()
+        if config.data.target_separate_normalization is True:
+            data_mean, data_std = train_data.compute_individual_mean_std()
+        else:
+            data_mean, data_std = train_data.get_mean_std()
         # assert np.abs(config.data.mean_val - data_mean) < 1e-3, f'{config.data.mean_val - data_mean}'
         # assert np.abs(config.data.std_val - data_std) < 1e-3, f'{config.data.std_val - data_std}'
 
