@@ -181,8 +181,6 @@ def log_normal(x, mean, logvar):
     :param logvar: tensor with log-variance of distribution, shape has to be
                    either scalar or broadcastable
     """
-    lv = StableLogVar(logvar)
-    var = lv.get_var()
-    logvar = lv.get()
+    var = torch.exp(logvar)
     log_prob = -0.5 * (((x - mean)**2) / var + logvar + torch.tensor(2 * math.pi).log())
     return log_prob
