@@ -34,6 +34,7 @@ def get_config():
     data.padding_value = 0
     data.encourage_non_overlap_single_channel = False
     data.vertical_min_spacing = data.curve_amplitude * 2
+    data.target_separate_normalization = False
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -55,8 +56,12 @@ def get_config():
     model.merge_type = 'residual'
     model.batchnorm = True
     model.stochastic_skip = True
-    model.n_filters = 64
-    model.dropout = 0.1
+    model.encoder.n_filters = 64
+    model.decoder.n_filters = 64
+
+    model.encoder.dropout = 0.1
+    model.decoder.dropout = 0.1
+
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'

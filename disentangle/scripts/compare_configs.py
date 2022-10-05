@@ -92,9 +92,11 @@ def compare_config(config1_path, config2_path):
     config1 = load_config(config1_path)
     config2 = load_config(config2_path)
     if 'encoder' not in config1.model:
-        config1.model.encoder = ml_collections.ConfigDict()
-        assert 'decoder' not in config1.model
-        config1.model.decoder = ml_collections.ConfigDict()
+        config1 = ml_collections.config_dict.ConfigDict(config1)
+        with config1.unlocked():
+            config1.model.encoder = ml_collections.ConfigDict()
+            assert 'decoder' not in config1.model
+            config1.model.decoder = ml_collections.ConfigDict()
 
     if 'encoder' not in config2.model:
         config2.encoder = ml_collections.ConfigDict()
