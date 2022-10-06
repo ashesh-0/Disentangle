@@ -50,26 +50,34 @@ def get_config():
     model = config.model
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
-    model.encoder.blocks_per_layer = 3
-    model.decoder.blocks_per_layer = 3
+
+    model.encoder.blocks_per_layer = 1
+    model.encoder.n_filters = 64
+    model.encoder.dropout = 0.1
+    model.encoder.res_block_kernel = 3
+    model.encoder.res_block_skip_padding = False
+
+    model.decoder.blocks_per_layer = 1
+    model.decoder.n_filters = 64
+    model.decoder.dropout = 0.1
+    model.decoder.res_block_kernel = 3
+    model.decoder.res_block_skip_padding = False
+    model.decoder.multiscale_retain_spatial_dims = True
+
+    model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True
     model.stochastic_skip = True
-    model.encoder.n_filters = 64
-    model.decoder.n_filters = 64
-
-    model.encoder.dropout = 0.1
-    model.decoder.dropout = 0.1
-
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
+
     model.gated = True
     model.no_initial_downscaling = True
     model.analytical_kl = False
     model.mode_pred = False
-    model.var_clip_max = 2.5
+    model.var_clip_max = 20
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
     model.logvar_lowerbound = -10  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
