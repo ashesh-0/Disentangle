@@ -14,14 +14,14 @@ def get_config():
     data.channel_2 = 2
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
-    data.deterministic_grid = True
+    data.deterministic_grid = False
     data.normalized_input = True
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 5
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -41,16 +41,22 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [512]
+    model.z_dims = [128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1
-    model.encoder.n_filters = 256
+    model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
+    model.encoder.res_block_kernel = 3
+    model.encoder.res_block_skip_padding = False
 
-    model.decoder.n_filters = 256
     model.decoder.blocks_per_layer = 1
+    model.decoder.n_filters = 64
     model.decoder.dropout = 0.1
+    model.decoder.res_block_kernel = 3
+    model.decoder.res_block_skip_padding = False
+    model.decoder.multiscale_retain_spatial_dims = True
 
+    model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True
@@ -58,6 +64,7 @@ def get_config():
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
+
     model.gated = True
     model.no_initial_downscaling = True
     model.analytical_kl = False

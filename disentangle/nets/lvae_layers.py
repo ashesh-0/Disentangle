@@ -2,10 +2,11 @@
 Taken from https://github.com/juglab/HDN/blob/main/models/lvae_layers.py
 """
 from copy import deepcopy
-from typing import Union
+from typing import Union, Tuple
 
 import torch
 from torch import nn
+import torchvision.transforms.functional as F
 
 from disentangle.core.data_utils import crop_img_tensor, pad_img_tensor
 from disentangle.core.nn_submodules import ResidualBlock, ResidualGatedBlock
@@ -41,10 +42,16 @@ class TopDownLayer(nn.Module):
                  dropout: Union[None, float] = None,
                  stochastic_skip: bool = False,
                  res_block_type=None,
+                 res_block_kernel=None,
+                 res_block_skip_padding=None,
                  gated=None,
                  learn_top_prior=False,
                  top_prior_param_shape=None,
-                 analytical_kl=False):
+                 analytical_kl=False,
+                 bottomup_no_padding_mode=False,
+                 topdown_no_padding_mode=False,
+                 retain_spatial_dims: bool = False,
+                 input_image_shape: Union[None, Tuple[int, int]] = None):
         """
             Args:
                 z_dim:          This is the dimension of the latent space.
@@ -71,6 +78,9 @@ class TopDownLayer(nn.Module):
                                         of the prior (which is normal distribution) for the top most layer.
                 analytical_kl:  If True, typical KL divergence is calculated. Otherwise, an approximate of it is 
                             calculated.
+                retain_spatial_dims: If True, the the latent space of encoder remains at image_shape spatial resolution for each topdown layer. What this means for one topdown layer is that the input spatial size remains the output spatial size.
+                            To achieve this, we centercrop the intermediate representation.
+                input_image_shape: This is the shape of the input patch. when retain_spatial_dims is set to True, then this is used to ensure that the output of this layer has this shape. 
         """
 
         super().__init__()
@@ -80,6 +90,10 @@ class TopDownLayer(nn.Module):
         self.stochastic_skip = stochastic_skip
         self.learn_top_prior = learn_top_prior
         self.analytical_kl = analytical_kl
+        self.bottomup_no_padding_mode = bottomup_no_padding_mode
+        self.topdown_no_padding_mode = topdown_no_padding_mode
+        self.retain_spatial_dims = retain_spatial_dims
+        self.latent_shape = input_image_shape
         # Define top layer prior parameters, possibly learnable
         if is_top_layer:
             self.top_prior_params = nn.Parameter(torch.zeros(top_prior_param_shape), requires_grad=learn_top_prior)
@@ -90,6 +104,7 @@ class TopDownLayer(nn.Module):
         # Define deterministic top-down block: sequence of deterministic
         # residual blocks with downsampling when needed.
         block_list = []
+
         for _ in range(n_res_blocks):
             do_resample = False
             if dws_left > 0:
@@ -104,6 +119,8 @@ class TopDownLayer(nn.Module):
                     batchnorm=batchnorm,
                     dropout=dropout,
                     res_block_type=res_block_type,
+                    res_block_kernel=res_block_kernel,
+                    skip_padding=res_block_skip_padding,
                     gated=gated,
                 ))
         self.deterministic_block = nn.Sequential(*block_list)
@@ -127,6 +144,7 @@ class TopDownLayer(nn.Module):
                 batchnorm=batchnorm,
                 dropout=dropout,
                 res_block_type=res_block_type,
+                res_block_kernel=res_block_kernel,
             )
 
             # Skip connection that goes around the stochastic top-down layer
@@ -137,6 +155,8 @@ class TopDownLayer(nn.Module):
                     batchnorm=batchnorm,
                     dropout=dropout,
                     res_block_type=res_block_type,
+                    res_block_kernel=res_block_kernel,
+                    res_block_skip_padding=res_block_skip_padding,
                 )
 
     def sample_from_q(self, input_, bu_value, var_clip_max=None, mask=None):
@@ -171,6 +191,22 @@ class TopDownLayer(nn.Module):
             p_params = input_
 
         return p_params
+
+    def align_pparams_buvalue(self, p_params, bu_value):
+        """
+        In case the padding is not used either (or both) in encoder and decoder, we could have a mismatch. Doing a centercrop to ensure that both remain aligned.
+        """
+        if bu_value.shape[-2:] != p_params.shape[-2:]:
+            assert self.bottomup_no_padding_mode is True
+            if self.topdown_no_padding_mode is False:
+                assert bu_value.shape[-1] > p_params.shape[-1]
+                bu_value = F.center_crop(bu_value, p_params.shape[-2:])
+            else:
+                if bu_value.shape[-1] > p_params.shape[-1]:
+                    bu_value = F.center_crop(bu_value, p_params.shape[-2:])
+                else:
+                    p_params = F.center_crop(p_params, bu_value.shape[-2:])
+        return p_params, bu_value
 
     def forward(self,
                 input_: Union[None, torch.Tensor] = None,
@@ -209,16 +245,17 @@ class TopDownLayer(nn.Module):
             raise ValueError("In top layer, inputs should be None")
 
         p_params = self.get_p_params(input_, n_img_prior)
-
         # In inference mode, get parameters of q from inference path,
         # merging with top-down path if it's not the top layer
         if inference_mode:
             if self.is_top_layer:
                 q_params = bu_value
+                p_params, bu_value = self.align_pparams_buvalue(p_params, bu_value)
             else:
                 if use_uncond_mode:
                     q_params = p_params
                 else:
+                    p_params, bu_value = self.align_pparams_buvalue(p_params, bu_value)
                     q_params = self.merge(bu_value, p_params)
 
         # In generative mode, q is not used
@@ -239,14 +276,29 @@ class TopDownLayer(nn.Module):
 
         # Skip connection from previous layer
         if self.stochastic_skip and not self.is_top_layer:
+            if self.topdown_no_padding_mode is True:
+                # the output of last TopDown layer was of size 64*64. Due to lack of padding, currecnt x has become, say 60*60.
+                skip_connection_input = F.center_crop(skip_connection_input, x.shape[-2:])
+
             x = self.skip_connection_merger(x, skip_connection_input)
 
         # Save activation before residual block: could be the skip
         # connection input in the next layer
         x_pre_residual = x
+        if self.retain_spatial_dims:
+            # when we don't want to do padding in topdown as well, we need to spare some boundary pixels which would be used up.
+            extra_len = (self.topdown_no_padding_mode is True) * 3
+            # this means that the x should be of the same size as config.data.image_size. So, we have to centercrop by a factor of 2 at this point.
+            assert x.shape[-1] >= self.latent_shape[-1] // 2 + extra_len
+            # we assume that one topdown layer will have exactly one upscaling layer.
+            new_latent_shape = (self.latent_shape[0] // 2 + extra_len, self.latent_shape[1] // 2 + extra_len)
+            x = F.center_crop(x, new_latent_shape)
 
         # Last top-down block (sequence of residual blocks)
         x = self.deterministic_block(x)
+
+        if self.topdown_no_padding_mode:
+            x = F.center_crop(x, self.latent_shape)
 
         keys = [
             'z',
@@ -281,11 +333,15 @@ class BottomUpLayer(nn.Module):
                  batchnorm: bool = True,
                  dropout: Union[None, float] = None,
                  res_block_type: str = None,
+                 res_block_kernel: int = None,
+                 res_block_skip_padding: bool = False,
                  gated: bool = None,
                  multiscale_lowres_size_factor: int = None,
                  enable_multiscale: bool = False,
                  lowres_separate_branch=False,
-                 multiscale_retain_spatial_dims: bool = False):
+                 multiscale_retain_spatial_dims: bool = False,
+                 decoder_retain_spatial_dims: bool = False,
+                 output_expected_shape=None):
         """
         Args:
             n_res_blocks: Number of BottomUpDeterministicResBlock blocks present in this layer.
@@ -297,15 +353,21 @@ class BottomUpLayer(nn.Module):
             res_block_type: Example: 'bacdbac'. It has the constitution of the residual block.
             gated: This is also an argument for the residual block. At the end of residual block, whether 
             there should be a gate or not.
+            res_block_kernel:int => kernel size for the residual blocks in the bottom up layer.
             multiscale_lowres_size_factor: How small is the bu_value when compared with low resolution tensor.
             enable_multiscale: Whether to enable multiscale or not.
             multiscale_retain_spatial_dims: typically the output of the bottom-up layer scales down spatially.
                                             However, with this set, we return the same spatially sized tensor.
+            output_expected_shape: What should be the shape of the output of this layer. Only used if enable_multiscale is True.
         """
         super().__init__()
         self.enable_multiscale = enable_multiscale
         self.lowres_separate_branch = lowres_separate_branch
         self.multiscale_retain_spatial_dims = multiscale_retain_spatial_dims
+        self.output_expected_shape = output_expected_shape
+        self.decoder_retain_spatial_dims = decoder_retain_spatial_dims
+        assert self.output_expected_shape is None or self.enable_multiscale is True
+
         bu_blocks_downsized = []
         bu_blocks_samesize = []
         for _ in range(n_res_blocks):
@@ -321,6 +383,8 @@ class BottomUpLayer(nn.Module):
                 batchnorm=batchnorm,
                 dropout=dropout,
                 res_block_type=res_block_type,
+                res_block_kernel=res_block_kernel,
+                skip_padding=res_block_skip_padding,
                 gated=gated,
             )
             if do_resample:
@@ -386,12 +450,16 @@ class BottomUpLayer(nn.Module):
         else:
             merged = primary_flow
 
-        if self.multiscale_retain_spatial_dims is False:
+        if self.multiscale_retain_spatial_dims is False or self.decoder_retain_spatial_dims is True:
             return merged, merged
 
-        fac = self.multiscale_lowres_size_factor
-        expected_shape = (merged.shape[-2] // fac, merged.shape[-1] // fac)
-        assert merged.shape[-2:] != expected_shape
+        if self.output_expected_shape is not None:
+            expected_shape = self.output_expected_shape
+        else:
+            fac = self.multiscale_lowres_size_factor
+            expected_shape = (merged.shape[-2] // fac, merged.shape[-1] // fac)
+            assert merged.shape[-2:] != expected_shape
+
         value_to_use_in_topdown = crop_img_tensor(merged, expected_shape)
         return merged, value_to_use_in_topdown
 
@@ -424,7 +492,8 @@ class ResBlockWithResampling(nn.Module):
                  dropout=None,
                  min_inner_channels=None,
                  gated=None,
-                 lowres_input=False):
+                 lowres_input=False,
+                 skip_padding=False):
         super().__init__()
         assert mode in ['top-down', 'bottom-up']
         if min_inner_channels is None:
@@ -463,6 +532,7 @@ class ResBlockWithResampling(nn.Module):
             dropout=dropout,
             gated=gated,
             block_type=res_block_type,
+            skip_padding=skip_padding,
         )
         # self.lowres_input = lowres_input
         # self.lowres_pre_conv = self.lowres_body = self.lowres_merge = None
@@ -541,7 +611,15 @@ class MergeLayer(nn.Module):
     Merge two/more than two 4D input tensors by concatenating along dim=1 and passing the
     result through 1) a convolutional 1x1 layer, or 2) a residual block
     """
-    def __init__(self, channels, merge_type, nonlin=nn.LeakyReLU, batchnorm=True, dropout=None, res_block_type=None):
+    def __init__(self,
+                 channels,
+                 merge_type,
+                 nonlin=nn.LeakyReLU,
+                 batchnorm=True,
+                 dropout=None,
+                 res_block_type=None,
+                 res_block_kernel=None,
+                 res_block_skip_padding=False):
         super().__init__()
         try:
             iter(channels)
@@ -558,11 +636,15 @@ class MergeLayer(nn.Module):
         elif merge_type == 'residual':
             self.layer = nn.Sequential(
                 nn.Conv2d(sum(channels[:-1]), channels[-1], 1, padding=0),
-                ResidualGatedBlock(channels[-1],
-                                   nonlin,
-                                   batchnorm=batchnorm,
-                                   dropout=dropout,
-                                   block_type=res_block_type),
+                ResidualGatedBlock(
+                    channels[-1],
+                    nonlin,
+                    batchnorm=batchnorm,
+                    dropout=dropout,
+                    block_type=res_block_type,
+                    kernel=res_block_kernel,
+                    skip_padding=res_block_skip_padding,
+                ),
             )
 
     def forward(self, *args):
@@ -600,5 +682,19 @@ class SkipConnectionMerger(MergeLayer):
 
     merge_type = 'residual'
 
-    def __init__(self, channels, nonlin, batchnorm, dropout, res_block_type):
-        super().__init__(channels, self.merge_type, nonlin, batchnorm, dropout=dropout, res_block_type=res_block_type)
+    def __init__(self,
+                 channels,
+                 nonlin,
+                 batchnorm,
+                 dropout,
+                 res_block_type,
+                 res_block_kernel=None,
+                 res_block_skip_padding=False):
+        super().__init__(channels,
+                         self.merge_type,
+                         nonlin,
+                         batchnorm,
+                         dropout=dropout,
+                         res_block_type=res_block_type,
+                         res_block_kernel=res_block_kernel,
+                         res_block_skip_padding=res_block_skip_padding)

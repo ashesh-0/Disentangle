@@ -9,7 +9,7 @@ import torch.optim as optim
 import wandb
 from torch import nn
 from torch.autograd import Variable
-
+import torchvision.transforms.functional as F
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
 from disentangle.core.loss_type import LossType
@@ -58,6 +58,12 @@ class LadderVAE(pl.LightningModule):
         self.learn_top_prior = config.model.learn_top_prior
         self.img_shape = (config.data.image_size, config.data.image_size)
         self.res_block_type = config.model.res_block_type
+        self.encoder_res_block_kernel = config.model.encoder.res_block_kernel
+        self.decoder_res_block_kernel = config.model.decoder.res_block_kernel
+
+        self.encoder_res_block_skip_padding = config.model.encoder.res_block_skip_padding
+        self.decoder_res_block_skip_padding = config.model.decoder.res_block_skip_padding
+
         self.gated = config.model.gated
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
@@ -81,6 +87,10 @@ class LadderVAE(pl.LightningModule):
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
 
+        self.encoder_no_padding_mode = config.model.encoder.res_block_skip_padding is True and config.model.encoder.res_block_kernel > 1
+        self.decoder_no_padding_mode = config.model.decoder.res_block_skip_padding is True and config.model.decoder.res_block_kernel > 1
+
+        self.skip_nboundary_pixels_from_loss = config.model.skip_nboundary_pixels_from_loss
         # initialize the learning rate scheduler params.
         self.lr_scheduler_monitor = self.lr_scheduler_mode = None
         self._init_lr_scheduler_params(config)
@@ -125,8 +135,8 @@ class LadderVAE(pl.LightningModule):
         # unless we want to prevent this
         stride = 1 if config.model.no_initial_downscaling else 2
         self.first_bottom_up = self.create_first_bottom_up(stride)
-
         self.multiscale_retain_spatial_dims = config.model.multiscale_retain_spatial_dims
+        self.multiscale_decoder_retain_spatial_dims = config.model.decoder.multiscale_retain_spatial_dims
         self.lowres_first_bottom_ups = self._multiscale_count = None
         self._init_multires(config)
 
@@ -145,22 +155,25 @@ class LadderVAE(pl.LightningModule):
             # Add bottom-up deterministic layer at level i.
             # It's a sequence of residual blocks (BottomUpDeterministicResBlock)
             # possibly with downsampling between them.
+            output_expected_shape = (self.img_shape[0] // 2**(i + 1),
+                                     self.img_shape[1] // 2**(i + 1)) if self._multiscale_count > 1 else None
             self.bottom_up_layers.append(
-                BottomUpLayer(
-                    n_res_blocks=self.encoder_blocks_per_layer,
-                    n_filters=self.encoder_n_filters,
-                    downsampling_steps=self.downsample[i],
-                    nonlin=nonlin,
-                    batchnorm=self.batchnorm,
-                    dropout=self.encoder_dropout,
-                    res_block_type=self.res_block_type,
-                    gated=self.gated,
-                    lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
-                    enable_multiscale=enable_multiscale,
-                    multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
-                    multiscale_lowres_size_factor=multiscale_lowres_size_factor,
-                ))
-
+                BottomUpLayer(n_res_blocks=self.encoder_blocks_per_layer,
+                              n_filters=self.encoder_n_filters,
+                              downsampling_steps=self.downsample[i],
+                              nonlin=nonlin,
+                              batchnorm=self.batchnorm,
+                              dropout=self.encoder_dropout,
+                              res_block_type=self.res_block_type,
+                              res_block_kernel=self.encoder_res_block_kernel,
+                              res_block_skip_padding=self.encoder_res_block_skip_padding,
+                              gated=self.gated,
+                              lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
+                              enable_multiscale=enable_multiscale,
+                              multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
+                              multiscale_lowres_size_factor=multiscale_lowres_size_factor,
+                              decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
+                              output_expected_shape=output_expected_shape))
             # Add top-down stochastic layer at level i.
             # The architecture when doing inference is roughly as follows:
             #    p_params = output of top-down layer above
@@ -188,11 +201,17 @@ class LadderVAE(pl.LightningModule):
                     learn_top_prior=self.learn_top_prior,
                     top_prior_param_shape=self.get_top_prior_param_shape(),
                     res_block_type=self.res_block_type,
+                    res_block_kernel=self.decoder_res_block_kernel,
+                    res_block_skip_padding=self.decoder_res_block_skip_padding,
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
-                ))
-
+                    # in no_padding_mode, what gets passed from the encoder are not multiples of 2 and so merging operation does not work natively.
+                    bottomup_no_padding_mode=self.encoder_no_padding_mode,
+                    topdown_no_padding_mode=self.decoder_no_padding_mode,
+                    retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
+                    input_image_shape=self.img_shape))
         # Final top-down layer
+
         modules = list()
         if not self.no_initial_downscaling:
             modules.append(Interpolate(scale=2))
@@ -205,6 +224,8 @@ class LadderVAE(pl.LightningModule):
                     batchnorm=self.batchnorm,
                     dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
+                    res_block_kernel=self.decoder_res_block_kernel,
+                    skip_padding=self.decoder_res_block_skip_padding,
                     gated=self.gated,
                 ))
         self.final_top_down = nn.Sequential(*modules)
@@ -227,10 +248,20 @@ class LadderVAE(pl.LightningModule):
         # PSNR computation on validation.
         self.label1_psnr = RunningPSNR()
         self.label2_psnr = RunningPSNR()
+        print(f'[{self.__class__.__name__}] Enc [ResKSize{self.encoder_res_block_kernel}',
+              f'SkipPadding:{self.encoder_res_block_skip_padding}]',
+              f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}] ')
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
         nonlin = self.get_nonlin()
-        modules = [nn.Conv2d(self.color_ch, self.encoder_n_filters, 5, padding=2, stride=init_stride), nonlin()]
+        modules = [
+            nn.Conv2d(self.color_ch,
+                      self.encoder_n_filters,
+                      self.encoder_res_block_kernel,
+                      padding=0 if self.encoder_res_block_skip_padding else self.encoder_res_block_kernel // 2,
+                      stride=init_stride),
+            nonlin()
+        ]
         for _ in range(num_blocks):
             modules.append(
                 BottomUpDeterministicResBlock(
@@ -240,6 +271,8 @@ class LadderVAE(pl.LightningModule):
                     batchnorm=self.batchnorm,
                     dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
+                    skip_padding=self.encoder_res_block_skip_padding,
+                    res_block_kernel=self.encoder_res_block_kernel,
                 ))
         return nn.Sequential(*modules)
 
@@ -270,6 +303,7 @@ class LadderVAE(pl.LightningModule):
                     batchnorm=self.batchnorm,
                     dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
+                    skip_padding=self.encoder_res_block_skip_padding,
                 ))
             lowres_first_bottom_ups.append(first_bottom_up)
 
@@ -339,6 +373,11 @@ class LadderVAE(pl.LightningModule):
         else:
             return loss_dict
 
+    def reset_for_different_output_size(self, output_size):
+        for i in range(self.n_layers):
+            sz = output_size // 2**(1 + i)
+            self.bottom_up_layers[i].output_expected_shape = (sz, sz)
+
     def _get_mixed_reconstruction_loss_vector(self, reconstruction, mixed_input):
         """
         Computes the reconstruction loss on the mixed input and mixed prediction
@@ -358,6 +397,11 @@ class LadderVAE(pl.LightningModule):
 
         # Log likelihood
         ll, like_dict = self.likelihood(reconstruction, input)
+        if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
+            pad = self.skip_nboundary_pixels_from_loss
+            ll = ll[:, :, pad:-pad, pad:-pad]
+            like_dict['params']['mean'] = like_dict['params']['mean'][:, :, pad:-pad, pad:-pad]
+
         recons_loss = compute_batch_mean(-1 * ll)
         output = {
             'loss': recons_loss,
@@ -414,7 +458,15 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
+        if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
+            target_normalized = F.center_crop(target_normalized, out.shape[-2:])
+
         recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
+
+        if self.skip_nboundary_pixels_from_loss:
+            pad = self.skip_nboundary_pixels_from_loss
+            target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
+
         recons_loss = recons_loss_dict['loss']
 
         if self.loss_type == LossType.ElboMixedReconstruction:
@@ -480,12 +532,19 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
+        if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
+            target_normalized = F.center_crop(target_normalized, out.shape[-2:])
+
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        if self.skip_nboundary_pixels_from_loss:
+            pad = self.skip_nboundary_pixels_from_loss
+            target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
+
         self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
         self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
 
-        psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0], recons_img[:, 0])
-        psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1], recons_img[:, 1])
+        psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0].clone(), recons_img[:, 0].clone())
+        psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1].clone(), recons_img[:, 1].clone())
         recons_loss = recons_loss_dict['loss']
         kl_loss = self.get_kl_divergence_loss(td_data)
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
@@ -531,8 +590,10 @@ class LadderVAE(pl.LightningModule):
 
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values)
-        # Restore original image size
-        out = crop_img_tensor(out, img_size)
+
+        if out.shape[-1] > img_size[-1]:
+            # Restore original image size
+            out = crop_img_tensor(out, img_size)
 
         return out, td_data
 
@@ -551,7 +612,6 @@ class LadderVAE(pl.LightningModule):
         # Loop from bottom to top layer, store all deterministic nodes we
         # need in the top-down pass
         bu_values = []
-
         for i in range(self.n_layers):
             lowres_x = None
             if self._multiscale_count > 1 and i + 1 < inp.shape[1]:
@@ -591,6 +651,11 @@ class LadderVAE(pl.LightningModule):
             samples.append(sample)
 
         return samples
+
+    def reset_for_different_output_size(self, size):
+        for i in range(self.n_layers):
+            sz = size // 2**(1 + i)
+            self.bottom_up_layers[i].output_expected_shape = (sz, sz)
 
     def topdown_pass(self,
                      bu_values=None,
@@ -674,7 +739,7 @@ class LadderVAE(pl.LightningModule):
             use_uncond_mode = i in self.use_uncond_mode_at
 
             # Input for skip connection
-            skip_input = out  # TODO or out_pre_residual? or both?
+            skip_input = out  # TODO or n? or both?
 
             # Full top-down layer, including sampling and deterministic part
             out, out_pre_residual, aux = top_down_layers[i](out,
@@ -762,7 +827,7 @@ class LadderVAE(pl.LightningModule):
 
     def get_top_prior_param_shape(self, n_imgs=1):
         # TODO num channels depends on random variable we're using
-        dwnsc = self.overall_downscale_factor
+        dwnsc = self.overall_downscale_factor if self.multiscale_decoder_retain_spatial_dims is False else 1
         sz = self.get_padded_size(self.img_shape)
         h = sz[0] // dwnsc
         w = sz[1] // dwnsc

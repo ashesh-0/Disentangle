@@ -1,5 +1,6 @@
 from disentangle.core.stable_exp import StableExponential
 import torch
+import torchvision.transforms.functional as F
 
 
 class StableLogVar:
@@ -21,6 +22,13 @@ class StableLogVar:
     def get_std(self):
         return torch.sqrt(self.get_var())
 
+    def centercrop_to_size(self, size):
+        if self._lv.shape[-1] == size:
+            return
+
+        diff = self._lv.shape[-1] - size
+        assert diff > 0 and diff % 2 == 0
+        self._lv = F.center_crop(self._lv, (size, size))
 
 class StableMean:
     def __init__(self, mean):
@@ -28,3 +36,11 @@ class StableMean:
 
     def get(self):
         return self._mean
+
+    def centercrop_to_size(self, size):
+        if self._mean.shape[-1] == size:
+            return
+
+        diff = self._mean.shape[-1] - size
+        assert diff > 0 and diff % 2 == 0
+        self._mean = F.center_crop(self._mean, (size, size))

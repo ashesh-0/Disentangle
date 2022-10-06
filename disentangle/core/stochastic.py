@@ -4,10 +4,12 @@ Adapted from https://github.com/juglab/HDN/blob/e30edf7ec2cd55c902e469b890d8fe44
 import math
 from typing import Union
 
+import numpy as np
 import torch
 from torch import nn
 from torch.distributions import kl_divergence
 from torch.distributions.normal import Normal
+import torchvision.transforms.functional as F
 
 from disentangle.core.stable_exp import log_prob
 from disentangle.core.stable_dist_params import StableLogVar, StableMean
@@ -135,12 +137,19 @@ class NormalStochasticBlock2d(nn.Module):
         p = Normal(p_mu.get(), p_lv.get_std())
         return p_mu, p_lv, p
 
-    def process_q_params(self, q_params, var_clip_max):
+    def process_q_params(self, q_params, var_clip_max, allow_oddsizes=False):
         # Define q(z)
         q_params = self.conv_in_q(q_params)
         q_mu, q_lv = q_params.chunk(2, dim=1)
         if var_clip_max is not None:
             q_lv = torch.clip(q_lv, max=var_clip_max)
+
+        if q_mu.shape[-1] % 2 == 1 and allow_oddsizes is False:
+            q_mu = F.center_crop(q_mu, q_mu.shape[-1] - 1)
+            q_lv = F.center_crop(q_lv, q_lv.shape[-1] - 1)
+            # clip_start = np.random.rand() > 0.5
+            # q_mu = q_mu[:, :, 1:, 1:] if clip_start else q_mu[:, :, :-1, :-1]
+            # q_lv = q_lv[:, :, 1:, 1:] if clip_start else q_lv[:, :, :-1, :-1]
 
         q_mu = StableMean(q_mu)
         q_lv = StableLogVar(q_lv)
@@ -182,12 +191,18 @@ class NormalStochasticBlock2d(nn.Module):
         p_mu, p_lv, p = self.process_p_params(p_params, var_clip_max)
 
         p_params = (p_mu, p_lv)
+
         if q_params is not None:
-            q_mu, q_lv, q = self.process_q_params(q_params, var_clip_max)
+            # At inference time, just don't centercrop the q_params even if they are odd in size.
+            q_mu, q_lv, q = self.process_q_params(q_params, var_clip_max, allow_oddsizes=mode_pred is True)
             q_params = (q_mu, q_lv)
             debug_qvar_max = torch.max(q_lv.get())
             # Sample from q(z)
             sampling_distrib = q
+            q_size = q_mu.get().shape[-1]
+            if p_mu.get().shape[-1] != q_size and mode_pred is False:
+                p_mu.centercrop_to_size(q_size)
+                p_lv.centercrop_to_size(q_size)
         else:
             # Sample from p(z)
             sampling_distrib = p
