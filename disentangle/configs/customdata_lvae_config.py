@@ -13,12 +13,12 @@ def get_config():
     data.frame_size = 256
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
-    data.curve_amplitude = 5.0
-    data.num_curves = 3
+    data.curve_amplitude = 8.0
+    data.num_curves = 5
     data.max_rotation = 0.0
-    data.curve_thickness = 5
+    data.curve_thickness = 21
     data.max_vshift_factor = 0.9
-    data.max_hshift_factor = 0.1
+    data.max_hshift_factor = 0.3
     data.frequency_range_list = [(0.1, 0.12), (0.2, 0.22), (0.4, 0.42), (0.7, 0.72)]
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -32,7 +32,7 @@ def get_config():
     data.multiscale_lowres_count = 3
     data.padding_mode = 'constant'
     data.padding_value = 0
-    data.encourage_non_overlap_single_channel = False
+    data.encourage_non_overlap_single_channel = True
     data.vertical_min_spacing = data.curve_amplitude * 2
     data.target_separate_normalization = False
 
@@ -49,7 +49,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128]
+    model.z_dims = [128, 128, 128, 128]
     model.encoder.blocks_per_layer = 3
     model.decoder.blocks_per_layer = 3
     model.nonlin = 'elu'
