@@ -4,6 +4,7 @@ from typing import Union
 import numpy as np
 import torch
 from torch import nn
+from disentangle.core.stable_dist_params import StableLogVar
 
 
 class LikelihoodModule(nn.Module):
@@ -166,7 +167,7 @@ class GaussianLikelihood(LikelihoodModule):
         if self.predict_logvar is not None:
             logprob = log_normal(x, params['mean'], params['logvar'])
         else:
-            logprob = -0.5 * (params['mean'] - x) ** 2
+            logprob = -0.5 * (params['mean'] - x)**2
         return logprob
 
 
@@ -181,5 +182,5 @@ def log_normal(x, mean, logvar):
                    either scalar or broadcastable
     """
     var = torch.exp(logvar)
-    log_prob = -0.5 * (((x - mean) ** 2) / var + logvar + torch.tensor(2 * math.pi).log())
+    log_prob = -0.5 * (((x - mean)**2) / var + logvar + torch.tensor(2 * math.pi).log())
     return log_prob

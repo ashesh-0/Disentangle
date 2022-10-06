@@ -16,7 +16,8 @@ class MultiChDeterministicTiffDloader:
                  normalized_input=None,
                  enable_rotation_aug: bool = False,
                  enable_random_cropping: bool = False,
-                 use_one_mu_std=None):
+                 use_one_mu_std=None,
+                 allow_generation=False):
         """
         Here, an image is split into grids of size img_sz.
         Args:
@@ -28,7 +29,11 @@ class MultiChDeterministicTiffDloader:
 
         """
         self._fpath = fpath
-        self._data = get_train_val_data(data_config, self._fpath, is_train, val_fraction=val_fraction)
+        self._data = get_train_val_data(data_config,
+                                        self._fpath,
+                                        is_train,
+                                        val_fraction=val_fraction,
+                                        allow_generation=allow_generation)
 
         self._normalized_input = normalized_input
         max_val = np.quantile(self._data, 0.995)
@@ -57,7 +62,7 @@ class MultiChDeterministicTiffDloader:
 
     def get_img_sz(self):
         return self._img_sz
-    
+
     def set_img_sz(self, image_size):
         """
         If one wants to change the image size on the go, then this can be used.
@@ -66,7 +71,7 @@ class MultiChDeterministicTiffDloader:
         self._img_sz = image_size
 
     def set_repeat_factor(self):
-        self._repeat_factor = (self._data.shape[-2] // self._img_sz) ** 2
+        self._repeat_factor = (self._data.shape[-2] // self._img_sz)**2
 
     def _init_msg(self, ):
         msg = f'[{self.__class__.__name__}] Sz:{self._img_sz}'
@@ -157,6 +162,11 @@ class MultiChDeterministicTiffDloader:
         img2 = (img2 - mean[1]) / std[1]
         return img1, img2
 
+    def compute_individual_mean_std(self):
+        mean = np.mean(self._data, axis=(0, 1, 2))
+        std = np.std(self._data, axis=(0, 1, 2))
+        return mean[None, :, None, None], std[None, :, None, None]
+
     def compute_mean_std(self, allow_for_validation_data=False):
         """
         Note that we must compute this only for training data.
@@ -169,9 +179,7 @@ class MultiChDeterministicTiffDloader:
             std = np.repeat(std, 2, axis=1)
             return mean, std
         elif self._use_one_mu_std is False:
-            mean = np.mean(self._data, axis=(0, 1, 2))
-            std = np.std(self._data, axis=(0, 1, 2))
-            return mean[None, :, None, None], std[None, :, None, None]
+            return self.compute_individual_mean_std()
 
         elif self._use_one_mu_std is None:
             return np.array([0.0, 0.0]).reshape(1, 2, 1, 1), np.array([1.0, 1.0]).reshape(1, 2, 1, 1)
