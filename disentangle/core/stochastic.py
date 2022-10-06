@@ -4,10 +4,12 @@ Adapted from https://github.com/juglab/HDN/blob/e30edf7ec2cd55c902e469b890d8fe44
 import math
 from typing import Union
 
+import numpy as np
 import torch
 from torch import nn
 from torch.distributions import kl_divergence
 from torch.distributions.normal import Normal
+import torchvision.transforms.functional as F
 
 from disentangle.core.stable_exp import log_prob
 from disentangle.core.stable_dist_params import StableLogVar, StableMean
@@ -19,7 +21,6 @@ class NormalStochasticBlock2d(nn.Module):
     same for p(z), then sample z ~ q(z) and return conv(z).
     If q's parameters are not given, do the same but sample from p(z).
     """
-
     def __init__(self, c_in: int, c_vars: int, c_out, kernel: int = 3, transform_p_params: bool = True):
         """
         Args:
@@ -42,33 +43,33 @@ class NormalStochasticBlock2d(nn.Module):
         self.conv_in_q = nn.Conv2d(c_in, 2 * c_vars, kernel, padding=pad)
         self.conv_out = nn.Conv2d(c_vars, c_out, kernel, padding=pad)
 
-    def forward_swapped(self, p_params, q_mu, q_lv):
-
-        if self.transform_p_params:
-            p_params = self.conv_in_p(p_params)
-        else:
-            assert p_params.size(1) == 2 * self.c_vars
-
-        # Define p(z)
-        p_mu, p_lv = p_params.chunk(2, dim=1)
-        p = Normal(p_mu, (p_lv / 2).exp())
-
-        # Define q(z)
-        q = Normal(q_mu, (q_lv / 2).exp())
-        # Sample from q(z)
-        sampling_distrib = q
-
-        # Generate latent variable (typically by sampling)
-        z = sampling_distrib.rsample()
-
-        # Output of stochastic layer
-        out = self.conv_out(z)
-
-        data = {
-            'z': z,  # sampled variable at this layer (batch, ch, h, w)
-            'p_params': p_params,  # (b, ch, h, w) where b is 1 or batch size
-        }
-        return out, data
+    # def forward_swapped(self, p_params, q_mu, q_lv):
+    #
+    #     if self.transform_p_params:
+    #         p_params = self.conv_in_p(p_params)
+    #     else:
+    #         assert p_params.size(1) == 2 * self.c_vars
+    #
+    #     # Define p(z)
+    #     p_mu, p_lv = p_params.chunk(2, dim=1)
+    #     p = Normal(p_mu, (p_lv / 2).exp())
+    #
+    #     # Define q(z)
+    #     q = Normal(q_mu, (q_lv / 2).exp())
+    #     # Sample from q(z)
+    #     sampling_distrib = q
+    #
+    #     # Generate latent variable (typically by sampling)
+    #     z = sampling_distrib.rsample()
+    #
+    #     # Output of stochastic layer
+    #     out = self.conv_out(z)
+    #
+    #     data = {
+    #         'z': z,  # sampled variable at this layer (batch, ch, h, w)
+    #         'p_params': p_params,  # (b, ch, h, w) where b is 1 or batch size
+    #     }
+    #     return out, data
 
     def get_z(self, sampling_distrib, forced_latent, use_mode, mode_pred, use_uncond_mode):
         # Generate latent variable (typically by sampling)
@@ -95,17 +96,13 @@ class NormalStochasticBlock2d(nn.Module):
         _, _, q = self.process_q_params(q_params, var_clip_max)
         return q.rsample()
 
-    def compute_kl_metrics(self, p, p_params, q, q_params, mode_pred, analytical_kl, z, vp_enabled):
+    def compute_kl_metrics(self, p, p_params, q, q_params, mode_pred, analytical_kl, z):
         """
         Compute KL (analytical or MC estimate) and then process it in multiple ways.
-        Args:
-            vp_enabled: Whether we have a VampPrior parameters in p_params or a Univariate Gaussian ones.
         """
         if mode_pred is False:  # if not predicting
             if analytical_kl:
                 kl_elementwise = kl_divergence(q, p)
-            elif vp_enabled:
-                kl_elementwise = kl_vampprior_mc(z, p_params, q_params)
             else:
                 kl_elementwise = kl_normal_mc(z, p_params, q_params)
             kl_samplewise = kl_elementwise.sum((1, 2, 3))
@@ -140,12 +137,19 @@ class NormalStochasticBlock2d(nn.Module):
         p = Normal(p_mu.get(), p_lv.get_std())
         return p_mu, p_lv, p
 
-    def process_q_params(self, q_params, var_clip_max):
+    def process_q_params(self, q_params, var_clip_max, allow_oddsizes=False):
         # Define q(z)
         q_params = self.conv_in_q(q_params)
         q_mu, q_lv = q_params.chunk(2, dim=1)
         if var_clip_max is not None:
             q_lv = torch.clip(q_lv, max=var_clip_max)
+
+        if q_mu.shape[-1] % 2 == 1 and allow_oddsizes is False:
+            q_mu = F.center_crop(q_mu, q_mu.shape[-1] - 1)
+            q_lv = F.center_crop(q_lv, q_lv.shape[-1] - 1)
+            # clip_start = np.random.rand() > 0.5
+            # q_mu = q_mu[:, :, 1:, 1:] if clip_start else q_mu[:, :, :-1, :-1]
+            # q_lv = q_lv[:, :, 1:, 1:] if clip_start else q_lv[:, :, :-1, :-1]
 
         q_mu = StableMean(q_mu)
         q_lv = StableLogVar(q_lv)
@@ -162,8 +166,7 @@ class NormalStochasticBlock2d(nn.Module):
                 analytical_kl: bool = False,
                 mode_pred: bool = False,
                 use_uncond_mode: bool = False,
-                var_clip_max: Union[None, float] = None,
-                vp_enabled: bool = False):
+                var_clip_max: Union[None, float] = None):
         """
         Args:
             p_params: this is passed from top layers.
@@ -179,34 +182,27 @@ class NormalStochasticBlock2d(nn.Module):
             mode_pred: If True, then only prediction happens. Otherwise, KL divergence loss also gets computed.
             use_uncond_mode: Used only when mode_pred=True
             var_clip_max: This is the maximum value the log of the variance of the latent vector for any layer can reach.
-            vp_enabled: If vp_enabled is True then the p_params contain the vampprior distribution params.
-                        Essentially the mean+logvar concatenated vector for each of the config.model.vampprior_N many
-                        trainable custom inputs..
-                        If vp_enabled is False, then p_params have the usual meaning: gaussian distribution params
-                        (mu and logvar) for the P() distribution.
+            
         """
 
         debug_qvar_max = 0
         assert (forced_latent is None) or (not use_mode)
-        msg = "With vampprior, analytical KL divergence computation is not supported."
-        msg += " One can only use one sample approximate."
-        assert vp_enabled is False or (vp_enabled is True and analytical_kl is False), msg
 
-        if vp_enabled is False:
-            p_mu, p_lv, p = self.process_p_params(p_params, var_clip_max)
-        else:
-            # with VP enabled, we need to pass through the q (complete q) to get averaged posterior
-            # so, we need to go though this as well.
-            p_mu, p_lv, _ = self.process_q_params(p_params, var_clip_max)
-            p = None
+        p_mu, p_lv, p = self.process_p_params(p_params, var_clip_max)
 
         p_params = (p_mu, p_lv)
+
         if q_params is not None:
-            q_mu, q_lv, q = self.process_q_params(q_params, var_clip_max)
+            # At inference time, just don't centercrop the q_params even if they are odd in size.
+            q_mu, q_lv, q = self.process_q_params(q_params, var_clip_max, allow_oddsizes=mode_pred is True)
             q_params = (q_mu, q_lv)
             debug_qvar_max = torch.max(q_lv.get())
             # Sample from q(z)
             sampling_distrib = q
+            q_size = q_mu.get().shape[-1]
+            if p_mu.get().shape[-1] != q_size and mode_pred is False:
+                p_mu.centercrop_to_size(q_size)
+                p_lv.centercrop_to_size(q_size)
         else:
             # Sample from p(z)
             sampling_distrib = p
@@ -218,8 +214,8 @@ class NormalStochasticBlock2d(nn.Module):
         # This is used when doing experiment from the prior - q is not used.
         if force_constant_output:
             z = z[0:1].expand_as(z).clone()
-            p_params = (
-                p_params[0][0:1].expand_as(p_params[0]).clone(), p_params[1][0:1].expand_as(p_params[1]).clone())
+            p_params = (p_params[0][0:1].expand_as(p_params[0]).clone(),
+                        p_params[1][0:1].expand_as(p_params[1]).clone())
 
         # Output of stochastic layer
         out = self.conv_out(z)
@@ -234,7 +230,7 @@ class NormalStochasticBlock2d(nn.Module):
             # Compute log q(z)
             logprob_q = q.log_prob(z).sum((1, 2, 3))
             # compute KL divergence metrics
-            kl_dict = self.compute_kl_metrics(p, p_params, q, q_params, mode_pred, analytical_kl, z, vp_enabled)
+            kl_dict = self.compute_kl_metrics(p, p_params, q, q_params, mode_pred, analytical_kl, z)
         else:
             kl_dict = {}
             logprob_q = None
@@ -276,52 +272,6 @@ def kl_normal_mc(z, p_mulv, q_mulv):
 
 
 def log_Normal_diag(x, mean, log_var):
-    constant = - 0.5 * torch.log(torch.Tensor([2 * math.pi])).item()
+    constant = -0.5 * torch.log(torch.Tensor([2 * math.pi])).item()
     log_normal = constant + -0.5 * (log_var + torch.pow(x - mean, 2) / torch.exp(log_var))
     return log_normal
-
-
-def vp_log_p_z(z_p_mean: torch.Tensor, z_p_logvar: torch.Tensor, z: torch.Tensor):
-    """
-    Taken from vae_vamprior code https://github.com/jmtomczak/vae_vampprior/blob/master/models/PixelHVAE_2level.py#L326
-    """
-    # z - MB x M: MB is mini batch size. M is the latent dimension
-    # C is the number of psuedo inputs.
-    C = z_p_mean.shape[0]
-    # calculate params
-
-    # We are using vectorization to compute this efficiently.
-    # (4, 40,256,256) => (4, 1, 40,256,256)
-    z_expand = z.unsqueeze(1)
-
-    # (10, 40,256,256)= > (1, 10, 40,256,256)
-    means = z_p_mean.unsqueeze(0)
-    logvars = z_p_logvar.unsqueeze(0)
-    # in computing the probablity of z, we sum over the latent dimension (20)
-    # We need to divide by C (500) to keep it a valid distribution. Average of gaussians.
-    # NOTE: check that whether we need to do sum
-    a = log_prob(means, logvars, z_expand) - math.log(C)
-    # a = log_Normal_diag(z_expand, means, logvars) - math.log(C)  # MB x C (4 * 40)
-    # a_max, _ = torch.max(a, 1)  # MB. sum would be a more accurate description. max() is close to the truth as
-    # NOTE: This is equivalent to simply taking the log of (sum of exp(a)). They've done it simply to avoid overflows.
-    # Now, one needs to take exp of (a - a_max) and not of a.
-    # log_prior = (a_max + torch.log(torch.sum(torch.exp(a - a_max.unsqueeze(1)), 1)))  # MB
-    # As far as stability is concerned, this should work because, log_prob is actually taking the log. So, here, one
-    # can use torch.exp() and one should not use the different notation coded in StableExp
-    log_prior = torch.log(torch.sum(torch.exp(a), 1))
-    return log_prior
-
-
-def kl_vampprior_mc(z, p_mulv, q_mulv):
-    """
-    One-sample estimation of element-wise KL between a vamprior p and
-     a diagonal  multivariate normal distributions.
-    """
-    assert isinstance(q_mulv, tuple)
-    assert isinstance(p_mulv, tuple)
-    p_mu, p_lv = p_mulv
-    q_mu, q_lv = q_mulv
-
-    q_std = StableExponential(q_lv / 2).exp()
-    q_distrib = Normal(q_mu, q_std)
-    return q_distrib.log_prob(z) - vp_log_p_z(p_mu, p_lv, z)

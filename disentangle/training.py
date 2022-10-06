@@ -24,6 +24,7 @@ from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
 from disentangle.data_loader.places_dloader import PlacesLoader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
+from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
 
 
 def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False):
@@ -97,8 +98,22 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 allow_generation=False,
             )
         else:
-            data_class = (
-                MultiChDeterministicTiffRandDloader if config.data.randomized_channels else MultiChDeterministicTiffDloader)
+            train_data_kwargs = {'allow_generation': True}
+            val_data_kwargs = {'allow_generation': False}
+            if config.model.model_type in [ModelType.LadderVaeSepEncoder, ModelType.LadderVaeSepEncoderSingleOptim]:
+                data_class = SemiSupDloader
+                # mixed_input_type = None,
+                # supervised_data_fraction = 0.0,
+                train_data_kwargs['mixed_input_type'] = config.data.mixed_input_type
+                train_data_kwargs['supervised_data_fraction'] = config.data.supervised_data_fraction
+                val_data_kwargs['mixed_input_type'] = config.data.mixed_input_type
+                val_data_kwargs['supervised_data_fraction'] = 1.0
+            else:
+                train_data_kwargs['enable_random_cropping'] = enable_random_cropping
+                val_data_kwargs['enable_random_cropping'] = False
+                data_class = (
+                    MultiChDeterministicTiffRandDloader if config.data.randomized_channels else MultiChDeterministicTiffDloader)
+
             train_data = None if skip_train_dataset else data_class(
                 config.data,
                 datapath,
@@ -107,8 +122,9 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 normalized_input=normalized_input,
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=train_aug_rotate,
-                enable_random_cropping=enable_random_cropping,
-                allow_generation=True)
+                **train_data_kwargs
+            )
+
             val_data = data_class(
                 config.data,
                 datapath,
@@ -117,9 +133,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 normalized_input=normalized_input,
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=False,  # No rotation aug on validation
-                enable_random_cropping=False,
-                allow_generation=False
-                # No random cropping on validation. Validation is evaluated on determistic grids
+                **val_data_kwargs,
             )
 
         # For normalizing, we should be using the training data's mean and std.

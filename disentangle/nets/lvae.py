@@ -8,7 +8,7 @@ import torch.optim as optim
 import wandb
 from torch import nn
 from torch.autograd import Variable
-
+import torchvision.transforms.functional as F
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
 from disentangle.core.loss_type import LossType
@@ -25,6 +25,11 @@ def torch_nanmean(inp):
     return torch.mean(inp[~inp.isnan()])
 
 
+def compute_batch_mean(x):
+    N = len(x)
+    return x.view(N, -1).mean(dim=1)
+
+
 class LadderVAE(pl.LightningModule):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__()
@@ -37,16 +42,33 @@ class LadderVAE(pl.LightningModule):
         self.target_ch = target_ch
 
         self.z_dims = config.model.z_dims
-        self.blocks_per_layer = config.model.blocks_per_layer
+        self.encoder_blocks_per_layer = config.model.encoder.blocks_per_layer
+        self.decoder_blocks_per_layer = config.model.decoder.blocks_per_layer
+
         self.n_layers = len(self.z_dims)
         self.stochastic_skip = config.model.stochastic_skip
         self.batchnorm = config.model.batchnorm
+<<<<<<< HEAD
 
         self.n_filters = config.model.n_filters
         self.dropout = config.model.dropout
+=======
+        self.encoder_n_filters = config.model.encoder.n_filters
+        self.decoder_n_filters = config.model.decoder.n_filters
+
+        self.encoder_dropout = config.model.encoder.dropout
+        self.decoder_dropout = config.model.decoder.dropout
+
+>>>>>>> master
         self.learn_top_prior = config.model.learn_top_prior
         self.img_shape = (config.data.image_size, config.data.image_size)
         self.res_block_type = config.model.res_block_type
+        self.encoder_res_block_kernel = config.model.encoder.res_block_kernel
+        self.decoder_res_block_kernel = config.model.decoder.res_block_kernel
+
+        self.encoder_res_block_skip_padding = config.model.encoder.res_block_skip_padding
+        self.decoder_res_block_skip_padding = config.model.decoder.res_block_skip_padding
+
         self.gated = config.model.gated
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
@@ -70,13 +92,13 @@ class LadderVAE(pl.LightningModule):
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
 
+        self.encoder_no_padding_mode = config.model.encoder.res_block_skip_padding is True and config.model.encoder.res_block_kernel > 1
+        self.decoder_no_padding_mode = config.model.decoder.res_block_skip_padding is True and config.model.decoder.res_block_kernel > 1
+
+        self.skip_nboundary_pixels_from_loss = config.model.skip_nboundary_pixels_from_loss
         # initialize the learning rate scheduler params.
         self.lr_scheduler_monitor = self.lr_scheduler_mode = None
         self._init_lr_scheduler_params(config)
-
-        # vampprior
-        self.vp_N = self.vp_enabled = self.vp_dummy_input = self.vp_means = self.vp_latent_ch = self.vp_hw = None
-        self._init_vp(config)
 
         # enabling reconstruction loss on mixed input
         self.mixed_rec_w = 0
@@ -84,6 +106,9 @@ class LadderVAE(pl.LightningModule):
         if self.loss_type == LossType.ElboMixedReconstruction:
             self.mixed_rec_w = config.loss.mixed_rec_weight
             self.enable_mixed_rec = True
+            raise NotImplementedError(
+                "This cannot work since now, different channels have different mean. One needs to reweigh the "
+                "predicted channels and then take their sum. This would then be equivalent to the input.")
 
         self._global_step = 0
 
@@ -105,7 +130,7 @@ class LadderVAE(pl.LightningModule):
         if not self.no_initial_downscaling:  # by default do another downscaling
             self.overall_downscale_factor *= 2
 
-        assert max(self.downsample) <= self.blocks_per_layer
+        assert max(self.downsample) <= self.encoder_blocks_per_layer
         assert len(self.downsample) == self.n_layers
 
         # Get class of nonlinear activation from string description
@@ -115,8 +140,8 @@ class LadderVAE(pl.LightningModule):
         # unless we want to prevent this
         stride = 1 if self.no_initial_downscaling else 2
         self.first_bottom_up = self.create_first_bottom_up(stride)
-
         self.multiscale_retain_spatial_dims = config.model.multiscale_retain_spatial_dims
+        self.multiscale_decoder_retain_spatial_dims = config.model.decoder.multiscale_retain_spatial_dims
         self.lowres_first_bottom_ups = self._multiscale_count = None
         self._init_multires(config)
 
@@ -135,22 +160,25 @@ class LadderVAE(pl.LightningModule):
             # Add bottom-up deterministic layer at level i.
             # It's a sequence of residual blocks (BottomUpDeterministicResBlock)
             # possibly with downsampling between them.
+            output_expected_shape = (self.img_shape[0] // 2**(i + 1),
+                                     self.img_shape[1] // 2**(i + 1)) if self._multiscale_count > 1 else None
             self.bottom_up_layers.append(
-                BottomUpLayer(
-                    n_res_blocks=self.blocks_per_layer,
-                    n_filters=self.n_filters,
-                    downsampling_steps=self.downsample[i],
-                    nonlin=nonlin,
-                    batchnorm=self.batchnorm,
-                    dropout=self.dropout,
-                    res_block_type=self.res_block_type,
-                    gated=self.gated,
-                    lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
-                    enable_multiscale=enable_multiscale,
-                    multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
-                    multiscale_lowres_size_factor=multiscale_lowres_size_factor,
-                ))
-
+                BottomUpLayer(n_res_blocks=self.encoder_blocks_per_layer,
+                              n_filters=self.encoder_n_filters,
+                              downsampling_steps=self.downsample[i],
+                              nonlin=nonlin,
+                              batchnorm=self.batchnorm,
+                              dropout=self.encoder_dropout,
+                              res_block_type=self.res_block_type,
+                              res_block_kernel=self.encoder_res_block_kernel,
+                              res_block_skip_padding=self.encoder_res_block_skip_padding,
+                              gated=self.gated,
+                              lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
+                              enable_multiscale=enable_multiscale,
+                              multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
+                              multiscale_lowres_size_factor=multiscale_lowres_size_factor,
+                              decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
+                              output_expected_shape=output_expected_shape))
             # Add top-down stochastic layer at level i.
             # The architecture when doing inference is roughly as follows:
             #    p_params = output of top-down layer above
@@ -166,23 +194,27 @@ class LadderVAE(pl.LightningModule):
             self.top_down_layers.append(
                 TopDownLayer(
                     z_dim=self.z_dims[i],
-                    n_res_blocks=self.blocks_per_layer,
-                    n_filters=self.n_filters,
+                    n_res_blocks=self.decoder_blocks_per_layer,
+                    n_filters=self.decoder_n_filters,
                     is_top_layer=is_top,
                     downsampling_steps=self.downsample[i],
                     nonlin=nonlin,
                     merge_type=self.merge_type,
                     batchnorm=self.batchnorm,
-                    dropout=self.dropout,
+                    dropout=self.decoder_dropout,
                     stochastic_skip=self.stochastic_skip,
                     learn_top_prior=self.learn_top_prior,
                     top_prior_param_shape=self.get_top_prior_param_shape(),
                     res_block_type=self.res_block_type,
+                    res_block_kernel=self.decoder_res_block_kernel,
+                    res_block_skip_padding=self.decoder_res_block_skip_padding,
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
-                    vp_enabled=is_top and self.vp_enabled,
-                ))
-
+                    bottomup_no_padding_mode=self.encoder_no_padding_mode,
+                    topdown_no_padding_mode=self.decoder_no_padding_mode,
+                    retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
+                    input_image_shape=self.img_shape))
+                    
         self.final_top_down = self.create_final_topdown_layer(not self.no_initial_downscaling)
         self.likelihood = self.create_likelihood()
 
@@ -210,35 +242,47 @@ class LadderVAE(pl.LightningModule):
     def create_final_topdown_layer(self, upsample):
 
         # Final top-down layer
+
         modules = list()
         if upsample:
             modules.append(Interpolate(scale=2))
-
-        for i in range(self.blocks_per_layer):
+        for i in range(self.decoder_blocks_per_layer):
             modules.append(
                 TopDownDeterministicResBlock(
-                    c_in=self.n_filters,
-                    c_out=self.n_filters,
-                    nonlin=self.get_nonlin(),
+                    c_in=self.decoder_n_filters,
+                    c_out=self.decoder_n_filters,
+                    nonlin=nonlin,
                     batchnorm=self.batchnorm,
-                    dropout=self.dropout,
+                    dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
+                    res_block_kernel=self.decoder_res_block_kernel,
+                    skip_padding=self.decoder_res_block_skip_padding,
                     gated=self.gated,
                 ))
         return nn.Sequential(*modules)
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
         nonlin = self.get_nonlin()
-        modules = [nn.Conv2d(self.color_ch, self.n_filters, 5, padding=2, stride=init_stride), nonlin()]
+        modules = [
+            nn.Conv2d(self.color_ch,
+                      self.encoder_n_filters,
+                      self.encoder_res_block_kernel,
+                      padding=0 if self.encoder_res_block_skip_padding else self.encoder_res_block_kernel // 2,
+                      stride=init_stride),
+            nonlin()
+        ]
         for _ in range(num_blocks):
-            modules.append(BottomUpDeterministicResBlock(
-                c_in=self.n_filters,
-                c_out=self.n_filters,
-                nonlin=nonlin,
-                batchnorm=self.batchnorm,
-                dropout=self.dropout,
-                res_block_type=self.res_block_type,
-            ))
+            modules.append(
+                BottomUpDeterministicResBlock(
+                    c_in=self.encoder_n_filters,
+                    c_out=self.encoder_n_filters,
+                    nonlin=nonlin,
+                    batchnorm=self.batchnorm,
+                    dropout=self.encoder_dropout,
+                    res_block_type=self.res_block_type,
+                    skip_padding=self.encoder_res_block_skip_padding,
+                    res_block_kernel=self.encoder_res_block_kernel,
+                ))
         return nn.Sequential(*modules)
 
     def _init_multires(self, config):
@@ -260,32 +304,19 @@ class LadderVAE(pl.LightningModule):
         lowres_first_bottom_ups = []
         for _ in range(1, self._multiscale_count):
             first_bottom_up = nn.Sequential(
-                nn.Conv2d(self.color_ch, self.n_filters, 5, padding=2, stride=stride), nonlin(),
+                nn.Conv2d(self.color_ch, self.encoder_n_filters, 5, padding=2, stride=stride), nonlin(),
                 BottomUpDeterministicResBlock(
-                    c_in=self.n_filters,
-                    c_out=self.n_filters,
+                    c_in=self.encoder_n_filters,
+                    c_out=self.encoder_n_filters,
                     nonlin=nonlin,
                     batchnorm=self.batchnorm,
-                    dropout=self.dropout,
+                    dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
+                    skip_padding=self.encoder_res_block_skip_padding,
                 ))
             lowres_first_bottom_ups.append(first_bottom_up)
 
         self.lowres_first_bottom_ups = nn.ModuleList(lowres_first_bottom_ups) if len(lowres_first_bottom_ups) else None
-
-    def _init_vp(self, config):
-        """
-        Initialize things related to Vampprior approach.
-        """
-        self.vp_enabled = config.model.use_vampprior
-        if self.vp_enabled:
-            self.vp_N = config.model.vampprior_N
-            # create an idle input for calling pseudo-inputs
-            self.vp_dummy_input = Variable(torch.eye(self.vp_N, self.vp_N), requires_grad=False)
-            nonlinearity = nn.Hardtanh(min_val=0.0, max_val=1.0)
-            self.vp_means = nn.Sequential(nn.Linear(self.vp_N, int(np.prod(self.img_shape)), bias=False), nonlinearity)
-            self.vp_latent_ch = config.model.z_dims[-1]
-            self.vp_hw = self.img_shape[0]
 
     def get_nonlin(self):
         nonlin = {
@@ -337,23 +368,61 @@ class LadderVAE(pl.LightningModule):
             kl_weight = 1.0
         return kl_weight
 
-    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
+    # def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
+    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False):
+        output = self._get_reconstruction_loss_vector(reconstruction, input, return_predicted_img=return_predicted_img)
+        loss_dict = output[0] if return_predicted_img else output
+        loss_dict['loss'] = torch.mean(loss_dict['loss'])
+        loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'])
+        loss_dict['ch2_loss'] = torch.mean(loss_dict['ch2_loss'])
+        if 'mixed_loss' in loss_dict:
+            loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'])
+        if return_predicted_img:
+            assert len(output) == 2
+            return loss_dict, output[1]
+        else:
+            return loss_dict
+
+    def reset_for_different_output_size(self, output_size):
+        for i in range(self.n_layers):
+            sz = output_size // 2**(1 + i)
+            self.bottom_up_layers[i].output_expected_shape = (sz, sz)
+
+    def _get_mixed_reconstruction_loss_vector(self, reconstruction, mixed_input):
+        """
+        Computes the reconstruction loss on the mixed input and mixed prediction
+        """
+        dist_params = self.likelihood.distr_params(reconstruction)
+        mixed_prediction = torch.mean(dist_params['mean'], dim=1, keepdim=True)
+        dist_params['mean'] = mixed_prediction
+        mixed_recons_ll = self.likelihood.log_likelihood(mixed_input, dist_params)
+        output = compute_batch_mean(-1 * mixed_recons_ll)
+        return output
+
+    def _get_reconstruction_loss_vector(self, reconstruction, input, return_predicted_img=False):
         """
         Args:
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
-        if likelihood_obj is None:
-            likelihood_obj = self.likelihood
+
         # Log likelihood
-        ll, like_dict = likelihood_obj(reconstruction, input)
-        recons_loss = -ll.mean()
-        mixed_recons_loss = 0
-        output = {'loss': recons_loss}
+        ll, like_dict = self.likelihood(reconstruction, input)
+        if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
+            pad = self.skip_nboundary_pixels_from_loss
+            ll = ll[:, :, pad:-pad, pad:-pad]
+            like_dict['params']['mean'] = like_dict['params']['mean'][:, :, pad:-pad, pad:-pad]
+
+        recons_loss = compute_batch_mean(-1 * ll)
+        output = {
+            'loss': recons_loss,
+            'ch1_loss': compute_batch_mean(-ll[:, 0]),
+            'ch2_loss': compute_batch_mean(-ll[:, 1]),
+        }
         if self.enable_mixed_rec:
             mixed_target = torch.mean(input, dim=1, keepdim=True)
             mixed_prediction = torch.mean(like_dict['params']['mean'], dim=1, keepdim=True)
-            mixed_recons_ll = likelihood_obj.log_likelihood(mixed_target, {'mean': mixed_prediction})
-            output['mixed_loss'] = -1 * mixed_recons_ll.mean()
+            mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_prediction})
+            output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
         if return_predicted_img:
             return output, like_dict['params']['mean']
@@ -399,7 +468,15 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
+        if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
+            target_normalized = F.center_crop(target_normalized, out.shape[-2:])
+
         recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
+
+        if self.skip_nboundary_pixels_from_loss:
+            pad = self.skip_nboundary_pixels_from_loss
+            target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
+
         recons_loss = recons_loss_dict['loss']
 
         if self.loss_type == LossType.ElboMixedReconstruction:
@@ -465,13 +542,19 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
+        if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
+            target_normalized = F.center_crop(target_normalized, out.shape[-2:])
+
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        if self.skip_nboundary_pixels_from_loss:
+            pad = self.skip_nboundary_pixels_from_loss
+            target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
         self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
 
-        psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0], recons_img[:, 0])
-        psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1], recons_img[:, 1])
+        psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0].clone(), recons_img[:, 0].clone())
+        psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1].clone(), recons_img[:, 1].clone())
         recons_loss = recons_loss_dict['loss']
         kl_loss = self.get_kl_divergence_loss(td_data)
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
@@ -514,47 +597,40 @@ class LadderVAE(pl.LightningModule):
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
-        vp_dist_params = None
-        if self.vp_enabled:
-            if self.vp_dummy_input.device != x_pad.device:
-                self.vp_dummy_input = self.vp_dummy_input.to(x_pad.device)
-
-            vp_dist_params = self._vp_compute_mu_logvar()
 
         # Top-down inference/generation
-        out, td_data = self.topdown_pass(bu_values, vp_dist_params=vp_dist_params)
-        # Restore original image size
-        out = crop_img_tensor(out, img_size)
+        out, td_data = self.topdown_pass(bu_values)
+
+        if out.shape[-1] > img_size[-1]:
+            # Restore original image size
+            out = crop_img_tensor(out, img_size)
 
         return out, td_data
 
     def bottomup_pass(self, inp):
-        # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
-        # later channels are simply to yield more context.
-        x = self.first_bottom_up(inp[:, :1])
+        return self._bottomup_pass(inp, self.first_bottom_up, self.lowres_first_bottom_ups, self.bottom_up_layers)
+
+    def _bottomup_pass(self, inp, first_bottom_up, lowres_first_bottom_ups, bottom_up_layers):
+
+        if self._multiscale_count > 1:
+            # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
+            # later channels are simply to yield more context.
+            x = first_bottom_up(inp[:, :1])
+        else:
+            x = first_bottom_up(inp)
 
         # Loop from bottom to top layer, store all deterministic nodes we
         # need in the top-down pass
         bu_values = []
-
         for i in range(self.n_layers):
             lowres_x = None
             if self._multiscale_count > 1 and i + 1 < inp.shape[1]:
-                lowres_x = self.lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
+                lowres_x = lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
 
-            x, bu_value = self.bottom_up_layers[i](x, lowres_x=lowres_x)
+            x, bu_value = bottom_up_layers[i](x, lowres_x=lowres_x)
             bu_values.append(bu_value)
 
         return bu_values
-
-    def _vp_compute_mu_logvar(self):
-        X = self.vp_means(self.vp_dummy_input)  # 500*784, where 500 is the number of psudo inputs.
-        X = X.view(-1, 1, self.vp_hw, self.vp_hw)  # 500*1*28*28
-        # This is the mean and the var of the individual distribution of psudo inputs.
-        # -1 ensures that we just pick the deepest layer. in future, we can simply learn an input of the shape of
-        # a penultimate layer and then just use the last bottom_up layer
-        p_mu_logvar = self.bottomup_pass(X)[-1]
-        return p_mu_logvar
 
     def sample_from_q(self, x, masks=None):
         img_size = x.size()[2:]
@@ -581,11 +657,15 @@ class LadderVAE(pl.LightningModule):
             bu_value = bu_values[i]
 
             # Note that the first argument can be set to None since we are just dealing with one level
-            sample = top_down_layers[i].sample_from_q(None, bu_value, var_clip_max=self._var_clip_max,
-                                                      mask=masks[i])
+            sample = top_down_layers[i].sample_from_q(None, bu_value, var_clip_max=self._var_clip_max, mask=masks[i])
             samples.append(sample)
 
         return samples
+
+    def reset_for_different_output_size(self, size):
+        for i in range(self.n_layers):
+            sz = size // 2**(1 + i)
+            self.bottom_up_layers[i].output_expected_shape = (sz, sz)
 
     def topdown_pass(self,
                      bu_values=None,
@@ -594,9 +674,7 @@ class LadderVAE(pl.LightningModule):
                      constant_layers=None,
                      forced_latent=None,
                      top_down_layers=None,
-                     final_top_down_layer=None,
-                     vp_dist_params=None
-                     ):
+                     final_top_down_layer=None):
         """
         Args:
             bu_values: Output of the bottom-up pass. It will have values from multiple layers of the ladder.
@@ -606,7 +684,6 @@ class LadderVAE(pl.LightningModule):
             constant_layers: Here, a single instance's z is copied over the entire batch. Also, bottom-up path is not used.
                             So, only prior is used here.
             forced_latent: Here, latent vector is not sampled but taken from here.
-            vp_dist_params: This is the vampprior's distribution params (mean and logvar concatenated)
         """
         if top_down_layers is None:
             top_down_layers = self.top_down_layers
@@ -673,7 +750,7 @@ class LadderVAE(pl.LightningModule):
             use_uncond_mode = i in self.use_uncond_mode_at
 
             # Input for skip connection
-            skip_input = out  # TODO or out_pre_residual? or both?
+            skip_input = out  # TODO or n? or both?
 
             # Full top-down layer, including sampling and deterministic part
             out, out_pre_residual, aux = top_down_layers[i](out,
@@ -686,9 +763,7 @@ class LadderVAE(pl.LightningModule):
                                                             forced_latent=forced_latent[i],
                                                             mode_pred=self.mode_pred,
                                                             use_uncond_mode=use_uncond_mode,
-                                                            var_clip_max=self._var_clip_max,
-                                                            vp_dist_params=vp_dist_params if i == self.n_layers - 1 else None)
-
+                                                            var_clip_max=self._var_clip_max)
             z[i] = aux['z']  # sampled variable at this layer (batch, ch, h, w)
             kl[i] = aux['kl_samplewise']  # (batch, )
             kl_spatial[i] = aux['kl_spatial']  # (batch, h, w)
@@ -763,7 +838,7 @@ class LadderVAE(pl.LightningModule):
 
     def get_top_prior_param_shape(self, n_imgs=1):
         # TODO num channels depends on random variable we're using
-        dwnsc = self.overall_downscale_factor
+        dwnsc = self.overall_downscale_factor if self.multiscale_decoder_retain_spatial_dims is False else 1
         sz = self.get_padded_size(self.img_shape)
         h = sz[0] // dwnsc
         w = sz[1] // dwnsc
