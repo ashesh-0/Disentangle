@@ -13,13 +13,13 @@ def get_config():
     data.frame_size = 128
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
-    data.curve_amplitude = 8.0
-    data.num_curves = 1
+    data.curve_amplitude = 5.0
+    data.num_curves = 3
     data.max_rotation = 0.0
-    data.curve_thickness = 21
-    data.max_vshift_factor = 0.7
-    data.max_hshift_factor = 0.3
-    data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
+    data.curve_thickness = 5
+    data.max_vshift_factor = 0.9
+    data.max_hshift_factor = 0.1
+    data.frequency_range_list = [(0.1, 0.12), (0.2, 0.22), (0.4, 0.42), (0.7, 0.72)]
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
@@ -49,7 +49,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128]
+    model.z_dims = [128, 128, 128]
     model.encoder.blocks_per_layer = 3
     model.decoder.blocks_per_layer = 3
     model.nonlin = 'elu'
@@ -79,14 +79,14 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 45
-    training.max_epochs = 1200
+    training.lr_scheduler_patience = 540
+    training.max_epochs = 14400
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.2
-    training.earlystop_patience = 300
+    training.earlystop_patience = 3600
     training.precision = 16
 
     return config
