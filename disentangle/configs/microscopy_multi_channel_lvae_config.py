@@ -21,9 +21,12 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 2
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
+    # If this is set to True, then target channels will be normalized from their separate mean.
+    # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
+    data.target_separate_normalization = True
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -38,14 +41,20 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128]
-    model.blocks_per_layer = 5
+    model.z_dims = [512]
+
+    model.encoder.blocks_per_layer = 1
+    model.encoder.n_filters = 256
+    model.encoder.dropout = 0.1
+
+    model.decoder.n_filters = 256
+    model.decoder.blocks_per_layer = 1
+    model.decoder.dropout = 0.1
+
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.batchnorm = True
     model.stochastic_skip = True
-    model.n_filters = 64
-    model.dropout = 0.1
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
@@ -56,9 +65,7 @@ def get_config():
     model.var_clip_max = 20
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'global'
-    model.logvar_lowerbound = -2.5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
-    model.use_vampprior = False
-    model.vampprior_N = 300
+    model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
