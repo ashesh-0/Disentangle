@@ -48,18 +48,12 @@ class LadderVAE(pl.LightningModule):
         self.n_layers = len(self.z_dims)
         self.stochastic_skip = config.model.stochastic_skip
         self.batchnorm = config.model.batchnorm
-<<<<<<< HEAD
-
-        self.n_filters = config.model.n_filters
-        self.dropout = config.model.dropout
-=======
         self.encoder_n_filters = config.model.encoder.n_filters
         self.decoder_n_filters = config.model.decoder.n_filters
 
         self.encoder_dropout = config.model.encoder.dropout
         self.decoder_dropout = config.model.decoder.dropout
 
->>>>>>> master
         self.learn_top_prior = config.model.learn_top_prior
         self.img_shape = (config.data.image_size, config.data.image_size)
         self.res_block_type = config.model.res_block_type
@@ -228,12 +222,12 @@ class LadderVAE(pl.LightningModule):
     def create_likelihood(self):
         # Define likelihood
         if self.likelihood_form == 'gaussian':
-            likelihood = GaussianLikelihood(self.n_filters, self.target_ch,
+            likelihood = GaussianLikelihood(self.decoder_n_filters, self.target_ch,
                                             predict_logvar=self.predict_logvar,
                                             logvar_lowerbound=self.logvar_lowerbound)
 
         elif self.likelihood_form == 'noise_model':
-            likelihood = NoiseModelLikelihood(self.n_filters, self.target_ch, data_mean, data_std, self.noiseModel)
+            likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std, self.noiseModel)
         else:
             msg = "Unrecognized likelihood '{}'".format(self.likelihood_form)
             raise RuntimeError(msg)
@@ -251,7 +245,7 @@ class LadderVAE(pl.LightningModule):
                 TopDownDeterministicResBlock(
                     c_in=self.decoder_n_filters,
                     c_out=self.decoder_n_filters,
-                    nonlin=nonlin,
+                    nonlin=self.get_nonlin(),
                     batchnorm=self.batchnorm,
                     dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
@@ -597,7 +591,6 @@ class LadderVAE(pl.LightningModule):
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
-
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values)
 
