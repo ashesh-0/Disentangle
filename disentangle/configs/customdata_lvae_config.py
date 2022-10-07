@@ -18,13 +18,8 @@ def get_config():
     data.max_rotation = 0.0
     data.curve_thickness = 21
     data.max_vshift_factor = 0.9
-<<<<<<< HEAD
     data.max_hshift_factor = 0.3
     data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
-=======
-    data.max_hshift_factor = 0.1
-    data.frequency_range_list = [(0.05,0.07),(0.12,0.14),(0.3,0.32),(0.6,0.62)]
->>>>>>> master
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
@@ -53,13 +48,8 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-<<<<<<< HEAD
     model.model_type = ModelType.LadderVAEMultiTarget
     model.z_dims = [128, 128, 128]
-=======
-    model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128]
->>>>>>> master
 
     model.encoder.blocks_per_layer = 3
     model.encoder.n_filters = 64
