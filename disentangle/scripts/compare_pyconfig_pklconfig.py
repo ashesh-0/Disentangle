@@ -34,7 +34,10 @@ def main(argv):
             config2.model.decoder = ml_collections.ConfigDict()
             for key in config1.model.decoder:
                 if key in config2.model:
-                    config2.model.decoder[key] = config2.model[key]
+                    if key == 'multiscale_retain_spatial_dims':
+                        config2.model.decoder[key] = False
+                    else:
+                        config2.model.decoder[key] = config2.model[key]
 
     df = get_comparison_df(config1, config2, 'python_config_file', get_df_column_name(FLAGS.pkl_config))
 
