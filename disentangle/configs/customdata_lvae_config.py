@@ -18,8 +18,8 @@ def get_config():
     data.max_rotation = 0.0
     data.curve_thickness = 21
     data.max_vshift_factor = 0.9
-    data.max_hshift_factor = 0.1
-    data.frequency_range_list = [(0.05,0.07),(0.12,0.14),(0.3,0.32),(0.6,0.62)]
+    data.max_hshift_factor = 0.3
+    data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
