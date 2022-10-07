@@ -48,7 +48,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVAEMultiTarget
     model.z_dims = [128, 128, 128]
 
     model.encoder.blocks_per_layer = 1

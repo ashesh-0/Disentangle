@@ -363,8 +363,11 @@ class LadderVAE(pl.LightningModule):
         return kl_weight
 
     # def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
-    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False):
-        output = self._get_reconstruction_loss_vector(reconstruction, input, return_predicted_img=return_predicted_img)
+    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False,likelihood_obj=None):
+        if likelihood_obj is None:
+            likelihood_obj= self.likelihood
+
+        output = self._get_reconstruction_loss_vector(reconstruction, input,likelihood_obj, return_predicted_img=return_predicted_img)
         loss_dict = output[0] if return_predicted_img else output
         loss_dict['loss'] = torch.mean(loss_dict['loss'])
         loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'])
@@ -393,14 +396,14 @@ class LadderVAE(pl.LightningModule):
         output = compute_batch_mean(-1 * mixed_recons_ll)
         return output
 
-    def _get_reconstruction_loss_vector(self, reconstruction, input, return_predicted_img=False):
+    def _get_reconstruction_loss_vector(self, reconstruction, input, likelihood_obj, return_predicted_img=False):
         """
         Args:
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
 
         # Log likelihood
-        ll, like_dict = self.likelihood(reconstruction, input)
+        ll, like_dict = likelihood_obj(reconstruction, input)
         if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
             pad = self.skip_nboundary_pixels_from_loss
             ll = ll[:, :, pad:-pad, pad:-pad]
@@ -415,7 +418,7 @@ class LadderVAE(pl.LightningModule):
         if self.enable_mixed_rec:
             mixed_target = torch.mean(input, dim=1, keepdim=True)
             mixed_prediction = torch.mean(like_dict['params']['mean'], dim=1, keepdim=True)
-            mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_prediction})
+            mixed_recons_ll = likelihood_obj.log_likelihood(mixed_target, {'mean': mixed_prediction})
             output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
         if return_predicted_img:

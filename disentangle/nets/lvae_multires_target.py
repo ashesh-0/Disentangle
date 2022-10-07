@@ -14,7 +14,7 @@ class LadderVAEMultiTarget(LadderVAE):
 
         for ith_res in range(self._multiscale_count - 1):
             self._lres_conv_for_z.append(
-                nn.Conv2d(self._latent_dims[ith_res], config.model.n_filters, 3, padding=1))
+                nn.Conv2d(self._latent_dims[ith_res], config.model.decoder.n_filters, 3, padding=1))
             self._lres_final_top_down.append(self.create_final_topdown_layer(False))
 
         self._lres_likelihoods = None
@@ -66,8 +66,8 @@ class LadderVAEMultiTarget(LadderVAE):
                 new_sz = self.img_shape[0] // (2 ** ith_res)
                 skip_idx = (target_normalized.shape[-1] - new_sz) // 2
                 tar_res = target_normalized[:, ith_res, :, skip_idx:-skip_idx, skip_idx:-skip_idx]
-                assert tar_res.shape[-2:] == lowres_outs[ith_res - 1].shape[-2:]
-                recons_loss_dict = self.get_reconstruction_loss(lowres_outs[ith_res - 1],
+                lowres_pred = lowres_outs[ith_res - 1][:, :, skip_idx:-skip_idx, skip_idx:-skip_idx]
+                recons_loss_dict = self.get_reconstruction_loss(lowres_pred,
                                                                 tar_res,
                                                                 likelihood_obj=self._lres_likelihoods[ith_res - 1])
             recons_loss += recons_loss_dict['loss'] * self._lres_recloss_w[ith_res]
