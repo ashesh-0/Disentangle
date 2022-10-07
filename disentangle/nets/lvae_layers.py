@@ -250,7 +250,8 @@ class TopDownLayer(nn.Module):
         if inference_mode:
             if self.is_top_layer:
                 q_params = bu_value
-                p_params, bu_value = self.align_pparams_buvalue(p_params, bu_value)
+                if mode_pred is False:
+                    p_params, bu_value = self.align_pparams_buvalue(p_params, bu_value)
             else:
                 if use_uncond_mode:
                     q_params = p_params
