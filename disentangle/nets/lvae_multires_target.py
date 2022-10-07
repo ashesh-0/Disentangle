@@ -5,7 +5,10 @@ import torch
 
 class LadderVAEMultiTarget(LadderVAE):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
-        super(LadderVAEMultiTarget, self).__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at,
+        super(LadderVAEMultiTarget, self).__init__(data_mean,
+                                                   data_std,
+                                                   config,
+                                                   use_uncond_mode_at=use_uncond_mode_at,
                                                    target_ch=target_ch)
         self._lres_final_top_down = None
         self._latent_dims = config.model.z_dims
@@ -21,8 +24,8 @@ class LadderVAEMultiTarget(LadderVAE):
         self._lres_likelihoods = nn.ModuleList()
         for _ in range(self._multiscale_count - 1):
             self._lres_likelihoods.append(self.create_likelihood())
-        self._lres_recloss_w = config.model.get('lres_recloss_w', [
-            1 / config.data.multiscale_lowres_count] * config.data.multiscale_lowres_count)
+        self._lres_recloss_w = config.model.get('lres_recloss_w', [1 / config.data.multiscale_lowres_count] *
+                                                config.data.multiscale_lowres_count)
         print(f'[{self.__class__.__name__}] LowResSupLen:{len(self._lres_likelihoods)} rec_w:{self._lres_recloss_w}')
 
     def validation_step(self, batch, batch_idx):
@@ -63,10 +66,13 @@ class LadderVAEMultiTarget(LadderVAE):
             if ith_res == 0:
                 recons_loss_dict = self.get_reconstruction_loss(out, target_normalized[:, 0])
             else:
-                new_sz = self.img_shape[0] // (2 ** ith_res)
+                new_sz = self.img_shape[0] // (2**ith_res)
                 skip_idx = (target_normalized.shape[-1] - new_sz) // 2
                 tar_res = target_normalized[:, ith_res, :, skip_idx:-skip_idx, skip_idx:-skip_idx]
-                lowres_pred = lowres_outs[ith_res - 1][:, :, skip_idx:-skip_idx, skip_idx:-skip_idx]
+                lowres_pred = lowres_outs[ith_res - 1]
+                if self.multiscale_decoder_retain_spatial_dims:
+                    lowres_pred = lowres_pred[:, :, skip_idx:-skip_idx, skip_idx:-skip_idx]
+
                 recons_loss_dict = self.get_reconstruction_loss(lowres_pred,
                                                                 tar_res,
                                                                 likelihood_obj=self._lres_likelihoods[ith_res - 1])
