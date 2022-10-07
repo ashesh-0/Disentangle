@@ -18,8 +18,13 @@ def get_config():
     data.max_rotation = 0.0
     data.curve_thickness = 21
     data.max_vshift_factor = 0.9
+<<<<<<< HEAD
     data.max_hshift_factor = 0.3
     data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
+=======
+    data.max_hshift_factor = 0.1
+    data.frequency_range_list = [(0.05,0.07),(0.12,0.14),(0.3,0.32),(0.6,0.62)]
+>>>>>>> master
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
@@ -29,7 +34,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 4
+    data.multiscale_lowres_count = 3
     data.padding_mode = 'constant'
     data.padding_value = 0
     data.encourage_non_overlap_single_channel = True
@@ -48,21 +53,26 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
+<<<<<<< HEAD
     model.model_type = ModelType.LadderVAEMultiTarget
     model.z_dims = [128, 128, 128]
+=======
+    model.model_type = ModelType.LadderVae
+    model.z_dims = [128, 128, 128, 128]
+>>>>>>> master
 
-    model.encoder.blocks_per_layer = 1
+    model.encoder.blocks_per_layer = 3
     model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
-    model.decoder.blocks_per_layer = 1
+    model.decoder.blocks_per_layer = 3
     model.decoder.n_filters = 64
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-    model.decoder.multiscale_retain_spatial_dims = True
+    model.decoder.multiscale_retain_spatial_dims = False
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -87,14 +97,14 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 540
-    training.max_epochs = 14400
+    training.lr_scheduler_patience = 45
+    training.max_epochs = 1200
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.2
-    training.earlystop_patience = 3600
+    training.earlystop_patience = 300
     training.precision = 16
 
     if model.model_type == ModelType.LadderVAEMultiTarget:

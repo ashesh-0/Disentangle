@@ -384,6 +384,7 @@ class LadderVAE(pl.LightningModule):
         for i in range(self.n_layers):
             sz = output_size // 2**(1 + i)
             self.bottom_up_layers[i].output_expected_shape = (sz, sz)
+            self.top_down_layers[i].latent_shape = (output_size,output_size)
 
     def _get_mixed_reconstruction_loss_vector(self, reconstruction, mixed_input):
         """
@@ -658,10 +659,6 @@ class LadderVAE(pl.LightningModule):
 
         return samples
 
-    def reset_for_different_output_size(self, size):
-        for i in range(self.n_layers):
-            sz = size // 2**(1 + i)
-            self.bottom_up_layers[i].output_expected_shape = (sz, sz)
 
     def topdown_pass(self,
                      bu_values=None,
