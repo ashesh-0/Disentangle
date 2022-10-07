@@ -18,7 +18,7 @@ def get_config():
     data.max_rotation = 0.0
     data.curve_thickness = 21
     data.max_vshift_factor = 0.9
-    data.max_hshift_factor = 0.3
+    data.max_hshift_factor = 0.1
     data.frequency_range_list = [(0.1, 0.12), (0.2, 0.22), (0.4, 0.42), (0.7, 0.72)]
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -87,14 +87,14 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 540
-    training.max_epochs = 14400
+    training.lr_scheduler_patience = 150
+    training.max_epochs = 7200
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.2
-    training.earlystop_patience = 3600
+    training.earlystop_patience = 1800
     training.precision = 16
 
     return config
