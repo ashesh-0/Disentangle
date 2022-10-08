@@ -93,7 +93,7 @@ class TopDownLayer(nn.Module):
         self.bottomup_no_padding_mode = bottomup_no_padding_mode
         self.topdown_no_padding_mode = topdown_no_padding_mode
         self.retain_spatial_dims = retain_spatial_dims
-        self.latent_shape = input_image_shape
+        self.latent_shape = input_image_shape if self.retain_spatial_dims else None
         # Define top layer prior parameters, possibly learnable
         if is_top_layer:
             self.top_prior_params = nn.Parameter(torch.zeros(top_prior_param_shape), requires_grad=learn_top_prior)

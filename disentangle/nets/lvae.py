@@ -135,15 +135,15 @@ class LadderVAE(pl.LightningModule):
         stride = 1 if config.model.no_initial_downscaling else 2
         self.first_bottom_up = self.create_first_bottom_up(stride)
         self.multiscale_retain_spatial_dims = config.model.multiscale_retain_spatial_dims
-        self.multiscale_decoder_retain_spatial_dims = config.model.decoder.multiscale_retain_spatial_dims
         self.lowres_first_bottom_ups = self._multiscale_count = None
         self._init_multires(config)
 
         # Init lists of layers
         self.top_down_layers = nn.ModuleList([])
         self.bottom_up_layers = nn.ModuleList([])
-
         enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
+        self.multiscale_decoder_retain_spatial_dims = config.model.decoder.multiscale_retain_spatial_dims and enable_multiscale
+
         multiscale_lowres_size_factor = 1
         for i in range(self.n_layers):
             # Whether this is the top layer
@@ -376,7 +376,7 @@ class LadderVAE(pl.LightningModule):
         for i in range(self.n_layers):
             sz = output_size // 2**(1 + i)
             self.bottom_up_layers[i].output_expected_shape = (sz, sz)
-            self.top_down_layers[i].latent_shape = (output_size,output_size)
+            self.top_down_layers[i].latent_shape = (output_size, output_size)
 
     def _get_mixed_reconstruction_loss_vector(self, reconstruction, mixed_input):
         """
@@ -651,7 +651,6 @@ class LadderVAE(pl.LightningModule):
             samples.append(sample)
 
         return samples
-
 
     def topdown_pass(self,
                      bu_values=None,
