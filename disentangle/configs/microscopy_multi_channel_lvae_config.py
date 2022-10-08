@@ -8,9 +8,9 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
+    data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
-    data.channel_1 = 2
+    data.channel_1 = 0
     data.channel_2 = 3
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -54,7 +54,7 @@ def get_config():
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-    model.decoder.multiscale_retain_spatial_dims = None
+    model.decoder.multiscale_retain_spatial_dims = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
