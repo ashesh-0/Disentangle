@@ -7,3 +7,4 @@ class DataType(Enum):
     NotMNIST = 2
     OptiMEM100_014 = 3
     CustomSinosoid = 4
+    Prevedel_EMBL = 5
