@@ -51,9 +51,11 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_data = None if skip_train_dataset else PlacesLoader(
             train_datapath, label1, label2, img_dsample=img_dsample)
         val_data = PlacesLoader(val_datapath, label1, label2, img_dsample=img_dsample)
-    elif config.data.data_type in [DataType.OptiMEM100_014, DataType.CustomSinosoid]:
+    elif config.data.data_type in [DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.Prevedel_EMBL]:
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
+        elif config.data.data_type == DataType.Prevedel_EMBL:
+            datapath = os.path.join(datadir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
         elif config.data.data_type == DataType.CustomSinosoid:
             # we create different filenames for different data configs.
             datapath = datadir
@@ -107,19 +109,17 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             else:
                 train_data_kwargs['enable_random_cropping'] = enable_random_cropping
                 val_data_kwargs['enable_random_cropping'] = False
-                data_class = (
-                    MultiChDeterministicTiffRandDloader if config.data.randomized_channels else MultiChDeterministicTiffDloader)
+                data_class = (MultiChDeterministicTiffRandDloader
+                              if config.data.randomized_channels else MultiChDeterministicTiffDloader)
 
-            train_data = None if skip_train_dataset else data_class(
-                config.data,
-                datapath,
-                is_train=True,
-                val_fraction=config.training.val_fraction,
-                normalized_input=normalized_input,
-                use_one_mu_std=use_one_mu_std,
-                enable_rotation_aug=train_aug_rotate,
-                **train_data_kwargs
-            )
+            train_data = None if skip_train_dataset else data_class(config.data,
+                                                                    datapath,
+                                                                    is_train=True,
+                                                                    val_fraction=config.training.val_fraction,
+                                                                    normalized_input=normalized_input,
+                                                                    use_one_mu_std=use_one_mu_std,
+                                                                    enable_rotation_aug=train_aug_rotate,
+                                                                    **train_data_kwargs)
 
             val_data = data_class(
                 config.data,
@@ -205,7 +205,8 @@ def train_network(train_loader, val_loader, data_mean, data_std, config, model_n
         mode=ckpt_mode,
     )
     checkpoint_callback.CHECKPOINT_NAME_LAST = model_name + "_last"
-    logger = WandbLogger(name=os.path.join(config.hostname, config.exptname), save_dir=logdir,
+    logger = WandbLogger(name=os.path.join(config.hostname, config.exptname),
+                         save_dir=logdir,
                          project="Disentanglement")
     # logger = TensorBoardLogger(config.workdir, name="", version="", default_hp_metric=False)
     weights_summary = None
