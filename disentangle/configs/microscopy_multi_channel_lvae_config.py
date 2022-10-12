@@ -11,7 +11,7 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.Prevedel_EMBL
     data.channel_1 = 0
-    data.channel_2 = 2
+    data.channel_2 = 1
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
     data.deterministic_grid = False
