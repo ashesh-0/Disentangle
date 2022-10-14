@@ -8,3 +8,4 @@ class DataType(Enum):
     OptiMEM100_014 = 3
     CustomSinosoid = 4
     Prevedel_EMBL = 5
+    AllenCellMito = 6

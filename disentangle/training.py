@@ -51,12 +51,14 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_data = None if skip_train_dataset else PlacesLoader(
             train_datapath, label1, label2, img_dsample=img_dsample)
         val_data = PlacesLoader(val_datapath, label1, label2, img_dsample=img_dsample)
-    elif config.data.data_type in [DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.Prevedel_EMBL]:
+    elif config.data.data_type in [
+            DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.Prevedel_EMBL, DataType.AllenCellMito
+    ]:
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
         elif config.data.data_type == DataType.Prevedel_EMBL:
             datapath = os.path.join(datadir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
-        elif config.data.data_type == DataType.CustomSinosoid:
+        elif config.data.data_type in [DataType.CustomSinosoid, DataType.AllenCellMito]:
             # we create different filenames for different data configs.
             datapath = datadir
 

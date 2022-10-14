@@ -4,6 +4,7 @@ Here, the idea is to load the data from different data dtypes into a single inte
 from disentangle.core.data_type import DataType
 from disentangle.data_loader.multi_channel_train_val_data import train_val_data as _load_tiff_train_val
 from disentangle.data_loader.sinosoid_dloader import train_val_data as _loadsinosoid
+from disentangle.data_loader.allencell_datafiles import get_train_val_data as _loadallencellmito
 from typing import Union
 
 
@@ -18,5 +19,7 @@ def get_train_val_data(data_config, fpath, is_train: Union[None, bool], val_frac
         return _loadsinosoid(fpath, data_config, is_train, val_fraction=val_fraction, allow_generation=allow_generation)
     elif data_config.data_type == DataType.Prevedel_EMBL:
         return _load_tiff_train_val(fpath, data_config, is_train, val_fraction=val_fraction)
+    elif data_config.data_type == DataType.AllenCellMito:
+        return _loadallencellmito(fpath, data_config, is_train, val_fraction)
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')
