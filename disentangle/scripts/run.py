@@ -8,6 +8,7 @@ import socket
 import sys
 from datetime import datetime
 from pathlib import Path
+import tensorboard
 
 import torch
 import torchvision

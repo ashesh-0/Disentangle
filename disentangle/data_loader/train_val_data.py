@@ -4,7 +4,7 @@ Here, the idea is to load the data from different data dtypes into a single inte
 from disentangle.core.data_type import DataType
 from disentangle.data_loader.multi_channel_train_val_data import train_val_data as _load_tiff_train_val
 from disentangle.data_loader.sinosoid_dloader import train_val_data as _loadsinosoid
-from disentangle.data_loader.allencell_datafiles import get_train_val_data as _loadallencellmito
+from disentangle.data_loader.allencell_rawdata_loader import get_train_val_data as _loadallencellmito
 from typing import Union
 
 

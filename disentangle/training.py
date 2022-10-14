@@ -175,7 +175,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             gpus=1,
             max_epochs=config.training.max_epochs,
             gradient_clip_val=config.training.grad_clip_norm_value,
-            gradient_clip_algorithm=config.training.gradient_clip_algorithm,
+            # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
             logger=logger,
             #  profiler=profiler,
             callbacks=callbacks,
