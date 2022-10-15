@@ -48,5 +48,6 @@ def get_train_val_data(dirname, data_config, is_train, val_fraction):
         q_ch2 = data_config.ch2_frame_std_quantile
         ch2_mask = get_std_mask(data[..., 1], q_ch2)
         mask = np.logical_or(ch1_mask, ch2_mask)
+        print(f'Skipped {(~mask).sum()} entries. Picking {mask.sum()} entries')
         return data[mask].copy()
     return data
