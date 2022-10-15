@@ -94,7 +94,7 @@ def stitched_prediction_mask(dset, padded_patch_shape, skip_boundary_pixel_count
 
 def stitch_predictions(predictions, dset):
     extra_padding = dset.per_side_overlap_pixelcount()
-    output = np.zeros_like(dset._data)
+    output = np.zeros_like(dset._data, dtype=predictions.dtype)
 
     def remove_pad(pred):
         if extra_padding > 0:
