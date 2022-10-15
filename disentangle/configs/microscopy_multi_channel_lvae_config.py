@@ -10,8 +10,8 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.AllenCellMito
-    data.channel_1 = 0
-    data.channel_2 = 1
+    data.channel_1 = 1
+    data.channel_2 = 2
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
     data.deterministic_grid = False
