@@ -16,6 +16,7 @@ def get_config():
     data.threshold = 0.02
     data.deterministic_grid = False
     data.normalized_input = True
+    data.clip_percentile = 0.999
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = False

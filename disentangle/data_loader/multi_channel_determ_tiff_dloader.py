@@ -36,7 +36,8 @@ class MultiChDeterministicTiffDloader:
                                         allow_generation=allow_generation)
 
         self._normalized_input = normalized_input
-        max_val = np.quantile(self._data, 0.995)
+        self._quantile = data_config.get('clip_percentile', 0.995)
+        max_val = np.quantile(self._data, self._quantile)
         self._data[self._data > max_val] = max_val
 
         self.N = len(self._data)
@@ -80,6 +81,7 @@ class MultiChDeterministicTiffDloader:
         msg += f' SingleNorm:{self._use_one_mu_std}'
         msg += f' Rot:{self._enable_rotation}'
         msg += f' RandCrop:{self._enable_random_cropping}'
+        msg += f' Q:{self._quantile}'
         return msg
 
     def _crop_imgs(self, index, img1: np.ndarray, img2: np.ndarray):
