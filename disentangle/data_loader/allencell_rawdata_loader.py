@@ -1,4 +1,6 @@
 import os
+import numpy as np
+
 from disentangle.core.tiff_reader import load_tiffs
 
 
@@ -28,7 +30,23 @@ def get_train_val_datafiles(dirname, is_train, val_fraction):
         return [os.path.join(dirname, fname) for fname in val_names]
 
 
+def get_std_mask(data, quantile):
+    std_arr = np.array([data[i].std() for i in range(len(data))])
+    std_thresh = np.quantile(std_arr, quantile)
+    ch_mask = std_arr >= std_thresh
+    return ch_mask
+
+
 def get_train_val_data(dirname, data_config, is_train, val_fraction):
     fpaths = get_train_val_datafiles(dirname, is_train, val_fraction)
     print(f'Loading {dirname} with Channels {data_config.channel_1},{data_config.channel_2}, is_train:{is_train}')
-    return load_tiffs(fpaths)[..., [data_config.channel_1, data_config.channel_2]]
+    data = load_tiffs(fpaths)[..., [data_config.channel_1, data_config.channel_2]]
+    if 'ch1_frame_std_quantile' in data_config:
+        q_ch1 = data_config.ch1_frame_std_quantile
+        ch1_mask = get_std_mask(data[..., 0], q_ch1)
+
+        q_ch2 = data_config.ch2_frame_std_quantile
+        ch2_mask = get_std_mask(data[..., 1], q_ch2)
+        mask = np.logical_or(ch1_mask, ch2_mask)
+        return data[mask].copy()
+    return data
