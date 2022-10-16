@@ -74,7 +74,7 @@ def get_config():
     model.no_initial_downscaling = True
     model.analytical_kl = False
     model.mode_pred = False
-    model.var_clip_max = 100
+    model.var_clip_max = 1000
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'pixelwise'
     model.logvar_lowerbound = -10  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
