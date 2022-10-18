@@ -21,6 +21,7 @@ class NormalStochasticBlock2d(nn.Module):
     same for p(z), then sample z ~ q(z) and return conv(z).
     If q's parameters are not given, do the same but sample from p(z).
     """
+
     def __init__(self, c_in: int, c_vars: int, c_out, kernel: int = 3, transform_p_params: bool = True):
         """
         Args:
@@ -72,6 +73,7 @@ class NormalStochasticBlock2d(nn.Module):
     #     return out, data
 
     def get_z(self, sampling_distrib, forced_latent, use_mode, mode_pred, use_uncond_mode):
+
         # Generate latent variable (typically by sampling)
         if forced_latent is None:
             if use_mode:

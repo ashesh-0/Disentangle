@@ -31,6 +31,7 @@ def compute_batch_mean(x):
 
 
 class LadderVAE(pl.LightningModule):
+
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__()
         self.lr = config.training.lr
@@ -79,7 +80,7 @@ class LadderVAE(pl.LightningModule):
         self.kl_annealtime = config.loss.kl_annealtime
         self.predict_logvar = config.model.predict_logvar
         self.logvar_lowerbound = config.model.logvar_lowerbound
-
+        self.non_stochastic_version = config.model.get('non_stochastic_version', False)
         self._var_clip_max = config.model.var_clip_max
         # loss related
         self.loss_type = config.loss.loss_type
@@ -474,9 +475,13 @@ class LadderVAE(pl.LightningModule):
             if enable_logging:
                 self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
 
-        kl_loss = self.get_kl_divergence_loss(td_data)
+        if self.non_stochastic_version:
+            kl_loss = torch.Tensor([0.0]).cuda()
+            net_loss = recons_loss
+        else:
+            kl_loss = self.get_kl_divergence_loss(td_data)
+            net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
-        net_loss = recons_loss + self.get_kl_weight() * kl_loss
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):
                 self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
@@ -588,8 +593,10 @@ class LadderVAE(pl.LightningModule):
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
 
+        mode_layers = range(self.n_layers) if self.non_stochastic_version else None
+
         # Top-down inference/generation
-        out, td_data = self.topdown_pass(bu_values)
+        out, td_data = self.topdown_pass(bu_values, mode_layers=mode_layers)
 
         if out.shape[-1] > img_size[-1]:
             # Restore original image size
@@ -691,8 +698,9 @@ class LadderVAE(pl.LightningModule):
             msg = ("Number of images for top-down generation has to be given "
                    "if and only if we're not doing inference")
             raise RuntimeError(msg)
-        if inference_mode and prior_experiment:
-            msg = ("Prior experiments (e.g. sampling from mode) are not" " compatible with inference mode")
+        if inference_mode and prior_experiment and (self.non_stochastic_version is False):
+            msg = ("Prior experiments (e.g. sampling from mode) are not"
+                   " compatible with inference mode")
             raise RuntimeError(msg)
 
         # Sampled latent variables at each layer
