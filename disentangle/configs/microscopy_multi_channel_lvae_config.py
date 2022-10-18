@@ -10,14 +10,14 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
-    data.channel_1 = 1
-    data.channel_2 = 2
+    data.channel_1 = 2
+    data.channel_2 = 3
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
     data.deterministic_grid = False
     data.normalized_input = True
-    data.clip_percentile = 0.999
+    data.clip_percentile = 0.995
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
