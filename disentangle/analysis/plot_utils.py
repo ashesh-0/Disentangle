@@ -92,8 +92,8 @@ def add_subplot_axes(ax, rect: List[float], facecolor: str = 'w', min_labelsize:
     subax = fig.add_axes([x, y, width, height], facecolor=facecolor)
     x_labelsize = subax.get_xticklabels()[0].get_size()
     y_labelsize = subax.get_yticklabels()[0].get_size()
-    x_labelsize *= rect[2] ** 0.5
-    y_labelsize *= rect[3] ** 0.5
+    x_labelsize *= rect[2]**0.5
+    y_labelsize *= rect[3]**0.5
     subax.xaxis.set_tick_params(labelsize=max(min_labelsize, x_labelsize))
     subax.yaxis.set_tick_params(labelsize=max(min_labelsize, y_labelsize))
     return subax
@@ -114,20 +114,35 @@ def clean_for_xaxis_plot(inset_ax):
     inset_ax.spines['left'].set_visible(False)
 
 
-def add_pixel_kde(ax, rect: List[float], data1: np.ndarray, data2: Union[np.ndarray, None], min_labelsize: int,
-                  color1='r', color2='black', label1='Target', label2='Predicted'):
+def add_pixel_kde(ax,
+                  rect: List[float],
+                  data1: np.ndarray,
+                  data2: Union[np.ndarray, None],
+                  min_labelsize: int,
+                  color1='r',
+                  color2='black',
+                  color_xtick='white',
+                  label1='Target',
+                  label2='Predicted'):
     """
     Adds KDE (density plot) of data1(eg: target) and data2(ex: predicted) image pixel values as an inset
     """
     inset_ax = add_subplot_axes(ax, rect, facecolor="None", min_labelsize=min_labelsize)
+    inset_ax.tick_params(axis='x', colors=color_xtick)
+
     sns.kdeplot(data=data1.reshape(-1, ), ax=inset_ax, color=color1, label=label1)
     if data2 is not None:
         sns.kdeplot(data=data2.reshape(-1, ), ax=inset_ax, color=color2, label=label2)
     clean_for_xaxis_plot(inset_ax)
 
 
-def plot_imgs_from_idx(idx_list, val_dset, model, model_type, psnr_type='range_invariant',
-                       inset_pixel_kde=False, inset_rect=None,
+def plot_imgs_from_idx(idx_list,
+                       val_dset,
+                       model,
+                       model_type,
+                       psnr_type='range_invariant',
+                       inset_pixel_kde=False,
+                       inset_rect=None,
                        inset_min_labelsize=None,
                        color_ch1='red',
                        color_ch2='black',
@@ -151,8 +166,7 @@ def plot_imgs_from_idx(idx_list, val_dset, model, model_type, psnr_type='range_i
 
             recon_normalized, td_data = model(x_normalized)
             imgs = get_img_from_forward_output(recon_normalized, model)
-            loss_dic = get_mmse_dict(model, x_normalized, target_normalized, 1, model_type,
-                                     psnr_type=psnr_type)
+            loss_dic = get_mmse_dict(model, x_normalized, target_normalized, 1, model_type, psnr_type=psnr_type)
             ll1, ll2 = get_label_separated_loss(loss_dic['mmse_rec_loss'])
 
             inp = inp.cpu().numpy()
@@ -165,8 +179,15 @@ def plot_imgs_from_idx(idx_list, val_dset, model, model_type, psnr_type='range_i
             ax[ax_idx, 0].imshow(inp[0, 0])
             if inset_pixel_kde:
                 # distribution of both labels
-                add_pixel_kde(ax[ax_idx, 0], inset_rect, tar[0, 0], tar[0, 1], inset_min_labelsize,
-                              label1='Ch1', label2='Ch2', color1=color_ch1, color2=color_ch2)
+                add_pixel_kde(ax[ax_idx, 0],
+                              inset_rect,
+                              tar[0, 0],
+                              tar[0, 1],
+                              inset_min_labelsize,
+                              label1='Ch1',
+                              label2='Ch2',
+                              color1=color_ch1,
+                              color2=color_ch2)
 
             # max and min values for label 1
             l1_max = max(tar[0, 0].max(), imgs[0, 0].max())
@@ -180,8 +201,15 @@ def plot_imgs_from_idx(idx_list, val_dset, model, model_type, psnr_type='range_i
             add_text(ax[ax_idx, 1], txt, inp.shape[-2:], place='BOTTOM_RIGHT')
             if inset_pixel_kde:
                 # distribution of label 1 and its prediction
-                add_pixel_kde(ax[ax_idx, 2], inset_rect, tar[0, 0], imgs[0, 0], inset_min_labelsize,
-                              label1='Ch1', label2='Gen', color1=color_ch1, color2=color_generated)
+                add_pixel_kde(ax[ax_idx, 2],
+                              inset_rect,
+                              tar[0, 0],
+                              imgs[0, 0],
+                              inset_min_labelsize,
+                              label1='Ch1',
+                              label2='Gen',
+                              color1=color_ch1,
+                              color2=color_generated)
 
             # max and min values for label 2
             l2_max = max(tar[0, 1].max(), imgs[0, 1].max())
@@ -194,8 +222,15 @@ def plot_imgs_from_idx(idx_list, val_dset, model, model_type, psnr_type='range_i
             add_text(ax[ax_idx, 3], txt, inp.shape[-2:], place='BOTTOM_RIGHT')
             if inset_pixel_kde:
                 # distribution of label 2 and its prediction
-                add_pixel_kde(ax[ax_idx, 4], inset_rect, tar[0, 1], imgs[0, 1], inset_min_labelsize,
-                              label1='Ch2', label2='Gen', color1=color_ch2, color2=color_generated)
+                add_pixel_kde(ax[ax_idx, 4],
+                              inset_rect,
+                              tar[0, 1],
+                              imgs[0, 1],
+                              inset_min_labelsize,
+                              label1='Ch2',
+                              label2='Gen',
+                              color1=color_ch2,
+                              color2=color_generated)
 
             ax[ax_idx, 2].set_title(f'Error: {ll1[0]:.3f}')
             ax[ax_idx, 4].set_title(f'Error: {ll2[0]:.3f}')
@@ -204,8 +239,13 @@ def plot_imgs_from_idx(idx_list, val_dset, model, model_type, psnr_type='range_i
             ax[ax_idx, 3].set_title('Image 2')
 
 
-def plot_regionwise_metric(model, dset, idx_list: List[int], metric_types: List[str], regionsize: int = 64,
-                           sample_count: int = 5, normalize_type=None):
+def plot_regionwise_metric(model,
+                           dset,
+                           idx_list: List[int],
+                           metric_types: List[str],
+                           regionsize: int = 64,
+                           sample_count: int = 5,
+                           normalize_type=None):
     metric_dict, target = get_regionwise_metric(model,
                                                 dset,
                                                 idx_list,
@@ -224,10 +264,24 @@ def plot_regionwise_metric(model, dset, idx_list: List[int], metric_types: List[
         ax[i, 0].imshow(target[img_idx][0])
         ax[i, 2].imshow(target[img_idx][1])
 
-        add_pixel_kde(ax[i, 0], inset_rect, target[img_idx][0], target[img_idx][1], inset_min_labelsize,
-                      color1='r', color2='black', )
-        add_pixel_kde(ax[i, 2], inset_rect, target[img_idx][1], target[img_idx][0], inset_min_labelsize,
-                      color1='r', color2='black', )
+        add_pixel_kde(
+            ax[i, 0],
+            inset_rect,
+            target[img_idx][0],
+            target[img_idx][1],
+            inset_min_labelsize,
+            color1='r',
+            color2='black',
+        )
+        add_pixel_kde(
+            ax[i, 2],
+            inset_rect,
+            target[img_idx][1],
+            target[img_idx][0],
+            inset_min_labelsize,
+            color1='r',
+            color2='black',
+        )
 
         max_val = metric_dict[sample_count][img_idx]['RMSE'].max()
         min_val = metric_dict[sample_count][img_idx]['RMSE'].min()
