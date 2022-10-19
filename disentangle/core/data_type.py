@@ -9,3 +9,4 @@ class DataType(Enum):
     CustomSinosoid = 4
     Prevedel_EMBL = 5
     AllenCellMito = 6
+    SeparateTiffData = 7
