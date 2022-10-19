@@ -10,9 +10,10 @@ def get_train_val_data(dirname, data_config, is_train, val_fraction):
 
     print(f'Loading from {dirname} Channel1: {fpath1},{fpath2}, is_train:{is_train}')
 
-    data1 = load_tiff(fpath1)
-    data2 = load_tiff(fpath2)
-    data = np.concatenate([data1, data2], axis=-1)
+    data1 = load_tiff(fpath1)[..., None]
+    data2 = load_tiff(fpath2)[..., None]
+
+    data = np.concatenate([data1, data2], axis=3)
 
     if is_train is None:
         return data.astype(np.float32)
