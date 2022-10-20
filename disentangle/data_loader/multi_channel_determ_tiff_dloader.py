@@ -190,8 +190,12 @@ class MultiChDeterministicTiffDloader:
         """
         Random starting position for the crop for the img with index `index`.
         """
-        h_start = np.random.choice(h - self._img_sz)
-        w_start = np.random.choice(w - self._img_sz)
+        if h != self._img_sz:
+            h_start = np.random.choice(h - self._img_sz)
+            w_start = np.random.choice(w - self._img_sz)
+        else:
+            h_start = 0
+            w_start = 0
         return h_start, w_start
 
     def _get_img(self, index: int):
