@@ -69,7 +69,7 @@ class LadderVAE(pl.LightningModule):
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
 
-        self.noiseModel = get_noise_model(config.model)
+        self.noiseModel = get_noise_model(config.datadir, config.model)
         self.merge_type = config.model.merge_type
         self.analytical_kl = config.model.analytical_kl
         self.no_initial_downscaling = config.model.no_initial_downscaling
@@ -230,7 +230,6 @@ class LadderVAE(pl.LightningModule):
                     gated=self.gated,
                 ))
         self.final_top_down = nn.Sequential(*modules)
-
         # Define likelihood
         if self.likelihood_form == 'gaussian':
             self.likelihood = GaussianLikelihood(self.decoder_n_filters,
@@ -238,8 +237,8 @@ class LadderVAE(pl.LightningModule):
                                                  predict_logvar=self.predict_logvar,
                                                  logvar_lowerbound=self.logvar_lowerbound)
         elif self.likelihood_form == 'noise_model':
-            self.likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, data_mean, data_std,
-                                                   self.noiseModel)
+            self.likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean,
+                                                   self.data_std, self.noiseModel)
         else:
             msg = "Unrecognized likelihood '{}'".format(self.likelihood_form)
             raise RuntimeError(msg)
@@ -529,6 +528,7 @@ class LadderVAE(pl.LightningModule):
             if self.data_mean.device != correct_device_tensor.device:
                 self.data_mean = self.data_mean.to(correct_device_tensor.device)
                 self.data_std = self.data_std.to(correct_device_tensor.device)
+                self.likelihood.set_params_to_same_device_as(correct_device_tensor)
 
     def validation_step(self, batch, batch_idx):
         x, target = batch

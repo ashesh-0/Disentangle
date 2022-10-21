@@ -12,6 +12,9 @@ class LikelihoodModule(nn.Module):
     def distr_params(self, x):
         return None
 
+    def set_params_to_same_device_as(self, correct_device_tensor):
+        pass
+
     @staticmethod
     def logvar(params):
         return None
@@ -60,11 +63,19 @@ class NoiseModelLikelihood(LikelihoodModule):
         self.data_std = data_std
         self.noiseModel = noiseModel
 
+    def set_params_to_same_device_as(self, correct_device_tensor):
+        if isinstance(self.data_mean, torch.Tensor):
+            if self.data_mean.device != correct_device_tensor.device:
+                self.data_mean = self.data_mean.to(correct_device_tensor.device)
+                self.data_std = self.data_std.to(correct_device_tensor.device)
+
+    def get_mean_lv(self, x):
+        return self.parameter_net(x), None
+
     def distr_params(self, x):
-        x = self.parameter_net(x)
+        mean, lv = self.get_mean_lv(x)
         # mean, lv = x.chunk(2, dim=1)
-        mean = x
-        lv = None
+
         params = {
             'mean': mean,
             'logvar': lv,
@@ -88,16 +99,14 @@ class NoiseModelLikelihood(LikelihoodModule):
     def log_likelihood(self, x, params):
         predicted_s_denormalized = params['mean'] * self.data_std + self.data_mean
         x_denormalized = x * self.data_std + self.data_mean
-        import pdb
-        pdb.set_trace()
-        predicted_s_cloned = predicted_s_denormalized
-        predicted_s_reduced = predicted_s_cloned.permute(1, 0, 2, 3)
+        # predicted_s_cloned = predicted_s_denormalized
+        # predicted_s_reduced = predicted_s_cloned.permute(1, 0, 2, 3)
 
-        x_cloned = x_denormalized
-        x_cloned = x_cloned.permute(1, 0, 2, 3)
-        x_reduced = x_cloned[0, ...]
+        # x_cloned = x_denormalized
+        # x_cloned = x_cloned.permute(1, 0, 2, 3)
+        # x_reduced = x_cloned[0, ...]
 
-        likelihoods = self.noiseModel.likelihood(x_reduced, predicted_s_reduced)
+        likelihoods = self.noiseModel.likelihood(x_denormalized, predicted_s_denormalized)
         logprob = torch.log(likelihoods)
         return logprob
 

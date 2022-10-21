@@ -131,6 +131,7 @@ def main(argv):
     config.workdir = cur_workdir
     config.exptname = relative_path
     config.hostname = socket.gethostname()
+    config.datadir=FLAGS.datadir
 
     if FLAGS.mode == "train":
         set_logger()

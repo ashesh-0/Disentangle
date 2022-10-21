@@ -178,7 +178,9 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             gradient_clip_val=config.training.grad_clip_norm_value,
             # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
             logger=logger,
+            # fast_dev_run=10,
             #  profiler=profiler,
+            # overfit_batches=10,
             callbacks=callbacks,
             weights_summary=weights_summary,
             precision=config.training.precision)

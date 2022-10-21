@@ -12,8 +12,8 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -79,7 +79,10 @@ def get_config():
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
-    model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
+    model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
+    model.enable_noise_model = True
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/noise_models/HistNoiseModel_actin-60x-noise2-lowsnr_calibration.npy'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/noise_models/HistNoiseModel_mito-60x-noise2-lowsnr_calibration.npy'
 
     training = config.training
     training.lr = 0.001
