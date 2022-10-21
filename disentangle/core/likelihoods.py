@@ -8,6 +8,7 @@ from disentangle.core.stable_dist_params import StableLogVar
 
 
 class LikelihoodModule(nn.Module):
+
     def distr_params(self, x):
         return None
 
@@ -51,6 +52,7 @@ class LikelihoodModule(nn.Module):
 
 
 class NoiseModelLikelihood(LikelihoodModule):
+
     def __init__(self, ch_in, color_channels, data_mean, data_std, noiseModel):
         super().__init__()
         self.parameter_net = nn.Conv2d(ch_in, color_channels, kernel_size=3, padding=1)
@@ -86,6 +88,8 @@ class NoiseModelLikelihood(LikelihoodModule):
     def log_likelihood(self, x, params):
         predicted_s_denormalized = params['mean'] * self.data_std + self.data_mean
         x_denormalized = x * self.data_std + self.data_mean
+        import pdb
+        pdb.set_trace()
         predicted_s_cloned = predicted_s_denormalized
         predicted_s_reduced = predicted_s_cloned.permute(1, 0, 2, 3)
 
@@ -99,6 +103,7 @@ class NoiseModelLikelihood(LikelihoodModule):
 
 
 class GaussianLikelihood(LikelihoodModule):
+
     def __init__(self, ch_in, color_channels, predict_logvar: Union[None, str] = None, logvar_lowerbound=None):
         super().__init__()
         # If True, then we also predict pixelwise logvar.
