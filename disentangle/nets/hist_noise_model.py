@@ -17,6 +17,10 @@ from typing import Tuple
 #import pn2v.utils
 
 
+def getNoiseModelFname(data_fpath):
+    return f'HistNoiseModel_{os.path.basename(data_fpath)}'
+
+
 def createHistogram(bins, obsMinMax: Tuple[float, float], sigMinMax: [float, float], observation, signal):
     '''
     Creates a 2D histogram from 'observation' and 'signal' 
