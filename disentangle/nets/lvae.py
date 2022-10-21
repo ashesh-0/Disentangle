@@ -19,6 +19,7 @@ from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomU
                                           TopDownLayer)
 
 from disentangle.metrics.running_psnr import RunningPSNR
+from disentangle.nets.noise_model import get_noise_model
 
 
 def torch_nanmean(inp):
@@ -68,7 +69,7 @@ class LadderVAE(pl.LightningModule):
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
 
-        self.noiseModel = None
+        self.noiseModel = get_noise_model(config.model)
         self.merge_type = config.model.merge_type
         self.analytical_kl = config.model.analytical_kl
         self.no_initial_downscaling = config.model.no_initial_downscaling

@@ -78,9 +78,9 @@ def createHistogram(bins, obsMinMax: Tuple[float, float], sigMinMax: [float, flo
     return histogram
 
 
-class NoiseModel:
+class HistNoiseModel:
 
-    def __init__(self, histogram, device):
+    def __init__(self, histogram):
         '''
         Creates a NoiseModel object.
         Parameters
@@ -90,7 +90,6 @@ class NoiseModel:
         device: 
             The device your NoiseModel lives on, e.g. your GPU.
         '''
-        self.device = device
 
         # The number of bins is the same in x and y
         bins = histogram.shape[1]
@@ -108,8 +107,13 @@ class NoiseModel:
         self.maxv_observ = np.max(histogram[4, ...])
 
         # move everything to GPU
-        self.bins = torch.Tensor(np.array(float(bins))).to(self.device)
-        self.fullHist = torch.Tensor(histogram[0, ...].astype(np.float32)).to(self.device)
+        self.bins = torch.Tensor(np.array(float(bins)))
+        self.fullHist = torch.Tensor(histogram[0, ...].astype(np.float32))
+
+    def to_device(self, cuda_tensor):
+        if self.bins.device != cuda_tensor.device:
+            self.bins = self.bins.to(cuda_tensor.device)
+            self.fullHist = self.fullHist.to(cuda_tensor.device)
 
     def likelihood(self, obs, signal):
         '''
@@ -126,6 +130,8 @@ class NoiseModel:
         ----------   
         Torch tensor containing the observation likelihoods according to the noise model.
         '''
+        self.to_device(obs)
+
         obsF = self.getIndexObsFloat(obs)
         obs_ = obsF.floor().long()
         signalF = self.getIndexSignalFloat(signal)
@@ -137,11 +143,13 @@ class NoiseModel:
             (signal_ + 1).long(), 0, self.bins.long()), obs_] * (fact)
 
     def getIndexObsFloat(self, x):
+        self.to_device(x)
         return torch.clamp(self.bins * (x - self.minv_observ) / (self.maxv_observ - self.minv_observ),
                            min=0.0,
                            max=self.bins - 1 - 1e-3)
 
     def getIndexSignalFloat(self, x):
+        self.to_device(x)
         return torch.clamp(self.bins * (x - self.minv_signal) / (self.maxv_signal - self.minv_signal),
                            min=0.0,
                            max=self.bins - 1 - 1e-3)
