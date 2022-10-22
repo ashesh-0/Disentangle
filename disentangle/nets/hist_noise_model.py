@@ -106,11 +106,11 @@ class HistNoiseModel:
         # The upper boundaries of each bin in y are stored in dimension 2
         self.maxv_observ = np.max(histogram[4, ...])
 
-        # move everything to GPU
         self.bins = torch.Tensor(np.array(float(bins)))
         self.fullHist = torch.Tensor(histogram[0, ...].astype(np.float32))
 
     def to_device(self, cuda_tensor):
+        # move everything to GPU
         if self.bins.device != cuda_tensor.device:
             self.bins = self.bins.to(cuda_tensor.device)
             self.fullHist = self.fullHist.to(cuda_tensor.device)
