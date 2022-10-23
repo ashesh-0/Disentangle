@@ -593,7 +593,6 @@ class LadderVAE(pl.LightningModule):
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
-
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
 
         # Top-down inference/generation
@@ -831,7 +830,12 @@ class LadderVAE(pl.LightningModule):
 
     def get_top_prior_param_shape(self, n_imgs=1):
         # TODO num channels depends on random variable we're using
-        dwnsc = self.overall_downscale_factor if self.multiscale_decoder_retain_spatial_dims is False else 1
+        if self.multiscale_decoder_retain_spatial_dims is False:
+            dwnsc = self.overall_downscale_factor
+        else:
+            actual_downsampling = self.n_layers + 1 - self._multiscale_count
+            dwnsc = 2**actual_downsampling
+
         sz = self.get_padded_size(self.img_shape)
         h = sz[0] // dwnsc
         w = sz[1] // dwnsc

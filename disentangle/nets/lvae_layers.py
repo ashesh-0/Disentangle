@@ -30,6 +30,7 @@ class TopDownLayer(nn.Module):
     is used directly as q_params, and p_params are defined in this layer
     (while they are usually taken from the previous layer), and can be learned.
     """
+
     def __init__(self,
                  z_dim: int,
                  n_res_blocks: int,
@@ -289,11 +290,15 @@ class TopDownLayer(nn.Module):
         if self.retain_spatial_dims:
             # when we don't want to do padding in topdown as well, we need to spare some boundary pixels which would be used up.
             extra_len = (self.topdown_no_padding_mode is True) * 3
-            # this means that the x should be of the same size as config.data.image_size. So, we have to centercrop by a factor of 2 at this point.
-            assert x.shape[-1] >= self.latent_shape[-1] // 2 + extra_len
+
+            # # this means that the x should be of the same size as config.data.image_size. So, we have to centercrop by a factor of 2 at this point.
+            # assert x.shape[-1] >= self.latent_shape[-1] // 2 + extra_len
             # we assume that one topdown layer will have exactly one upscaling layer.
             new_latent_shape = (self.latent_shape[0] // 2 + extra_len, self.latent_shape[1] // 2 + extra_len)
-            x = F.center_crop(x, new_latent_shape)
+
+            # If the LC is not applied on all layers, then this can happen.
+            if x.shape[-1] > new_latent_shape[-1]:
+                x = F.center_crop(x, new_latent_shape)
 
         # Last top-down block (sequence of residual blocks)
         x = self.deterministic_block(x)
@@ -326,6 +331,7 @@ class BottomUpLayer(nn.Module):
     small deterministic Resnet in top-down layers. Consists of a sequence of
     bottom-up deterministic residual blocks with downsampling.
     """
+
     def __init__(self,
                  n_res_blocks: int,
                  n_filters: int,
@@ -480,6 +486,7 @@ class ResBlockWithResampling(nn.Module):
     whether the residual path has a gate layer at the end. There are a few
     residual block structures to choose from.
     """
+
     def __init__(self,
                  mode,
                  c_in,
@@ -596,12 +603,14 @@ class ResBlockWithResampling(nn.Module):
 
 
 class TopDownDeterministicResBlock(ResBlockWithResampling):
+
     def __init__(self, *args, upsample=False, **kwargs):
         kwargs['resample'] = upsample
         super().__init__('top-down', *args, **kwargs)
 
 
 class BottomUpDeterministicResBlock(ResBlockWithResampling):
+
     def __init__(self, *args, downsample=False, **kwargs):
         kwargs['resample'] = downsample
         super().__init__('bottom-up', *args, **kwargs)
@@ -612,6 +621,7 @@ class MergeLayer(nn.Module):
     Merge two/more than two 4D input tensors by concatenating along dim=1 and passing the
     result through 1) a convolutional 1x1 layer, or 2) a residual block
     """
+
     def __init__(self,
                  channels,
                  merge_type,
@@ -657,6 +667,7 @@ class MergeLowRes(MergeLayer):
     """
     Here, we merge the lowresolution input (which has higher size)
     """
+
     def __init__(self, *args, **kwargs):
         self.retain_spatial_dims = kwargs.pop('multiscale_retain_spatial_dims')
         self.multiscale_lowres_size_factor = kwargs.pop('multiscale_lowres_size_factor')

@@ -34,7 +34,7 @@ def get_config():
     data.padding_value = 0
     data.encourage_non_overlap_single_channel = True
     data.vertical_min_spacing = data.curve_amplitude * 2
-    data.target_separate_normalization = False
+    data.target_separate_normalization = True
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
