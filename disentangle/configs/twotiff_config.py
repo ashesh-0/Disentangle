@@ -81,8 +81,8 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
     model.enable_noise_model = True
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/noise_models/HistNoiseModel_actin-60x-noise2-lowsnr_calibration.npy'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/noise_models/HistNoiseModel_mito-60x-noise2-lowsnr_calibration.npy'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/HistNoiseModel_ventura_gigascience-actin_bootstrap.npy'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/HistNoiseModel_ventura_gigascience-mito_bootstrap.npy'
 
     training = config.training
     training.lr = 0.001
