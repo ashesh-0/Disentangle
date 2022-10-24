@@ -60,34 +60,42 @@ class GaussianMixtureNoiseModel:
             n_coeff = kwargs.get('n_coeff')
             min_signal = kwargs.get('min_signal')
             max_signal = kwargs.get('max_signal')
-            self.device = kwargs.get('device')
+            # self.device = kwargs.get('device')
             self.path = kwargs.get('path')
             self.min_sigma = kwargs.get('min_sigma')
             if (weight is None):
                 weight = np.random.randn(n_gaussian * 3, n_coeff)
                 weight[n_gaussian:2 * n_gaussian, 1] = np.log(max_signal - min_signal)
-                weight = torch.from_numpy(weight.astype(np.float32)).float().to(self.device)
+                weight = torch.from_numpy(weight.astype(np.float32)).float()  #.to(self.device)
                 weight.requires_grad = True
             self.n_gaussian = weight.shape[0] // 3
             self.n_coeff = weight.shape[1]
             self.weight = weight
-            self.min_signal = torch.Tensor([min_signal]).to(self.device)
-            self.max_signal = torch.Tensor([max_signal]).to(self.device)
-            self.tol = torch.Tensor([1e-10]).to(self.device)
+            self.min_signal = torch.Tensor([min_signal])  #.to(self.device)
+            self.max_signal = torch.Tensor([max_signal])  #.to(self.device)
+            self.tol = torch.Tensor([1e-10])  #.to(self.device)
         else:
             params = kwargs.get('params')
-            self.device = kwargs.get('device')
+            # self.device = kwargs.get('device')
 
-            self.min_signal = torch.Tensor(params['min_signal']).to(self.device)
-            self.max_signal = torch.Tensor(params['max_signal']).to(self.device)
+            self.min_signal = torch.Tensor(params['min_signal'])  #.to(self.device)
+            self.max_signal = torch.Tensor(params['max_signal'])  #.to(self.device)
 
-            self.weight = torch.Tensor(params['trained_weight']).to(self.device)
+            self.weight = torch.Tensor(params['trained_weight'])  #.to(self.device)
             self.min_sigma = np.asscalar(params['min_sigma'])
             self.n_gaussian = self.weight.shape[0] // 3
             self.n_coeff = self.weight.shape[1]
-            self.tol = torch.Tensor([1e-10]).to(self.device)
-            self.min_signal = torch.Tensor([self.min_signal]).to(self.device)
-            self.max_signal = torch.Tensor([self.max_signal]).to(self.device)
+            self.tol = torch.Tensor([1e-10])  #.to(self.device)
+            self.min_signal = torch.Tensor([self.min_signal])  #.to(self.device)
+            self.max_signal = torch.Tensor([self.max_signal])  #.to(self.device)
+
+    def to_device(self, cuda_tensor):
+        # move everything to GPU
+        if self.min_signal.device != cuda_tensor.device:
+            self.max_signal = self.max_signal.to(cuda_tensor.device)
+            self.min_signal = self.min_signal.to(cuda_tensor.device)
+            self.tol = self.tol.to(cuda_tensor.device)
+            self.weight = self.weight.to(cuda_tensor.device)
 
     def polynomialRegressor(self, weightParams, signals):
         """Combines `weightParams` and signal `signals` to regress for the gaussian parameter values.
@@ -142,6 +150,7 @@ class GaussianMixtureNoiseModel:
                 value :p + self.tol
                     Likelihood of observations given the signals and the GMM noise model
         """
+        self.to_device(signals)
         gaussianParameters = self.getGaussianParameters(signals)
         p = 0
         for gaussian in range(self.n_gaussian):
