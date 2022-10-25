@@ -246,6 +246,7 @@ class TopDownLayer(nn.Module):
             raise ValueError("In top layer, inputs should be None")
 
         p_params = self.get_p_params(input_, n_img_prior)
+
         # In inference mode, get parameters of q from inference path,
         # merging with top-down path if it's not the top layer
         if inference_mode:
@@ -266,6 +267,7 @@ class TopDownLayer(nn.Module):
 
         # Sample from either q(z_i | z_{i+1}, x) or p(z_i | z_{i+1})
         # depending on whether q_params is None
+
         x, data_stoch = self.stochastic(p_params=p_params,
                                         q_params=q_params,
                                         forced_latent=forced_latent,

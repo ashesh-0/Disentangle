@@ -268,7 +268,8 @@ class HistNoiseModel:
         signalF = self.getIndexSignalFloat(signal)
         signal_ = signalF.floor().long()
         fact = signalF - signal_.float()
-
+        import pdb
+        pdb.set_trace()
         # Finally we are looking ud the values and interpolate
         return self.fullHist[signal_, obs_] * (1.0 - fact) + self.fullHist[torch.clamp(
             (signal_ + 1).long(), 0, self.bins.long()), obs_] * (fact)

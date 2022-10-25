@@ -19,7 +19,7 @@ def get_config():
     data.threshold = 0.02
     data.deterministic_grid = False
     data.normalized_input = True
-    data.clip_percentile = 0.995
+    data.clip_percentile = 1.0
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
@@ -81,8 +81,11 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
     model.enable_noise_model = True
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/HistNoiseModel_ventura_gigascience-actin_bootstrap.npy'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/HistNoiseModel_ventura_gigascience-mito_bootstrap.npy'
+    model.noise_model_type = 'gmm'
+    # model.noise_model_ch1_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/HistNoiseModel_ventura_gigascience-actin_bootstrap.npy'
+    # model.noise_model_ch2_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/HistNoiseModel_ventura_gigascience-mito_bootstrap.npy'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/GMMNoiseModel_ventura_gigascience-actin_3_2_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/GMMNoiseModel_ventura_gigascience-mito_3_2_bootstrap.npz'
 
     training = config.training
     training.lr = 0.001
