@@ -594,7 +594,6 @@ class LadderVAE(pl.LightningModule):
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
-
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values, mode_layers=mode_layers)
 
@@ -801,9 +800,6 @@ class LadderVAE(pl.LightningModule):
         :return: 2-tuple (H, W)
         """
 
-        # Overall downscale factor from input to top layer (power of 2)
-        dwnsc = self.overall_downscale_factor
-
         # Make size argument into (heigth, width)
         if len(size) == 4:
             size = size[2:]
@@ -811,6 +807,14 @@ class LadderVAE(pl.LightningModule):
             msg = ("input size must be either (N, C, H, W) or (H, W), but it "
                    "has length {} (size={})".format(len(size), size))
             raise RuntimeError(msg)
+
+        if self.multiscale_decoder_retain_spatial_dims is True:
+            # In this case, we can go much more deeper and so this is not required
+            # (in the way it is. ;). More work would be needed if this was to be correctly implemented )
+            return list(size)
+
+        # Overall downscale factor from input to top layer (power of 2)
+        dwnsc = self.overall_downscale_factor
 
         # Output smallest powers of 2 that are larger than current sizes
         padded_size = list(((s - 1) // dwnsc + 1) * dwnsc for s in size)
