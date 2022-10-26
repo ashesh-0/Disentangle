@@ -11,6 +11,7 @@ import torchvision.transforms.functional as F
 from disentangle.core.data_utils import crop_img_tensor, pad_img_tensor
 from disentangle.core.nn_submodules import ResidualBlock, ResidualGatedBlock
 from disentangle.core.stochastic import NormalStochasticBlock2d
+from disentangle.core.non_stochastic import NonStochasticBlock2d
 
 
 class TopDownLayer(nn.Module):
@@ -127,7 +128,7 @@ class TopDownLayer(nn.Module):
         self.deterministic_block = nn.Sequential(*block_list)
 
         # Define stochastic block with 2d convolutions
-        self.stochastic = NormalStochasticBlock2d(
+        self.stochastic = NonStochasticBlock2d(
             c_in=n_filters,
             c_vars=z_dim,
             c_out=n_filters,

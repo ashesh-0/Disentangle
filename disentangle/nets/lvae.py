@@ -552,8 +552,8 @@ class LadderVAE(pl.LightningModule):
         psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0].clone(), recons_img[:, 0].clone())
         psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1].clone(), recons_img[:, 1].clone())
         recons_loss = recons_loss_dict['loss']
-        kl_loss = self.get_kl_divergence_loss(td_data)
-        net_loss = recons_loss + self.get_kl_weight() * kl_loss
+        # kl_loss = self.get_kl_divergence_loss(td_data)
+        # net_loss = recons_loss + self.get_kl_weight() * kl_loss
         self.log('val_loss', recons_loss, on_epoch=True)
         val_psnr_l1 = torch_nanmean(psnr_label1).item()
         val_psnr_l2 = torch_nanmean(psnr_label2).item()

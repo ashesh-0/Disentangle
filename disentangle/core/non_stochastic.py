@@ -114,11 +114,11 @@ class NonStochasticBlock2d(nn.Module):
             # At inference time, just don't centercrop the q_params even if they are odd in size.
             q_mu, _ = self.process_q_params(q_params, var_clip_max, allow_oddsizes=mode_pred is True)
             q_params = (q_mu, None)
-            debug_qvar_max = 1
+            debug_qvar_max = torch.Tensor([1]).to(q_mu.device)
             # Sample from q(z)
             sampling_distrib = q_mu
-            q_size = q_mu.get().shape[-1]
-            if p_mu.get().shape[-1] != q_size and mode_pred is False:
+            q_size = q_mu.shape[-1]
+            if p_mu.shape[-1] != q_size and mode_pred is False:
                 p_mu.centercrop_to_size(q_size)
         else:
             # Sample from p(z)
