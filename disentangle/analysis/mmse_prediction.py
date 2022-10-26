@@ -90,8 +90,10 @@ def get_dset_predictions(model, dset, batch_size, mmse_count=1, num_workers=4):
             mmse_imgs = torch.mean(torch.cat(recon_img_list, dim=0), dim=0)
 
             q_dic = model.likelihood.distr_params(recon_normalized)
-            logvar_arr.append(q_dic['logvar'].cpu().numpy())
-
+            if q_dic['logvar']:
+                logvar_arr.append(q_dic['logvar'].cpu().numpy())
+            else:
+                logvar_arr.append(np.array([-1]))
             losses.append(rec_loss['loss'].cpu().numpy())
             predictions.append(mmse_imgs.cpu().numpy())
     return np.concatenate(predictions, axis=0), np.array(losses), np.concatenate(logvar_arr)
