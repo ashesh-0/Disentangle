@@ -6,6 +6,7 @@ import numpy as np
 import math
 from tqdm import tqdm
 import lzma
+from disentangle.core.data_split_type import DataSplitType,get_datasplit_tuples
 
 
 def angle_shift(w1, w2, point):
@@ -75,16 +76,21 @@ def rotate_curve(x, curve, rotate_radian):
 
 
 def get_img(w_list, img_sz, vertical_shifts: list, horizontal_shifts: list, rotate_radians: list,
-            curve_amplitudes: list,
-            random_w12_flips: list, curve_thickness):
+            curve_amplitudes: list, random_w12_flips: list, curve_thickness):
     assert len(vertical_shifts) == len(rotate_radians)
     assert len(vertical_shifts) == len(curve_amplitudes)
     img = np.zeros((img_sz, img_sz))
     for i in range(len(w_list)):
         w1, w2 = w_list[i]
-        add_to_img(img, w1, w2, vertical_shift=vertical_shifts[i], horizontal_shift=horizontal_shifts[i],
+        add_to_img(img,
+                   w1,
+                   w2,
+                   vertical_shift=vertical_shifts[i],
+                   horizontal_shift=horizontal_shifts[i],
                    flip_about_vertical=random_w12_flips[i],
-                   rotate_radian=rotate_radians[i], curve_amplitude=curve_amplitudes[i], thickness=curve_thickness)
+                   rotate_radian=rotate_radians[i],
+                   curve_amplitude=curve_amplitudes[i],
+                   thickness=curve_thickness)
 
     return img
 
@@ -101,11 +107,17 @@ def add_thickness(img, thickness, x, curve):
             filtr_x = np.logical_and(temp_x > 0, temp_x < img.shape[-1])
             filtr_curve = np.logical_and(temp_curve > 0, temp_curve < img.shape[-1])
             filtr = np.logical_and(filtr_x, filtr_curve)
-            img[temp_curve[filtr], temp_x[filtr]] += 1 / (np.sqrt(0.5 * (col_shift ** 2 + row_shift ** 2)))
+            img[temp_curve[filtr], temp_x[filtr]] += 1 / (np.sqrt(0.5 * (col_shift**2 + row_shift**2)))
 
 
-def add_to_img(img, w1, w2, vertical_shift=None, horizontal_shift: int = 0.0, flip_about_vertical=False,
-               rotate_radian=None, curve_amplitude=None,
+def add_to_img(img,
+               w1,
+               w2,
+               vertical_shift=None,
+               horizontal_shift: int = 0.0,
+               flip_about_vertical=False,
+               rotate_radian=None,
+               curve_amplitude=None,
                thickness=None):
     assert thickness % 2 == 1
     max_angle = img.shape[-1] + abs(int(horizontal_shift))
@@ -131,6 +143,7 @@ def add_to_img(img, w1, w2, vertical_shift=None, horizontal_shift: int = 0.0, fl
 
 
 class Range:
+
     def __init__(self, min_val, max_val):
         assert min_val < max_val
         self.min = min_val
@@ -187,14 +200,18 @@ def spaced_out_vertical_shifts(max_value, num_curves, min_spacing):
     return output
 
 
-def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64, max_rotation=math.pi / 8,
+def generate_dataset(w_rangelist,
+                     size,
+                     img_sz,
+                     num_curves=3,
+                     curve_amplitude=64,
+                     max_rotation=math.pi / 8,
                      max_vertical_shift_factor=0.8,
                      max_horizontal_shift_factor=0.3,
                      flip_w12_randomly=False,
                      curve_thickness=31,
                      encourage_non_overlap_single_channel=False,
-                     vertical_min_spacing=0
-                     ):
+                     vertical_min_spacing=0):
     """
 
     Args:
@@ -242,15 +259,13 @@ def generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64
         rotate_radians = [sample_angle() for _ in range(num_curves)]
         vertical_shifts, horizontal_shifts = get_shifts()
         img1 = get_img(w1_list, img_sz, vertical_shifts, horizontal_shifts, rotate_radians,
-                       [curve_amplitude] * num_curves,
-                       get_random_w12_flips(), curve_thickness)
+                       [curve_amplitude] * num_curves, get_random_w12_flips(), curve_thickness)
 
         w2_list = [sample_for_channel2(w_rangelist) for _ in range(num_curves)]
         vertical_shifts, horizontal_shifts = get_shifts()
         rotate_radians = [sample_angle() for _ in range(num_curves)]
         img2 = get_img(w2_list, img_sz, vertical_shifts, horizontal_shifts, rotate_radians,
-                       [curve_amplitude] * num_curves,
-                       get_random_w12_flips(), curve_thickness)
+                       [curve_amplitude] * num_curves, get_random_w12_flips(), curve_thickness)
 
         ch1_dset.append(img1[None])
         ch2_dset.append(img2[None])
@@ -319,7 +334,12 @@ class CustomDataManager:
             os.remove(fpath)
 
 
-def train_val_data(data_dir, data_config, is_train, val_fraction=None, allow_generation=False):
+def train_val_data(data_dir,
+                   data_config,
+                   datasplit_type,
+                   val_fraction=None,
+                   test_fraction=None,
+                   allow_generation=False):
     assert isinstance(allow_generation, bool)
     datamanager = CustomDataManager(data_dir, data_config)
     total_size = data_config.total_size
@@ -348,7 +368,10 @@ def train_val_data(data_dir, data_config, is_train, val_fraction=None, allow_gen
     if data_dict is None:
         print('Data not found in the file. generating the data')
         w_rangelist = [Range(x[0], x[1]) for x in frequency_range_list]
-        imgs1, imgs2 = generate_dataset(w_rangelist, total_size, frame_size, num_curves=num_curves,
+        imgs1, imgs2 = generate_dataset(w_rangelist,
+                                        total_size,
+                                        frame_size,
+                                        num_curves=num_curves,
                                         curve_amplitude=curve_amplitude,
                                         max_rotation=max_rotation,
                                         max_vertical_shift_factor=max_vertical_shift_factor,
@@ -360,14 +383,23 @@ def train_val_data(data_dir, data_config, is_train, val_fraction=None, allow_gen
         imgs1 = imgs1[..., None]
         imgs2 = imgs2[..., None]
         data = np.concatenate([imgs1, imgs2], axis=3)
-        val_size = int(total_size * val_fraction)
-        data_dict = {'train': data[val_size:], 'val': data[:val_size], 'frequency_range_list': frequency_range_list}
+        # test, val, train
+
+        train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
+        data_dict = {
+            'train': data[train_idx[0]:train_idx[1]],
+            'val': data[val_idx[0]:val_idx[1]],
+            'test': data[test_idx[0]:test_idx[1]],
+            'frequency_range_list': frequency_range_list
+        }
         datamanager.save(data_dict)
 
-    if is_train:
+    if datasplit_type == DataSplitType.Train:
         return data_dict['train']
-    else:
+    elif datasplit_type == DataSplitType.Val:
         return data_dict['val']
+    elif datasplit_type == DataSplitType.Test:
+        return data_dict['test']
 
 
 if __name__ == '__main__':
@@ -397,7 +429,12 @@ if __name__ == '__main__':
     w_rangelist = [Range(0.05, 0.1), Range(0.15, 0.2), Range(0.25, 0.3), Range(0.35, 0.4)]
     size = 10
     img_sz = 512
-    imgs1, imgs2 = generate_dataset(w_rangelist, size, img_sz, num_curves=3, curve_amplitude=64,
-                                    max_rotation=math.pi / 8, flip_w12_randomly=True)
+    imgs1, imgs2 = generate_dataset(w_rangelist,
+                                    size,
+                                    img_sz,
+                                    num_curves=3,
+                                    curve_amplitude=64,
+                                    max_rotation=math.pi / 8,
+                                    flip_w12_randomly=True)
     plt.imshow(imgs1[0])
     plt.show()

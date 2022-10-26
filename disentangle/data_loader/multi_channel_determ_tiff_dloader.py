@@ -5,6 +5,7 @@ import numpy as np
 
 from disentangle.core.data_type import DataType
 from disentangle.data_loader.train_val_data import get_train_val_data
+from disentangle.core.data_split_type import DataSplitType
 
 
 class MultiChDeterministicTiffDloader:
@@ -12,8 +13,9 @@ class MultiChDeterministicTiffDloader:
     def __init__(self,
                  data_config,
                  fpath: str,
-                 is_train: Union[None, bool] = None,
+                 datasplit_type: DataSplitType = None,
                  val_fraction=None,
+                 test_fraction=None,
                  normalized_input=None,
                  enable_rotation_aug: bool = False,
                  enable_random_cropping: bool = False,
@@ -32,8 +34,9 @@ class MultiChDeterministicTiffDloader:
         self._fpath = fpath
         self._data = get_train_val_data(data_config,
                                         self._fpath,
-                                        is_train,
+                                        datasplit_type,
                                         val_fraction=val_fraction,
+                                        test_fraction=test_fraction,
                                         allow_generation=allow_generation)
         self._normalized_input = normalized_input
         self._quantile = data_config.get('clip_percentile', 0.995)
@@ -47,7 +50,7 @@ class MultiChDeterministicTiffDloader:
         # For overlapping dloader, image_size and repeat_factors are not related. hence a different function.
         self.set_repeat_factor()
 
-        self._is_train = is_train
+        self._is_train = datasplit_type == DataSplitType.Train
         self._mean = None
         self._std = None
         self._use_one_mu_std = use_one_mu_std

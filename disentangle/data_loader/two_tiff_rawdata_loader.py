@@ -1,25 +1,29 @@
 import os
 from disentangle.core.tiff_reader import load_tiff
 import numpy as np
+from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
 
 
-def get_train_val_data(dirname, data_config, is_train, val_fraction):
+def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_fraction):
     # actin-60x-noise2-highsnr.tif  mito-60x-noise2-highsnr.tif
     fpath1 = os.path.join(dirname, data_config.ch1_fname)
     fpath2 = os.path.join(dirname, data_config.ch2_fname)
 
-    print(f'Loading from {dirname} Channel1: {fpath1},{fpath2}, is_train:{is_train}')
+    print(f'Loading from {dirname} Channel1: '
+          f'{fpath1},{fpath2}, Mode:{DataSplitType.name(datasplit_type)}')
 
     data1 = load_tiff(fpath1)[..., None]
     data2 = load_tiff(fpath2)[..., None]
 
     data = np.concatenate([data1, data2], axis=3)
 
-    if is_train is None:
+    if datasplit_type == DataSplitType.All:
         return data.astype(np.float32)
 
-    val_start = int((1 - val_fraction) * len(data))
-    if is_train:
-        return data[:val_start].astype(np.float32)
-    else:
-        return data[val_start:].astype(np.float32)
+    train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data), starting_train=False)
+    if datasplit_type == DataSplitType.Train:
+        return data[train_idx[0]:train_idx[1]].astype(np.float32)
+    elif datasplit_type == DataSplitType.Val:
+        return data[val_idx[0]:val_idx[1]].astype(np.float32)
+    elif datasplit_type == DataSplitType.Test:
+        return data[test_idx[0]:test_idx[1]].astype(np.float32)

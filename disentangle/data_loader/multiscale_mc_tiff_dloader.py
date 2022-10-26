@@ -5,25 +5,29 @@ from typing import List, Tuple, Union
 
 import numpy as np
 from skimage.transform import resize
+from disentangle.core.data_split_type import DataSplitType
 
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.core.data_type import DataType
 
 
 class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
-    def __init__(self,
-                 data_config,
-                 fpath: str,
-                 is_train: Union[None, bool] = None,
-                 val_fraction=None,
-                 normalized_input=None,
-                 enable_rotation_aug: bool = False,
-                 use_one_mu_std=None,
-                 num_scales: int = None,
-                 enable_random_cropping=False,
-                 padding_kwargs: dict = None,
-                 allow_generation: bool = False,
-                 ):
+
+    def __init__(
+        self,
+        data_config,
+        fpath: str,
+        datasplit_type: DataSplitType = None,
+        val_fraction=None,
+        test_fraction=None,
+        normalized_input=None,
+        enable_rotation_aug: bool = False,
+        use_one_mu_std=None,
+        num_scales: int = None,
+        enable_random_cropping=False,
+        padding_kwargs: dict = None,
+        allow_generation: bool = False,
+    ):
         """
         Args:
             num_scales: The number of resolutions at which we want the input. Note that the target is formed at the
@@ -32,8 +36,9 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         self._padding_kwargs = padding_kwargs  # mode=padding_mode, constant_values=constant_value
         super().__init__(data_config,
                          fpath,
-                         is_train=is_train,
+                         datasplit_type=datasplit_type,
                          val_fraction=val_fraction,
+                         test_fraction=test_fraction,
                          normalized_input=normalized_input,
                          enable_rotation_aug=enable_rotation_aug,
                          enable_random_cropping=enable_random_cropping,

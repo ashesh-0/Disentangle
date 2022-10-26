@@ -2,9 +2,10 @@ import os
 import numpy as np
 
 from disentangle.core.tiff_reader import load_tiffs
+from disentangle.core.data_split_type import DataSplitType,get_datasplit_tuples
 
 
-def get_train_val_datafiles(dirname, is_train, val_fraction):
+def get_train_val_datafiles(dirname, datasplit_type, val_fraction, test_fraction):
     fnames = [
         'AICS-11_0.ome.tif',
         'AICS-11_1.ome.tif',
@@ -39,15 +40,18 @@ def get_train_val_datafiles(dirname, is_train, val_fraction):
         # 'AICS-11_50.ome.tif', 'AICS-11_51.ome.tif', 'AICS-11_52.ome.tif', 'AICS-11_53.ome.tif', 'AICS-11_54.ome.tif',
         # 'AICS-11_55.ome.tif', 'AICS-11_56.ome.tif', 'AICS-11_57.ome.tif', 'AICS-11_58.ome.tif'
     ]
-    val_count = int(val_fraction * len(fnames))
 
-    val_names = fnames[-val_count:]
-    train_names = fnames[:-val_count]
+    train_idx,val_idx,test_idx = get_datasplit_tuples(val_fraction,test_fraction,len(fnames))
+    test_names = fnames[test_idx[0]:test_idx[1]]
+    train_names = fnames[train_idx[0]:train_idx[1]]
+    val_names = fnames[val_idx[0]:val_idx[1]]
 
-    if is_train:
+    if datasplit_type == DataSplitType.Train:
         return [os.path.join(dirname, fname) for fname in train_names]
-    else:
+    elif datasplit_type == DataSplitType.Val:
         return [os.path.join(dirname, fname) for fname in val_names]
+    elif datasplit_type == DataSplitType.Test:
+        return [os.path.join(dirname, fname) for fname in test_names]
 
 
 def get_std_mask(data, quantile):
@@ -57,8 +61,8 @@ def get_std_mask(data, quantile):
     return ch_mask
 
 
-def get_train_val_data(dirname, data_config, is_train, val_fraction):
-    fpaths = get_train_val_datafiles(dirname, is_train, val_fraction)
+def get_train_val_data(dirname, data_config, datasplit_type, val_fraction,test_fraction):
+    fpaths = get_train_val_datafiles(dirname, datasplit_type, val_fraction,test_fraction)
     print(f'Loading {dirname} with Channels {data_config.channel_1},{data_config.channel_2}, is_train:{is_train}')
     data = load_tiffs(fpaths)[..., [data_config.channel_1, data_config.channel_2]]
     if 'ch1_frame_std_quantile' in data_config:

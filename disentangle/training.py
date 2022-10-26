@@ -14,6 +14,7 @@ from torch.utils.data import DataLoader
 
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
+from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.model_type import ModelType
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
@@ -75,8 +76,9 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             train_data = None if skip_train_dataset else MultiScaleTiffDloader(
                 config.data,
                 datapath,
-                is_train=True,
+                datasplit_type=DataSplitType.Train,
                 val_fraction=config.training.val_fraction,
+                test_fraction=config.training.test_fraction,
                 normalized_input=normalized_input,
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=train_aug_rotate,
@@ -87,8 +89,9 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             val_data = MultiScaleTiffDloader(
                 config.data,
                 datapath,
-                is_train=False,
+                datasplit_type=DataSplitType.Val,
                 val_fraction=config.training.val_fraction,
+                test_fraction=config.training.test_fraction,
                 normalized_input=normalized_input,
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=False,  # No rotation aug on validation
@@ -117,8 +120,9 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
 
             train_data = None if skip_train_dataset else data_class(config.data,
                                                                     datapath,
-                                                                    is_train=True,
+                                                                    datasplit_type=DataSplitType.Train,
                                                                     val_fraction=config.training.val_fraction,
+                                                                    test_fraction=config.training.test_fraction,
                                                                     normalized_input=normalized_input,
                                                                     use_one_mu_std=use_one_mu_std,
                                                                     enable_rotation_aug=train_aug_rotate,
@@ -127,8 +131,9 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             val_data = data_class(
                 config.data,
                 datapath,
-                is_train=False,
+                datasplit_type=DataSplitType.Val,
                 val_fraction=config.training.val_fraction,
+                test_fraction=config.training.test_fraction,
                 normalized_input=normalized_input,
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=False,  # No rotation aug on validation
