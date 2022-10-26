@@ -8,6 +8,7 @@ from disentangle.data_loader.train_val_data import get_train_val_data
 
 
 class MultiChDeterministicTiffDloader:
+
     def __init__(self,
                  data_config,
                  fpath: str,
@@ -34,10 +35,10 @@ class MultiChDeterministicTiffDloader:
                                         is_train,
                                         val_fraction=val_fraction,
                                         allow_generation=allow_generation)
-
         self._normalized_input = normalized_input
         self._quantile = data_config.get('clip_percentile', 0.995)
         max_val = np.quantile(self._data, self._quantile)
+
         self._data[self._data > max_val] = max_val
 
         self.N = len(self._data)
@@ -165,8 +166,12 @@ class MultiChDeterministicTiffDloader:
         return img1, img2
 
     def compute_individual_mean_std(self):
-        mean = np.mean(self._data, axis=(0, 1, 2))
-        std = np.std(self._data, axis=(0, 1, 2))
+        # numpy 1.19.2 has issues in computing for large arrays. https://github.com/numpy/numpy/issues/8869
+        # mean = np.mean(self._data, axis=(0, 1, 2))
+        # std = np.std(self._data, axis=(0, 1, 2))
+        mean = np.array([self._data[..., 0].mean(), self._data[..., 1].mean()])
+        std = np.array([self._data[..., 0].std(), self._data[..., 1].std()])
+
         return mean[None, :, None, None], std[None, :, None, None]
 
     def compute_mean_std(self, allow_for_validation_data=False):
