@@ -75,18 +75,17 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'pixelwise'
+    model.predict_logvar = None
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     model.enable_noise_model = False
     model.noise_model_type = 'gmm'
-    # model.noise_model_ch1_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/HistNoiseModel_ventura_gigascience-actin_bootstrap.npy'
-    # model.noise_model_ch2_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/HistNoiseModel_ventura_gigascience-mito_bootstrap.npy'
-    fname_format = '/home/ashesh.ashesh/data/ventura_gigascience/GMMNoiseModel_ventura_gigascience-{}_3_4_Clip0.5-100_Sig0.25_Up128.0_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname_format.format('actin')
-    model.noise_model_ch2_fpath = fname_format.format('mito')
+    # fname_format = '/home/ashesh.ashesh/data/ventura_gigascience/GMMNoiseModel_ventura_gigascience-{}_3_4_Clip0.5-100_Sig0.25_Up128.0_Norm1_bootstrap.npz'
+    model.noise_model_ch1_fpath = None  #fname_format.format('actin')
+    model.noise_model_ch2_fpath = None  #fname_format.format('mito')
+    model.non_stochastic_version = True
 
     training = config.training
     training.lr = 0.001
