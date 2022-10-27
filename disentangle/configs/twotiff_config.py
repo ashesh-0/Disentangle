@@ -12,8 +12,8 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
