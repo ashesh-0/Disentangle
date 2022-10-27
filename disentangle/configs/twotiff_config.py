@@ -80,7 +80,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     fname_format = '/home/ashesh.ashesh/data/ventura_gigascience/GMMNoiseModel_ventura_gigascience-{}_6_2_Clip0.5-100_Sig0.125_Up128.0_Norm1_bootstrap.npz'
     model.noise_model_ch1_fpath = fname_format.format('actin')
