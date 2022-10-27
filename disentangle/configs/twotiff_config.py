@@ -25,7 +25,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 5
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -58,7 +58,7 @@ def get_config():
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-    model.decoder.multiscale_retain_spatial_dims = False
+    model.decoder.multiscale_retain_spatial_dims = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
