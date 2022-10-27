@@ -79,7 +79,7 @@ def get_config():
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
-    model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
+    model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     # model.noise_model_ch1_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/HistNoiseModel_ventura_gigascience-actin_bootstrap.npy'
