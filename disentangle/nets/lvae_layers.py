@@ -53,6 +53,7 @@ class TopDownLayer(nn.Module):
                  bottomup_no_padding_mode=False,
                  topdown_no_padding_mode=False,
                  retain_spatial_dims: bool = False,
+                 non_stochastic_version=False,
                  input_image_shape: Union[None, Tuple[int, int]] = None):
         """
             Args:
@@ -96,6 +97,7 @@ class TopDownLayer(nn.Module):
         self.topdown_no_padding_mode = topdown_no_padding_mode
         self.retain_spatial_dims = retain_spatial_dims
         self.latent_shape = input_image_shape if self.retain_spatial_dims else None
+        self.non_stochastic_version = non_stochastic_version
         # Define top layer prior parameters, possibly learnable
         if is_top_layer:
             self.top_prior_params = nn.Parameter(torch.zeros(top_prior_param_shape), requires_grad=learn_top_prior)
@@ -128,12 +130,20 @@ class TopDownLayer(nn.Module):
         self.deterministic_block = nn.Sequential(*block_list)
 
         # Define stochastic block with 2d convolutions
-        self.stochastic = NonStochasticBlock2d(
-            c_in=n_filters,
-            c_vars=z_dim,
-            c_out=n_filters,
-            transform_p_params=(not is_top_layer),
-        )
+        if self.non_stochastic_version:
+            self.stochastic = NonStochasticBlock2d(
+                c_in=n_filters,
+                c_vars=z_dim,
+                c_out=n_filters,
+                transform_p_params=(not is_top_layer),
+            )
+        else:
+            self.stochastic = NormalStochasticBlock2d(
+                c_in=n_filters,
+                c_vars=z_dim,
+                c_out=n_filters,
+                transform_p_params=(not is_top_layer),
+            )
 
         if not is_top_layer:
 

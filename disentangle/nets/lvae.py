@@ -210,6 +210,7 @@ class LadderVAE(pl.LightningModule):
                     bottomup_no_padding_mode=self.encoder_no_padding_mode,
                     topdown_no_padding_mode=self.decoder_no_padding_mode,
                     retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
+                    non_stochastic_version=self.non_stochastic_version,
                     input_image_shape=self.img_shape))
         # Final top-down layer
 
@@ -250,7 +251,8 @@ class LadderVAE(pl.LightningModule):
         self.label2_psnr = RunningPSNR()
         print(f'[{self.__class__.__name__}] Enc [ResKSize{self.encoder_res_block_kernel}',
               f'SkipPadding:{self.encoder_res_block_skip_padding}]',
-              f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}] ')
+              f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]',
+              f'Stoc:{not self.non_stochastic_version}')
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
         nonlin = self.get_nonlin()
