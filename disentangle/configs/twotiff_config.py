@@ -12,8 +12,8 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -80,7 +80,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     # model.noise_model_ch1_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/HistNoiseModel_ventura_gigascience-actin_bootstrap.npy'
     # model.noise_model_ch2_fpath = '/home/ashesh.ashesh/data/ventura_gigascience/HistNoiseModel_ventura_gigascience-mito_bootstrap.npy'
@@ -97,7 +97,7 @@ def get_config():
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
-    training.test_fraction =0.1
+    training.test_fraction = 0.1
     training.earlystop_patience = 100
     training.precision = 16
 
