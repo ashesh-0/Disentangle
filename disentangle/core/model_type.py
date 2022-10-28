@@ -11,3 +11,4 @@ class ModelType(Enum):
     LadderVaeSepEncoder = 7
     LadderVAEMultiTarget = 8
     LadderVaeSepEncoderSingleOptim = 9
+    UNet = 10
