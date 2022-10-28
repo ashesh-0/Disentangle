@@ -1,7 +1,7 @@
 """ 
 Adapted from https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_model.py
 """
-
+import wandb
 from disentangle.nets.unet_parts import *
 import pytorch_lightning as pl
 import torch.nn as nn
@@ -9,6 +9,7 @@ import torch.optim as optim
 import numpy as np
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.metrics.running_psnr import RunningPSNR
+
 
 class UNet(pl.LightningModule):
 
@@ -127,18 +128,23 @@ class UNet(pl.LightningModule):
         self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
 
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
-            all_samples = []
-            for i in range(20):
-                sample = self(x_normalized[0:1, ...])
-                all_samples.append(sample[None])
+            sample = self(x_normalized[0:1, ...])
 
-            all_samples = torch.cat(all_samples, dim=0)
-            all_samples = all_samples * self.data_std + self.data_mean
-            all_samples = all_samples.cpu()
-            img_mmse = torch.mean(all_samples, dim=0)[0]
-            self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
-            self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
+            sample = sample * self.data_std + self.data_mean
+            sample = sample.cpu()
+            self.log_images_for_tensorboard(sample[:, 0, ...], target[0, 0, ...], 'label1')
+            self.log_images_for_tensorboard(sample[:, 1, ...], target[0, 1, ...], 'label2')
 
+    def log_images_for_tensorboard(self, pred, target, label):
+        clamped_pred = torch.clamp((pred - pred.min()) / (pred.max() - pred.min()), 0, 1)
+        if target is not None:
+            clamped_input = torch.clamp((target - target.min()) / (target.max() - target.min()), 0, 1)
+            img = wandb.Image(clamped_input[None].cpu().numpy())
+            self.logger.experiment.log({f'target_for{label}': img})
+            # self.trainer.logger.experiment.add_image(f'target_for{label}', clamped_input[None], self.current_epoch)
+
+        img = wandb.Image(clamped_pred.cpu().numpy())
+        self.logger.experiment.log({f'{label}/sample_0': img})
 
     def on_validation_epoch_end(self):
         psnrl1 = self.label1_psnr.get()
