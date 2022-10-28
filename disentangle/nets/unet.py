@@ -7,7 +7,8 @@ import pytorch_lightning as pl
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
-
+from disentangle.core.metric_monitor import MetricMonitor
+from disentangle.metrics.running_psnr import RunningPSNR
 
 class UNet(pl.LightningModule):
 
@@ -15,6 +16,10 @@ class UNet(pl.LightningModule):
         super(UNet, self).__init__()
         bilinear = True
         self.bilinear = bilinear
+        self.lr = config.training.lr
+        self.lr_scheduler_patience = config.training.lr_scheduler_patience
+        self.lr_scheduler_monitor = config.model.get('monitor', 'val_loss')
+        self.lr_scheduler_mode = MetricMonitor(self.lr_scheduler_monitor).mode()
 
         self.inc = DoubleConv(1, 64)
         self.down1 = Down(64, 128)
@@ -30,6 +35,8 @@ class UNet(pl.LightningModule):
         self.normalized_input = config.data.normalized_input
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
+        self.label1_psnr = RunningPSNR()
+        self.label2_psnr = RunningPSNR()
 
     def forward(self, x):
         x1 = self.inc(x)
@@ -53,7 +60,7 @@ class UNet(pl.LightningModule):
                                                          min_lr=1e-12,
                                                          verbose=True)
 
-        return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': 'val_loss'}
+        return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': self.lr_scheduler_monitor}
 
     def normalize_input(self, x):
         if self.normalized_input:
@@ -85,8 +92,7 @@ class UNet(pl.LightningModule):
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
 
-        out, td_data = self.forward(x_normalized)
-
+        out = self.forward(x_normalized)
         net_loss = self.get_reconstruction_loss(out, target_normalized)
 
         self.log('reconstruction_loss', net_loss, on_epoch=True)
@@ -101,7 +107,7 @@ class UNet(pl.LightningModule):
 
         return output
 
-    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False):
+    def get_reconstruction_loss(self, reconstruction, input):
         loss_fn = nn.MSELoss()
         return loss_fn(reconstruction, input)
 
@@ -114,9 +120,11 @@ class UNet(pl.LightningModule):
 
         out = self.forward(x_normalized)
         recons_img = out
-        recons_loss = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        recons_loss = self.get_reconstruction_loss(out, target_normalized)
 
         self.log('val_loss', recons_loss, on_epoch=True)
+        self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
+        self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
 
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples = []
@@ -130,3 +138,12 @@ class UNet(pl.LightningModule):
             img_mmse = torch.mean(all_samples, dim=0)[0]
             self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
             self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
+
+
+    def on_validation_epoch_end(self):
+        psnrl1 = self.label1_psnr.get()
+        psnrl2 = self.label2_psnr.get()
+        psnr = (psnrl1 + psnrl2) / 2
+        self.log('val_psnr', psnr, on_epoch=True)
+        self.label1_psnr.reset()
+        self.label2_psnr.reset()
