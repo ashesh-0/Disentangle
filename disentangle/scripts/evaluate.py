@@ -396,6 +396,8 @@ def main(
         # comparing psnr with highres data
         if eval_datasplit_type == DataSplitType.Val:
             N = len(pred1) / config.training.val_fraction
+        elif eval_datasplit_type == DataSplitType.Test:
+            N = len(pred1) / config.training.test_fraction
 
         train_idx, val_idx, test_idx = get_datasplit_tuples(config.training.val_fraction,
                                                             config.training.test_fraction,
@@ -407,6 +409,12 @@ def main(
         if eval_datasplit_type == DataSplitType.Val:
             highres_data = np.concatenate([highres_actin[val_idx[0]:val_idx[1]], highres_mito[val_idx[0]:val_idx[1]]],
                                         axis=-1).astype(np.float32)
+        elif eval_datasplit_type == DataSplitType.Test:
+            highres_data = np.concatenate([highres_actin[test_idx[0]:test_idx[1]], highres_mito[test_idx[0]:test_idx[1]]],
+                                        axis=-1).astype(np.float32)
+
+        thresh = np.quantile(highres_data,config.data.clip_percentile)
+        highres_data[highres_data > thresh]=thresh
 
         output_stats['highres_psnr'] =[avg_psnr(highres_data[..., 0], pred1), avg_psnr(highres_data[..., 1], pred2)]
         output_stats['highres_rinvpsnr'] = [avg_range_inv_psnr(highres_data[..., 0], pred1), avg_range_inv_psnr(highres_data[..., 1], pred2)]
@@ -442,18 +450,16 @@ if __name__ == '__main__':
         '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/108',
         
         ]
-    for eval_datasplit_type in [DataSplitType.Val,DataSplitType.Test]:
+    for eval_datasplit_type in [DataSplitType.Test, DataSplitType.Val]:
         for ckpt_dir in ckpt_dirs:
             for image_size_for_grid_centers in [64,32,16]:
                 
                 mmse_count=1
                 custom_image_size=64
-                eval_datasplit_type= DataSplitType.Val
                 ignored_last_pixels=0
                 handler = PaperResultsHandler(OUTPUT_DIR,eval_datasplit_type,custom_image_size,image_size_for_grid_centers,mmse_count,
                     ignored_last_pixels)
-                try:
-                    data = main(
+                data = main(
                         ckpt_dir,
                         DEBUG,
                         image_size_for_grid_centers=image_size_for_grid_centers,
@@ -471,10 +477,10 @@ if __name__ == '__main__':
                         psnr_type='range_invariant',
                         ignored_last_pixels=ignored_last_pixels,
                         ignore_first_pixels=0)
-                    fpath = handler.save(ckpt_dir, data)
-                except:
-                    print('FAILED for ', handler.get_output_fpath(ckpt_dir))
-                    continue
+                fpath = handler.save(ckpt_dir, data)
+                # except:
+                #     print('FAILED for ', handler.get_output_fpath(ckpt_dir))
+                #     continue
                 print(handler.load(fpath))
                 print('')
                 print('')
