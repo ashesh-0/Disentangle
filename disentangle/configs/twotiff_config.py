@@ -12,8 +12,8 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -75,7 +75,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None
+    model.predict_logvar = 'pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
@@ -85,7 +85,7 @@ def get_config():
     fname_format = None #'/home/ashesh.ashesh/data/ventura_gigascience/GMMNoiseModel_ventura_gigascience-{}_3_2_Clip0.5-100_Sig0.125_Up128.0_Norm1_bootstrap.npz'
     model.noise_model_ch1_fpath = None #fname_format.format('actin')
     model.noise_model_ch2_fpath = None # fname_format.format('mito')
-    model.non_stochastic_version = True
+    model.non_stochastic_version = False
 
     training = config.training
     training.lr = 0.001
