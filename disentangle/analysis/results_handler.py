@@ -26,14 +26,19 @@ class PaperResultsHandler:
             self._outdir,
             f'{DataSplitType.name(self._dtype)}_P{self._patchN}_G{self._gridN}_M{self._mmseN}_Sk{self._skiplN}')
 
+    @staticmethod
+    def get_fname(ckpt_fpath):
+        basename = '_'.join(ckpt_fpath.split("/")[4:]) + '.pkl'
+        basename = 'stats_' + basename
+        return basename
+
     def get_output_fpath(self, ckpt_fpath):
         outdir = self.dirpath()
         if not os.path.isdir(outdir):
             os.mkdir(outdir)
 
-        basename = '_'.join(ckpt_fpath.split("/")[4:]) + '.pkl'
-        basename = 'stats_' + basename
-        output_fpath = os.path.join(outdir, basename)
+        
+        output_fpath = os.path.join(outdir, self.get_fname(ckpt_fpath))
         return output_fpath
 
     def save(self, ckpt_fpath, ckpt_stats):
