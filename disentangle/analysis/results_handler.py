@@ -28,6 +28,7 @@ class PaperResultsHandler:
 
     @staticmethod
     def get_fname(ckpt_fpath):
+        assert ckpt_fpath[-1] != '/'
         basename = '_'.join(ckpt_fpath.split("/")[4:]) + '.pkl'
         basename = 'stats_' + basename
         return basename
@@ -37,7 +38,6 @@ class PaperResultsHandler:
         if not os.path.isdir(outdir):
             os.mkdir(outdir)
 
-        
         output_fpath = os.path.join(outdir, self.get_fname(ckpt_fpath))
         return output_fpath
 

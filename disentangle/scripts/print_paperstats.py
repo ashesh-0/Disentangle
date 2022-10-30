@@ -3,10 +3,17 @@ import pickle
 import os
 import argparse
 
+
 def rnd(obj):
     return f'{obj:.3f}'
 
-def show(ckpt_dir,results_dir, only_test=True, skip_last_pixels=None):
+
+def show(ckpt_dir, results_dir, only_test=True, skip_last_pixels=None):
+    if ckpt_dir[-1] == '/':
+        ckpt_dir = ckpt_dir[:-1]
+    if results_dir[-1] == '/':
+        results_dir = results_dir[:-1]
+        
     fname = PaperResultsHandler.get_fname(ckpt_dir)
     print(ckpt_dir)
     for dir in sorted(os.listdir(results_dir)):
@@ -18,11 +25,11 @@ def show(ckpt_dir,results_dir, only_test=True, skip_last_pixels=None):
             if int(sktoken[2:]) != skip_last_pixels:
                 continue
 
-        fpath = os.path.join(results_dir,dir,fname)
+        fpath = os.path.join(results_dir, dir, fname)
         if os.path.exists(fpath):
-            with open(fpath,'rb') as f:
+            with open(fpath, 'rb') as f:
                 out = pickle.load(f)
-        
+
             print('')
             print(dir)
             print('RMSE', ' '.join([rnd(x) for x in out['rmse']]))
@@ -30,14 +37,14 @@ def show(ckpt_dir,results_dir, only_test=True, skip_last_pixels=None):
             print('RangeInvPSNR', ' '.join([rnd(x) for x in out['rangeinvpsnr']]))
             print('SSIM', ' '.join(rnd(x) for x in out['ssim']))
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('ckpt_dir', type=str)
-    parser.add_argument('results_dir',type=str)
-    parser.add_argument('--skip_last_pixels',type=int)
+    parser.add_argument('results_dir', type=str)
+    parser.add_argument('--skip_last_pixels', type=int)
     args = parser.parse_args()
 
     # ckpt_dir = '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/117'
     # results_dir = '/home/ashesh.ashesh/data/paper_stats/'
-    show(args.ckpt_dir,args.results_dir, only_test=True,
-    skip_last_pixels=args.skip_last_pixels)
+    show(args.ckpt_dir, args.results_dir, only_test=True, skip_last_pixels=args.skip_last_pixels)
