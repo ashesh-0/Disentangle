@@ -467,15 +467,16 @@ if __name__ == '__main__':
         # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/116/',
         # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/115/',
         # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/117/',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/118/',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/119/',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/120/',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/121/',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/122/',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/123/',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/126/',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/118/',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/119/',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/120/',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/121/',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/122/',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/123/',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/126/',
+        '/home/ubuntu/ashesh/training/2210/D3-M3-S0-L0/2/'
     ]
-    ckpt_dirs = [x[:-1] if '/'==x[-1] else x for x in ckpt_dirs]
+    ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
     custom_image_size = 64
     ignored_last_pixels = 32
