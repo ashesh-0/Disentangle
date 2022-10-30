@@ -40,6 +40,7 @@ from disentangle.analysis.stitch_prediction import stitch_predictions
 from disentangle.analysis.mmse_prediction import get_dset_predictions
 from disentangle.core.data_split_type import get_datasplit_tuples
 from disentangle.analysis.results_handler import PaperResultsHandler
+
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 
@@ -376,23 +377,23 @@ def main(
 
     ssim1_mean, ssim1_std = avg_ssim(tar1, pred1)
     ssim2_mean, ssim2_std = avg_ssim(tar2, pred2)
-    
+
     # Computing the output statistics.
     output_stats = {}
     output_stats['rec_loss'] = rec_loss.mean()
     output_stats['rmse'] = [np.mean(rmse1), np.mean(rmse2), np.mean(rmse)]
     output_stats['psnr'] = [avg_psnr(tar1, pred1), avg_psnr(tar2, pred2)]
     output_stats['rangeinvpsnr'] = [avg_range_inv_psnr(tar1, pred1), avg_range_inv_psnr(tar2, pred2)]
-    output_stats['ssim'] = [ssim1_mean, ssim2_mean, ssim1_std,ssim2_std]
+    output_stats['ssim'] = [ssim1_mean, ssim2_mean, ssim1_std, ssim2_std]
 
-    print('Rec Loss', np.round(output_stats['rec_loss'],3))
+    print('Rec Loss', np.round(output_stats['rec_loss'], 3))
     print('RMSE', output_stats['rmse'][0].round(3), output_stats['rmse'][1].round(3), output_stats['rmse'][2].round(3))
-    print('PSNR',output_stats['psnr'][0],output_stats['psnr'][1] )
-    print('RangeInvPSNR',output_stats['rangeinvpsnr'][0],output_stats['rangeinvpsnr'][1] )
+    print('PSNR', output_stats['psnr'][0], output_stats['psnr'][1])
+    print('RangeInvPSNR', output_stats['rangeinvpsnr'][0], output_stats['rangeinvpsnr'][1])
     print('SSIM', round(ssim1_mean, 3), round(ssim2_mean, 3), '±', round((ssim1_std + ssim2_std) / 2, 4))
     print()
 
-    if config.data.data_type ==DataType.SeparateTiffData:
+    if config.data.data_type == DataType.SeparateTiffData:
         # comparing psnr with highres data
         if eval_datasplit_type == DataSplitType.Val:
             N = len(pred1) / config.training.val_fraction
@@ -403,80 +404,94 @@ def main(
                                                             config.training.test_fraction,
                                                             N,
                                                             starting_train=False)
-        highres_actin = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/actin-60x-noise2-highsnr.tif')[..., None]
+        highres_actin = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/actin-60x-noise2-highsnr.tif')[...,
+                                                                                                               None]
         highres_mito = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/mito-60x-noise2-highsnr.tif')[..., None]
 
         if eval_datasplit_type == DataSplitType.Val:
             highres_data = np.concatenate([highres_actin[val_idx[0]:val_idx[1]], highres_mito[val_idx[0]:val_idx[1]]],
-                                        axis=-1).astype(np.float32)
+                                          axis=-1).astype(np.float32)
         elif eval_datasplit_type == DataSplitType.Test:
-            highres_data = np.concatenate([highres_actin[test_idx[0]:test_idx[1]], highres_mito[test_idx[0]:test_idx[1]]],
-                                        axis=-1).astype(np.float32)
+            highres_data = np.concatenate(
+                [highres_actin[test_idx[0]:test_idx[1]], highres_mito[test_idx[0]:test_idx[1]]],
+                axis=-1).astype(np.float32)
 
-        thresh = np.quantile(highres_data,config.data.clip_percentile)
-        highres_data[highres_data > thresh]=thresh
+        thresh = np.quantile(highres_data, config.data.clip_percentile)
+        highres_data[highres_data > thresh] = thresh
 
-        output_stats['highres_psnr'] =[avg_psnr(highres_data[..., 0], pred1), avg_psnr(highres_data[..., 1], pred2)]
-        output_stats['highres_rinvpsnr'] = [avg_range_inv_psnr(highres_data[..., 0], pred1), avg_range_inv_psnr(highres_data[..., 1], pred2)]
-        print('PSNR with HighRes', output_stats['highres_psnr'][0],output_stats['highres_psnr'][1])
-        print('RangeInvPSNR with HighRes', output_stats['highres_rinvpsnr'][0],output_stats['highres_rinvpsnr'][1])
+        output_stats['highres_psnr'] = [avg_psnr(highres_data[..., 0], pred1), avg_psnr(highres_data[..., 1], pred2)]
+        output_stats['highres_rinvpsnr'] = [
+            avg_range_inv_psnr(highres_data[..., 0], pred1),
+            avg_range_inv_psnr(highres_data[..., 1], pred2)
+        ]
+        print('PSNR with HighRes', output_stats['highres_psnr'][0], output_stats['highres_psnr'][1])
+        print('RangeInvPSNR with HighRes', output_stats['highres_rinvpsnr'][0], output_stats['highres_rinvpsnr'][1])
     return output_stats
+
 
 if __name__ == '__main__':
     DEBUG = False
     OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/78',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/79',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/88',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/78',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/79',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/88',
 
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/82',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/83',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/84',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/111',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/114',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/113',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/82',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/83',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/84',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/111',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/114',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/113',
 
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/93',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/94',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/96',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/93',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/94',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/96',
 
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/97',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/99',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/100',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/97',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/99',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/100',
 
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/110',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/109',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/108',
-        
-        ]
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/110',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/109',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/108',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/91',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/89',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/90',
+        '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/117',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/92',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/94',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/118',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/123',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/77',
+    ]
     for eval_datasplit_type in [DataSplitType.Test, DataSplitType.Val]:
         for ckpt_dir in ckpt_dirs:
-            for image_size_for_grid_centers in [64,32,16]:
-                
-                mmse_count=1
-                custom_image_size=64
-                ignored_last_pixels=0
-                handler = PaperResultsHandler(OUTPUT_DIR,eval_datasplit_type,custom_image_size,image_size_for_grid_centers,mmse_count,
-                    ignored_last_pixels)
+            for image_size_for_grid_centers in [64, 32, 16]:
+
+                mmse_count = 1
+                custom_image_size = 64
+                ignored_last_pixels = 0
+                handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
+                                              image_size_for_grid_centers, mmse_count, ignored_last_pixels)
                 data = main(
-                        ckpt_dir,
-                        DEBUG,
-                        image_size_for_grid_centers=image_size_for_grid_centers,
-                        mmse_count=mmse_count,
-                        custom_image_size=custom_image_size,
-                        batch_size=16,
-                        num_workers=4,
-                        COMPUTE_LOSS=False,
-                        use_deterministic_grid=None,
-                        threshold=None,  # 0.02,
-                        compute_kl_loss=False,
-                        evaluate_train=False,
-                        eval_datasplit_type=eval_datasplit_type,
-                        val_repeat_factor=None,
-                        psnr_type='range_invariant',
-                        ignored_last_pixels=ignored_last_pixels,
-                        ignore_first_pixels=0)
+                    ckpt_dir,
+                    DEBUG,
+                    image_size_for_grid_centers=image_size_for_grid_centers,
+                    mmse_count=mmse_count,
+                    custom_image_size=custom_image_size,
+                    batch_size=16,
+                    num_workers=4,
+                    COMPUTE_LOSS=False,
+                    use_deterministic_grid=None,
+                    threshold=None,  # 0.02,
+                    compute_kl_loss=False,
+                    evaluate_train=False,
+                    eval_datasplit_type=eval_datasplit_type,
+                    val_repeat_factor=None,
+                    psnr_type='range_invariant',
+                    ignored_last_pixels=ignored_last_pixels,
+                    ignore_first_pixels=0)
                 fpath = handler.save(ckpt_dir, data)
                 # except:
                 #     print('FAILED for ', handler.get_output_fpath(ckpt_dir))
