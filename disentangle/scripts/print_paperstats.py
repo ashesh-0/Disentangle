@@ -1,6 +1,7 @@
 from disentangle.analysis.results_handler import PaperResultsHandler
 import pickle
 import os
+import argparse
 
 def rnd(obj):
     return f'{obj:.3f}'
@@ -8,7 +9,7 @@ def rnd(obj):
 def show(ckpt_dir,results_dir, only_test=True, skip_last_pixels=None):
     fname = PaperResultsHandler.get_fname(ckpt_dir)
     print(ckpt_dir)
-    for dir in os.listdir(results_dir):
+    for dir in sorted(os.listdir(results_dir)):
         if only_test and dir[:4] != 'Test':
             continue
         if skip_last_pixels is not None:
@@ -30,6 +31,13 @@ def show(ckpt_dir,results_dir, only_test=True, skip_last_pixels=None):
             print('SSIM', ' '.join(rnd(x) for x in out['ssim']))
 
 if __name__ == '__main__':
-    ckpt_dir = '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/117'
-    results_dir = '/home/ashesh.ashesh/data/paper_stats/'
-    show(ckpt_dir,results_dir, only_test=True,skip_last_pixels=32)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('ckpt_dir', type=str)
+    parser.add_argument('results_dir',type=str)
+    parser.add_argument('--skip_last_pixels',type=int)
+    args = parser.parse_args()
+
+    # ckpt_dir = '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/117'
+    # results_dir = '/home/ashesh.ashesh/data/paper_stats/'
+    show(args.ckpt_dir,args.results_dir, only_test=True,
+    skip_last_pixels=args.skip_last_pixels)
