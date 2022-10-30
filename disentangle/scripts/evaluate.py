@@ -474,7 +474,7 @@ if __name__ == '__main__':
         # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/122/',
         # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/123/',
         # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/126/',
-        '/home/ubuntu/ashesh/training/2210/D3-M3-S0-L0/2/'
+        '/home/ubuntu/ashesh/training/disentangle/2210/D3-M3-S0-L0/2/'
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
