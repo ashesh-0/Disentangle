@@ -54,7 +54,8 @@ class TopDownLayer(nn.Module):
                  topdown_no_padding_mode=False,
                  retain_spatial_dims: bool = False,
                  non_stochastic_version=False,
-                 input_image_shape: Union[None, Tuple[int, int]] = None):
+                 input_image_shape: Union[None, Tuple[int, int]] = None,
+                 normalize_latent_factor=1.0):
         """
             Args:
                 z_dim:          This is the dimension of the latent space.
@@ -84,6 +85,7 @@ class TopDownLayer(nn.Module):
                 retain_spatial_dims: If True, the the latent space of encoder remains at image_shape spatial resolution for each topdown layer. What this means for one topdown layer is that the input spatial size remains the output spatial size.
                             To achieve this, we centercrop the intermediate representation.
                 input_image_shape: This is the shape of the input patch. when retain_spatial_dims is set to True, then this is used to ensure that the output of this layer has this shape. 
+                normalize_latent_factor: Divide the latent space (q_params) by this factor.
         """
 
         super().__init__()
@@ -98,6 +100,7 @@ class TopDownLayer(nn.Module):
         self.retain_spatial_dims = retain_spatial_dims
         self.latent_shape = input_image_shape if self.retain_spatial_dims else None
         self.non_stochastic_version = non_stochastic_version
+        self.normalize_latent_factor = normalize_latent_factor
         # Define top layer prior parameters, possibly learnable
         if is_top_layer:
             self.top_prior_params = nn.Parameter(torch.zeros(top_prior_param_shape), requires_grad=learn_top_prior)
@@ -170,6 +173,7 @@ class TopDownLayer(nn.Module):
                     res_block_kernel=res_block_kernel,
                     res_block_skip_padding=res_block_skip_padding,
                 )
+        print(f'[{self.__class__.__name__}] normalize_latent_factor:{self.normalize_latent_factor}')
 
     def sample_from_q(self, input_, bu_value, var_clip_max=None, mask=None):
         """
@@ -278,6 +282,11 @@ class TopDownLayer(nn.Module):
 
         # Sample from either q(z_i | z_{i+1}, x) or p(z_i | z_{i+1})
         # depending on whether q_params is None
+
+        import pdb;pdb.set_trace()
+        # This is done, purely for stablity. See Very deep VAEs generalize autoregressive models.
+        if self.normalize_latent_factor:
+            q_params = q_params/self.normalize_latent_factor
 
         x, data_stoch = self.stochastic(p_params=p_params,
                                         q_params=q_params,
