@@ -11,7 +11,7 @@ def get_config():
     data.image_size = 32
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
-    data.channel_2 = 3
+    data.channel_2 = 2
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -43,7 +43,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128, 128, 128, 128, 128]
+    model.z_dims = [128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
