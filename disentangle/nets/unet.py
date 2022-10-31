@@ -18,21 +18,35 @@ class UNet(pl.LightningModule):
         bilinear = True
         self.bilinear = bilinear
         self.lr = config.training.lr
+        self.n_levels = config.model.n_levels
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
         self.lr_scheduler_monitor = config.model.get('monitor', 'val_loss')
         self.lr_scheduler_mode = MetricMonitor(self.lr_scheduler_monitor).mode()
 
         self.inc = DoubleConv(1, 64)
-        self.down1 = Down(64, 128)
-        self.down2 = Down(128, 256)
-        self.down3 = Down(256, 512)
+        ch = 64
+        for i in range(1, self.n_levels):
+            setattr(self, f'down{i}', Down(ch,2*ch))
+            ch = 2*ch
+
         factor = 2 if bilinear else 1
-        self.down4 = Down(512, 1024 // factor)
-        self.up1 = Up(1024, 512 // factor, bilinear)
-        self.up2 = Up(512, 256 // factor, bilinear)
-        self.up3 = Up(256, 128 // factor, bilinear)
-        self.up4 = Up(128, 64, bilinear)
-        self.outc = OutConv(64, 2)
+        setattr(self, f'down{self.n_levels}', Down(ch, 2*ch // factor))
+        ch = 2*ch
+        # self.down1 = Down(64, 128)
+        # self.down2 = Down(128, 256)
+        # self.down3 = Down(256, 512)
+        # self.down4 = Down(512, 1024 // factor)
+        for i in range(1,self.n_levels):
+            setattr(self,f'up{i}',Up(ch, (ch//2) // factor, bilinear))
+            ch = ch//2
+        
+        setattr(self, f'up{self.n_levels}', Up(ch, ch//2, bilinear))
+        ch = ch//2
+        # self.up1 = Up(1024, 512 // factor, bilinear)
+        # self.up2 = Up(512, 256 // factor, bilinear)
+        # self.up3 = Up(256, 128 // factor, bilinear)
+        # self.up4 = Up(128, 64, bilinear)
+        self.outc = OutConv(ch, 2)
         self.normalized_input = config.data.normalized_input
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
@@ -41,15 +55,26 @@ class UNet(pl.LightningModule):
 
     def forward(self, x):
         x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
-        x = self.up1(x5, x4)
-        x = self.up2(x, x3)
-        x = self.up3(x, x2)
-        x = self.up4(x, x1)
-        pred = self.outc(x)
+        latents = []
+        x_end = x1
+        for i in range(1,self.n_levels+1):
+            latents.append(x_end)
+            x_end = getattr(self, f'down{i}')(x_end)
+
+        # x2 = self.down1(x1)
+        # x3 = self.down2(x2)
+        # x4 = self.down3(x3)
+        # x5 = self.down4(x4)
+
+        for i in range(1,self.n_levels):
+           x_end = getattr(self, f'up{i}')(x_end,latents[-1*i])
+
+        # x = self.up1(x5, x4)
+        # x = self.up2(x, x3)
+        # x = self.up3(x, x2)
+        # x = self.up4(x, x1)
+        # pred = self.outc(x)
+        pred = self.outc(x_end)
         return pred
 
     def configure_optimizers(self):
