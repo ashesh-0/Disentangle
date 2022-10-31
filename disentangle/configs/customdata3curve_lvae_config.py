@@ -19,7 +19,7 @@ def get_config():
     data.curve_thickness = 21
     data.max_vshift_factor = 0.9
     data.max_hshift_factor = 0.3
-    data.frequency_range_list = [(0.1, 0.12), (0.2, 0.22), (0.4, 0.42), (0.7, 0.72)]
+    data.frequency_range_list = [(0.05, 0.07), (0.12, 0.14), (0.3, 0.32), (0.6, 0.62)]
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
@@ -29,7 +29,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 3
+    data.multiscale_lowres_count = 5
     data.padding_mode = 'constant'
     data.padding_value = 0
     data.encourage_non_overlap_single_channel = True
@@ -37,7 +37,7 @@ def get_config():
     # 0.5 would mean that 50% of the points would be covered with the connecting w.
     data.connecting_w_len = 0.2
     data.curve_initial_phase = 0.0
-    data.target_separate_normalization = False
+    data.target_separate_normalization = True
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -65,7 +65,7 @@ def get_config():
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-    model.decoder.multiscale_retain_spatial_dims = False
+    model.decoder.multiscale_retain_spatial_dims = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
