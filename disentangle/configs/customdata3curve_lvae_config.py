@@ -29,7 +29,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = None
     data.padding_mode = 'constant'
     data.padding_value = 0
     data.encourage_non_overlap_single_channel = True
@@ -90,15 +90,15 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 360
-    training.max_epochs = 9600
+    training.lr_scheduler_patience = 90
+    training.max_epochs = 2400
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 1200
+    training.earlystop_patience = 300
     training.precision = 16
 
     return config
