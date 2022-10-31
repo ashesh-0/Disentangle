@@ -12,8 +12,8 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -45,7 +45,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128]
+    model.z_dims = [128, 128, 128, 128, 128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
