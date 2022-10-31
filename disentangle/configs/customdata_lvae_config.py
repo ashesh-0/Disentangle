@@ -10,7 +10,7 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.frame_size = 256
+    data.frame_size = 128
     data.data_type = DataType.CustomSinosoid
     data.total_size = 1000
     data.curve_amplitude = 8.0
