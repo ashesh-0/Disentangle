@@ -10,3 +10,4 @@ class DataType(Enum):
     Prevedel_EMBL = 5
     AllenCellMito = 6
     SeparateTiffData = 7
+    CustomSinosoidThreeCurve = 8
