@@ -283,10 +283,9 @@ class TopDownLayer(nn.Module):
         # Sample from either q(z_i | z_{i+1}, x) or p(z_i | z_{i+1})
         # depending on whether q_params is None
 
-        import pdb;pdb.set_trace()
         # This is done, purely for stablity. See Very deep VAEs generalize autoregressive models.
         if self.normalize_latent_factor:
-            q_params = q_params/self.normalize_latent_factor
+            q_params = q_params / self.normalize_latent_factor
 
         x, data_stoch = self.stochastic(p_params=p_params,
                                         q_params=q_params,
