@@ -66,7 +66,7 @@ class UNet(pl.LightningModule):
         # x4 = self.down3(x3)
         # x5 = self.down4(x4)
 
-        for i in range(1,self.n_levels):
+        for i in range(1,self.n_levels+1):
            x_end = getattr(self, f'up{i}')(x_end,latents[-1*i])
 
         # x = self.up1(x5, x4)

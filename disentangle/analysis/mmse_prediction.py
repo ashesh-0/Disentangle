@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+from disentangle.core.model_type import ModelType
 
 def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, prediction_size: int, batch_size=16,
                         track_progress: bool = True) -> \
@@ -63,7 +64,7 @@ def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, pred
     dset.set_img_sz(old_img_sz)
     return mmse_img, tar_normalized.cpu()
 
-def get_dset_predictions(model, dset, batch_size, mmse_count=1, num_workers=4):
+def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1, num_workers=4):
     dloader = DataLoader(dset,
                          pin_memory=False,
                          num_workers=num_workers,
@@ -81,19 +82,31 @@ def get_dset_predictions(model, dset, batch_size, mmse_count=1, num_workers=4):
             tar_normalized = model.normalize_target(tar)
 
             recon_img_list = []
-            for _ in range(mmse_count):
-                recon_normalized, td_data = model(x_normalized)
-                rec_loss, imgs = model.get_reconstruction_loss(recon_normalized, tar_normalized,
-                                                               return_predicted_img=True)
+            for mmse_idx in range(mmse_count):
+                if model_type == ModelType.UNet:
+                    recon_normalized = model(x_normalized)
+                    imgs = recon_normalized
+                    rec_loss = model.get_reconstruction_loss(recon_normalized, tar_normalized)
+
+                    if mmse_idx ==0:
+                        logvar_arr.append(np.array([-1]))
+                        losses.append(rec_loss.cpu().numpy())
+
+                else:
+                    recon_normalized, _ = model(x_normalized)
+                    rec_loss, imgs = model.get_reconstruction_loss(recon_normalized, tar_normalized,
+                                                                return_predicted_img=True)
+                
+                    if mmse_idx==0:
+                        q_dic = model.likelihood.distr_params(recon_normalized)
+                        if q_dic['logvar'] is not None:
+                            logvar_arr.append(q_dic['logvar'].cpu().numpy())
+                        else:
+                            logvar_arr.append(np.array([-1]))
+                        losses.append(rec_loss['loss'].cpu().numpy())
+
                 recon_img_list.append(imgs.cpu()[None])
 
             mmse_imgs = torch.mean(torch.cat(recon_img_list, dim=0), dim=0)
-
-            q_dic = model.likelihood.distr_params(recon_normalized)
-            if q_dic['logvar'] is not None:
-                logvar_arr.append(q_dic['logvar'].cpu().numpy())
-            else:
-                logvar_arr.append(np.array([-1]))
-            losses.append(rec_loss['loss'].cpu().numpy())
             predictions.append(mmse_imgs.cpu().numpy())
     return np.concatenate(predictions, axis=0), np.array(losses), np.concatenate(logvar_arr)
