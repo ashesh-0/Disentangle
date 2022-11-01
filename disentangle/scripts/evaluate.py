@@ -492,8 +492,9 @@ if __name__ == '__main__':
         # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/41',
         # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/43',
         # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/44'
-        '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/4',
-        '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/3',
+        # '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/4',
+        # '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/3',
+        '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/0',
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
