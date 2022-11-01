@@ -497,43 +497,43 @@ if __name__ == '__main__':
         # '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/4',
         # '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/3',
         # '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/0',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M10-S0-L3/9',
-        '/home/ashesh.ashesh/training/disentangle/2210/D3-M10-S0-L3/10',
+         '/home/ashesh.ashesh/training/disentangle/2210/D3-M10-S0-L3/9',
+         '/home/ashesh.ashesh/training/disentangle/2210/D3-M10-S0-L3/10',
         '/home/ashesh.ashesh/training/disentangle/2210/D3-M10-S0-L3/11'
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
-    custom_image_size = 64
     ignored_last_pixels = 32
-    for eval_datasplit_type in [DataSplitType.Test]:
-        for ckpt_dir in ckpt_dirs:
-            for image_size_for_grid_centers in [64, 32, 16]:
+    for custom_image_size in [96,128,160]:
+        for eval_datasplit_type in [DataSplitType.Test]:
+            for ckpt_dir in ckpt_dirs:
+                for image_size_for_grid_centers in [64]:
 
-                handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
-                                              image_size_for_grid_centers, mmse_count, ignored_last_pixels)
-                data = main(
-                    ckpt_dir,
-                    DEBUG,
-                    image_size_for_grid_centers=image_size_for_grid_centers,
-                    mmse_count=mmse_count,
-                    custom_image_size=custom_image_size,
-                    batch_size=4,
-                    num_workers=4,
-                    COMPUTE_LOSS=False,
-                    use_deterministic_grid=None,
-                    threshold=None,  # 0.02,
-                    compute_kl_loss=False,
-                    evaluate_train=False,
-                    eval_datasplit_type=eval_datasplit_type,
-                    val_repeat_factor=None,
-                    psnr_type='range_invariant',
-                    ignored_last_pixels=ignored_last_pixels,
-                    ignore_first_pixels=0)
-                fpath = handler.save(ckpt_dir, data)
-                # except:
-                #     print('FAILED for ', handler.get_output_fpath(ckpt_dir))
-                #     continue
-                print(handler.load(fpath))
-                print('')
-                print('')
-                print('')
+                    handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
+                                                image_size_for_grid_centers, mmse_count, ignored_last_pixels)
+                    data = main(
+                        ckpt_dir,
+                        DEBUG,
+                        image_size_for_grid_centers=image_size_for_grid_centers,
+                        mmse_count=mmse_count,
+                        custom_image_size=custom_image_size,
+                        batch_size=4,
+                        num_workers=4,
+                        COMPUTE_LOSS=False,
+                        use_deterministic_grid=None,
+                        threshold=None,  # 0.02,
+                        compute_kl_loss=False,
+                        evaluate_train=False,
+                        eval_datasplit_type=eval_datasplit_type,
+                        val_repeat_factor=None,
+                        psnr_type='range_invariant',
+                        ignored_last_pixels=ignored_last_pixels,
+                        ignore_first_pixels=0)
+                    fpath = handler.save(ckpt_dir, data)
+                    # except:
+                    #     print('FAILED for ', handler.get_output_fpath(ckpt_dir))
+                    #     continue
+                    print(handler.load(fpath))
+                    print('')
+                    print('')
+                    print('')
