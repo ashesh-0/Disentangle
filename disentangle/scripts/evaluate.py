@@ -124,6 +124,8 @@ def main(
     else:
         if dtype == DataType.CustomSinosoid:
             data_dir = f'{DATA_ROOT}/sinosoid/'
+        elif dtype == DataType.CustomSinosoidThreeCurve:
+            data_dir = f'{DATA_ROOT}/sinosoid/'
         elif dtype == DataType.OptiMEM100_014:
             data_dir = f'{DATA_ROOT}/microscopy/'
         elif dtype == DataType.Prevedel_EMBL:
@@ -211,7 +213,10 @@ def main(
 
         if 'predict_logvar' not in config.model:
             config.model.predict_logvar = None
-        if config.data.data_type in [DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.SeparateTiffData]:
+        if config.data.data_type in [
+                DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve,
+                DataType.SeparateTiffData
+        ]:
             if custom_image_size is not None:
                 old_image_size = config.data.image_size
                 config.data.image_size = custom_image_size
@@ -249,7 +254,10 @@ def main(
 
     else:
         data_class = get_overlapping_dset(MultiChDeterministicTiffDloader)
-    if config.data.data_type in [DataType.CustomSinosoid, DataType.AllenCellMito, DataType.SeparateTiffData]:
+    if config.data.data_type in [
+            DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.AllenCellMito,
+            DataType.SeparateTiffData
+    ]:
         datapath = data_dir
     elif config.data.data_type == DataType.OptiMEM100_014:
         datapath = os.path.join(data_dir, 'OptiMEM100x014.tif')
@@ -299,8 +307,10 @@ def main(
     data_mean, data_std = train_dset.get_mean_std()
 
     with config.unlocked():
-        if config.data.data_type in [DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.SeparateTiffData
-                                     ] and old_image_size is not None:
+        if config.data.data_type in [
+                DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve,
+                DataType.SeparateTiffData
+        ] and old_image_size is not None:
             config.data.image_size = old_image_size
 
     if config.data.target_separate_normalization is True:
@@ -479,9 +489,11 @@ if __name__ == '__main__':
         # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/40',
         # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/38',
         # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/39'
-        '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/41',
-        '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/43',
-        '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/44'
+        # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/41',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/43',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/44'
+        '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/4',
+        '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/3',
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
