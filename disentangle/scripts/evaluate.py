@@ -333,6 +333,7 @@ def main(
         batch_size,
         num_workers=num_workers,
         mmse_count=mmse_count,
+        model_type=config.model.model_type,
     )
     pred = stitch_predictions(pred_tiled, val_dset)
     print('Stitched predictions shape', pred.shape)
