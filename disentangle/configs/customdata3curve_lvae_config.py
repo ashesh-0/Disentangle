@@ -9,7 +9,7 @@ import math
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 256
     data.frame_size = 256
     data.data_type = DataType.CustomSinosoidThreeCurve
     data.total_size = 1000
