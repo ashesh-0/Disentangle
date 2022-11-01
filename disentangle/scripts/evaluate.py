@@ -158,6 +158,8 @@ def main(
         except:
             pass
 
+        if config.model.model_type == ModelType.UNet and 'n_levels' not in config.model:
+            config.model.n_levels = 4
         if 'test_fraction' not in config.training:
             config.training.test_fraction = 0.0
 
@@ -502,7 +504,7 @@ if __name__ == '__main__':
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
     custom_image_size = 64
-    ignored_last_pixels = 0
+    ignored_last_pixels = 32
     for eval_datasplit_type in [DataSplitType.Test]:
         for ckpt_dir in ckpt_dirs:
             for image_size_for_grid_centers in [64, 32, 16]:
