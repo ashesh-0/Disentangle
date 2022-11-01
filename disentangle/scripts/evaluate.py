@@ -476,17 +476,20 @@ if __name__ == '__main__':
         # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/123/',
         # '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/126/',
         # '/home/ubuntu/ashesh/training/disentangle/2210/D3-M3-S0-L0/19'
-        '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/40',
-        '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/38',
-        '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/39'
+        # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/40',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/38',
+        # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/39'
+        '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/41',
+        '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/43',
+        '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/44'
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
-    custom_image_size = 256
+    custom_image_size = 128
     ignored_last_pixels = 0
     for eval_datasplit_type in [DataSplitType.Test]:
         for ckpt_dir in ckpt_dirs:
-            for image_size_for_grid_centers in [256]:
+            for image_size_for_grid_centers in [128]:
 
                 handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
                                               image_size_for_grid_centers, mmse_count, ignored_last_pixels)
@@ -496,7 +499,7 @@ if __name__ == '__main__':
                     image_size_for_grid_centers=image_size_for_grid_centers,
                     mmse_count=mmse_count,
                     custom_image_size=custom_image_size,
-                    batch_size=16,
+                    batch_size=4,
                     num_workers=4,
                     COMPUTE_LOSS=False,
                     use_deterministic_grid=None,
