@@ -128,11 +128,15 @@ def add_pixel_kde(ax,
     Adds KDE (density plot) of data1(eg: target) and data2(ex: predicted) image pixel values as an inset
     """
     inset_ax = add_subplot_axes(ax, rect, facecolor="None", min_labelsize=min_labelsize)
+    
     inset_ax.tick_params(axis='x', colors=color_xtick)
 
     sns.kdeplot(data=data1.reshape(-1, ), ax=inset_ax, color=color1, label=label1)
     if data2 is not None:
         sns.kdeplot(data=data2.reshape(-1, ), ax=inset_ax, color=color2, label=label2)
+    
+    xticks = inset_ax.get_xticks()
+    inset_ax.set_xticks([xticks[0], xticks[-1]])
     clean_for_xaxis_plot(inset_ax)
 
 
