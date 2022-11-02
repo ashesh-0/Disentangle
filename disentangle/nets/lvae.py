@@ -187,7 +187,8 @@ class LadderVAE(pl.LightningModule):
             # When doing generation only, the value bu is not available, the
             # merge layer is not used, and z is sampled directly from p_params.
             #
-            normalize_latent_factor = 1/np.sqrt(2*(1+i))
+            # only apply this normalization with relatively deep networks.
+            normalize_latent_factor = 1 / np.sqrt(2 * (1 + i)) if len(self.z_dims) > 4 else 1.0
             self.top_down_layers.append(
                 TopDownLayer(
                     z_dim=self.z_dims[i],

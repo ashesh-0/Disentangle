@@ -136,10 +136,7 @@ class NormalStochasticBlock2d(nn.Module):
 
         p_mu = StableMean(p_mu)
         p_lv = StableLogVar(p_lv)
-        try:
-            p = Normal(p_mu.get(), p_lv.get_std())
-        except:
-            import pdb;pdb.set_trace()
+        p = Normal(p_mu.get(), p_lv.get_std())
         return p_mu, p_lv, p
 
     def process_q_params(self, q_params, var_clip_max, allow_oddsizes=False):
@@ -158,10 +155,7 @@ class NormalStochasticBlock2d(nn.Module):
 
         q_mu = StableMean(q_mu)
         q_lv = StableLogVar(q_lv)
-        try:
-            q = Normal(q_mu.get(), q_lv.get_std())
-        except:
-            import pdb;pdb.set_trace()
+        q = Normal(q_mu.get(), q_lv.get_std())
         return q_mu, q_lv, q
 
     def forward(self,
