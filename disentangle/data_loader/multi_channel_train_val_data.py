@@ -34,10 +34,10 @@ def _train_val_data(data, datasplit_type: DataSplitType, channel_1, channel_2, v
 
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
     if datasplit_type == DataSplitType.Train:
-        return data[train_idx[0]:train_idx[1]].astype(np.float32)
+        return data[train_idx].astype(np.float32)
     elif datasplit_type == DataSplitType.Val:
-        return data[val_idx[0]:val_idx[1]].astype(np.float32)
+        return data[val_idx].astype(np.float32)
     elif datasplit_type == DataSplitType.Test:
-        return data[test_idx[0]:test_idx[1]].astype(np.float32)
+        return data[test_idx].astype(np.float32)
     else:
         raise Exception("invalid datasplit")

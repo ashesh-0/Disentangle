@@ -7,7 +7,8 @@ import math
 from tqdm import tqdm
 import lzma
 
-from disentangle.core.data_split_type import DataSplitType,get_datasplit_tuples
+from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
+
 
 def angle_shift(w1, w2, point, best_possible=True):
     """
@@ -468,9 +469,9 @@ def train_val_data(data_dir,
 
         train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
         data_dict = {
-            'train': data[train_idx[0]:train_idx[1]],
-            'val': data[val_idx[0]:val_idx[1]],
-            'test': data[test_idx[0]:test_idx[1]],
+            'train': data[train_idx],
+            'val': data[val_idx],
+            'test': data[test_idx],
             'frequency_range_list': frequency_range_list
         }
         datamanager.save(data_dict)

@@ -413,21 +413,19 @@ def main(
         elif eval_datasplit_type == DataSplitType.Test:
             N = len(pred1) / config.training.test_fraction
 
-        train_idx, val_idx, test_idx = get_datasplit_tuples(config.training.val_fraction,
-                                                            config.training.test_fraction,
-                                                            N,
-                                                            starting_train=False)
+        train_idx, val_idx_list, test_idx_list = get_datasplit_tuples(config.training.val_fraction,
+                                                                 config.training.test_fraction,
+                                                                 N,
+                                                                 starting_train=False)
         highres_actin = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/actin-60x-noise2-highsnr.tif')[...,
                                                                                                                None]
         highres_mito = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/mito-60x-noise2-highsnr.tif')[..., None]
 
         if eval_datasplit_type == DataSplitType.Val:
-            highres_data = np.concatenate([highres_actin[val_idx[0]:val_idx[1]], highres_mito[val_idx[0]:val_idx[1]]],
+            highres_data = np.concatenate([highres_actin[val_idx_list], highres_mito[val_idx_list]],
                                           axis=-1).astype(np.float32)
         elif eval_datasplit_type == DataSplitType.Test:
-            highres_data = np.concatenate(
-                [highres_actin[test_idx[0]:test_idx[1]], highres_mito[test_idx[0]:test_idx[1]]],
-                axis=-1).astype(np.float32)
+            highres_data = np.concatenate([highres_actin[test_idx_list], highres_mito[test_idx_list]], axis=-1).astype(np.float32)
 
         thresh = np.quantile(highres_data, config.data.clip_percentile)
         highres_data[highres_data > thresh] = thresh
