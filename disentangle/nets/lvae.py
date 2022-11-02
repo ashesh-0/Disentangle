@@ -187,6 +187,7 @@ class LadderVAE(pl.LightningModule):
             # When doing generation only, the value bu is not available, the
             # merge layer is not used, and z is sampled directly from p_params.
             #
+            normalize_latent_factor = 1/np.sqrt(2*(1+i))
             self.top_down_layers.append(
                 TopDownLayer(
                     z_dim=self.z_dims[i],
@@ -211,7 +212,8 @@ class LadderVAE(pl.LightningModule):
                     topdown_no_padding_mode=self.decoder_no_padding_mode,
                     retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
                     non_stochastic_version=self.non_stochastic_version,
-                    input_image_shape=self.img_shape))
+                    input_image_shape=self.img_shape,
+                    normalize_latent_factor=normalize_latent_factor))
         # Final top-down layer
 
         modules = list()
