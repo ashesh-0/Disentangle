@@ -20,7 +20,7 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
     if datasplit_type == DataSplitType.All:
         return data.astype(np.float32)
 
-    train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data), ending_test=True)
+    train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data), starting_test=True)
     if datasplit_type == DataSplitType.Train:
         return data[train_idx].astype(np.float32)
     elif datasplit_type == DataSplitType.Val:
