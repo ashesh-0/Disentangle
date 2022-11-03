@@ -8,11 +8,13 @@ class DataSplitType(Enum):
     Val = 2
     Test = 3
 
-def split_in_half(s,e):
-    n = e-s
-    s1 = list(np.arange(n//2))
-    s2 = list(np.arange(n//2,n))
-    return [x+s for x in s1], [x+s for x in s2]
+
+def split_in_half(s, e):
+    n = e - s
+    s1 = list(np.arange(n // 2))
+    s2 = list(np.arange(n // 2, n))
+    return [x + s for x in s1], [x + s for x in s2]
+
 
 def get_datasplit_tuples(val_fraction: float, test_fraction: float, total_size: int, starting_test: bool = False):
     if starting_test:
@@ -24,34 +26,32 @@ def get_datasplit_tuples(val_fraction: float, test_fraction: float, total_size: 
     else:
 
         # {test,val}=> train
-        test_val_size = int((val_fraction + test_fraction)* total_size)
+        test_val_size = int((val_fraction + test_fraction) * total_size)
         train = list(range(test_val_size, total_size))
-        
+
         # Split the test and validation in chunks.
         chunksize = 3
-        
-        nchunks = test_val_size//chunksize
-        
+
+        nchunks = test_val_size // chunksize
+
         test = []
         val = []
         s = 0
         for i in range(nchunks):
-            if i%2 ==0:
-                val += list(np.arange(s,s+chunksize))
+            if i % 2 == 0:
+                val += list(np.arange(s, s + chunksize))
             else:
-                test +=list(np.arange(s,s+chunksize))
-            s+= chunksize
+                test += list(np.arange(s, s + chunksize))
+            s += chunksize
 
-        if i %2 ==0:
-            test += list(np.range(s,test_val_size))
+        if i % 2 == 0:
+            test += list(np.range(s, test_val_size))
         else:
-            p1, p2 = split_in_half(s,test_val_size)
+            p1, p2 = split_in_half(s, test_val_size)
             test += p1
-            val  += p2
-        
-        return train, val, test
+            val += p2
 
-        
+    return train, val, test
 
 
 if __name__ == '__main__':
