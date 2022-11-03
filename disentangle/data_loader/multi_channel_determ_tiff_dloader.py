@@ -20,7 +20,8 @@ class MultiChDeterministicTiffDloader:
                  enable_rotation_aug: bool = False,
                  enable_random_cropping: bool = False,
                  use_one_mu_std=None,
-                 allow_generation=False):
+                 allow_generation=False,
+                 max_val=None):
         """
         Here, an image is split into grids of size img_sz.
         Args:
@@ -40,9 +41,14 @@ class MultiChDeterministicTiffDloader:
                                         allow_generation=allow_generation)
         self._normalized_input = normalized_input
         self._quantile = data_config.get('clip_percentile', 0.995)
-        max_val = np.quantile(self._data, self._quantile)
+        if datasplit_type == DataSplitType.Train:
+            assert max_val is None
+            self.max_val = np.quantile(self._data, self._quantile)
+        else:
+            assert max_val is not None
+            self.max_val = max_val
 
-        self._data[self._data > max_val] = max_val
+        self._data[self._data > self.max_val] = self.max_val
 
         self.N = len(self._data)
         self._img_sz = self._repeat_factor = None
@@ -64,6 +70,9 @@ class MultiChDeterministicTiffDloader:
 
         msg = self._init_msg()
         print(msg)
+
+    def get_max_val(self):
+        return self.max_val
 
     def get_img_sz(self):
         return self._img_sz

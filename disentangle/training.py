@@ -89,6 +89,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 num_scales=config.data.multiscale_lowres_count,
                 padding_kwargs=padding_kwargs,
                 allow_generation=True)
+            max_val = train_data.get_max_val()
+
             val_data = MultiScaleTiffDloader(
                 config.data,
                 datapath,
@@ -103,6 +105,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 num_scales=config.data.multiscale_lowres_count,
                 padding_kwargs=padding_kwargs,
                 allow_generation=False,
+                max_val=max_val,
             )
         else:
             train_data_kwargs = {'allow_generation': True}
@@ -131,6 +134,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                                                                     enable_rotation_aug=train_aug_rotate,
                                                                     **train_data_kwargs)
 
+            max_val = train_data.get_max_val()
             val_data = data_class(
                 config.data,
                 datapath,
@@ -140,6 +144,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 normalized_input=normalized_input,
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=False,  # No rotation aug on validation
+                max_val = max_val,
                 **val_data_kwargs,
             )
 
