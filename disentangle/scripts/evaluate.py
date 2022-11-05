@@ -446,17 +446,10 @@ if __name__ == '__main__':
     DEBUG = False
     OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/26',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/27',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/32',
-        ## Actin vs Tubulin
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/30',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/24',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/29',
-        ## Tubulin vs Nucleus
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/31',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/25',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/28',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/48',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/47',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/46',
+
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
@@ -464,7 +457,7 @@ if __name__ == '__main__':
     for custom_image_size in [64]:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
-                for image_size_for_grid_centers in [64, 32, 16]:
+                for image_size_for_grid_centers in [32, 16]:
 
                     handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
                                                   image_size_for_grid_centers, mmse_count, ignored_last_pixels)
