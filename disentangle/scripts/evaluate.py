@@ -284,7 +284,7 @@ def main(
                             **dloader_kwargs)
     import gc
     gc.collect()
-
+    max_val = train_dset.get_max_val()
     val_dset = data_class(
         config.data,
         datapath,
@@ -297,6 +297,7 @@ def main(
         enable_random_cropping=False,
         # No random cropping on validation. Validation is evaluated on determistic grids
         image_size_for_grid_centers=image_size_for_grid_centers,
+        max_val=max_val,
         **dloader_kwargs)
 
     # For normalizing, we should be using the training data's mean and std.
