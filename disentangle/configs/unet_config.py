@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
+    data.image_size = 512
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
     data.channel_2 = 2
@@ -36,7 +36,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.UNet
-    model.n_levels = 4
+    model.n_levels = 5
     model.monitor = 'val_psnr'
 
     training = config.training
