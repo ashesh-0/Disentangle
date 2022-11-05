@@ -11,7 +11,7 @@ def get_config():
     data.image_size = 512
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
-    data.channel_2 = 2
+    data.channel_2 = 3
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -36,7 +36,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.UNet
-    model.n_levels = 6
+    model.n_levels = 5
     model.monitor = 'val_psnr'
 
     training = config.training
