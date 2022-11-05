@@ -414,9 +414,9 @@ def main(
             N = len(pred1) / config.training.test_fraction
 
         train_idx, val_idx_list, test_idx_list = get_datasplit_tuples(config.training.val_fraction,
-                                                                 config.training.test_fraction,
-                                                                 N,
-                                                                 starting_train=False)
+                                                                      config.training.test_fraction,
+                                                                      N,
+                                                                      starting_train=False)
         highres_actin = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/actin-60x-noise2-highsnr.tif')[...,
                                                                                                                None]
         highres_mito = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/mito-60x-noise2-highsnr.tif')[..., None]
@@ -425,7 +425,8 @@ def main(
             highres_data = np.concatenate([highres_actin[val_idx_list], highres_mito[val_idx_list]],
                                           axis=-1).astype(np.float32)
         elif eval_datasplit_type == DataSplitType.Test:
-            highres_data = np.concatenate([highres_actin[test_idx_list], highres_mito[test_idx_list]], axis=-1).astype(np.float32)
+            highres_data = np.concatenate([highres_actin[test_idx_list], highres_mito[test_idx_list]],
+                                          axis=-1).astype(np.float32)
 
         thresh = np.quantile(highres_data, config.data.clip_percentile)
         highres_data[highres_data > thresh] = thresh
@@ -444,71 +445,25 @@ if __name__ == '__main__':
     DEBUG = False
     OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
     ckpt_dirs = [
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/78',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/79',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/88',
-
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/82',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/83',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/84',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/93',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/94',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/96',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/97',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/99',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/100',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/110',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/109',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/108',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/91',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/89',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/90',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/117',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/92',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/94',
-        #  '/home/ubuntu/ashesh/training/disentangle/2210/D3-M3-S0-L0/19',
-        #  '/home/ubuntu/ashesh/training/disentangle/2210/D3-M3-S0-L0/21',
-        #  '/home/ubuntu/ashesh/training/disentangle/2210/D3-M3-S0-L0/22',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/111/',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/114/',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/113/',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/116/',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/115/',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/117/',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/118/',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/119/',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/120/',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/121/',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/122/',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/123/',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/126/',
-        #  '/home/ubuntu/ashesh/training/disentangle/2210/D3-M3-S0-L0/19'
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/40',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/38',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/39'
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/41',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/43',
-        # # '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/44'
-        # # '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/4',
-        # # '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/3',
-        # # '/home/ubuntu/ashesh/training/disentangle/2210/D8-M3-S0-L0/0',
-        #   '/home/ashesh.ashesh/training/disentangle/2210/D3-M10-S0-L3/9',
-        #   '/home/ashesh.ashesh/training/disentangle/2210/D3-M10-S0-L3/10',
-        #  '/home/ashesh.ashesh/training/disentangle/2210/D3-M10-S0-L3/11'
-        # # '/home/ashesh.ashesh/training/disentangle/2211/D8-M3-S0-L0/2',
-        # # '/home/ashesh.ashesh/training/disentangle/2211/D8-M3-S0-L0/1',
-        # # '/home/ashesh.ashesh/training/disentangle/2211/D8-M3-S0-L0/0'
-        '/home/ashesh.ashesh/training/disentangle/2211/D8-M3-S0-L0/2',
-        '/home/ashesh.ashesh/training/disentangle/2211/D8-M3-S0-L0/0',
-        '/home/ashesh.ashesh/training/disentangle/2211/D8-M3-S0-L0/1',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/26',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/27',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/32',
+        ## Actin vs Tubulin
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/30',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/24',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/29',
+        ## Tubulin vs Nucleus
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/31',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/25',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/28',
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
-    ignored_last_pixels = 0
-    for custom_image_size in [256]:
+    ignored_last_pixels = 32
+    for custom_image_size in [64]:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
-                for image_size_for_grid_centers in [256]:
+                for image_size_for_grid_centers in [64, 32, 16]:
 
                     handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
                                                   image_size_for_grid_centers, mmse_count, ignored_last_pixels)
