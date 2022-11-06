@@ -446,17 +446,7 @@ if __name__ == '__main__':
     DEBUG = False
     OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/34',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/39',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/52',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/35',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/38',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/40',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/51',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/36',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/37',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/49',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/50',
+        '/home/ubuntu/ashesh/training/disentangle/2211/D3-M3-S0-L0/3',
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
@@ -464,7 +454,7 @@ if __name__ == '__main__':
     for custom_image_size in [64]:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
-                for image_size_for_grid_centers in [64, 32, 16]:
+                for image_size_for_grid_centers in [64, 32]:
 
                     handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
                                                   image_size_for_grid_centers, mmse_count, ignored_last_pixels)
