@@ -11,7 +11,7 @@ def get_config():
     data.image_size = 256
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
-    data.channel_2 = 3
+    data.channel_2 = 2
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
