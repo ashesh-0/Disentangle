@@ -45,12 +45,14 @@ def get_datasplit_tuples(val_fraction: float, test_fraction: float, total_size: 
             s += chunksize
 
         if i % 2 == 0:
-            test += list(np.range(s, test_val_size))
+            test += list(np.arange(s, test_val_size))
         else:
             p1, p2 = split_in_half(s, test_val_size)
             test += p1
             val += p2
 
+    import pdb
+    pdb.set_trace()
     return train, val, test
 
 
