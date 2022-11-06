@@ -43,7 +43,9 @@ def get_std_mask(data, quantile):
 
 def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_fraction):
     fpaths = get_train_val_datafiles(dirname, datasplit_type, val_fraction, test_fraction)
-    print(f'Loading {dirname} with Channels {data_config.channel_1},{data_config.channel_2}, is_train:{is_train}')
+    print(
+        f'Loading {dirname} with Channels {data_config.channel_1},{data_config.channel_2}, Mode:{DataSplitType.name(datasplit_type)}'
+    )
     data = load_tiffs(fpaths)[..., [data_config.channel_1, data_config.channel_2]]
     if 'ch1_frame_std_quantile' in data_config:
         q_ch1 = data_config.ch1_frame_std_quantile
