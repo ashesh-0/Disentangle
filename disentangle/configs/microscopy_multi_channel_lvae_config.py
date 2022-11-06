@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 512
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
     data.channel_2 = 2
@@ -43,7 +43,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128, 128]
+    model.z_dims = [128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
@@ -82,15 +82,15 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 15
-    training.max_epochs = 200
+    training.lr_scheduler_patience = 30
+    training.max_epochs = 400
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 100
+    training.earlystop_patience = 200
     training.precision = 16
 
     return config
