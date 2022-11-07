@@ -417,7 +417,7 @@ def main(
         train_idx, val_idx_list, test_idx_list = get_datasplit_tuples(config.training.val_fraction,
                                                                       config.training.test_fraction,
                                                                       N,
-                                                                      starting_train=False)
+                                                                      starting_test=True)
         highres_actin = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/actin-60x-noise2-highsnr.tif')[...,
                                                                                                                None]
         highres_mito = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/mito-60x-noise2-highsnr.tif')[..., None]
