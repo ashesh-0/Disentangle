@@ -446,14 +446,17 @@ if __name__ == '__main__':
     DEBUG = False
     OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/41',
-        '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/44',
-        '/home/ashesh.ashesh/training/disentangle/2210/D4-M3-S0-L0/43',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/62',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/63',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/64',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/60',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/61',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/53',
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
     ignored_last_pixels = 0
-    for custom_image_size in [128]:
+    for custom_image_size in [256]:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
                 for image_size_for_grid_centers in [128]:
