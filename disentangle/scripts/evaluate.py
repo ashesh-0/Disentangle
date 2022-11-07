@@ -455,7 +455,7 @@ if __name__ == '__main__':
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
-    ignored_last_pixels = 0
+    ignored_last_pixels = 32
     for custom_image_size in [256]:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
