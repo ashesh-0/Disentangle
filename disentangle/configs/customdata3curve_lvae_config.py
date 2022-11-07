@@ -10,7 +10,7 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.frame_size = 256
+    data.frame_size = 128
     data.data_type = DataType.CustomSinosoidThreeCurve
     data.total_size = 1000
     data.curve_amplitude = 8.0
@@ -35,7 +35,7 @@ def get_config():
     data.encourage_non_overlap_single_channel = True
     data.vertical_min_spacing = data.curve_amplitude * 2
     # 0.5 would mean that 50% of the points would be covered with the connecting w.
-    data.connecting_w_len = 0.1
+    data.connecting_w_len = 0.2
     data.curve_initial_phase = 0.0
     data.target_separate_normalization = True
 
