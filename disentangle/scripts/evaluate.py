@@ -407,38 +407,38 @@ def main(
     print('SSIM', round(ssim1_mean, 3), round(ssim2_mean, 3), '±', round((ssim1_std + ssim2_std) / 2, 4))
     print()
 
-    if config.data.data_type == DataType.SeparateTiffData:
-        # comparing psnr with highres data
-        if eval_datasplit_type == DataSplitType.Val:
-            N = len(pred1) / config.training.val_fraction
-        elif eval_datasplit_type == DataSplitType.Test:
-            N = len(pred1) / config.training.test_fraction
+    # if config.data.data_type == DataType.SeparateTiffData:
+    #     # comparing psnr with highres data
+    #     if eval_datasplit_type == DataSplitType.Val:
+    #         N = len(pred1) / config.training.val_fraction
+    #     elif eval_datasplit_type == DataSplitType.Test:
+    #         N = len(pred1) / config.training.test_fraction
 
-        train_idx, val_idx_list, test_idx_list = get_datasplit_tuples(config.training.val_fraction,
-                                                                      config.training.test_fraction,
-                                                                      N,
-                                                                      starting_test=True)
-        highres_actin = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/actin-60x-noise2-highsnr.tif')[...,
-                                                                                                               None]
-        highres_mito = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/mito-60x-noise2-highsnr.tif')[..., None]
+    #     train_idx, val_idx_list, test_idx_list = get_datasplit_tuples(config.training.val_fraction,
+    #                                                                   config.training.test_fraction,
+    #                                                                   N,
+    #                                                                   starting_test=True)
+    #     highres_actin = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/actin-60x-noise2-highsnr.tif')[...,
+    #                                                                                                            None]
+    #     highres_mito = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/mito-60x-noise2-highsnr.tif')[..., None]
 
-        if eval_datasplit_type == DataSplitType.Val:
-            highres_data = np.concatenate([highres_actin[val_idx_list], highres_mito[val_idx_list]],
-                                          axis=-1).astype(np.float32)
-        elif eval_datasplit_type == DataSplitType.Test:
-            highres_data = np.concatenate([highres_actin[test_idx_list], highres_mito[test_idx_list]],
-                                          axis=-1).astype(np.float32)
+    #     if eval_datasplit_type == DataSplitType.Val:
+    #         highres_data = np.concatenate([highres_actin[val_idx_list], highres_mito[val_idx_list]],
+    #                                       axis=-1).astype(np.float32)
+    #     elif eval_datasplit_type == DataSplitType.Test:
+    #         highres_data = np.concatenate([highres_actin[test_idx_list], highres_mito[test_idx_list]],
+    #                                       axis=-1).astype(np.float32)
 
-        thresh = np.quantile(highres_data, config.data.clip_percentile)
-        highres_data[highres_data > thresh] = thresh
+    #     thresh = np.quantile(highres_data, config.data.clip_percentile)
+    #     highres_data[highres_data > thresh] = thresh
 
-        output_stats['highres_psnr'] = [avg_psnr(highres_data[..., 0], pred1), avg_psnr(highres_data[..., 1], pred2)]
-        output_stats['highres_rinvpsnr'] = [
-            avg_range_inv_psnr(highres_data[..., 0], pred1),
-            avg_range_inv_psnr(highres_data[..., 1], pred2)
-        ]
-        print('PSNR with HighRes', output_stats['highres_psnr'][0], output_stats['highres_psnr'][1])
-        print('RangeInvPSNR with HighRes', output_stats['highres_rinvpsnr'][0], output_stats['highres_rinvpsnr'][1])
+    #     output_stats['highres_psnr'] = [avg_psnr(highres_data[..., 0], pred1), avg_psnr(highres_data[..., 1], pred2)]
+    #     output_stats['highres_rinvpsnr'] = [
+    #         avg_range_inv_psnr(highres_data[..., 0], pred1),
+    #         avg_range_inv_psnr(highres_data[..., 1], pred2)
+    #     ]
+    #     print('PSNR with HighRes', output_stats['highres_psnr'][0], output_stats['highres_psnr'][1])
+    #     print('RangeInvPSNR with HighRes', output_stats['highres_rinvpsnr'][0], output_stats['highres_rinvpsnr'][1])
     return output_stats
 
 
