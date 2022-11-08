@@ -446,7 +446,9 @@ if __name__ == '__main__':
     DEBUG = False
     OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
     ckpt_dirs = [
-        '/home/ubuntu/ashesh/training/disentangle/2211/D3-M3-S0-L0/0',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/52',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/51',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/50',
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
