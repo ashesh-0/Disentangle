@@ -446,13 +446,12 @@ if __name__ == '__main__':
     DEBUG = False
     OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/52',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/51',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/50',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/77',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/91',
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
-    ignored_last_pixels = 32
+    ignored_last_pixels = 0
     for custom_image_size in [96, 128, 160, 192]:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
