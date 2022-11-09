@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 512
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
@@ -45,7 +45,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128, 128, 128, 128, 128]
+    model.z_dims = [128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
@@ -82,16 +82,16 @@ def get_config():
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     model.enable_noise_model = False
     model.noise_model_type = 'gmm'
-    fname_format = None #'/home/ashesh.ashesh/data/ventura_gigascience/GMMNoiseModel_ventura_gigascience-{}_3_2_Clip0.5-100_Sig0.125_Up128.0_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = None #fname_format.format('actin')
-    model.noise_model_ch2_fpath = None # fname_format.format('mito')
+    fname_format = None  #'/home/ashesh.ashesh/data/ventura_gigascience/GMMNoiseModel_ventura_gigascience-{}_3_2_Clip0.5-100_Sig0.125_Up128.0_Norm1_bootstrap.npz'
+    model.noise_model_ch1_fpath = None  #fname_format.format('actin')
+    model.noise_model_ch2_fpath = None  # fname_format.format('mito')
     model.non_stochastic_version = False
 
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
-    training.batch_size = 32
+    training.batch_size = 16
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
