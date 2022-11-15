@@ -36,7 +36,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.UNet
-    model.n_levels = 6
+    model.n_levels = 1
     model.monitor = 'val_psnr'
 
     training = config.training
