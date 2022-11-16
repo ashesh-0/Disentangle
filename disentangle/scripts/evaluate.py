@@ -466,7 +466,7 @@ if __name__ == '__main__':
                         image_size_for_grid_centers=image_size_for_grid_centers,
                         mmse_count=mmse_count,
                         custom_image_size=custom_image_size,
-                        batch_size=64,
+                        batch_size=128,
                         num_workers=4,
                         COMPUTE_LOSS=False,
                         use_deterministic_grid=None,
