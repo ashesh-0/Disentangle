@@ -15,7 +15,7 @@ def get_config():
     data.total_size = 1000
     data.curve_amplitude = 8.0
     data.num_curves = 5
-    data.max_rotation = math.pi / 16
+    data.max_rotation = math.pi / 8
     data.curve_thickness = 21
     data.max_vshift_factor = 0.9
     data.max_hshift_factor = 0.3
