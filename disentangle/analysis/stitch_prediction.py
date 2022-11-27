@@ -91,7 +91,7 @@ def stitched_prediction_mask(dset, padded_patch_shape, skip_boundary_pixel_count
     return mask
 
 
-def _get_smoothing_mask(cropped_pred_shape, smoothening_pixelcount):
+def _get_smoothing_mask(cropped_pred_shape, smoothening_pixelcount, loc, frame_size):
     """
     It returns a mask. If the mask is multipled with all predictions and predictions are then added to 
     the overall frame at their corect location, it would simulate following scenario:
@@ -100,22 +100,38 @@ def _get_smoothing_mask(cropped_pred_shape, smoothening_pixelcount):
     For this to happen, one needs *= operation as used here.  
     """
     mask = np.ones(cropped_pred_shape)
+    on_leftb = loc.w_start ==0
+    on_rightb = loc.w_end >= frame_size 
+    on_topb = loc.h_start ==0 
+    on_bottomb = loc.h_end >= frame_size
+
     if smoothening_pixelcount == 0:
         return mask
 
     assert 4 * smoothening_pixelcount <= min(cropped_pred_shape)
     w_levels = np.arange(1, 0, step=-1 * 1 / (2 * smoothening_pixelcount +1 ))[1:].reshape((1,-1))
     # import pdb;pdb.set_trace()
-    mask[:, -2 * smoothening_pixelcount:] *=  w_levels
-    mask[:, :2 * smoothening_pixelcount] *= w_levels[:,::-1]
+    if not on_rightb:
+        mask[:, -2 * smoothening_pixelcount:] *=  w_levels
+    if not on_leftb:
+        mask[:, :2 * smoothening_pixelcount] *= w_levels[:,::-1]
 
-    mask[-2 * smoothening_pixelcount:, :] *= w_levels.T
-    mask[:2 * smoothening_pixelcount, :]  *= w_levels[:,::-1].T
+    if not on_bottomb:
+        mask[-2 * smoothening_pixelcount:, :] *= w_levels.T
+    
+    if not on_topb:
+        mask[:2 * smoothening_pixelcount, :]  *= w_levels[:,::-1].T
 
-    mask[:smoothening_pixelcount, -smoothening_pixelcount:] = 0
-    mask[:smoothening_pixelcount, :smoothening_pixelcount] = 0
-    mask[-smoothening_pixelcount:, -smoothening_pixelcount:] = 0
-    mask[-smoothening_pixelcount:, :smoothening_pixelcount] = 0
+    if not on_topb and not on_rightb:
+        mask[:smoothening_pixelcount, -smoothening_pixelcount:] = 0
+    
+    if not on_topb and not on_leftb:
+        mask[:smoothening_pixelcount, :smoothening_pixelcount] = 0
+    
+    if not on_bottomb and on_rightb:
+        mask[-smoothening_pixelcount:, -smoothening_pixelcount:] = 0
+    if not on_bottomb and on_leftb:
+        mask[-smoothening_pixelcount:, :smoothening_pixelcount] = 0
     import pdb;pdb.set_trace()
     return mask
 
@@ -161,7 +177,7 @@ def stitch_predictions(predictions, dset, smoothening_pixelcount=0):
         
         if mask is None:
             # NOTE: don't need to compute it for every patch.
-            mask = _get_smoothing_mask(cropped_pred0.shape)
+            mask = _get_smoothing_mask(cropped_pred0.shape, loc)
         
         loc = update_loc_for_smoothing(loc)
         output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, 0] += cropped_pred0 * mask
@@ -171,7 +187,9 @@ def stitch_predictions(predictions, dset, smoothening_pixelcount=0):
 
 
 if __name__ == '__main__':
-    out = _get_smoothing_mask((12,12),2)
+    loc = PatchLocation((32, 16), (32, 16), 5)
+    frame_size = 256
+    out = _get_smoothing_mask((16,16),2,loc, frame_size)
     import pdb;pdb.set_trace()
     # extra_padding = 0
     # hwt1 = (0, 0, 0)
