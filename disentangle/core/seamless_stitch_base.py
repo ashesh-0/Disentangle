@@ -1,6 +1,7 @@
 """
 SeamlessStitchBase class will ensure the basic functionality
 """
+import torch
 
 
 class SeamlessStitchBase:
@@ -9,17 +10,6 @@ class SeamlessStitchBase:
         self._sz = grid_size
         self._N = stitched_frame.shape[-1] // self._sz
         assert stitched_frame.shape[-1] % self._sz == 0
-        # self.params =  Model(self._N)
-        # self.opt = torch.optim.SGD(self.params.parameters(), lr=learning_rate)
-        # self.loss_metric = nn.L1Loss(reduction='sum')
-
-        # self.lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.opt,
-        #                                                          'min',
-        #                                                          patience=10,
-        #                                                          factor=0.5,
-        #                                                          threshold_mode='abs',
-        #                                                          min_lr=1e-12,
-        #                                                          verbose=True)
 
     def patch_location(self, row_idx, col_idx):
         """
@@ -42,6 +32,51 @@ class SeamlessStitchBase:
     def get_bboundary(self, row_idx, col_idx):
         h, w = self.patch_location(row_idx, col_idx)
         return self._data[..., h + self._sz - 1:h + self._sz, w:w + self._sz]
+
+# gradient near the boundary of one patch
+
+    def get_lgradient(self, row_idx, col_idx):
+        h, w = self.patch_location(row_idx, col_idx)
+        Nd = len(self._data.shape)
+        return torch.diff(self._data[..., h:h + self._sz, w:w + 2], dim=Nd - 1)
+
+    def get_rgradient(self, row_idx, col_idx):
+        h, w = self.patch_location(row_idx, col_idx)
+        Nd = len(self._data.shape)
+        return torch.diff(self._data[..., h:h + self._sz, w + self._sz - 2:w + self._sz], dim=Nd - 1)
+
+    def get_tgradient(self, row_idx, col_idx):
+        h, w = self.patch_location(row_idx, col_idx)
+        Nd = len(self._data.shape)
+        return torch.diff(self._data[..., h:h + 2, w:w + self._sz], dim=Nd - 2)
+
+    def get_bgradient(self, row_idx, col_idx):
+        h, w = self.patch_location(row_idx, col_idx)
+        Nd = len(self._data.shape)
+        return torch.diff(self._data[..., h + self._sz - 2:h + self._sz, w:w + self._sz], dim=Nd - 2)
+
+
+# gradient at the boundary of two patches.
+
+    def get_lneighbor_gradient(self, row_idx, col_idx):
+        h, w = self.patch_location(row_idx, col_idx)
+        Nd = len(self._data.shape)
+        return torch.diff(self._data[..., h:h + self._sz, w - 1:w + 1], dim=Nd - 1)
+
+    def get_rneighbor_gradient(self, row_idx, col_idx):
+        h, w = self.patch_location(row_idx, col_idx)
+        Nd = len(self._data.shape)
+        return torch.diff(self._data[..., h:h + self._sz, w + self._sz - 1:w + self._sz + 1], dim=Nd - 1)
+
+    def get_tneighbor_gradient(self, row_idx, col_idx):
+        h, w = self.patch_location(row_idx, col_idx)
+        Nd = len(self._data.shape)
+        return torch.diff(self._data[..., h - 1:h + 1, w:w + self._sz], dim=Nd - 2)
+
+    def get_bneighbor_gradient(self, row_idx, col_idx):
+        h, w = self.patch_location(row_idx, col_idx)
+        Nd = len(self._data.shape)
+        return torch.diff(self._data[..., h + self._sz - 1:h + self._sz + 1, w:w + self._sz], dim=Nd - 2)
 
     def get_ch0_offset(self, row_idx, col_idx):
         pass
