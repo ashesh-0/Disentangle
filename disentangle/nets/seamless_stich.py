@@ -21,7 +21,7 @@ class Model(nn.Module):
 
 
 class SeamlessStitch(SeamlessStitchBase):
-    def __init__(self, grid_size, stitched_frame, learning_rate):
+    def __init__(self, grid_size, stitched_frame, learning_rate, lr_patience=10):
         super().__init__(grid_size, stitched_frame)
         self.params = Model(self._N)
         self.opt = torch.optim.SGD(self.params.parameters(), lr=learning_rate)
@@ -29,7 +29,7 @@ class SeamlessStitch(SeamlessStitchBase):
 
         self.lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.opt,
                                                                  'min',
-                                                                 patience=10,
+                                                                 patience=lr_patience,
                                                                  factor=0.5,
                                                                  threshold_mode='abs',
                                                                  min_lr=1e-12,
