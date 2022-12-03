@@ -15,8 +15,79 @@ class SeamlessStitchGrad1(SeamlessStitch):
         ------------
             Bottom
     """
+    def __init__(self, grid_size, stitched_frame, learning_rate, lr_patience=10):
+        super().__init__(grid_size, stitched_frame, learning_rate, lr_patience)
+        self.cache = {'lgrad': {}, 'rgrad': {}, 'tgrad': {}, 'bgrad': {}, 'lnb': {}, 'rnb': {}, 'tnb': {}, 'bnb': {}}
+        self.use_caching = False
 
-    # computing loss now.
+    def populate_cache(self, row_idx, col_idx, cache_key, fn):
+        if row_idx not in self.cache[cache_key]:
+            self.cache[cache_key][row_idx] = {}
+
+        if col_idx not in self.cache[cache_key][row_idx]:
+            self.cache[cache_key][row_idx][col_idx] = fn(row_idx, col_idx)
+
+    # caching based gradients
+    def get_lgradient(self, row_idx, col_idx):
+        if not self.use_caching:
+            return super().get_lgradient(row_idx, col_idx)
+        cache_key = 'lgrad'
+        self.populate_cache(row_idx, col_idx, cache_key, super().get_lgradient)
+        return self.cache[cache_key][row_idx][col_idx]
+
+    def get_rgradient(self, row_idx, col_idx):
+        if not self.use_caching:
+            return super().get_rgradient(row_idx, col_idx)
+        cache_key = 'rgrad'
+        self.populate_cache(row_idx, col_idx, cache_key, super().get_rgradient)
+        return self.cache[cache_key][row_idx][col_idx]
+
+    def get_tgradient(self, row_idx, col_idx):
+        if not self.use_caching:
+            return super().get_tgradient(row_idx, col_idx)
+        cache_key = 'tgrad'
+        self.populate_cache(row_idx, col_idx, cache_key, super().get_tgradient)
+        return self.cache[cache_key][row_idx][col_idx]
+
+    def get_bgradient(self, row_idx, col_idx):
+        if not self.use_caching:
+            return super().get_bgradient(row_idx, col_idx)
+        cache_key = 'bgrad'
+        self.populate_cache(row_idx, col_idx, cache_key, super().get_bgradient)
+        return self.cache[cache_key][row_idx][col_idx]
+
+# # gradient at the boundary of two patches.
+
+    def get_lneighbor_gradient(self, row_idx, col_idx):
+        if not self.use_caching:
+            return super().get_lneighbor_gradient(row_idx, col_idx)
+        cache_key = 'lnb'
+        self.populate_cache(row_idx, col_idx, cache_key, super().get_lneighbor_gradient)
+        return self.cache[cache_key][row_idx][col_idx]
+
+    def get_rneighbor_gradient(self, row_idx, col_idx):
+        if not self.use_caching:
+            return super().get_rneighbor_gradient(row_idx, col_idx)
+        cache_key = 'rnb'
+        self.populate_cache(row_idx, col_idx, cache_key, super().get_rneighbor_gradient)
+        return self.cache[cache_key][row_idx][col_idx]
+
+    def get_tneighbor_gradient(self, row_idx, col_idx):
+        if not self.use_caching:
+            return super().get_tneighbor_gradient(row_idx, col_idx)
+        cache_key = 'tnb'
+        self.populate_cache(row_idx, col_idx, cache_key, super().get_tneighbor_gradient)
+        return self.cache[cache_key][row_idx][col_idx]
+
+    def get_bneighbor_gradient(self, row_idx, col_idx):
+        if not self.use_caching:
+            return super().get_bneighbor_gradient(row_idx, col_idx)
+        cache_key = 'bnb'
+        self.populate_cache(row_idx, col_idx, cache_key, super().get_bneighbor_gradient)
+        return self.cache[cache_key][row_idx][col_idx]
+
+
+# computing loss now.
 
     def _compute_loss_on_boundaries(self, boundary1, boundary2, boundary1_offset):
         ch0_loss = self.loss_metric(boundary1[0] + boundary1_offset, boundary2[0])
@@ -70,31 +141,3 @@ class SeamlessStitchGrad1(SeamlessStitch):
         avg_gradient = (top_p_gradient + bottom_p_gradient) / 2
         boundary_gradient = self.get_bneighbor_gradient(row_idx, col_idx)
         return self._compute_loss_on_boundaries(boundary_gradient, avg_gradient, nbr_p - p)
-
-
-if __name__ == '__main__':
-
-    from disentangle.core.tiff_reader import load_tiff
-    import numpy as np
-    import torch
-
-    pref = '2211-D3M3S0-31_P64_G64_M1_Sk32'
-    data0 = load_tiff(f'paper_tifs/{pref}_C0.tif')
-    data1 = load_tiff(f'paper_tifs/{pref}_C1.tif')
-
-    pred0 = data0[0]
-    tar0 = data0[1]
-
-    pred1 = data1[0]
-    tar1 = data1[1]
-
-    pred_np = np.concatenate([pred0[None], pred1[None]], axis=0)
-    tar_np = np.concatenate([tar0[None], tar1[None]], axis=0)
-    pred = torch.Tensor(pred_np).cuda()
-
-    grid_size = 64
-    learning_rate = 200
-    lr_patience = 5
-    # 4347.534
-    # model = SeamlessStitch(grid_size, pred, learning_rate)
-    model = SeamlessStitchGrad1(grid_size, pred, learning_rate, lr_patience=lr_patience)
