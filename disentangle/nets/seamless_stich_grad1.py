@@ -23,7 +23,7 @@ class SeamlessStitchGrad1(SeamlessStitch):
             self.cache[cache_key][row_idx] = {}
 
         if col_idx not in self.cache[cache_key][row_idx]:
-            self.cache[cache_key][row_idx][col_idx] = fn(row_idx, col_idx)
+            self.cache[cache_key][row_idx][col_idx] = fn(row_idx, col_idx).cuda()
 
     # caching based gradients
     def get_lgradient(self, row_idx, col_idx):
@@ -142,10 +142,11 @@ class SeamlessStitchGrad1(SeamlessStitch):
 
 if __name__ == '__main__':
     import torch
-    pred = torch.random.rand((2, 1000, 1000)).cuda()
-    grid_size = 64
-    learning_rate = 200
+    pred = torch.randn(2, 1024, 1024).cuda()
+    grid_size = 32
+    learning_rate = 10
     lr_patience = 5
     # 4347.534
     # model = SeamlessStitch(grid_size, pred, learning_rate)
-    model = SeamlessStitchGrad1(grid_size, pred, learning_rate, lr_patience=lr_patience)
+    stitch_model = SeamlessStitchGrad1(grid_size, pred, learning_rate, lr_patience=lr_patience)
+    loss_arr = stitch_model.fit(steps=10)
