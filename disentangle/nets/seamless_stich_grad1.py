@@ -145,3 +145,4 @@ if __name__ == '__main__':
     # model = SeamlessStitch(grid_size, pred, learning_rate)
     stitch_model = SeamlessStitchGrad1(grid_size, pred, learning_rate, lr_patience=lr_patience)
     loss_arr = stitch_model.fit(steps=10)
+    output = stitch_model.get_output()

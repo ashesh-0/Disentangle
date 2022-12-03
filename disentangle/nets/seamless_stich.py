@@ -36,7 +36,7 @@ class SeamlessStitch(SeamlessStitchBase):
                                                                  verbose=True)
 
     def get_ch0_offset(self, row_idx, col_idx):
-        return self.params[row_idx, col_idx].detach().cpu().numpy()
+        return self.params[row_idx, col_idx].detach().cpu().numpy()[:, None, None]
 
     def _compute_loss_on_boundaries(self, boundary1, boundary2, boundary1_offset):
         ch0_loss = self.loss_metric(boundary1[:, 0] + boundary1_offset[..., None, None], boundary2[:, 0])
