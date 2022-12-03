@@ -87,11 +87,6 @@ class SeamlessStitchGrad1(SeamlessStitch):
 
 # computing loss now.
 
-    def _compute_loss_on_boundaries(self, boundary1, boundary2, boundary1_offset):
-        ch0_loss = self.loss_metric(boundary1[0] + boundary1_offset, boundary2[0])
-        ch1_loss = self.loss_metric(boundary1[1] - boundary1_offset, boundary2[1])
-        return (ch0_loss + ch1_loss) / 2
-
     def _compute_left_loss(self, row_idx, col_idx):
         if col_idx == 0:
             return 0.0
@@ -142,7 +137,7 @@ class SeamlessStitchGrad1(SeamlessStitch):
 
 if __name__ == '__main__':
     import torch
-    pred = torch.randn(2, 1024, 1024).cuda()
+    pred = torch.randn(6, 2, 1024, 1024)
     grid_size = 32
     learning_rate = 10
     lr_patience = 5

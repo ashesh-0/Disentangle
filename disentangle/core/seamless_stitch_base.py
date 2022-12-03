@@ -6,6 +6,7 @@ import torch
 
 class SeamlessStitchBase:
     def __init__(self, grid_size, stitched_frame):
+        assert len(stitched_frame.shape) == 4, 'Frame should be of shape (num_images,H,W,2)'
         self._data = stitched_frame
         self._sz = grid_size
         self._N = stitched_frame.shape[-1] // self._sz
@@ -89,6 +90,6 @@ class SeamlessStitchBase:
         for row_idx in range(self._N):
             for col_idx in range(self._N):
                 h, w = self.patch_location(row_idx, col_idx)
-                data[0, h:h + self._sz, w:w + self._sz] += self.get_ch0_offset(row_idx, col_idx)
-                data[1, h:h + self._sz, w:w + self._sz] -= self.get_ch0_offset(row_idx, col_idx)
+                data[..., 0, h:h + self._sz, w:w + self._sz] += self.get_ch0_offset(row_idx, col_idx)
+                data[..., 1, h:h + self._sz, w:w + self._sz] -= self.get_ch0_offset(row_idx, col_idx)
         return data

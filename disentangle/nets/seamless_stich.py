@@ -9,21 +9,21 @@ from disentangle.core.seamless_stitch_base import SeamlessStitchBase
 
 
 class Model(nn.Module):
-    def __init__(self, N):
+    def __init__(self, num_samples, N):
         super().__init__()
         self._N = N
-        self.params = nn.Parameter(torch.zeros(self._N, self._N))
+        self.params = nn.Parameter(torch.zeros(num_samples, self._N, self._N))
         self.shape = self.params.shape
 
     def __getitem__(self, pos):
         i, j = pos
-        return self.params[i, j]
+        return self.params[:, i, j]
 
 
 class SeamlessStitch(SeamlessStitchBase):
     def __init__(self, grid_size, stitched_frame, learning_rate, lr_patience=10):
         super().__init__(grid_size, stitched_frame)
-        self.params = Model(self._N)
+        self.params = Model(len(stitched_frame), self._N)
         self.opt = torch.optim.SGD(self.params.parameters(), lr=learning_rate)
         self.loss_metric = nn.L1Loss(reduction='sum')
 
@@ -36,11 +36,11 @@ class SeamlessStitch(SeamlessStitchBase):
                                                                  verbose=True)
 
     def get_ch0_offset(self, row_idx, col_idx):
-        return self.params[row_idx, col_idx].item()
+        return self.params[row_idx, col_idx].detach().cpu().numpy()
 
-    def _compute_loss_on_boundaries(self, boundary1, boundary2, boundary1_param):
-        ch0_loss = self.loss_metric(boundary1[0] + boundary1_param, boundary2[0])
-        ch1_loss = self.loss_metric(boundary1[1] - boundary1_param, boundary2[1])
+    def _compute_loss_on_boundaries(self, boundary1, boundary2, boundary1_offset):
+        ch0_loss = self.loss_metric(boundary1[:, 0] + boundary1_offset[..., None, None], boundary2[:, 0])
+        ch1_loss = self.loss_metric(boundary1[:, 1] - boundary1_offset[..., None, None], boundary2[:, 1])
         return (ch0_loss + ch1_loss) / 2
 
     def _compute_left_loss(self, row_idx, col_idx):
