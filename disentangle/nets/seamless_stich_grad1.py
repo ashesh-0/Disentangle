@@ -1,6 +1,4 @@
 from disentangle.nets.seamless_stich import SeamlessStitch
-import numpy as np
-import torch
 
 
 class SeamlessStitchGrad1(SeamlessStitch):
@@ -141,3 +139,13 @@ class SeamlessStitchGrad1(SeamlessStitch):
         avg_gradient = (top_p_gradient + bottom_p_gradient) / 2
         boundary_gradient = self.get_bneighbor_gradient(row_idx, col_idx)
         return self._compute_loss_on_boundaries(boundary_gradient, avg_gradient, nbr_p - p)
+
+if __name__ == '__main__':
+    import torch
+    pred = torch.random.rand((2, 1000, 1000)).cuda()
+    grid_size = 64
+    learning_rate = 200
+    lr_patience = 5
+    # 4347.534
+    # model = SeamlessStitch(grid_size, pred, learning_rate)
+    model = SeamlessStitchGrad1(grid_size, pred, learning_rate, lr_patience=lr_patience)
