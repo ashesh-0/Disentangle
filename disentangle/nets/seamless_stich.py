@@ -113,7 +113,7 @@ class SeamlessStitch(SeamlessStitchBase):
 
         return b1_arr, b2_arr, offset_arr
 
-    def compute_loss(self):
+    def compute_loss(self, batch_size=100):
         loss = 0.0
         b1_arr = []
         b2_arr = []
@@ -125,19 +125,20 @@ class SeamlessStitch(SeamlessStitchBase):
                 b1_arr += a
                 b2_arr += b
                 offset_arr += c
-            loss += self._compute_loss_on_boundaries(torch.cat(b1_arr, dim=0), torch.cat(b2_arr, dim=0),
-                                                     torch.cat(offset_arr, dim=0)) / (2 * ((self._N - 1)**2))
-            b1_arr = []
-            b2_arr = []
-            offset_arr = []
+                if batch_size <= len(b1_arr):
+                    loss += self._compute_loss_on_boundaries(torch.cat(b1_arr, dim=0), torch.cat(b2_arr, dim=0),
+                                                             torch.cat(offset_arr, dim=0)) / (2 * ((self._N - 1)**2))
+                    b1_arr = []
+                    b2_arr = []
+                    offset_arr = []
         return loss
 
-    def fit(self, steps=100):
+    def fit(self, batch_size=512, steps=100):
         loss_arr = []
         steps_iter = tqdm(range(steps))
         for _ in steps_iter:
             self.params.zero_grad()
-            loss = self.compute_loss()
+            loss = self.compute_loss(batch_size=batch_size)
             loss.backward()
             self.opt.step()
 
