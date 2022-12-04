@@ -52,7 +52,7 @@ class SeamlessStitch(SeamlessStitchBase):
 
         left_p_boundary = self.get_lboundary(row_idx, col_idx)
         right_p_boundary = self.get_rboundary(row_idx, col_idx - 1)
-        return self._compute_loss_on_boundaries(left_p_boundary, right_p_boundary, p)
+        return (left_p_boundary, right_p_boundary, p)
 
     def _compute_right_loss(self, row_idx, col_idx):
         if col_idx == self.params.shape[1] - 1:
@@ -61,7 +61,7 @@ class SeamlessStitch(SeamlessStitchBase):
 
         left_p_boundary = self.get_lboundary(row_idx, col_idx + 1)
         right_p_boundary = self.get_rboundary(row_idx, col_idx)
-        return self._compute_loss_on_boundaries(right_p_boundary, left_p_boundary, p)
+        return (right_p_boundary, left_p_boundary, p)
 
     def _compute_top_loss(self, row_idx, col_idx):
         if row_idx == 0:
@@ -70,7 +70,7 @@ class SeamlessStitch(SeamlessStitchBase):
 
         top_p_boundary = self.get_tboundary(row_idx, col_idx)
         bottom_p_boundary = self.get_bboundary(row_idx - 1, col_idx)
-        return self._compute_loss_on_boundaries(top_p_boundary, bottom_p_boundary, p)
+        return (top_p_boundary, bottom_p_boundary, p)
 
     def _compute_bottom_loss(self, row_idx, col_idx):
         if row_idx == self.params.shape[1] - 1:
@@ -79,7 +79,7 @@ class SeamlessStitch(SeamlessStitchBase):
 
         top_p_boundary = self.get_tboundary(row_idx + 1, col_idx)
         bottom_p_boundary = self.get_bboundary(row_idx, col_idx)
-        return self._compute_loss_on_boundaries(bottom_p_boundary, top_p_boundary, p)
+        return (bottom_p_boundary, top_p_boundary, p)
 
     def _compute_loss(self, row_idx, col_idx):
         left_loss = self._compute_left_loss(row_idx, col_idx)
