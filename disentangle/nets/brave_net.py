@@ -12,17 +12,52 @@ def get_activation(activation_str):
         return nn.ReLU()
 
 
-def conv_block(in_channels, out_channels, kernel_size, strides, padding, activation, dropout, bn):
+def merge_conv_block(last_num_channels):
     modules = []
-    modules.append(nn.Conv2d(in_channels, out_channels, kernel_size, stride=strides, padding=padding))
-    modules.append(get_activation(activation))
-    if bn:
-        modules.append(nn.BatchNorm2d(out_channels))
-    modules.append(nn.Dropout(p=dropout))
-    modules.append(nn.Conv2d(out_channels, out_channels, kernel_size, stride=strides, padding=padding))
-    modules.append(get_activation(activation))
-    if bn:
-        modules.append(nn.BatchNorm2d(out_channels))
+    modules.append(
+        convolution_layer(2 * last_num_channels,
+                          last_num_channels,
+                          1,
+                          stride=1,
+                          padding=0,
+                          activation='relu',
+                          dropout=0,
+                          bn=False))
+
+    modules.append(
+        convolution_layer(last_num_channels,
+                          last_num_channels,
+                          1,
+                          stride=1,
+                          padding=0,
+                          activation='relu',
+                          dropout=0,
+                          bn=False))
+    return nn.Sequential(*modules)
+
+
+def downscale_conv_block(in_channels, out_channels, kernel_size, strides, padding, activation, dropout, bn):
+    modules = []
+    modules.append(
+        convolution_layer(in_channels,
+                          out_channels,
+                          kernel_size,
+                          stride=strides,
+                          padding=padding,
+                          activation=activation,
+                          dropout=dropout,
+                          bn=bn))
+
+    modules.append(
+        convolution_layer(in_channels,
+                          out_channels,
+                          kernel_size,
+                          stride=strides,
+                          padding=padding,
+                          activation=activation,
+                          dropout=0,
+                          bn=bn))
+
     return nn.Sequential(*modules)
 
 
@@ -33,7 +68,7 @@ def down_scale_path(num_kernels, kernel_size, strides, padding, activation, drop
     blocks = nn.ModuleList([])
     input_ch_N = 1
     for ch_N in num_kernels:
-        blocks.append(conv_block(input_ch_N, ch_N, kernel_size, strides, padding, activation, dropout, bn))
+        blocks.append(downscale_conv_block(input_ch_N, ch_N, kernel_size, strides, padding, activation, dropout, bn))
         input_ch_N = ch_N
     return blocks
 
@@ -51,7 +86,8 @@ def convolution_layer(in_channels,
     branch.append(get_activation(activation))
     if bn:
         branch.append(nn.BatchNorm2d(1))
-    branch.append(nn.Dropout(p=dropout))
+    if dropout > 0:
+        branch.append(nn.Dropout(p=dropout))
 
     return nn.Sequential(*branch)
 
@@ -87,7 +123,15 @@ class BraveNet(nn.Module):
     def __init__(self, num_kernels, kernel_size, strides, padding, activation, dropout, bn):
         super().__init__()
         self.num_kernels = num_kernels
+        self.input_bn = nn.BatchNorm2d(1)
+        self.lowres_input_bn = nn.BatchNorm2d(1)
+
         self.bottom_up_layers = down_scale_path(num_kernels, kernel_size, strides, padding, activation, dropout, bn)
+        self.lowres_bottom_up_layers = down_scale_path(num_kernels, kernel_size, strides, padding, activation, dropout,
+                                                       bn)
+
+        # Merging bu layer output with lowres bu layer output
+        self.merge_block = merge_conv_block(num_kernels[-1])
         final_activation = None
         self.lowres_output_branches = lowres_output_branches(num_kernels, final_activation, dropout, bn)
         self.output_branch = convolution_layer(num_kernels[0],
@@ -101,13 +145,13 @@ class BraveNet(nn.Module):
         self.num_kernels = num_kernels
         self.top_down_layers = up_scale_path(num_kernels, kernel_size, strides, padding, activation, dropout, bn)
 
-    def bottom_up(self, input):
+    def bottom_up(self, input, bu_layers):
         residuals = {}
         conv_down = input
-        for i, k in enumerate(self.num_kernels):
+        for i in range(len(self.num_kernels)):
             # level i
-            conv_down = self.bottom_up_layers[i](conv_down)
-            residuals["conv_" + str(i)] = conv_down
+            conv_down = bu_layers[i](conv_down)
+            residuals[f"conv_{i}"] = conv_down
             if i < len(self.num_kernels) - 1:
                 conv_down = nn.MaxPool2d(2, stride=2)(conv_down)
 
@@ -128,4 +172,23 @@ class BraveNet(nn.Module):
 
         output = self.output_branch(conv_up)
         outputs.append(output)
+        return outputs
+
+    def get_merged_residuals(self, bu_res, lr_bu_res):
+        ### CONCAT/PREPARE RESIDUALS
+        merged_residuals = {}
+        for key in bu_res.keys():
+            merged_residuals[key] = torch.cat([bu_res[key], lr_bu_res[key]], dim=1)
+        return merged_residuals
+
+    def forward(self, input, lowres_input):
+        input = self.input_bn(input)
+        lowres_input = self.lowres_input_bn(lowres_input)
+
+        bu_out, bu_res = self.bottom_up(input, self.bottom_up_layers)
+        lr_bu_out, lr_bu_res = self.bottom_up(lowres_input, self.lowres_bottom_up_layers)
+        bu_out = torch.cat([bu_out, lr_bu_out], dim=1)
+        bu_out = self.merge_block(bu_out)
+        residuals = self.get_merged_residuals(bu_res, lr_bu_res)
+        outputs = self.top_down(bu_out, residuals)
         return outputs
