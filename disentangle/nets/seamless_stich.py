@@ -131,6 +131,10 @@ class SeamlessStitch(SeamlessStitchBase):
                     b1_arr = []
                     b2_arr = []
                     offset_arr = []
+
+        if len(offset_arr):
+            loss += self._compute_loss_on_boundaries(torch.cat(b1_arr, dim=0), torch.cat(b2_arr, dim=0),
+                                                     torch.cat(offset_arr, dim=0)) / (2 * ((self._N - 1)**2))
         return loss
 
     def fit(self, batch_size=512, steps=100):
