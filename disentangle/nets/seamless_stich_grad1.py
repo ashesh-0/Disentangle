@@ -89,7 +89,7 @@ class SeamlessStitchGrad1(SeamlessStitch):
 
     def _compute_left_loss(self, row_idx, col_idx):
         if col_idx == 0:
-            return 0.0
+            return None
         p = self.params[row_idx, col_idx]
         nbr_p = self.params[row_idx, col_idx - 1]
 
@@ -97,11 +97,11 @@ class SeamlessStitchGrad1(SeamlessStitch):
         right_p_gradient = self.get_rgradient(row_idx, col_idx - 1)
         avg_gradient = (left_p_gradient + right_p_gradient) / 2
         boundary_gradient = self.get_lneighbor_gradient(row_idx, col_idx)
-        return self._compute_loss_on_boundaries(boundary_gradient, avg_gradient, p - nbr_p)
+        return (boundary_gradient.squeeze(), avg_gradient.squeeze(), p - nbr_p)
 
     def _compute_right_loss(self, row_idx, col_idx):
         if col_idx == self.params.shape[1] - 1:
-            return 0.0
+            return None
         p = self.params[row_idx, col_idx]
         nbr_p = self.params[row_idx, col_idx + 1]
 
@@ -109,11 +109,11 @@ class SeamlessStitchGrad1(SeamlessStitch):
         right_p_gradient = self.get_rgradient(row_idx, col_idx)
         avg_gradient = (left_p_gradient + right_p_gradient) / 2
         boundary_gradient = self.get_rneighbor_gradient(row_idx, col_idx)
-        return self._compute_loss_on_boundaries(boundary_gradient, avg_gradient, nbr_p - p)
+        return (boundary_gradient.squeeze(), avg_gradient.squeeze(), nbr_p - p)
 
     def _compute_top_loss(self, row_idx, col_idx):
         if row_idx == 0:
-            return 0.0
+            return None
         p = self.params[row_idx, col_idx]
         nbr_p = self.params[row_idx - 1, col_idx]
 
@@ -121,11 +121,11 @@ class SeamlessStitchGrad1(SeamlessStitch):
         bottom_p_gradient = self.get_bgradient(row_idx - 1, col_idx)
         avg_gradient = (top_p_gradient + bottom_p_gradient) / 2
         boundary_gradient = self.get_tneighbor_gradient(row_idx, col_idx)
-        return self._compute_loss_on_boundaries(boundary_gradient, avg_gradient, p - nbr_p)
+        return (boundary_gradient.squeeze(), avg_gradient.squeeze(), p - nbr_p)
 
     def _compute_bottom_loss(self, row_idx, col_idx):
         if row_idx == self.params.shape[1] - 1:
-            return 0.0
+            return None
         p = self.params[row_idx, col_idx]
         nbr_p = self.params[row_idx + 1, col_idx]
 
@@ -133,7 +133,7 @@ class SeamlessStitchGrad1(SeamlessStitch):
         bottom_p_gradient = self.get_bgradient(row_idx, col_idx)
         avg_gradient = (top_p_gradient + bottom_p_gradient) / 2
         boundary_gradient = self.get_bneighbor_gradient(row_idx, col_idx)
-        return self._compute_loss_on_boundaries(boundary_gradient, avg_gradient, nbr_p - p)
+        return (boundary_gradient.squeeze(), avg_gradient.squeeze(), nbr_p - p)
 
 if __name__ == '__main__':
     import torch

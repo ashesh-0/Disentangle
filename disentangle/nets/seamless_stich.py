@@ -39,8 +39,10 @@ class SeamlessStitch(SeamlessStitchBase):
         return self.params[row_idx, col_idx].detach().cpu().numpy()[:, None, None]
 
     def _compute_loss_on_boundaries(self, boundary1, boundary2, boundary1_offset):
-        ch0_loss = self.loss_metric(boundary1[:, 0] + boundary1_offset[..., None, None], boundary2[:, 0])
-        ch1_loss = self.loss_metric(boundary1[:, 1] - boundary1_offset[..., None, None], boundary2[:, 1])
+        # return torch.Tensor([0.0])
+        ch0_loss = self.loss_metric(boundary1[:, 0] + boundary1_offset[..., None], boundary2[:, 0])
+        ch1_loss = self.loss_metric(boundary1[:, 1] - boundary1_offset[..., None], boundary2[:, 1])
+
         return (ch0_loss + ch1_loss) / 2
 
     def _compute_left_loss(self, row_idx, col_idx):
@@ -85,13 +87,49 @@ class SeamlessStitch(SeamlessStitchBase):
 
         top_loss = self._compute_top_loss(row_idx, col_idx)
         bottom_loss = self._compute_bottom_loss(row_idx, col_idx)
-        return left_loss + right_loss + top_loss + bottom_loss
+
+        b1_arr = []
+        b2_arr = []
+        offset_arr = []
+        if left_loss is not None:
+            b1_arr.append(left_loss[0])
+            b2_arr.append(left_loss[1])
+            offset_arr.append(left_loss[2])
+
+        if right_loss is not None:
+            b1_arr.append(right_loss[0])
+            b2_arr.append(right_loss[1])
+            offset_arr.append(right_loss[2])
+
+        if top_loss is not None:
+            b1_arr.append(top_loss[0])
+            b2_arr.append(top_loss[1])
+            offset_arr.append(top_loss[2])
+
+        if bottom_loss is not None:
+            b1_arr.append(bottom_loss[0])
+            b2_arr.append(bottom_loss[1])
+            offset_arr.append(bottom_loss[2])
+
+        return b1_arr, b2_arr, offset_arr
 
     def compute_loss(self):
         loss = 0.0
+        b1_arr = []
+        b2_arr = []
+        offset_arr = []
+        loss = 0.0
         for row_idx in range(self._N):
             for col_idx in range(self._N):
-                loss += self._compute_loss(row_idx, col_idx) / (2 * ((self._N - 1)**2))
+                a, b, c = self._compute_loss(row_idx, col_idx)
+                b1_arr += a
+                b2_arr += b
+                offset_arr += c
+            loss += self._compute_loss_on_boundaries(torch.cat(b1_arr, dim=0), torch.cat(b2_arr, dim=0),
+                                                     torch.cat(offset_arr, dim=0)) / (2 * ((self._N - 1)**2))
+            b1_arr = []
+            b2_arr = []
+            offset_arr = []
         return loss
 
     def fit(self, steps=100):
