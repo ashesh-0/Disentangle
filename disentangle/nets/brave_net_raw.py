@@ -163,6 +163,10 @@ class BraveNet(nn.Module):
         return conv_down, residuals
 
     def top_down(self, bu_output, residuals, output_dim):
+        """
+        Returns a list of predictions.
+        first element will be the primary output.
+        """
         outputs = []
         conv_up = bu_output
         for i in range(len(self.num_kernels) - 1):
@@ -177,7 +181,7 @@ class BraveNet(nn.Module):
 
         output = self.output_branch(conv_up)
         outputs.append(output)
-        return outputs
+        return outputs[::-1]
 
     def get_merged_residuals(self, bu_res, lr_bu_res):
         ### CONCAT/PREPARE RESIDUALS
