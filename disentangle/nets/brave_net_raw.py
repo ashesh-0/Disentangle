@@ -2,860 +2,217 @@
 This file defines the unet architecture.
 """
 
-from tensorflow import split
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Dropout, Convolution2D, Convolution3D, MaxPooling2D, MaxPooling3D, Input, UpSampling2D, UpSampling3D, AveragePooling2D, AveragePooling3D, concatenate, BatchNormalization, Flatten, Dense, Reshape
 import numpy as np
-from tensorflow.keras.layers import Lambda
+import torch.nn as nn
+import torch
 
 
-def conv_block(m, num_kernels, kernel_size, strides, padding, activation, dropout, data_format, bn):
+def get_activation(activation_str):
+    if activation_str == 'relu':
+        return nn.ReLU()
+    else:
+        raise Exception('Invalid activation string:', activation_str)
+
+
+def merge_conv_block(last_num_channels):
+    modules = []
+    modules.append(
+        convolution_layer(2 * last_num_channels,
+                          last_num_channels,
+                          1,
+                          stride=1,
+                          padding=0,
+                          activation='relu',
+                          dropout=0,
+                          bn=False))
+
+    modules.append(
+        convolution_layer(last_num_channels,
+                          last_num_channels,
+                          1,
+                          stride=1,
+                          padding=0,
+                          activation='relu',
+                          dropout=0,
+                          bn=False))
+    return nn.Sequential(*modules)
+
+
+def downscale_upscale_conv_block(in_channels, out_channels, kernel_size, strides, padding, activation, dropout, bn):
+    modules = []
+    modules.append(
+        convolution_layer(in_channels,
+                          out_channels,
+                          kernel_size,
+                          stride=strides,
+                          padding=padding,
+                          activation=activation,
+                          dropout=dropout,
+                          bn=bn))
+
+    modules.append(
+        convolution_layer(out_channels,
+                          out_channels,
+                          kernel_size,
+                          stride=strides,
+                          padding=padding,
+                          activation=activation,
+                          dropout=0,
+                          bn=bn))
+
+    return nn.Sequential(*modules)
+
+
+def down_scale_path(num_kernels, kernel_size, strides, padding, activation, dropout, bn):
     """
-	Bulding block with convolutional layers for one level.
-	:param m: model
-	:param num_kernels: number of convolution filters on the particular level, positive integer
-	:param kernel_size: size of the convolution kernel, tuple of two positive integers
-	:param strides: strides values, tuple of two positive integers
-	:param padding: used padding by convolution, takes values: 'same' or 'valid'
-	:param activation: activation_function after every convolution
-	:param dropout: percentage of weights to be dropped, float between 0 and 1
-	:param data_format: ordering of the dimensions in the inputs, takes values: 'channel_first' or 'channel_last'
-	:param bn: weather to use Batch Normalization layers after each convolution layer, True for use Batch Normalization,
-	 False do not use Batch Normalization
-	:return: model
-	"""
-    n = Convolution2D(num_kernels,
+    define bottom up layers
+    """
+    blocks = nn.ModuleList([])
+    input_ch_N = 1
+    for ch_N in num_kernels:
+        blocks.append(
+            downscale_upscale_conv_block(input_ch_N, ch_N, kernel_size, strides, padding, activation, dropout, bn))
+        input_ch_N = ch_N
+    return blocks
+
+
+def convolution_layer(in_channels,
+                      out_channels,
                       kernel_size,
-                      strides=strides,
-                      activation=activation,
-                      padding=padding,
-                      data_format=data_format)(m)
-    n = BatchNormalization()(n) if bn else n
-    n = Dropout(dropout)(n)
-    n = Convolution2D(num_kernels,
-                      kernel_size,
-                      strides=strides,
-                      activation=activation,
-                      padding=padding,
-                      data_format=data_format)(n)
-    n = BatchNormalization()(n) if bn else n
-    return n
+                      stride=1,
+                      padding=0,
+                      activation=None,
+                      dropout=0.0,
+                      bn=True):
+    branch = []
+    branch.append(nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding))
+    branch.append(get_activation(activation))
+    if bn:
+        branch.append(nn.BatchNorm2d(out_channels))
+    if dropout > 0:
+        branch.append(nn.Dropout(p=dropout))
+
+    return nn.Sequential(*branch)
 
 
-def conv_block_3d(m, num_kernels, kernel_size, strides, padding, activation, dropout, data_format, bn):
-    """
-	Bulding block with convolutional layers for one level.
-	:param m: model
-	:param num_kernels: number of convolution filters on the particular level, positive integer
-	:param kernel_size: size of the convolution kernel, tuple of two positive integers
-	:param strides: strides values, tuple of two positive integers
-	:param padding: used padding by convolution, takes values: 'same' or 'valid'
-	:param activation: activation_function after every convolution
-	:param dropout: percentage of weights to be dropped, float between 0 and 1
-	:param data_format: ordering of the dimensions in the inputs, takes values: 'channel_first' or 'channel_last'
-	:param bn: weather to use Batch Normalization layers after each convolution layer, True for use Batch Normalization,
-	 False do not use Batch Normalization
-	:return: model
-	"""
-    n = Convolution3D(num_kernels,
-                      kernel_size,
-                      strides=strides,
-                      activation=activation,
-                      padding=padding,
-                      data_format=data_format)(m)
-    n = BatchNormalization()(n) if bn else n
-    n = Dropout(dropout)(n)
-    n = Convolution3D(num_kernels,
-                      kernel_size,
-                      strides=strides,
-                      activation=activation,
-                      padding=padding,
-                      data_format=data_format)(n)
-    n = BatchNormalization()(n) if bn else n
-    return n
+def lowres_output_branches(num_kernels, final_activation, dropout):
+    blocks = nn.ModuleList([])
+    N = len(num_kernels)
+    for i in range(N - 2):
+        branch = convolution_layer(
+            num_kernels[N - i - 2],
+            2,
+            1,
+            stride=1,
+            padding=0,  #TODO: check
+            activation=final_activation,
+            dropout=dropout,
+            bn=False)  #TODO: check this
+        blocks.append(branch)
+    return blocks
 
 
-def dense_block(input, depth, data_format):
-
-    n = Dense(depth, activation='sigmoid')(input)
-    n = Dense(depth, activation='sigmoid')(n)
-
-    return n
-
-
-def up_concat_block(m, concat_channels, pool_size, concat_axis, data_format):
-    """
-	:param m: model
-	:param concat_channels: channels from left side onf Unet to be concatenated with the right part on one level
-	:param pool_size: factors by which to downscale (vertical, horizontal), tuple of two positive integers
-	:param concat_axis: concatenation axis, concatenate over channels, positive integer
-	:param data_format: ordering of the dimensions in the inputs, takes values: 'channel_first' or 'channel_last'
-	:return: model    """
-    n = UpSampling2D(size=pool_size, data_format=data_format)(m)
-    n = concatenate([n, concat_channels], axis=concat_axis)
-    return n
-
-
-def up_concat_block_3d(m, concat_channels, pool_size, concat_axis, data_format):
-    """
-	:param m: model
-	:param concat_channels: channels from left side onf Unet to be concatenated with the right part on one level
-	:param pool_size: factors by which to downscale (vertical, horizontal), tuple of two positive integers
-	:param concat_axis: concatenation axis, concatenate over channels, positive integer
-	:param data_format: ordering of the dimensions in the inputs, takes values: 'channel_first' or 'channel_last'
-	:return: model    """
-    n = UpSampling3D(size=pool_size, data_format=data_format)(m)
-    n = concatenate([n, concat_channels], axis=concat_axis)
-    return n
-
-
-def down_scale_path(inputs, num_kernels, kernel_size, strides, pool_size, padding, activation, dropout, data_format,
-                    bn):
-    # DOWN-SAMPLING PART (left side of the U-net)
-    # layers on each level: convolution2d -> dropout -> convolution2d -> max-pooling
-    # last level without max-pooling
-    residuals = {}
-    conv_down = inputs
-    for i, k in enumerate(num_kernels):
-        # level i
-        conv_down = conv_block(conv_down, k, kernel_size, strides, padding, activation, dropout, data_format, bn)
-        residuals["conv_" + str(i)] = conv_down
-        if i < len(num_kernels) - 1:
-            conv_down = MaxPooling2D(pool_size=pool_size, data_format=data_format)(conv_down)
-
-    return conv_down, residuals
-
-
-def down_scale_path_3d(inputs, num_kernels, kernel_size, strides, pool_size, padding, activation, dropout, data_format,
-                       bn):
-    # DOWN-SAMPLING PART (left side of the U-net)
-    # layers on each level: convolution2d -> dropout -> convolution2d -> max-pooling
-    # last level without max-pooling
-
-    residuals = {}
-    conv_down = inputs
-    for i, k in enumerate(num_kernels):
-        # level i
-        conv_down = conv_block_3d(conv_down, k, kernel_size, strides, padding, activation, dropout, data_format, bn)
-        residuals["conv_" + str(i)] = conv_down
-        if i < len(num_kernels) - 1:
-            conv_down = MaxPooling3D(pool_size=pool_size, data_format=data_format)(conv_down)
-
-    return conv_down, residuals
-
-
-def up_scale_path(inputs, residuals, num_kernels, kernel_size, strides, pool_size, concat_axis, padding, activation,
-                  final_activation, dropout, data_format, bn):
-
-    # UP-SAMPLING PART (right side of the U-net)
-    # layers on each level: upsampling2d -> concatenation with feature maps of corresponding level from down-sampling
-    # part -> convolution2d -> dropout -> convolution2d
-    # final convolutional layer maps feature maps to desired number of classes
-
-    conv_up = inputs
-    output_dim = residuals["conv_0"].shape
+def up_scale_path(num_kernels, kernel_size, strides, padding, activation, dropout, bn):
+    blocks = nn.ModuleList([])
+    input_ch_N = num_kernels[-1]
     for i in range(len(num_kernels) - 1):
-        # level i
-        conv_up = up_concat_block(conv_up, residuals["conv_" + str(len(num_kernels) - i - 2)], pool_size, concat_axis,
-                                  data_format)
-        conv_up = conv_block(conv_up, num_kernels[len(num_kernels) - i - 2], kernel_size, strides, padding, activation,
-                             dropout, data_format, bn)
-
-    final_conv = Convolution2D(1,
-                               1,
-                               strides=strides,
-                               activation=final_activation,
-                               padding=padding,
-                               data_format=data_format)(conv_up)
-    return final_conv
-
-
-def up_scale_path_3d(inputs, residuals, num_kernels, kernel_size, strides, pool_size, concat_axis, padding, activation,
-                     final_activation, dropout, data_format, bn):
-
-    # UP-SAMPLING PART (right side of the U-net)
-    # layers on each level: upsampling2d -> concatenation with feature maps of corresponding level from down-sampling
-    # part -> convolution2d -> dropout -> convolution2d
-    # final convolutional layer maps feature maps to desired number of classes
-
-    conv_up = inputs
-    output_dim = residuals["conv_0"].shape
-    for i in range(len(num_kernels) - 1):
-        # level i
-        conv_up = up_concat_block_3d(conv_up, residuals["conv_" + str(len(num_kernels) - i - 2)], pool_size,
-                                     concat_axis, data_format)
-        conv_up = conv_block_3d(conv_up, num_kernels[len(num_kernels) - i - 2], kernel_size, strides, padding,
-                                activation, dropout, data_format, bn)
-
-    final_conv = Convolution3D(1,
-                               1,
-                               strides=strides,
-                               activation=final_activation,
-                               padding=padding,
-                               data_format=data_format)(conv_up)
-    return final_conv
-
-
-def up_scale_path_ds_3d(inputs, residuals, num_kernels, kernel_size, strides, pool_size, concat_axis, padding,
-                        activation, final_activation, dropout, data_format, bn):
-
-    # UP-SAMPLING PART (right side of the U-net)
-    # layers on each level: upsampling2d -> concatenation with feature maps of corresponding level from down-sampling
-    # part -> convolution2d -> dropout -> convolution2d
-    # final convolutional layer maps feature maps to desired number of classes
-
-    outputs = []
-    conv_up = inputs
-    output_dim = residuals["conv_0"].shape
-    for i in range(len(num_kernels) - 1):
-        # level i
-        conv_up = up_concat_block_3d(conv_up, residuals["conv_" + str(len(num_kernels) - i - 2)], pool_size,
-                                     concat_axis, data_format)
-        conv_up = conv_block_3d(conv_up, num_kernels[len(num_kernels) - i - 2], kernel_size, strides, padding,
-                                activation, dropout, data_format, bn)
-
-        if i < len(num_kernels) - 2:
-            # get level prediction
-            output = UpSampling3D(size=(int(output_dim[1].value / conv_up.shape[1].value),
-                                        int(output_dim[2].value / conv_up.shape[2].value),
-                                        int(output_dim[3].value / conv_up.shape[3].value)),
-                                  data_format=data_format)(conv_up)
-            output = Convolution3D(1,
-                                   1,
-                                   strides=strides,
-                                   activation=final_activation,
-                                   padding=padding,
-                                   data_format=data_format)(output)
-            outputs.append(output)
-
-    final_conv = Convolution3D(1,
-                               1,
-                               strides=strides,
-                               activation=final_activation,
-                               padding=padding,
-                               data_format=data_format)(conv_up)
-    outputs.append(final_conv)
-
-    return outputs
-
-
-def up_scale_path_ds(inputs, residuals, num_kernels, kernel_size, strides, pool_size, concat_axis, padding, activation,
-                     final_activation, dropout, data_format, bn):
-
-    # UP-SAMPLING PART (right side of the U-net)
-    # layers on each level: upsampling2d -> concatenation with feature maps of corresponding level from down-sampling
-    # part -> convolution2d -> dropout -> convolution2d
-    # final convolutional layer maps feature maps to desired number of classes
-    outputs = []
-    conv_up = inputs
-    output_dim = residuals["conv_0"].shape
-    for i in range(len(num_kernels) - 1):
-        # level i
-        conv_up = up_concat_block(conv_up, residuals["conv_" + str(len(num_kernels) - i - 2)], pool_size, concat_axis,
-                                  data_format)
-        conv_up = conv_block(conv_up, num_kernels[len(num_kernels) - i - 2], kernel_size, strides, padding, activation,
-                             dropout, data_format, bn)
-
-        if i < len(num_kernels) - 2:
-            # get level prediction
-            output = UpSampling2D(size=(int(output_dim[1] // conv_up.shape[1]), int(output_dim[2] // conv_up.shape[2])),
-                                  data_format=data_format)(conv_up)
-            output = Convolution2D(1,
-                                   1,
-                                   strides=strides,
-                                   activation=final_activation,
-                                   padding=padding,
-                                   data_format=data_format)(output)
-            outputs.append(output)
-
-    final_conv = Convolution2D(1,
-                               1,
-                               strides=strides,
-                               activation=final_activation,
-                               padding=padding,
-                               data_format=data_format)(conv_up)
-    outputs.append(final_conv)
-
-    return outputs
-
-
-### UNET-2D ###
-def get_unet_2d(input_dim,
-                num_channels,
-                dropout,
-                activation='relu',
-                final_activation='sigmoid',
-                kernel_size=(3, 3),
-                pool_size=(2, 2),
-                strides=(1, 1),
-                num_kernels=None,
-                concat_axis=-1,
-                data_format='channels_last',
-                padding='same',
-                bn=True):
-
-    # build model
-    # specify the input shape
-    inputs = Input((input_dim[0], input_dim[1], num_channels))
-    # BN for inputs
-    layer = BatchNormalization()(inputs)
-
-    # --- Down-scale side
-    conv_down, residuals = down_scale_path(layer, num_kernels, kernel_size, strides, pool_size, padding, activation,
-                                           dropout, data_format, bn)
-
-    # Fully connected 1
-    fl1 = Convolution2D(num_kernels[-1], (1, 1),
-                        strides=(1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(conv_down)
-    # Fully connected 2
-    fl2 = Convolution2D(num_kernels[-1], (1, 1),
-                        strides=(1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(fl1)
-
-    # --- Up-scale side
-    outputs = up_scale_path(fl2, residuals, num_kernels, kernel_size, strides, pool_size, concat_axis, padding,
-                            activation, final_activation, dropout, data_format, bn)
-
-    model = Model(inputs=inputs, outputs=outputs)
-
-    # print out model summary to console
-    model.summary()
-
-    return model
-
-
-### UNET-3D ###
-def get_unet_3d(input_dim,
-                num_channels,
-                dropout,
-                activation='relu',
-                final_activation='sigmoid',
-                kernel_size=(3, 3, 3),
-                pool_size=(2, 2, 2),
-                strides=(1, 1, 1),
-                num_kernels=None,
-                concat_axis=-1,
-                data_format='channels_last',
-                padding='same',
-                bn=True):
-
-    # build model
-    # specify the input shape
-    inputs = Input((input_dim[0], input_dim[1], input_dim[2], num_channels))
-    # BN for inputs
-    layer = BatchNormalization()(inputs)
-
-    # --- Down-scale side
-    conv_down, residuals = down_scale_path_3d(layer, num_kernels, kernel_size, strides, pool_size, padding, activation,
-                                              dropout, data_format, bn)
-
-    # Fully connected 1
-    fl1 = Convolution3D(num_kernels[-1], (1, 1, 1),
-                        strides=(1, 1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(conv_down)
-    # Fully connected 2
-    fl2 = Convolution3D(num_kernels[-1], (1, 1, 1),
-                        strides=(1, 1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(fl1)
-
-    # --- Up-scale side
-    outputs = up_scale_path_3d(fl2, residuals, num_kernels, kernel_size, strides, pool_size, concat_axis, padding,
-                               activation, final_activation, dropout, data_format, bn)
-
-    model = Model(inputs=inputs, outputs=outputs)
-
-    # print out model summary to console
-    model.summary()
-
-    return model
-
-
-### CONTEXT-UNET-2D ###
-def get_context_unet_2d(input_dim,
-                        num_channels,
-                        dropout,
-                        activation='relu',
-                        final_activation='sigmoid',
-                        kernel_size=(3, 3),
-                        pool_size=(2, 2),
-                        strides=(1, 1),
-                        num_kernels=None,
-                        concat_axis=-1,
-                        data_format='channels_last',
-                        padding='same',
-                        bn=True):
-
-    ### DOWNS-SCALE PATHS
-    model_inputs = []
-    outputs = []
-    residual_list = []
-
-    # --- Get low resolution patch size
-    lri = 0 if input_dim[0][0] > input_dim[1][0] else 1
-    hri = 1 if input_dim[0][0] > input_dim[1][0] else 0
-
-    ### BUILD FEEDFORWARD
-    for i, dim in enumerate(input_dim):
-        # specify the input shape
-        input = Input((dim[0], dim[1], num_channels))
-        model_inputs.append(input)
-
-        # BN for inputs
-        input = BatchNormalization()(input)
-
-        # scale down context path
-        if i == lri:
-            input = AveragePooling2D(pool_size=(2, 2))(input)
-
-        # build down-scale paths
-        conv, residuals = down_scale_path(input, num_kernels, kernel_size, strides, pool_size, padding, activation,
-                                          dropout, data_format, bn)
-
-        outputs.append(conv)
-        residual_list.append(residuals)
-
-    ### BOTTLENECK
-    # Concat feature maps
-    concat = concatenate(outputs, axis=-1)
-    # Fully connected 1
-    fl1 = Convolution2D(num_kernels[-1], (1, 1),
-                        strides=(1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(concat)
-    # Fully connected 2
-    fl2 = Convolution2D(num_kernels[-1], (1, 1),
-                        strides=(1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(fl1)
-
-    ### CONCAT/PREPARE RESIDUALS
-    merged_residuals = {}
-    for key in residual_list[0].keys():
-        merged_residuals[key] = concatenate([residual_list[0][key], residual_list[1][key]], axis=-1)
-
-    ### UP-SCALE PATH
-    outputs = up_scale_path(fl2, merged_residuals, num_kernels, kernel_size, strides, pool_size, concat_axis, padding,
-                            activation, final_activation, dropout, data_format, bn)
-
-    # --- Create model
-    model = Model(inputs=model_inputs, outputs=outputs)
-
-    # --- Print out model summary to console
-    model.summary()
-
-    return model
-
-
-### CONTEXT-UNET-3D ###
-def get_context_unet_3d(input_dim,
-                        num_channels,
-                        dropout,
-                        activation='relu',
-                        final_activation='sigmoid',
-                        kernel_size=(3, 3, 3),
-                        pool_size=(2, 2, 2),
-                        strides=(1, 1, 1),
-                        num_kernels=None,
-                        concat_axis=-1,
-                        data_format='channels_last',
-                        padding='same',
-                        bn=True):
-
-    ### DOWNS-SCALE PATHS
-    model_inputs = []
-    outputs = []
-    residual_list = []
-
-    # --- Get low resolution patch size
-    lri = 0 if input_dim[0][0] > input_dim[1][0] else 1
-    hri = 1 if input_dim[0][0] > input_dim[1][0] else 0
-
-    ### BUILD FEEDFORWARD
-    for i, dim in enumerate(input_dim):
-        # specify the input shape
-        input = Input((dim[0], dim[1], dim[2], num_channels))
-        model_inputs.append(input)
-
-        # BN for inputs
-        input = BatchNormalization()(input)
-
-        # scale down context path
-        if i == lri:
-            input = AveragePooling3D(pool_size=(2, 2, 2))(input)
-
-        # build down-scale paths
-        conv, residuals = down_scale_path_3d(input, num_kernels, kernel_size, strides, pool_size, padding, activation,
-                                             dropout, data_format, bn)
-
-        outputs.append(conv)
-        residual_list.append(residuals)
-
-    ### BOTTLENECK
-    # Concat feature maps
-    concat = concatenate(outputs, axis=-1)
-    # Fully connected 1
-    fl1 = Convolution3D(num_kernels[-1], (1, 1, 1),
-                        strides=(1, 1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(concat)
-    # Fully connected 2
-    fl2 = Convolution3D(num_kernels[-1], (1, 1, 1),
-                        strides=(1, 1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(fl1)
-
-    ### CONCAT/PREPARE RESIDUALS
-    merged_residuals = {}
-    for key in residual_list[0].keys():
-        merged_residuals[key] = concatenate([residual_list[0][key], residual_list[1][key]], axis=-1)
-
-    ### UP-SCALE PATH
-    outputs = up_scale_path_3d(fl2, merged_residuals, num_kernels, kernel_size, strides, pool_size, concat_axis,
-                               padding, activation, final_activation, dropout, data_format, bn)
-
-    # --- Create model
-    model = Model(inputs=model_inputs, outputs=outputs)
-
-    # --- Print out model summary to console
-    model.summary()
-
-    return model
-
-
-### DS-UNET-2D ###
-def get_ds_unet_2d(input_dim,
-                   num_channels,
-                   dropout,
-                   activation='relu',
-                   final_activation='sigmoid',
-                   kernel_size=(3, 3),
-                   pool_size=(2, 2),
-                   strides=(1, 1),
-                   num_kernels=None,
-                   concat_axis=-1,
-                   data_format='channels_last',
-                   padding='same',
-                   bn=True):
-    """
-	Defines the architecture of the u-net. Reconstruction of the u-net introduced in: https://arxiv.org/abs/1505.04597
-	:param patch_size: height of the patches, positive integer
-	:param num_channels: number of channels of the input images, positive integer
-	:param activation: activation_function after every convolution
-	:param final_activation: activation_function of the final layer
-	:param optimizer: optimization algorithm for updating the weights and bias values
-	:param learning_rate: learning_rate of the optimizer, float
-	:param dropout: percentage of weights to be dropped, float between 0 and 1
-	:param loss_function: loss function also known as cost function
-	:param metrics: metrics for evaluation of the model performance
-	:param kernel_size: size of the convolution kernel, tuple of two positive integers
-	:param pool_size: factors by which to downscale (vertical, horizontal), tuple of two positive integers
-	:param strides: strides values, tuple of two positive integers
-	:param num_kernels: array specifying the number of convolution filters in every level, list of positive integers
-		containing value for each level of the model
-	:param concat_axis: concatenation axis, concatenate over channels, positive integer
-	:param data_format: ordering of the dimensions in the inputs, takes values: 'channel_first' or 'channel_last'
-	:param padding: used padding by convolution, takes values: 'same' or 'valid'
-	:param bn: weather to use Batch Normalization layers after each convolution layer, True for use Batch Normalization,
-	 False do not use Batch Normalization
-	:return: compiled u-net model
-	"""
-
-    # build model
-    # specify the input shape
-    inputs = Input((input_dim[0], input_dim[1], num_channels))
-    # BN for inputs
-    layer = BatchNormalization()(inputs)
-
-    # --- Down-scale side
-    conv_down, residuals = down_scale_path_3d(layer, num_kernels, kernel_size, strides, pool_size, padding, activation,
-                                              dropout, data_format, bn)
-
-    # Fully connected 1
-    fl1 = Convolution2D(num_kernels[-1], (1, 1),
-                        strides=(1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(conv_down)
-    # Fully connected 2
-    fl2 = Convolution2D(num_kernels[-1], (1, 1),
-                        strides=(1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(fl1)
-
-    # --- Up-scale side
-    outputs = up_scale_path_ds(fl2, residuals, num_kernels, kernel_size, strides, pool_size, concat_axis, padding,
-                               activation, final_activation, dropout, data_format, bn)
-
-    # --- Set names to outputs
-    for i in range(len(outputs)):
-        naming_layer = Lambda(lambda x: x[0], name="output-" + str(i))
-        outputs[i] = naming_layer([outputs[i], inputs])
-
-    model = Model(inputs=inputs, outputs=outputs)
-
-    # print out model summary to console
-    model.summary()
-
-    return model
-
-
-### DS-UNET-3D ###
-def get_ds_unet_3d(input_dim,
-                   num_channels,
-                   dropout,
-                   activation='relu',
-                   final_activation='sigmoid',
-                   kernel_size=(3, 3, 3),
-                   pool_size=(2, 2, 2),
-                   strides=(1, 1, 1),
-                   num_kernels=None,
-                   concat_axis=-1,
-                   data_format='channels_last',
-                   padding='same',
-                   bn=True):
-    """
-	Defines the architecture of the u-net. Reconstruction of the u-net introduced in: https://arxiv.org/abs/1505.04597
-	:param patch_size: height of the patches, positive integer
-	:param num_channels: number of channels of the input images, positive integer
-	:param activation: activation_function after every convolution
-	:param final_activation: activation_function of the final layer
-	:param optimizer: optimization algorithm for updating the weights and bias values
-	:param learning_rate: learning_rate of the optimizer, float
-	:param dropout: percentage of weights to be dropped, float between 0 and 1
-	:param loss_function: loss function also known as cost function
-	:param metrics: metrics for evaluation of the model performance
-	:param kernel_size: size of the convolution kernel, tuple of two positive integers
-	:param pool_size: factors by which to downscale (vertical, horizontal), tuple of two positive integers
-	:param strides: strides values, tuple of two positive integers
-	:param num_kernels: array specifying the number of convolution filters in every level, list of positive integers
-		containing value for each level of the model
-	:param concat_axis: concatenation axis, concatenate over channels, positive integer
-	:param data_format: ordering of the dimensions in the inputs, takes values: 'channel_first' or 'channel_last'
-	:param padding: used padding by convolution, takes values: 'same' or 'valid'
-	:param bn: weather to use Batch Normalization layers after each convolution layer, True for use Batch Normalization,
-	 False do not use Batch Normalization
-	:return: compiled u-net model
-	"""
-
-    # build model
-    # specify the input shape
-    inputs = Input((input_dim[0], input_dim[1], input_dim[2], num_channels))
-    # BN for inputs
-    layer = BatchNormalization()(inputs)
-
-    # --- Down-scale side
-    conv_down, residuals = down_scale_path_3d(layer, num_kernels, kernel_size, strides, pool_size, padding, activation,
-                                              dropout, data_format, bn)
-
-    # Fully connected 1
-    fl1 = Convolution3D(num_kernels[-1], (1, 1, 1),
-                        strides=(1, 1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(conv_down)
-    # Fully connected 2
-    fl2 = Convolution3D(num_kernels[-1], (1, 1, 1),
-                        strides=(1, 1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(fl1)
-
-    # --- Up-scale side
-    outputs = up_scale_path_ds_3d(fl2, residuals, num_kernels, kernel_size, strides, pool_size, concat_axis, padding,
-                                  activation, final_activation, dropout, data_format, bn)
-
-    # --- Set names to outputs
-    for i in range(len(outputs)):
-        naming_layer = Lambda(lambda x: x[0], name="output-" + str(i))
-        outputs[i] = naming_layer([outputs[i], inputs])
-
-    model = Model(inputs=inputs, outputs=outputs)
-
-    # print out model summary to console
-    model.summary()
-
-    return model
-
-
-### BRAINSEG-2D ###
-def get_brainseg_2d(input_dim,
-                    num_channels,
-                    dropout,
-                    activation='relu',
-                    final_activation='sigmoid',
-                    kernel_size=(3, 3),
-                    pool_size=(2, 2),
-                    strides=(1, 1),
-                    num_kernels=None,
-                    concat_axis=-1,
-                    data_format='channels_last',
-                    padding='same',
-                    bn=True):
-
-    ### DOWNS-SCALE PATHS
-    model_inputs = []
-    outputs = []
-    residual_list = []
-
-    # --- Get low resolution patch size
-    lri = 0 if input_dim[0][0] > input_dim[1][0] else 1
-    hri = 1 if input_dim[0][0] > input_dim[1][0] else 0
-
-    ### BUILD FEEDFORWARD
-    for i, dim in enumerate(input_dim):
-        # specify the input shape
-        input = Input((dim[0], dim[1], num_channels))
-        model_inputs.append(input)
-
-        # take middle slice for 2D
-        #		shape = input.get_shape().as_list()[:3] + [1]
-        #		input = Lambda(lambda x: x[0][:,:,:,x[1],:], output_shape=shape)([input, int(dim[2]/2)])
-        #		splits = split(input, dim[2], 3)
-
-        # BN for inputs
-        input = BatchNormalization()(input)  #[:,:,:,int(dim[2]/2),:])
-
-        # scale down context path
-        if i == lri:
-            input = AveragePooling2D(pool_size=(2, 2))(input)
-
-        # build down-scale paths
-        conv, residuals = down_scale_path(input, num_kernels, kernel_size, strides, pool_size, padding, activation,
-                                          dropout, data_format, bn)
-
-        outputs.append(conv)
-        residual_list.append(residuals)
-
-    ### BOTTLENECK
-    # Concat feature maps
-    concat = concatenate(outputs, axis=-1)
-    # Fully connected 1
-    fl1 = Convolution2D(num_kernels[-1], (1, 1),
-                        strides=(1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(concat)
-    # Fully connected 2
-    fl2 = Convolution2D(num_kernels[-1], (1, 1),
-                        strides=(1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(fl1)
-    ### CONCAT/PREPARE RESIDUALS
-    merged_residuals = {}
-    for key in residual_list[0].keys():
-        merged_residuals[key] = concatenate([residual_list[0][key], residual_list[1][key]], axis=-1)
-
-    ### UP-SCALE PATH
-    outputs = up_scale_path_ds(fl2, merged_residuals, num_kernels, kernel_size, strides, pool_size, concat_axis,
-                               padding, activation, final_activation, dropout, data_format, bn)
-
-    # --- Set names to outputs
-    for i in range(len(outputs)):
-        naming_layer = Lambda(lambda x: x[0], name="output-" + str(i))
-        outputs[i] = naming_layer([outputs[i], model_inputs[0]])
-
-    # --- Create model
-    model = Model(inputs=model_inputs, outputs=outputs)
-
-    # --- Print out model summary to console
-    model.summary()
-
-    return model
-
-
-### BRAINSEG-3D ###
-def get_brainseg_3d(input_dim,
-                    num_channels,
-                    dropout,
-                    activation='relu',
-                    final_activation='sigmoid',
-                    kernel_size=(3, 3, 3),
-                    pool_size=(2, 2, 2),
-                    strides=(1, 1, 1),
-                    num_kernels=None,
-                    concat_axis=-1,
-                    data_format='channels_last',
-                    padding='same',
-                    bn=True):
-
-    ### DOWNS-SCALE PATHS
-    model_inputs = []
-    outputs = []
-    residual_list = []
-
-    # --- Get low resolution patch size
-    lri = 0 if input_dim[0][0] > input_dim[1][0] else 1
-    hri = 1 if input_dim[0][0] > input_dim[1][0] else 0
-
-    ### BUILD FEEDFORWARD
-    for i, dim in enumerate(input_dim):
-        # specify the input shape
-        input = Input((dim[0], dim[1], dim[2], num_channels))
-        model_inputs.append(input)
-
-        # BN for inputs
-        input = BatchNormalization()(input)
-
-        # scale down context path
-        if i == lri:
-            input = AveragePooling3D(pool_size=(2, 2, 2))(input)
-
-        # build down-scale paths
-        conv, residuals = down_scale_path_3d(input, num_kernels, kernel_size, strides, pool_size, padding, activation,
-                                             dropout, data_format, bn)
-
-        outputs.append(conv)
-        residual_list.append(residuals)
-
-    ### BOTTLENECK
-    # Concat feature maps
-    concat = concatenate(outputs, axis=-1)
-    # Fully connected 1
-    fl1 = Convolution3D(num_kernels[-1], (1, 1, 1),
-                        strides=(1, 1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(concat)
-    # Fully connected 2
-    fl2 = Convolution3D(num_kernels[-1], (1, 1, 1),
-                        strides=(1, 1, 1),
-                        padding="same",
-                        activation="relu",
-                        data_format=data_format)(fl1)
-
-    ### CONCAT/PREPARE RESIDUALS
-    merged_residuals = {}
-    for key in residual_list[0].keys():
-        merged_residuals[key] = concatenate([residual_list[0][key], residual_list[1][key]], axis=-1)
-
-    ### UP-SCALE PATH
-    outputs = up_scale_path_ds_3d(fl2, merged_residuals, num_kernels, kernel_size, strides, pool_size, concat_axis,
-                                  padding, activation, final_activation, dropout, data_format, bn)
-
-    # --- Set names to outputs + pretend to use distance input so that save doesnt skip it
-    for i in range(len(outputs)):
-        naming_layer = Lambda(lambda x: x[0], name="output-" + str(i))
-        outputs[i] = naming_layer([outputs[i], model_inputs[0]])
-
-    # --- Create model
-    model = Model(inputs=model_inputs, outputs=outputs)
-
-    # --- Print out model summary to console
-    model.summary()
-
-    return model
+        out_ch_N = num_kernels[len(num_kernels) - i - 2]
+        blocks.append(
+            downscale_upscale_conv_block(2 * input_ch_N, out_ch_N, kernel_size, strides, padding, activation, dropout,
+                                         bn))
+        input_ch_N = out_ch_N
+    return blocks
+
+
+class BraveNet(nn.Module):
+    def __init__(self, num_kernels, kernel_size, strides, padding, activation, dropout, bn):
+        super().__init__()
+        self.num_kernels = num_kernels
+        self.input_bn = nn.BatchNorm2d(1)
+        self.lowres_input_bn = nn.BatchNorm2d(1)
+
+        self.bottom_up_layers = down_scale_path(num_kernels, kernel_size, strides, padding, activation, dropout, bn)
+        self.lowres_bottom_up_layers = down_scale_path(num_kernels, kernel_size, strides, padding, activation, dropout,
+                                                       bn)
+
+        # Merging bu layer output with lowres bu layer output
+        self.merge_block = merge_conv_block(num_kernels[-1])
+        final_activation = 'relu'
+        self.lowres_output_branches = lowres_output_branches(num_kernels, final_activation, dropout)
+        self.output_branch = convolution_layer(num_kernels[0],
+                                               2,
+                                               1,
+                                               stride=1,
+                                               activation=final_activation,
+                                               dropout=dropout,
+                                               padding=0,
+                                               bn=False)
+        self.num_kernels = num_kernels
+        self.top_down_layers = up_scale_path(num_kernels, kernel_size, strides, padding, activation, dropout, bn)
+
+    def bottom_up(self, input, bu_layers):
+        residuals = {}
+        conv_down = input
+        for i in range(len(self.num_kernels)):
+            # level i
+            conv_down = bu_layers[i](conv_down)
+            residuals[f"conv_{i}"] = conv_down
+            if i < len(self.num_kernels) - 1:
+                conv_down = nn.MaxPool2d(2, stride=2)(conv_down)
+
+        return conv_down, residuals
+
+    def top_down(self, bu_output, residuals, output_dim):
+        outputs = []
+        conv_up = bu_output
+        for i in range(len(self.num_kernels) - 1):
+            conv_up = nn.Upsample(scale_factor=2, mode='nearest')(conv_up)
+            bu_tensor = residuals["conv_" + str(len(self.num_kernels) - i - 2)]
+            conv_up = torch.cat([conv_up, bu_tensor], dim=1)
+            conv_up = self.top_down_layers[i](conv_up)
+            if i < len(self.num_kernels) - 2:
+                temp_output = nn.Upsample(size=output_dim, mode='nearest')(conv_up)
+                temp_output = self.lowres_output_branches[i](temp_output)
+                outputs.append(temp_output)
+
+        output = self.output_branch(conv_up)
+        outputs.append(output)
+        return outputs
+
+    def get_merged_residuals(self, bu_res, lr_bu_res):
+        ### CONCAT/PREPARE RESIDUALS
+        merged_residuals = {}
+        for key in bu_res.keys():
+            merged_residuals[key] = torch.cat([bu_res[key], lr_bu_res[key]], dim=1)
+        return merged_residuals
+
+    def forward(self, input, lowres_input):
+        output_dim = input.shape[-2:]
+        input = self.input_bn(input)
+        lowres_input = self.lowres_input_bn(lowres_input)
+
+        bu_out, bu_res = self.bottom_up(input, self.bottom_up_layers)
+        lr_bu_out, lr_bu_res = self.bottom_up(lowres_input, self.lowres_bottom_up_layers)
+        bu_out = torch.cat([bu_out, lr_bu_out], dim=1)
+        bu_out = self.merge_block(bu_out)
+        residuals = self.get_merged_residuals(bu_res, lr_bu_res)
+        outputs = self.top_down(bu_out, residuals, output_dim)
+        return outputs
+
+
+if __name__ == '__main__':
+    num_kernels = [32, 64, 128, 256]
+    kernel_size = 3
+    padding = 1
+    activation = 'relu'
+    final_activation = 'relu'
+    dropout = 0.1
+    bn = True
+    strides = 1
+    model = BraveNet(num_kernels, kernel_size, strides, padding, activation, dropout, bn)
+    inp = torch.randn(5, 1, 64, 64)
+    lowres_inp = torch.randn(5, 1, 64, 64)
+    out = model(inp, lowres_inp)
+    import pdb
+    pdb.set_trace()
+    # print(model)
