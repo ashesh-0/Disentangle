@@ -64,12 +64,9 @@ def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, pred
     dset.set_img_sz(old_img_sz)
     return mmse_img, tar_normalized.cpu()
 
+
 def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1, num_workers=4):
-    dloader = DataLoader(dset,
-                         pin_memory=False,
-                         num_workers=num_workers,
-                         shuffle=False,
-                         batch_size=batch_size)
+    dloader = DataLoader(dset, pin_memory=False, num_workers=num_workers, shuffle=False, batch_size=batch_size)
 
     predictions = []
     losses = []
@@ -83,21 +80,25 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
 
             recon_img_list = []
             for mmse_idx in range(mmse_count):
-                if model_type == ModelType.UNet:
+                if model_type in [ModelType.UNet, ModelType.BraveNet]:
                     recon_normalized = model(x_normalized)
-                    imgs = recon_normalized
+                    if model_type == ModelType.BraveNet:
+                        imgs = recon_normalized[0]
+                    else:
+                        imgs = recon_normalized
                     rec_loss = model.get_reconstruction_loss(recon_normalized, tar_normalized)
 
-                    if mmse_idx ==0:
+                    if mmse_idx == 0:
                         logvar_arr.append(np.array([-1]))
                         losses.append(rec_loss.cpu().numpy())
 
                 else:
                     recon_normalized, _ = model(x_normalized)
-                    rec_loss, imgs = model.get_reconstruction_loss(recon_normalized, tar_normalized,
-                                                                return_predicted_img=True)
-                
-                    if mmse_idx==0:
+                    rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
+                                                                   tar_normalized,
+                                                                   return_predicted_img=True)
+
+                    if mmse_idx == 0:
                         q_dic = model.likelihood.distr_params(recon_normalized)
                         if q_dic['logvar'] is not None:
                             logvar_arr.append(q_dic['logvar'].cpu().numpy())
