@@ -83,9 +83,9 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                 if model_type in [ModelType.UNet, ModelType.BraveNet]:
                     recon_normalized = model(x_normalized)
                     if model_type == ModelType.BraveNet:
-                        imgs = recon_normalized[0]
-                    else:
-                        imgs = recon_normalized
+                        recon_normalized = recon_normalized[0]
+
+                    imgs = recon_normalized
                     rec_loss = model.get_reconstruction_loss(recon_normalized, tar_normalized)
 
                     if mmse_idx == 0:
