@@ -47,6 +47,7 @@ def get_config():
     model.dropout = 0.1
     model.batch_normalization = True
     model.strides = 1
+    model.monitor = 'val_psnr'
 
     training = config.training
     training.lr = 0.001
