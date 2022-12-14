@@ -9,10 +9,10 @@ import torch.optim as optim
 import numpy as np
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.metrics.running_psnr import RunningPSNR
+from disentangle.nets.context_transfer_module import ContextTransferModule
 
 
 class UNet(pl.LightningModule):
-
     def __init__(self, data_mean, data_std, config):
         super(UNet, self).__init__()
         bilinear = True
@@ -22,26 +22,36 @@ class UNet(pl.LightningModule):
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
         self.lr_scheduler_monitor = config.model.get('monitor', 'val_loss')
         self.lr_scheduler_mode = MetricMonitor(self.lr_scheduler_monitor).mode()
+        self.enable_context_transfer = config.model.enable_context_transfer
+        self.ct_modules = nn.ModuleList()
+        init_ch = 64
+        if self.enable_context_transfer:
+            hw = config.data.image_size
+            cur_ch = init_ch
+            for i in range(1, self.n_levels + 1):
+                self.ct_modules.append(ContextTransferModule((cur_ch, hw, hw)))
+                cur_ch *= 2
+                hw //= 2
 
         self.inc = DoubleConv(1, 64)
-        ch = 64
+        ch = init_ch
         for i in range(1, self.n_levels):
-            setattr(self, f'down{i}', Down(ch,2*ch))
-            ch = 2*ch
+            setattr(self, f'down{i}', Down(ch, 2 * ch))
+            ch = 2 * ch
 
         factor = 2 if bilinear else 1
-        setattr(self, f'down{self.n_levels}', Down(ch, 2*ch // factor))
-        ch = 2*ch
+        setattr(self, f'down{self.n_levels}', Down(ch, 2 * ch // factor))
+        ch = 2 * ch
         # self.down1 = Down(64, 128)
         # self.down2 = Down(128, 256)
         # self.down3 = Down(256, 512)
         # self.down4 = Down(512, 1024 // factor)
-        for i in range(1,self.n_levels):
-            setattr(self,f'up{i}',Up(ch, (ch//2) // factor, bilinear))
-            ch = ch//2
-        
-        setattr(self, f'up{self.n_levels}', Up(ch, ch//2, bilinear))
-        ch = ch//2
+        for i in range(1, self.n_levels):
+            setattr(self, f'up{i}', Up(ch, (ch // 2) // factor, bilinear))
+            ch = ch // 2
+
+        setattr(self, f'up{self.n_levels}', Up(ch, ch // 2, bilinear))
+        ch = ch // 2
         # self.up1 = Up(1024, 512 // factor, bilinear)
         # self.up2 = Up(512, 256 // factor, bilinear)
         # self.up3 = Up(256, 128 // factor, bilinear)
@@ -52,28 +62,23 @@ class UNet(pl.LightningModule):
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
         self.label1_psnr = RunningPSNR()
         self.label2_psnr = RunningPSNR()
+        print(f'[{self.__class__.__name__}] ContextTransfer:{self.enable_context_transfer}')
 
     def forward(self, x):
         x1 = self.inc(x)
         latents = []
         x_end = x1
-        for i in range(1,self.n_levels+1):
+        for i in range(1, self.n_levels + 1):
             latents.append(x_end)
             x_end = getattr(self, f'down{i}')(x_end)
 
-        # x2 = self.down1(x1)
-        # x3 = self.down2(x2)
-        # x4 = self.down3(x3)
-        # x5 = self.down4(x4)
+        if self.enable_context_transfer:
+            for i in range(len(latents)):
+                latents[i] = self.ct_modules[i](latents[i])
 
-        for i in range(1,self.n_levels+1):
-           x_end = getattr(self, f'up{i}')(x_end,latents[-1*i])
+        for i in range(1, self.n_levels + 1):
+            x_end = getattr(self, f'up{i}')(x_end, latents[-1 * i])
 
-        # x = self.up1(x5, x4)
-        # x = self.up2(x, x3)
-        # x = self.up3(x, x2)
-        # x = self.up4(x, x1)
-        # pred = self.outc(x)
         pred = self.outc(x_end)
         return pred
 
@@ -108,6 +113,10 @@ class UNet(pl.LightningModule):
         return self.power_of_2(x // 2)
 
     def set_params_to_same_device_as(self, correct_device_tensor):
+        if self.enable_context_transfer:
+            for i in range(len(self.ct_modules)):
+                self.ct_modules[i].set_params_to_same_device_as(correct_device_tensor)
+
         if isinstance(self.data_mean, torch.Tensor):
             if self.data_mean.device != correct_device_tensor.device:
                 self.data_mean = self.data_mean.to(correct_device_tensor.device)

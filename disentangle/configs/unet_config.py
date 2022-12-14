@@ -32,11 +32,12 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.MSE
-    # loss.mixed_rec_weight = 1
+    # loss.mixed_rec_weight = 1ma
 
     model = config.model
     model.model_type = ModelType.UNet
     model.n_levels = 6
+    model.enable_context_transfer = True
     model.monitor = 'val_psnr'
 
     training = config.training
