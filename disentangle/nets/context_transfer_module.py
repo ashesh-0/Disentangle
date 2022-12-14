@@ -95,10 +95,22 @@ class ContextTransferModule(nn.Module):
 
 
 if __name__ == '__main__':
+    import seaborn as sns
+    # from disentangle.nets.context_transfer_module import ContextTransferModule
+
     shape = (64, 16, 16)
     cxt = ContextTransferModule(shape)
-    inp = torch.rand((32, 64, 16, 16)) * 0.5 - 1
-    out = cxt.up_context(inp)
-    out1 = cxt(inp)
+    inp = torch.zeros((2, 64, 16, 16))
+    inp[:, :, :1] = 1
+    inp[:, :, -1:] = 1
+    inp[:, :, :, :1] = 1
+    inp[:, :, :, -1:] = 1
+
+    out = cxt(inp).detach().cpu().numpy()
+    _, ax = plt.subplots(figsize=(8, 4), ncols=2)
+    sns.heatmap(inp[0, 0], ax=ax[0])
+    sns.heatmap(out[0, 0], ax=ax[1])
+
+    # out1 = cxt(inp)
     # import pdb
     # pdb.set_trace()
