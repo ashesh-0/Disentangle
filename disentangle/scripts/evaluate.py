@@ -113,7 +113,7 @@ def main(
         CODE_ROOT = '/home/ubuntu/ashesh/'
     elif (re.match('lin-jug-\d{2}', nodename) or re.match('gnode\d{2}', nodename)
           or re.match('lin-jug-m-\d{2}', nodename) or re.match('lin-jug-l-\d{2}', nodename)):
-        DATA_ROOT = '/home/ashesh.ashesh/data/'
+        DATA_ROOT = '/group/jug/ashesh/data/'
         CODE_ROOT = '/home/ashesh.ashesh/'
 
     dtype = int(ckpt_dir.split('/')[-2].split('-')[0][1:])
