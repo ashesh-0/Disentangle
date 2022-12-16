@@ -29,7 +29,9 @@ class UNet(pl.LightningModule):
             hw = config.data.image_size
             cur_ch = init_ch
             for i in range(1, self.n_levels + 1):
-                self.ct_modules.append(ContextTransferModule((cur_ch, hw, hw)))
+                self.ct_modules.append(
+                    ContextTransferModule((cur_ch, hw, hw),
+                                          initial_weight_factor=config.model.context_transfer_initial_weight_factor))
                 cur_ch *= 2
                 hw //= 2
 

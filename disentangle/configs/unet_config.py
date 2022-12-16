@@ -38,6 +38,7 @@ def get_config():
     model.model_type = ModelType.UNet
     model.n_levels = 6
     model.enable_context_transfer = True
+    model.context_transfer_initial_weight_factor = 0
     model.monitor = 'val_psnr'
 
     training = config.training
