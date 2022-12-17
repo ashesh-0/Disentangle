@@ -6,10 +6,10 @@ import numpy as np
 from disentangle.core.data_type import DataType
 from disentangle.data_loader.train_val_data import get_train_val_data
 from disentangle.core.data_split_type import DataSplitType
+from disentangle.data_loader.patch_index_manager import PatchIndexManager
 
 
 class MultiChDeterministicTiffDloader:
-
     def __init__(self,
                  data_config,
                  fpath: str,
@@ -51,7 +51,8 @@ class MultiChDeterministicTiffDloader:
         self._data[self._data > self.max_val] = self.max_val
 
         self.N = len(self._data)
-        self._img_sz = self._repeat_factor = None
+        self._img_sz = self._repeat_factor = self.idx_manager = None
+
         self.set_img_sz(data_config.image_size)
         # For overlapping dloader, image_size and repeat_factors are not related. hence a different function.
         self.set_repeat_factor()
@@ -83,6 +84,7 @@ class MultiChDeterministicTiffDloader:
         This is typically used during evaluation.
         """
         self._img_sz = image_size
+        self.idx_manager = PatchIndexManager(self._data.shape, self._img_sz)
 
     def set_repeat_factor(self):
         self._repeat_factor = (self._data.shape[-2] // self._img_sz)**2
@@ -105,7 +107,7 @@ class MultiChDeterministicTiffDloader:
         if self._enable_random_cropping:
             h_start, w_start = self._get_random_hw(h, w)
         else:
-            h_start, w_start = self._get_deterministic_hw(index, h, w)
+            h_start, w_start = self.idx_manager.get_deterministic_hw(index, h, w)
 
         img1 = self._crop_flip_img(img1, h_start, w_start, False, False)
         img2 = self._crop_flip_img(img2, h_start, w_start, False, False)
@@ -130,36 +132,11 @@ class MultiChDeterministicTiffDloader:
 
         return new_img.astype(np.float32)
 
-    def _get_deterministic_hw(self, index: int, h: int, w: int, img_sz=None):
-        """
-        Fixed starting position for the crop for the img with index `index`.
-        """
-        if img_sz is None:
-            img_sz = self._img_sz
-
-        assert h == w
-        factor = index // self.N
-        nrows = h // img_sz
-
-        ith_row = factor // nrows
-        jth_col = factor % nrows
-        h_start = ith_row * img_sz
-        w_start = jth_col * img_sz
-        return h_start, w_start
-
     def __len__(self):
         return self.N * self._repeat_factor
 
-    def hwt_from_idx(self, index):
-        _, H, W, _ = self._data.shape
-        t = self.get_t(index)
-        return (*self._get_deterministic_hw(index, H, W), t)
-
-    def get_t(self, index):
-        return index % self.N
-
     def _load_img(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
-        imgs = self._data[self.get_t(index)]
+        imgs = self._data[self.idx_manager.get_t(index)]
         return imgs[None, :, :, 0], imgs[None, :, :, 1]
 
     def get_mean_std(self):

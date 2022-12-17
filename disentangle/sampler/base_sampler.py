@@ -18,6 +18,9 @@ class BaseSampler(Sampler):
         self.index_batches = None
         print(f'[{self.__class__.__name__}] ')
 
+    def init(self):
+        raise NotImplementedError("This needs to be implemented")
+
     def __iter__(self):
         self.init()
         start_idx = 0

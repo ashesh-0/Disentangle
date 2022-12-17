@@ -12,7 +12,6 @@ from disentangle.core.data_type import DataType
 
 
 class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
-
     def __init__(
         self,
         data_config,
@@ -95,7 +94,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         if self._enable_random_cropping:
             h_start, w_start = self._get_random_hw(h, w)
         else:
-            h_start, w_start = self._get_deterministic_hw(index, h, w)
+            h_start, w_start = self.idx_manager.get_deterministic_hw(index, h, w)
         img1_cropped = self._crop_flip_img(img1, h_start, w_start, False, False)
         img2_cropped = self._crop_flip_img(img2, h_start, w_start, False, False)
 
