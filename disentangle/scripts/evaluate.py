@@ -447,13 +447,7 @@ if __name__ == '__main__':
     DEBUG = False
     OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/26',
-        '/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/27',
-        '/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/28',
-        '/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/29',
-        '/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/5',
-        '/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/6',
-        '/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/7',
+        '/home/ubuntu/ashesh/training/disentangle/2212/D3-M3-S0-L0/0',
     ]
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
