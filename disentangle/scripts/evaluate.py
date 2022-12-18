@@ -445,7 +445,8 @@ def main(
 
 if __name__ == '__main__':
     DEBUG = False
-    OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
+    # OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
+    OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
     ckpt_dirs = [
         '/home/ubuntu/ashesh/training/disentangle/2212/D3-M3-S0-L0/0',
     ]
