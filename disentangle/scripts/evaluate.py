@@ -445,8 +445,6 @@ def main(
 
 if __name__ == '__main__':
     DEBUG = False
-    # OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
-    OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
     ckpt_dirs = [
         '/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/22',
         '/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/21',
@@ -454,6 +452,13 @@ if __name__ == '__main__':
         '/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/25',
         '/home/ashesh.ashesh/training/disentangle/2212/D3-M10-S0-L3/2',
     ]
+    if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
+        OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
+    elif ckpt_dirs[0].startswith('/home/ubuntu/ashesh'):
+        OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
+    else:
+        raise Exception('Invalid server')
+
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
