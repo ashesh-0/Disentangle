@@ -108,7 +108,7 @@ def main(
     if nodename == 'capablerutherford-02aa4':
         DATA_ROOT = '/mnt/ashesh/'
         CODE_ROOT = '/home/ubuntu/ashesh/'
-    elif nodename in ['capableturing-34a32', 'colorfuljug-fa782']:
+    elif nodename in ['capableturing-34a32', 'colorfuljug-fa782', 'agileschroedinger-a9b1c']:
         DATA_ROOT = '/home/ubuntu/ashesh/data/'
         CODE_ROOT = '/home/ubuntu/ashesh/'
     elif (re.match('lin-jug-\d{2}', nodename) or re.match('gnode\d{2}', nodename)
