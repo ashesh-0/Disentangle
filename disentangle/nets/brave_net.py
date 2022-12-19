@@ -35,6 +35,9 @@ class BraveNetPL(pl.LightningModule):
 
         return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': self.lr_scheduler_monitor}
 
+    def reset_for_different_output_size(self, output_size):
+        return None
+
     def normalize_input(self, x):
         if self.normalized_input:
             return x
