@@ -445,7 +445,7 @@ def main(
 
 if __name__ == '__main__':
     DEBUG = False
-    ckpt_dirs = ['/home/ubuntu/ashesh/training/disentangle/2212/D3-M10-S0-L3/0']
+    ckpt_dirs = ['/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/12']
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
     elif ckpt_dirs[0].startswith('/home/ubuntu/ashesh'):
