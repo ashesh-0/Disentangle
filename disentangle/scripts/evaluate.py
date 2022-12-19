@@ -445,11 +445,7 @@ def main(
 
 if __name__ == '__main__':
     DEBUG = False
-    ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/11',
-        '/home/ashesh.ashesh/training/disentangle/2212/D3-M3-S0-L0/12'
-        '/home/ashesh.ashesh/training/disentangle/2212/D3-M10-S0-L3/23'
-    ]
+    ckpt_dirs = ['/home/ubuntu/ashesh/training/disentangle/2212/D3-M10-S0-L3/0']
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
     elif ckpt_dirs[0].startswith('/home/ubuntu/ashesh'):
