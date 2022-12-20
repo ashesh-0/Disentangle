@@ -108,7 +108,7 @@ def main(
     if nodename == 'capablerutherford-02aa4':
         DATA_ROOT = '/mnt/ashesh/'
         CODE_ROOT = '/home/ubuntu/ashesh/'
-    elif nodename in ['capableturing-34a32', 'colorfuljug-fa782']:
+    elif nodename in ['capableturing-34a32', 'colorfuljug-fa782', 'agileschroedinger-a9b1c', 'rapidkepler-ca36f']:
         DATA_ROOT = '/home/ubuntu/ashesh/data/'
         CODE_ROOT = '/home/ubuntu/ashesh/'
     elif (re.match('lin-jug-\d{2}', nodename) or re.match('gnode\d{2}', nodename)
@@ -445,17 +445,21 @@ def main(
 
 if __name__ == '__main__':
     DEBUG = False
-    OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
-    ckpt_dirs = [
-        '/home/ubuntu/ashesh/training/disentangle/2212/D3-M3-S0-L0/0',
-    ]
+    ckpt_dirs = ['/home/ashesh.ashesh/training/disentangle/2212/D3-M11-S0-L3/0']
+    if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
+        OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
+    elif ckpt_dirs[0].startswith('/home/ubuntu/ashesh'):
+        OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
+    else:
+        raise Exception('Invalid server')
+
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    for custom_image_size in [64]:
+    for custom_image_size in [256]:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
-                for image_size_for_grid_centers in [64, 32, 16]:
+                for image_size_for_grid_centers in [128]:
                     ignored_last_pixels = 32 if os.path.basename(
                         os.path.dirname(ckpt_dir)).split('-')[0][1:] == '3' else 0
                     handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
@@ -466,7 +470,7 @@ if __name__ == '__main__':
                         image_size_for_grid_centers=image_size_for_grid_centers,
                         mmse_count=mmse_count,
                         custom_image_size=custom_image_size,
-                        batch_size=16,
+                        batch_size=4,
                         num_workers=4,
                         COMPUTE_LOSS=False,
                         use_deterministic_grid=None,
