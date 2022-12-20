@@ -20,6 +20,8 @@ from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomU
 
 from disentangle.metrics.running_psnr import RunningPSNR
 from disentangle.nets.noise_model import get_noise_model
+from disentangle.loss.nbr_consistency_loss import NeighborConsistencyLoss
+from disentangle.core.sampler_type import SamplerType
 
 
 def torch_nanmean(inp):
@@ -98,12 +100,17 @@ class LadderVAE(pl.LightningModule):
         # enabling reconstruction loss on mixed input
         self.mixed_rec_w = 0
         self.enable_mixed_rec = False
+        self.nbr_consistency_w = 0
         if self.loss_type == LossType.ElboMixedReconstruction:
             self.mixed_rec_w = config.loss.mixed_rec_weight
             self.enable_mixed_rec = True
             raise NotImplementedError(
                 "This cannot work since now, different channels have different mean. One needs to reweigh the "
                 "predicted channels and then take their sum. This would then be equivalent to the input.")
+        elif self.loss_type == LossType.ElboWithNbrConsistency:
+            self.nbr_consistency_w = config.loss.nbr_consistency_w
+            # NeighborConsistencyLoss assumes the batch to be a sequence of [center, left, right, top bottom] images.
+            self.nbr_consistency_loss = NeighborConsistencyLoss()
 
         self._global_step = 0
 
@@ -466,7 +473,7 @@ class LadderVAE(pl.LightningModule):
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict = self.get_reconstruction_loss(out, target_normalized)
+        recons_loss_dict, imgs = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
 
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
@@ -478,6 +485,8 @@ class LadderVAE(pl.LightningModule):
             recons_loss += self.mixed_rec_w * recons_loss_dict['mixed_loss']
             if enable_logging:
                 self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
+        elif self.loss_type == LossType.ElboWithNbrConsistency:
+            recons_loss += self.nbr_consistency_w * self.nbr_consistency_loss.get(imgs)
 
         if self.non_stochastic_version:
             kl_loss = torch.Tensor([0.0]).cuda()
