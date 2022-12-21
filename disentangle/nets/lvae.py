@@ -486,7 +486,10 @@ class LadderVAE(pl.LightningModule):
             if enable_logging:
                 self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
         elif self.loss_type == LossType.ElboWithNbrConsistency:
-            recons_loss += self.nbr_consistency_w * self.nbr_consistency_loss.get(imgs)
+            nbr_cons_loss = self.nbr_consistency_w * self.nbr_consistency_loss.get(imgs)
+            # print(recons_loss, nbr_cons_loss)
+            self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
+            recons_loss += nbr_cons_loss
 
         if self.non_stochastic_version:
             kl_loss = torch.Tensor([0.0]).cuda()

@@ -24,6 +24,7 @@ from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.sampler.singleimg_sampler import SingleImgSampler
+from disentangle.sampler.nbr_sampler import NeighborSampler
 from disentangle.training import create_dataset, train_network
 from ml_collections.config_flags import config_flags
 
@@ -131,7 +132,7 @@ def main(argv):
     config.workdir = cur_workdir
     config.exptname = relative_path
     config.hostname = socket.gethostname()
-    config.datadir=FLAGS.datadir
+    config.datadir = FLAGS.datadir
 
     if FLAGS.mode == "train":
         set_logger()
@@ -172,6 +173,9 @@ def main(argv):
             elif config.data.sampler_type == SamplerType.SingleImgSampler:
                 train_sampler = SingleImgSampler(train_data, config.training.batch_size)
                 val_sampler = SingleImgSampler(val_data, config.training.batch_size)
+            elif config.data.sampler_type == SamplerType.NeighborSampler:
+                train_sampler = NeighborSampler(train_data, config.training.batch_size)
+                val_sampler = NeighborSampler(val_data, config.training.batch_size)
 
             train_dloader = DataLoader(train_data,
                                        pin_memory=False,

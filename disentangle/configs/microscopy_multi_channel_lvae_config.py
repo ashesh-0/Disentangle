@@ -13,7 +13,7 @@ def get_config():
     data.channel_1 = 2
     data.channel_2 = 3
 
-    data.sampler_type = SamplerType.DefaultSampler
+    data.sampler_type = SamplerType.NeighborSampler
     data.threshold = 0.02
     data.deterministic_grid = False
     data.normalized_input = True
@@ -31,7 +31,7 @@ def get_config():
     data.target_separate_normalization = True
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.ElboWithNbrConsistency
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -40,6 +40,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
+    loss.nbr_consistency_w = 0.001
 
     model = config.model
     model.model_type = ModelType.LadderVae

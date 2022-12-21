@@ -91,7 +91,7 @@ class PatchIndexManager:
     def on_bottom_boundary(self, index):
         h, w = self._data_shape[-2:]
         nrows = h // self._patch_size
-        return index + self.N * nrows > len(self)
+        return index + self.N * nrows > self.patch_count()
 
     def on_boundary(self, idx):
         if self.on_left_boundary(idx):
