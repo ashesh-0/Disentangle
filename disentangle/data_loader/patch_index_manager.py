@@ -23,17 +23,10 @@ class PatchIndexManager:
         repeat_factor = (self._data_shape[-2] // self._patch_size)**2
         return self.N * repeat_factor
 
-    def set_patch_size(self, patch_size):
-        """
-        If one wants to change the image size on the go, then this can be used.
-        This is typically used during evaluation.
-        """
-        self._patch_size = patch_size
-
-    def hwt_from_idx(self, index):
+    def hwt_from_idx(self, index, img_sz=None):
         _, H, W, _ = self._data_shape
         t = self.get_t(index)
-        return (*self.get_deterministic_hw(index, H, W), t)
+        return (*self.get_deterministic_hw(index, H, W, img_sz=img_sz), t)
 
     def get_t(self, index):
         return index % self.N

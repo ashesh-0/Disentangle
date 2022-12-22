@@ -107,7 +107,7 @@ class MultiChDeterministicTiffDloader:
         if self._enable_random_cropping:
             h_start, w_start = self._get_random_hw(h, w)
         else:
-            h_start, w_start = self.idx_manager.get_deterministic_hw(index, h, w)
+            h_start, w_start = self._get_deterministic_hw(index, h, w)
 
         img1 = self._crop_flip_img(img1, h_start, w_start, False, False)
         img2 = self._crop_flip_img(img2, h_start, w_start, False, False)
@@ -153,6 +153,9 @@ class MultiChDeterministicTiffDloader:
         img1 = (img1 - mean[0]) / std[0]
         img2 = (img2 - mean[1]) / std[1]
         return img1, img2
+
+    def _get_deterministic_hw(self, index: int, h: int, w: int):
+        return self.idx_manager.get_deterministic_hw(index, h, w)
 
     def compute_individual_mean_std(self):
         # numpy 1.19.2 has issues in computing for large arrays. https://github.com/numpy/numpy/issues/8869

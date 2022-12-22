@@ -5,7 +5,6 @@ class PatchLocation:
     """
     Encapsulates t_idx and spatial location.
     """
-
     def __init__(self, h_idx_range, w_idx_range, t_idx):
         self.t = t_idx
         self.h_start, self.h_end = h_idx_range
@@ -18,20 +17,17 @@ class PatchLocation:
 
 def _get_location(extra_padding, hwt, pred_h, pred_w):
     h_start, w_start, t_idx = hwt
+    h_start -= extra_padding
     h_end = h_start + pred_h
-
-    h_start += extra_padding
-    h_end -= extra_padding
-
+    w_start -= extra_padding
     w_end = w_start + pred_w
-    w_start += extra_padding
-    w_end -= extra_padding
     return PatchLocation((h_start, h_end), (w_start, w_end), t_idx)
 
 
 def get_location_from_idx(dset, dset_input_idx, pred_h, pred_w):
     """
-    For a given idx of the dataset, it returns where exactly in the dataset, does this prediction lies.
+    For a given idx of the dataset, it returns where exactly in the dataset, does this prediction lies. 
+    Note that this prediction also has padded pixels and so a subset of it will be used in the final prediction.
     Which time frame, which spatial location (h_start, h_end, w_start,w_end)
     Args:
         dset:
@@ -40,10 +36,9 @@ def get_location_from_idx(dset, dset_input_idx, pred_h, pred_w):
         pred_w:
 
     Returns:
-
     """
     extra_padding = dset.per_side_overlap_pixelcount()
-    htw = dset.idx_manager.hwt_from_idx(dset_input_idx)
+    htw = dset.idx_manager.hwt_from_idx(dset_input_idx, img_sz=dset.get_grid_size())
     return _get_location(extra_padding, htw, pred_h, pred_w)
 
 
@@ -134,25 +129,35 @@ def _get_smoothing_mask(cropped_pred_shape, smoothening_pixelcount, loc, frame_s
 
 def remove_pad(pred, loc, extra_padding, smoothening_pixelcount, frame_size):
     if extra_padding - smoothening_pixelcount > 0:
-        # if loc.h_start is 0, then there is no point in taking predictions for the zero input.
-        h_s = extra_padding - min(smoothening_pixelcount, loc.h_start)
-        h_e = extra_padding - min(smoothening_pixelcount, frame_size - loc.h_end)
+        if loc.h_start < 0:
+            h_s = -1 * loc.h_start
+        else:
+            h_s = extra_padding - smoothening_pixelcount
 
-        w_s = extra_padding - min(smoothening_pixelcount, loc.w_start)
-        w_e = extra_padding - min(smoothening_pixelcount, frame_size - loc.w_end)
+        if loc.h_end > frame_size:
+            assert loc.h_end - extra_padding + smoothening_pixelcount <= frame_size
+        h_e = extra_padding - smoothening_pixelcount
+
+        if loc.w_start < 0:
+            w_s = -1 * loc.w_start
+        else:
+            w_s = extra_padding - smoothening_pixelcount
+
+        if loc.w_end > frame_size:
+            assert loc.w_end - extra_padding + smoothening_pixelcount <= frame_size
+        w_e = extra_padding - smoothening_pixelcount
+
         return pred[h_s:-h_e, w_s:-w_e]
+
     return pred
 
 
-def update_loc_for_smoothing(loc, smoothening_pixelcount, frame_size):
-    # we want to ensure that the location is added by smoothenting_pixelcount on all 4 sides
-    if smoothening_pixelcount == 0:
-        return loc
-
-    loc.h_start = max(0, loc.h_start - smoothening_pixelcount)
-    loc.h_end = min(frame_size, loc.h_end + smoothening_pixelcount)
-    loc.w_start = max(0, loc.w_start - smoothening_pixelcount)
-    loc.w_end = min(frame_size, loc.w_end + smoothening_pixelcount)
+def update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount, frame_size):
+    extra_padding = extra_padding - smoothening_pixelcount
+    loc.h_start += extra_padding
+    loc.w_start += extra_padding
+    loc.h_end -= extra_padding
+    loc.w_end -= extra_padding
     return loc
 
 
@@ -179,7 +184,8 @@ def stitch_predictions(predictions, dset, smoothening_pixelcount=0):
         # NOTE: don't need to compute it for every patch.
         mask = _get_smoothing_mask(cropped_pred1.shape, smoothening_pixelcount, loc, frame_size)
 
-        loc = update_loc_for_smoothing(loc, smoothening_pixelcount, frame_size)
+        loc = update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount, frame_size)
+        # print(loc, cropped_pred0.shape)
         output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, 0] += cropped_pred0 * mask
         output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, 1] += cropped_pred1 * mask
 
@@ -196,7 +202,7 @@ if __name__ == '__main__':
     out = remove_pad(np.ones((64, 64)), loc, extra_padding, smoothening_pixelcount, frame_size)
     mask = _get_smoothing_mask(out.shape, smoothening_pixelcount, loc, frame_size)
     print(loc)
-    loc = update_loc_for_smoothing(loc, smoothening_pixelcount, frame_size)
+    loc = update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount, frame_size)
     print(loc, mask.shape, out.shape)
     # import matplotlib.pyplot as plt
     # plt.imshow(mask, cmap='hot')

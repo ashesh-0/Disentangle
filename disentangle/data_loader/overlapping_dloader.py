@@ -9,14 +9,13 @@ def get_overlapping_dset(dset_class):
     dset_class must have _crop_img function and _get_deterministic_hw functions.
     (and ofcourse used in the same way as they should be :D)
     """
-
     class OverlappingDset(dset_class):
         def __init__(self, *args, **kwargs):
             image_size_for_grid_centers = kwargs.pop('image_size_for_grid_centers')
             overlapping_padding_kwargs = kwargs.pop('overlapping_padding_kwargs')
             super().__init__(*args, **kwargs)
             self._img_sz_for_hw = image_size_for_grid_centers
-            self._repeat_factor = (self._data.shape[-2] // self._img_sz_for_hw) ** 2
+            self._repeat_factor = (self._data.shape[-2] // self._img_sz_for_hw)**2
             # used for multiscale data loader.
             self.enable_padding_while_cropping = True
             assert self._img_sz >= self._img_sz_for_hw
@@ -24,6 +23,9 @@ def get_overlapping_dset(dset_class):
 
         def per_side_overlap_pixelcount(self):
             return (self._img_sz - self._img_sz_for_hw) // 2
+
+        def get_grid_size(self):
+            return self._img_sz_for_hw
 
         def get_begin_end_padding(self, start_pos, max_len):
             """
@@ -46,9 +48,7 @@ def get_overlapping_dset(dset_class):
         def _get_deterministic_hw(self, index: int, h: int, w: int):
             # Note that this assert is needed. Without it, even larger index can be allowed entry and it
             # would not cause the issue anywhere.
-            assert index < len(self)
-            h_start, w_start = super(OverlappingDset, self)._get_deterministic_hw(index, h, w,
-                                                                                  img_sz=self._img_sz_for_hw)
+            h_start, w_start = self.idx_manager.get_deterministic_hw(index, h, w, img_sz=self._img_sz_for_hw)
             pad = self.per_side_overlap_pixelcount()
             return h_start - pad, w_start - pad
 
