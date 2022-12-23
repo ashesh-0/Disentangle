@@ -45,10 +45,10 @@ def get_overlapping_dset(dset_class):
         def on_boundary(self, cur_loc, frame_size):
             return cur_loc + self._img_sz > frame_size or cur_loc < 0
 
-        def _get_deterministic_hw(self, index: int, h: int, w: int):
+        def _get_deterministic_hw(self, index: int):
             # Note that this assert is needed. Without it, even larger index can be allowed entry and it
             # would not cause the issue anywhere.
-            h_start, w_start = self.idx_manager.get_deterministic_hw(index, h, w, img_sz=self._img_sz_for_hw)
+            h_start, w_start = self.idx_manager.get_deterministic_hw(index, img_sz=self._img_sz_for_hw)
             pad = self.per_side_overlap_pixelcount()
             return h_start - pad, w_start - pad
 

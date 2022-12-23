@@ -91,7 +91,13 @@ class MultiChDeterministicTiffDloader:
         """
         self._img_sz = image_size
         self._grid_sz = grid_size
-        self.idx_manager = PatchIndexManager(self._data.shape, self._grid_sz)
+        # since self._grid_sz is being used to decide position of grids, some grids can be included which will not have
+        # self._img_sz content. So, a simple way to fix this is to just give the size of the data which should be
+        # accessible according to self._img_sz sized patches.
+        n, h, w, c = self._data.shape
+        h -= h % self._img_sz
+        w -= w % self._img_sz
+        self.idx_manager = PatchIndexManager((n, h, w, c), self._grid_sz)
 
     def set_repeat_factor(self):
         self._repeat_factor = (self._data.shape[-2] // self._grid_sz)**2
@@ -114,7 +120,7 @@ class MultiChDeterministicTiffDloader:
         if self._enable_random_cropping:
             h_start, w_start = self._get_random_hw(h, w)
         else:
-            h_start, w_start = self._get_deterministic_hw(index, h, w)
+            h_start, w_start = self._get_deterministic_hw(index)
 
         img1 = self._crop_flip_img(img1, h_start, w_start, False, False)
         img2 = self._crop_flip_img(img2, h_start, w_start, False, False)
@@ -161,8 +167,8 @@ class MultiChDeterministicTiffDloader:
         img2 = (img2 - mean[1]) / std[1]
         return img1, img2
 
-    def _get_deterministic_hw(self, index: int, h: int, w: int):
-        return self.idx_manager.get_deterministic_hw(index, h, w)
+    def _get_deterministic_hw(self, index: int):
+        return self.idx_manager.get_deterministic_hw(index)
 
     def compute_individual_mean_std(self):
         # numpy 1.19.2 has issues in computing for large arrays. https://github.com/numpy/numpy/issues/8869
@@ -223,4 +229,5 @@ class MultiChDeterministicTiffDloader:
             img1, img2 = self.normalize_img(img1, img2)
 
         inp = (0.5 * img1 + 0.5 * img2).astype(np.float32)
+
         return inp, target

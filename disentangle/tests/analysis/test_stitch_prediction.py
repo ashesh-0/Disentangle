@@ -72,13 +72,15 @@ class DummyDset:
     def hwt_from_idx(self, index):
         _, H, W, _ = self._data.shape
         t = self.get_t(index)
-        return (*self._get_deterministic_hw(index, H, W), t)
+        return (*self._get_deterministic_hw(index), t)
 
-    def _get_deterministic_hw(self, index: int, h: int, w: int):
+    def _get_deterministic_hw(self, index: intt):
         """
         Fixed starting position for the crop for the img with index `index`.
         """
         img_sz = self._img_sz_for_hw
+        _, h, w, _ = self._data.shape
+
         assert h == w
         factor = index // self.N
         nrows = h // img_sz
@@ -91,7 +93,7 @@ class DummyDset:
         return h_start - pad, w_start - pad
 
     def __len__(self):
-        return self.N * ((self._data.shape[-2] // self._img_sz_for_hw) ** 2)
+        return self.N * ((self._data.shape[-2] // self._img_sz_for_hw)**2)
 
 
 def test_stitch_predictions():

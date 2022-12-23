@@ -32,7 +32,7 @@ class PatchIndexManager:
         return index % self.N
 
     def get_top_nbr_idx(self, index):
-        h, w = self._data_shape[-2:]
+        h, w = self._data_shape[1:3]
         nrows = h // self._patch_size
         index -= nrows * self.N
         if index < 0:
@@ -41,7 +41,7 @@ class PatchIndexManager:
         return index
 
     def get_bottom_nbr_idx(self, index):
-        h, w = self._data_shape[-2:]
+        h, w = self._data_shape[1:3]
         nrows = h // self._patch_size
         index += nrows * self.N
         if index > self.patch_count():
@@ -77,12 +77,12 @@ class PatchIndexManager:
         return right_boundary
 
     def on_top_boundary(self, index):
-        h, w = self._data_shape[-2:]
+        h, w = self._data_shape[1:3]
         nrows = h // self._patch_size
         return index < self.N * nrows
 
     def on_bottom_boundary(self, index):
-        h, w = self._data_shape[-2:]
+        h, w = self._data_shape[1:3]
         nrows = h // self._patch_size
         return index + self.N * nrows > self.patch_count()
 
@@ -100,13 +100,14 @@ class PatchIndexManager:
             return True
         return False
 
-    def get_deterministic_hw(self, index: int, h: int, w: int, img_sz=None):
+    def get_deterministic_hw(self, index: int, img_sz=None):
         """
         Fixed starting position for the crop for the img with index `index`.
         """
         if img_sz is None:
             img_sz = self._patch_size
 
+        _, h, w, _ = self._data_shape
         assert h == w
         factor = index // self.N
         nrows = h // img_sz

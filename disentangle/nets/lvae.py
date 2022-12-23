@@ -5,23 +5,23 @@ import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.optim as optim
+import torchvision.transforms.functional as F
 import wandb
 from torch import nn
 from torch.autograd import Variable
-import torchvision.transforms.functional as F
+
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
 from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.psnr import RangeInvariantPsnr
+from disentangle.core.sampler_type import SamplerType
+from disentangle.loss.nbr_consistency_loss import NeighborConsistencyLoss
 from disentangle.losses import free_bits_kl
+from disentangle.metrics.running_psnr import RunningPSNR
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
-
-from disentangle.metrics.running_psnr import RunningPSNR
 from disentangle.nets.noise_model import get_noise_model
-from disentangle.loss.nbr_consistency_loss import NeighborConsistencyLoss
-from disentangle.core.sampler_type import SamplerType
 
 
 def torch_nanmean(inp):
@@ -481,7 +481,6 @@ class LadderVAE(pl.LightningModule):
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         recons_loss = recons_loss_dict['loss']
-
         if self.loss_type == LossType.ElboMixedReconstruction:
             recons_loss += self.mixed_rec_w * recons_loss_dict['mixed_loss']
             if enable_logging:
@@ -553,7 +552,6 @@ class LadderVAE(pl.LightningModule):
 
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
-
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
