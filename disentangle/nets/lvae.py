@@ -109,8 +109,9 @@ class LadderVAE(pl.LightningModule):
                 "predicted channels and then take their sum. This would then be equivalent to the input.")
         elif self.loss_type == LossType.ElboWithNbrConsistency:
             self.nbr_consistency_w = config.loss.nbr_consistency_w
+            self._grid_sz = config.data.grid_size
             # NeighborConsistencyLoss assumes the batch to be a sequence of [center, left, right, top bottom] images.
-            self.nbr_consistency_loss = NeighborConsistencyLoss()
+            self.nbr_consistency_loss = NeighborConsistencyLoss(self._grid_sz)
 
         self._global_step = 0
 

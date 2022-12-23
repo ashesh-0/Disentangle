@@ -51,13 +51,17 @@ class MultiChDeterministicTiffDloader:
         self._data[self._data > self.max_val] = self.max_val
 
         self.N = len(self._data)
-        self._img_sz = self._repeat_factor = self.idx_manager = None
+        self._is_train = datasplit_type == DataSplitType.Train
 
-        self.set_img_sz(data_config.image_size)
+        self._img_sz = self._grid_sz = self._repeat_factor = self.idx_manager = None
+        if self._is_train:
+            self.set_img_sz(data_config.image_size,
+                            data_config.grid_size if 'grid_size' in data_config else data_config.image_size)
+        else:
+            self.set_img_sz(data_config.image_size, data_config.image_size)
         # For overlapping dloader, image_size and repeat_factors are not related. hence a different function.
         self.set_repeat_factor()
 
-        self._is_train = datasplit_type == DataSplitType.Train
         self._mean = None
         self._std = None
         self._use_one_mu_std = use_one_mu_std
@@ -78,16 +82,19 @@ class MultiChDeterministicTiffDloader:
     def get_img_sz(self):
         return self._img_sz
 
-    def set_img_sz(self, image_size):
+    def set_img_sz(self, image_size, grid_size):
         """
         If one wants to change the image size on the go, then this can be used.
-        This is typically used during evaluation.
+        Args:
+            image_size: size of one patch
+            grid_size: frame is divided into square grids of this size. A patch centered on a grid having size `image_size` is returned.
         """
         self._img_sz = image_size
-        self.idx_manager = PatchIndexManager(self._data.shape, self._img_sz)
+        self._grid_sz = grid_size
+        self.idx_manager = PatchIndexManager(self._data.shape, self._grid_sz)
 
     def set_repeat_factor(self):
-        self._repeat_factor = (self._data.shape[-2] // self._img_sz)**2
+        self._repeat_factor = (self._data.shape[-2] // self._grid_sz)**2
 
     def _init_msg(self, ):
         msg = f'[{self.__class__.__name__}] Sz:{self._img_sz}'

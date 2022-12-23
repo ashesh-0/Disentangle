@@ -9,6 +9,7 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
+    data.grid_size = 32
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
