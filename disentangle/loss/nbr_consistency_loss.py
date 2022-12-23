@@ -4,30 +4,43 @@ import torch.nn as nn
 
 
 class NeighborConsistencyLoss:
-    def __init__(self) -> None:
+    def __init__(self, grid_size) -> None:
         self.loss_metric = nn.MSELoss()
+        self._grid_size = grid_size
 
     def on_boundary_lgrad(self, imgs):
         nD = len(imgs.shape)
-        return torch.diff(imgs[..., :, :2], dim=nD - 1)
+        assert imgs.shape[-1] == imgs.shape[-2]
+        pad = (imgs.shape[-1] - self._grid_size) // 2
+        return torch.diff(imgs[..., pad:-pad, pad:pad + 2], dim=nD - 1)
 
     def on_boundary_rgrad(self, imgs):
         nD = len(imgs.shape)
-        return torch.diff(imgs[..., :, -2:], dim=nD - 1)
+        assert imgs.shape[-1] == imgs.shape[-2]
+        pad = (imgs.shape[-1] - self._grid_size) // 2
+
+        return torch.diff(imgs[..., pad:-pad, -(pad + 2):-pad], dim=nD - 1)
 
     def on_boundary_ugrad(self, imgs):
         nD = len(imgs.shape)
-        return torch.diff(imgs[..., :2, :], dim=nD - 2)
+        assert imgs.shape[-1] == imgs.shape[-2]
+        pad = (imgs.shape[-1] - self._grid_size) // 2
+
+        return torch.diff(imgs[..., pad:pad + 2, pad:-pad], dim=nD - 2)
 
     def on_boundary_dgrad(self, imgs):
         nD = len(imgs.shape)
-        return torch.diff(imgs[..., -2:, :], dim=nD - 2)
+        assert imgs.shape[-1] == imgs.shape[-2]
+        pad = (imgs.shape[-1] - self._grid_size) // 2
+        return torch.diff(imgs[..., -(pad + 2):-pad, pad:-pad], dim=nD - 2)
 
     def across_boundary_horizontal_grad(self, left_img, right_img):
-        return right_img[..., :, :1] - left_img[..., :, -1:]
+        pad = (left_img.shape[-1] - self._grid_size) // 2
+        return right_img[..., pad:-pad, pad:pad + 1] - left_img[..., pad:-pad, -(pad + 1):-pad]
 
     def across_boundary_vertical_grad(self, top_img, bottom_img):
-        return bottom_img[..., :1, :] - top_img[..., -1:, :]
+        pad = (top_img.shape[-1] - self._grid_size) // 2
+        return bottom_img[..., pad:(pad + 1), pad:-pad] - top_img[..., -(pad + 1):-pad, pad:-pad]
 
     def get_left_loss(self, imgs):
         # center-left
@@ -69,20 +82,26 @@ class NeighborConsistencyLoss:
 if __name__ == '__main__':
     import numpy as np
     import matplotlib.pyplot as plt
+    grid_size = 20
+    loss = NeighborConsistencyLoss(grid_size)
+    center = torch.Tensor(np.arange(grid_size)[None, None, None]).repeat(1, 2, grid_size, 1)
+    left = torch.Tensor(np.arange(-grid_size, 0)[None, None, None]).repeat(1, 2, grid_size, 1)
+    right = torch.Tensor(np.arange(grid_size + 10, 2 * grid_size + 10)[None, None, None]).repeat(1, 2, grid_size, 1)
+    top = torch.Tensor(np.arange(grid_size)[None, None, :, None]).repeat(1, 2, 1, grid_size)
+    bottom = torch.Tensor(np.arange(grid_size)[None, None, None]).repeat(1, 2, grid_size, 1)
 
-    loss = NeighborConsistencyLoss()
-    center = torch.Tensor(np.arange(32)[None, None, None]).repeat(1, 2, 32, 1)
-    left = torch.Tensor(np.arange(-32, 0)[None, None, None]).repeat(1, 2, 32, 1)
-    right = torch.Tensor(np.arange(40, 72)[None, None, None]).repeat(1, 2, 32, 1)
-    top = torch.Tensor(np.arange(32)[None, None, :, None]).repeat(1, 2, 1, 32)
-    bottom = torch.Tensor(np.arange(32)[None, None, None]).repeat(1, 2, 32, 1)
+    center = torch.Tensor(np.pad(center, ((0, 0), (0, 0), (6, 6), (6, 6)), mode='linear_ramp'))
+    left = torch.Tensor(np.pad(left, ((0, 0), (0, 0), (6, 6), (6, 6)), mode='linear_ramp'))
+    right = torch.Tensor(np.pad(right, ((0, 0), (0, 0), (6, 6), (6, 6)), mode='linear_ramp'))
+    bottom = torch.Tensor(np.pad(bottom, ((0, 0), (0, 0), (6, 6), (6, 6)), mode='linear_ramp'))
+    top = torch.Tensor(np.pad(top, ((0, 0), (0, 0), (6, 6), (6, 6)), mode='linear_ramp'))
 
     imgs = torch.cat([center, left, right, top, bottom], dim=0)
     _, ax = plt.subplots(figsize=(9, 9), ncols=3, nrows=3)
-    ax[0, 1].imshow(top[0, 0], vmin=-32, vmax=72)
-    ax[1, 1].imshow(center[0, 0], vmin=-32, vmax=72)
-    ax[1, 0].imshow(left[0, 0], vmin=-32, vmax=72)
-    ax[1, 2].imshow(right[0, 0], vmin=-32, vmax=72)
-    ax[2, 1].imshow(bottom[0, 0], vmin=-32, vmax=72)
+    ax[0, 1].imshow(top[0, 0], vmin=-20, vmax=49)
+    ax[1, 1].imshow(center[0, 0], vmin=-20, vmax=49)
+    ax[1, 0].imshow(left[0, 0], vmin=-20, vmax=49)
+    ax[1, 2].imshow(right[0, 0], vmin=-20, vmax=49)
+    ax[2, 1].imshow(bottom[0, 0], vmin=-20, vmax=49)
 
     out = loss.get(imgs)
