@@ -24,9 +24,8 @@ class PatchIndexManager:
         return self.N * repeat_factor
 
     def hwt_from_idx(self, index, img_sz=None):
-        _, H, W, _ = self._data_shape
         t = self.get_t(index)
-        return (*self.get_deterministic_hw(index, H, W, img_sz=img_sz), t)
+        return (*self.get_deterministic_hw(index, img_sz=img_sz), t)
 
     def get_t(self, index):
         return index % self.N
