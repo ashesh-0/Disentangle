@@ -4,6 +4,8 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
 
+import numpy as np
+
 
 def get_config():
     config = get_default_config()
@@ -41,7 +43,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.nbr_consistency_w = 0.005
+    loss.nbr_consistency_w = 0.01
 
     model = config.model
     model.model_type = ModelType.LadderVae
@@ -85,6 +87,7 @@ def get_config():
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 15
+    training.gridsizes = np.arange(data.grid_size, data.image_size, 2)
     training.max_epochs = 200
     training.batch_size = 32
     training.num_workers = 4

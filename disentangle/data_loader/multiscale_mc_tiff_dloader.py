@@ -67,8 +67,12 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         msg += f' Pad:{self._padding_kwargs}'
         return msg
 
-    def _load_scaled_img(self, scaled_index, index: int) -> Tuple[np.ndarray, np.ndarray]:
-        imgs = self._scaled_data[scaled_index][index % self.N]
+    def _load_scaled_img(self, scaled_index, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+        if isinstance(index, int):
+            idx = index
+        else:
+            idx, _ = index
+        imgs = self._scaled_data[scaled_index][idx % self.N]
         return imgs[None, :, :, 0], imgs[None, :, :, 1]
 
     def _crop_img(self, img: np.ndarray, h_start: int, w_start: int):
@@ -142,7 +146,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         img2 = np.concatenate(img2_versions, axis=0)
         return img1, img2
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: Union[int, Tuple[int, int]]):
         img1, img2 = self._get_img(index)
         assert self._enable_rotation is False
         target = np.concatenate([img1[:1], img2[:1]], axis=0)
@@ -150,4 +154,8 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
             img1, img2 = self.normalize_img(img1, img2)
 
         inp = (0.5 * img1 + 0.5 * img2).astype(np.float32)
-        return inp, target
+
+        if isinstance(index, int):
+            return inp, target
+        _, grid_size = index
+        return inp, target, grid_size

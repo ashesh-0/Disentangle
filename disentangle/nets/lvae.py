@@ -466,7 +466,7 @@ class LadderVAE(pl.LightningModule):
             self.grad_norm_bottom_up, self.grad_norm_top_down = self.compute_gradient_norm()
 
     def training_step(self, batch, batch_idx, enable_logging=True):
-        x, target = batch
+        x, target = batch[:2]
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
 
@@ -486,7 +486,9 @@ class LadderVAE(pl.LightningModule):
             if enable_logging:
                 self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
         elif self.loss_type == LossType.ElboWithNbrConsistency:
-            nbr_cons_loss = self.nbr_consistency_w * self.nbr_consistency_loss.get(imgs)
+            assert len(batch) == 3
+            grid_sizes = batch[2]
+            nbr_cons_loss = self.nbr_consistency_w * self.nbr_consistency_loss.get(imgs, grid_sizes=grid_sizes)
             # print(recons_loss, nbr_cons_loss)
             self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
             recons_loss += nbr_cons_loss
@@ -547,7 +549,7 @@ class LadderVAE(pl.LightningModule):
                 self.likelihood.set_params_to_same_device_as(correct_device_tensor)
 
     def validation_step(self, batch, batch_idx):
-        x, target = batch
+        x, target = batch[:2]
         self.set_params_to_same_device_as(target)
 
         x_normalized = self.normalize_input(x)

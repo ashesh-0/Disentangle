@@ -2,7 +2,7 @@
 Get overlapping patches from the dataset
 """
 import numpy as np
-from disentangle.data_loader.patch_index_manager import PatchIndexManager
+from disentangle.data_loader.patch_index_manager import GridIndexManager
 
 
 def get_overlapping_dset(dset_class):
@@ -41,7 +41,7 @@ def get_overlapping_dset(dset_class):
             # since self._grid_sz is being used to decide position of grids, some grids can be included which will not have
             # self._img_sz content. So, a simple way to fix this is to just give the size of the data which should be
             # accessible according to self._img_sz sized patches.
-            self.idx_manager = PatchIndexManager(self._data.shape, self._grid_sz)
+            self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz)
 
         def get_begin_end_padding(self, start_pos, max_len):
             """

@@ -33,29 +33,36 @@ class BaseSampler(Sampler):
 
 
 class NeighborSampler(BaseSampler):
+    def __init__(self, dataset, batch_size, valid_gridsizes=None) -> None:
+        super().__init__(dataset, batch_size)
+        self._valid_gridsizes = valid_gridsizes
+
     def _add_one_batch(self):
         rand_sz = int(np.ceil(self._batch_size / 5))
 
         rand_idx_list = []
+        rand_grid_list = []
         for _ in range(rand_sz):
             idx = np.random.randint(len(self._dset))
-            while self.idx_manager.on_boundary(idx):
+            rand_grid_list.append(np.random.choice(self._valid_gridsizes) if self._valid_gridsizes is not None else -1)
+            while self.idx_manager.on_boundary(idx, grid_size=rand_grid_list[-1]):
                 idx = np.random.randint(len(self._dset))
 
             rand_idx_list.append(idx)
 
         batch_idx_list = []
-        for rand_idx in rand_idx_list:
-            batch_idx_list.append(rand_idx)
-            batch_idx_list.append(self.idx_manager.get_left_nbr_idx(rand_idx))
-            batch_idx_list.append(self.idx_manager.get_right_nbr_idx(rand_idx))
-            batch_idx_list.append(self.idx_manager.get_top_nbr_idx(rand_idx))
-            batch_idx_list.append(self.idx_manager.get_bottom_nbr_idx(rand_idx))
+        for rand_idx, grid_size in zip(rand_idx_list, rand_grid_list):
+            batch_idx_list.append((rand_idx, grid_size))
+            batch_idx_list.append((self.idx_manager.get_left_nbr_idx(rand_idx, grid_size=grid_size), grid_size))
+            batch_idx_list.append((self.idx_manager.get_right_nbr_idx(rand_idx, grid_size=grid_size), grid_size))
+            batch_idx_list.append((self.idx_manager.get_top_nbr_idx(rand_idx, grid_size=grid_size), grid_size))
+            batch_idx_list.append((self.idx_manager.get_bottom_nbr_idx(rand_idx, grid_size=grid_size), grid_size))
 
         self.index_batches += batch_idx_list[:self._batch_size]
 
     def init(self):
         self.index_batches = []
         num_batches = len(self._dset) // self._batch_size
+
         for _ in range(num_batches):
             self._add_one_batch()

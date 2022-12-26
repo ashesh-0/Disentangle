@@ -6,7 +6,7 @@ import numpy as np
 from disentangle.core.data_type import DataType
 from disentangle.data_loader.train_val_data import get_train_val_data
 from disentangle.core.data_split_type import DataSplitType
-from disentangle.data_loader.patch_index_manager import PatchIndexManager
+from disentangle.data_loader.patch_index_manager import GridIndexManager
 
 
 class MultiChDeterministicTiffDloader:
@@ -97,7 +97,7 @@ class MultiChDeterministicTiffDloader:
         n, h, w, c = self._data.shape
         h -= h % self._img_sz
         w -= w % self._img_sz
-        self.idx_manager = PatchIndexManager((n, h, w, c), self._grid_sz)
+        self.idx_manager = GridIndexManager((n, h, w, c), self._grid_sz)
 
     def set_repeat_factor(self):
         self._repeat_factor = (self._data.shape[-2] // self._grid_sz)**2
@@ -148,8 +148,13 @@ class MultiChDeterministicTiffDloader:
     def __len__(self):
         return self.N * self._repeat_factor
 
-    def _load_img(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
-        imgs = self._data[self.idx_manager.get_t(index)]
+    def _load_img(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+        if isinstance(index, int):
+            idx = index
+        else:
+            idx = index[0]
+
+        imgs = self._data[self.idx_manager.get_t(idx)]
         return imgs[None, :, :, 0], imgs[None, :, :, 1]
 
     def get_mean_std(self):
@@ -167,8 +172,14 @@ class MultiChDeterministicTiffDloader:
         img2 = (img2 - mean[1]) / std[1]
         return img1, img2
 
-    def _get_deterministic_hw(self, index: int):
-        return self.idx_manager.get_deterministic_hw(index)
+    def _get_deterministic_hw(self, index: Union[int, Tuple[int, int]]):
+        if isinstance(index, int):
+            idx = index
+            grid_size = self._grid_sz
+        else:
+            idx, grid_size = index
+
+        return self.idx_manager.get_deterministic_hw(idx, grid_size=grid_size)
 
     def compute_individual_mean_std(self):
         # numpy 1.19.2 has issues in computing for large arrays. https://github.com/numpy/numpy/issues/8869
@@ -208,7 +219,7 @@ class MultiChDeterministicTiffDloader:
             w_start = 0
         return h_start, w_start
 
-    def _get_img(self, index: int):
+    def _get_img(self, index: Union[int, Tuple[int, int]]):
         """
         Loads an image.
         Crops the image such that cropped image has content.
@@ -217,7 +228,7 @@ class MultiChDeterministicTiffDloader:
         cropped_img1, cropped_img2 = self._crop_imgs(index, img1, img2)[:2]
         return cropped_img1, cropped_img2
 
-    def __getitem__(self, index: int) -> Tuple[np.ndarray, np.ndarray]:
+    def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         img1, img2 = self._get_img(index)
         if self._enable_rotation:
             # passing just the 2D input. 3rd dimension messes up things.
@@ -230,4 +241,8 @@ class MultiChDeterministicTiffDloader:
 
         inp = (0.5 * img1 + 0.5 * img2).astype(np.float32)
 
-        return inp, target
+        if isinstance(index, int):
+            return inp, target
+
+        _, grid_size = index
+        return inp, target, grid_size
