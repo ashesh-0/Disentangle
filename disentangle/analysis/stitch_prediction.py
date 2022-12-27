@@ -38,7 +38,7 @@ def get_location_from_idx(dset, dset_input_idx, pred_h, pred_w):
     Returns:
     """
     extra_padding = dset.per_side_overlap_pixelcount()
-    htw = dset.idx_manager.hwt_from_idx(dset_input_idx, img_sz=dset.get_grid_size())
+    htw = dset.idx_manager.hwt_from_idx(dset_input_idx, grid_size=dset.get_grid_size())
     return _get_location(extra_padding, htw, pred_h, pred_w)
 
 
