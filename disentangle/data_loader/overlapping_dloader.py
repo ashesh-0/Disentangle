@@ -15,18 +15,19 @@ def get_overlapping_dset(dset_class):
             image_size_for_grid_centers = kwargs.pop('image_size_for_grid_centers')
             overlapping_padding_kwargs = kwargs.pop('overlapping_padding_kwargs')
             super().__init__(*args, **kwargs)
-            self._img_sz_for_hw = image_size_for_grid_centers
-            self._repeat_factor = (self._data.shape[-2] // self._img_sz_for_hw)**2
+            # self._grid_sz = image_size_for_grid_centers
+            # self._repeat_factor = (self._data.shape[-2] // self._grid_sz)**2
+            self.set_img_sz(self._img_sz, image_size_for_grid_centers)
             # used for multiscale data loader.
             self.enable_padding_while_cropping = True
-            assert self._img_sz >= self._img_sz_for_hw
+            assert self._img_sz >= self._grid_sz
             self._overlapping_padding_kwargs = overlapping_padding_kwargs
 
         def per_side_overlap_pixelcount(self):
-            return (self._img_sz - self._img_sz_for_hw) // 2
+            return (self._img_sz - self._grid_sz) // 2
 
         def get_grid_size(self):
-            return self._img_sz_for_hw
+            return self._grid_sz
 
         # def set_img_sz(self, image_size, grid_size):
         #     """
@@ -46,7 +47,7 @@ def get_overlapping_dset(dset_class):
         def get_begin_end_padding(self, start_pos, max_len):
             """
             This assumes for simplicity that image is square shaped.
-            The effect is that the image with size self._img_sz_for_hw is in the center of the patch with sufficient
+            The effect is that the image with size self._grid_sz is in the center of the patch with sufficient
             padding on all four sides so that the final patch size is self._img_sz.
             """
             pad_start = 0
@@ -67,7 +68,7 @@ def get_overlapping_dset(dset_class):
             else:
                 idx = index[0]
 
-            h_start, w_start = self.idx_manager.get_deterministic_hw(idx, grid_size=self._img_sz_for_hw)
+            h_start, w_start = self.idx_manager.get_deterministic_hw(idx, grid_size=self._grid_sz)
             pad = self.per_side_overlap_pixelcount()
             return h_start - pad, w_start - pad
 

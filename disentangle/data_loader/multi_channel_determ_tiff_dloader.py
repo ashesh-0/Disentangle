@@ -60,7 +60,6 @@ class MultiChDeterministicTiffDloader:
         else:
             self.set_img_sz(data_config.image_size, data_config.image_size)
         # For overlapping dloader, image_size and repeat_factors are not related. hence a different function.
-        self.set_repeat_factor()
 
         self._mean = None
         self._std = None
@@ -92,6 +91,7 @@ class MultiChDeterministicTiffDloader:
         self._img_sz = image_size
         self._grid_sz = grid_size
         self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz)
+        self.set_repeat_factor()
 
     def set_repeat_factor(self):
         self._repeat_factor = (self.idx_manager.grid_rows(self._grid_sz))**2
