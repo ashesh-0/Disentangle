@@ -91,24 +91,10 @@ class MultiChDeterministicTiffDloader:
         """
         self._img_sz = image_size
         self._grid_sz = grid_size
-        # since self._grid_sz is being used to decide position of grids, some grids can be included which will not have
-        # self._img_sz content. So, a simple way to fix this is to just give the size of the data which should be
-        # accessible according to self._img_sz sized patches.
-        n, _, _, c = self._data.shape
-        h = w = self.accessible_frame_size()
-        self.idx_manager = GridIndexManager((n, h, w, c), self._grid_sz)
-
-    def accessible_frame_size(self):
-        """
-        As we want a patch of size self._img_sz, this is the spatial shape which is accessible. Some boundary region will not be available.
-        """
-        _, h, w, _ = self._data.shape
-        assert h == w
-        h -= h % self._img_sz
-        return h
+        self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz)
 
     def set_repeat_factor(self):
-        self._repeat_factor = (self.accessible_frame_size() // self._grid_sz)**2
+        self._repeat_factor = (self.idx_manager.grid_rows(self._grid_sz))**2
 
     def _init_msg(self, ):
         msg = f'[{self.__class__.__name__}] Sz:{self._img_sz}'

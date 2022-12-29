@@ -14,20 +14,27 @@ The extra content on the right side will not be used( as shown below).
 
 
 class GridIndexManager:
-    def __init__(self, data_shape, grid_size) -> None:
+    def __init__(self, data_shape, grid_size, patch_size) -> None:
         self._data_shape = data_shape
         self._default_grid_size = grid_size
+        self.patch_size = patch_size
         self.N = self._data_shape[0]
 
     def use_default_grid(self, grid_size):
         return grid_size is None or grid_size < 0
 
+    def grid_rows(self, grid_size):
+        extra_pixels = (self.patch_size - grid_size)
+        return ((self._data_shape[-2] - extra_pixels) // grid_size)
+
+    def grid_cols(self, grid_size):
+        return self.grid_rows(grid_size)
+
     def grid_count(self, grid_size=None):
         if self.use_default_grid(grid_size):
             grid_size = self._default_grid_size
 
-        repeat_factor = (self._data_shape[-2] // grid_size)**2
-        return self.N * repeat_factor
+        return self.N * self.grid_rows(grid_size) * self.grid_cols(grid_size)
 
     def hwt_from_idx(self, index, grid_size=None):
         t = self.get_t(index)
@@ -40,8 +47,7 @@ class GridIndexManager:
         if self.use_default_grid(grid_size):
             grid_size = self._default_grid_size
 
-        h, w = self._data_shape[1:3]
-        nrows = h // grid_size
+        nrows = self.grid_rows(grid_size)
         index -= nrows * self.N
         if index < 0:
             return None
@@ -52,8 +58,7 @@ class GridIndexManager:
         if self.use_default_grid(grid_size):
             grid_size = self._default_grid_size
 
-        h, w = self._data_shape[1:3]
-        nrows = h // grid_size
+        nrows = self.grid_rows(grid_size)
         index += nrows * self.N
         if index > self.grid_count(grid_size=grid_size):
             return None
@@ -78,7 +83,7 @@ class GridIndexManager:
             grid_size = self._default_grid_size
 
         factor = index // self.N
-        nrows = self._data_shape[-2] // grid_size
+        nrows = self.grid_rows(grid_size)
 
         left_boundary = (factor // nrows) != (factor - 1) // nrows
         return left_boundary
@@ -88,7 +93,7 @@ class GridIndexManager:
             grid_size = self._default_grid_size
 
         factor = index // self.N
-        nrows = self._data_shape[-2] // grid_size
+        nrows = self.grid_rows(grid_size)
 
         right_boundary = (factor // nrows) != (factor + 1) // nrows
         return right_boundary
@@ -97,16 +102,14 @@ class GridIndexManager:
         if self.use_default_grid(grid_size):
             grid_size = self._default_grid_size
 
-        h, w = self._data_shape[1:3]
-        nrows = h // grid_size
+        nrows = self.grid_rows(grid_size)
         return index < self.N * nrows
 
     def on_bottom_boundary(self, index, grid_size=None):
         if self.use_default_grid(grid_size):
             grid_size = self._default_grid_size
 
-        h, w = self._data_shape[1:3]
-        nrows = h // grid_size
+        nrows = self.grid_rows(grid_size)
         return index + self.N * nrows > self.grid_count(grid_size=grid_size)
 
     def on_boundary(self, idx, grid_size=None):
@@ -130,10 +133,10 @@ class GridIndexManager:
         if self.use_default_grid(grid_size):
             grid_size = self._default_grid_size
 
-        _, h, w, _ = self._data_shape
-        assert h == w
+        # _, h, w, _ = self._data_shape
+        # assert h == w
         factor = index // self.N
-        nrows = h // grid_size
+        nrows = self.grid_rows(grid_size)
 
         ith_row = factor // nrows
         jth_col = factor % nrows
