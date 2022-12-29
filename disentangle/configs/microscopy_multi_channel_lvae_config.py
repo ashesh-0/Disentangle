@@ -42,7 +42,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.nbr_consistency_w = 0.1
+    loss.nbr_consistency_w = 0.01
 
     model = config.model
     model.model_type = ModelType.LadderVae
