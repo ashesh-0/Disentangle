@@ -15,9 +15,9 @@ def get_config():
     data.channel_1 = 2
     data.channel_2 = 3
 
-    data.sampler_type = SamplerType.DefaultSampler
+    data.sampler_type = SamplerType.NeighborSampler
     data.threshold = 0.02
-    data.deterministic_grid = False
+    data.deterministic_grid = True
     data.normalized_input = True
     data.clip_percentile = 0.995
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
@@ -33,7 +33,7 @@ def get_config():
     data.target_separate_normalization = True
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.ElboWithNbrConsistency
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -42,11 +42,11 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    # loss.nbr_consistency_w = 0.001
+    loss.nbr_consistency_w = 1
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128, 128, 128, 128, 128, 128]
+    model.z_dims = [128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
@@ -59,7 +59,7 @@ def get_config():
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-    model.decoder.multiscale_retain_spatial_dims = True
+    model.decoder.multiscale_retain_spatial_dims = False
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -86,7 +86,7 @@ def get_config():
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 15
-    # training.gridsizes = np.arange(int(0.25 * data.image_size), int(0.75 * data.image_size), 2)
+    training.gridsizes = np.arange(int(0.25 * data.image_size), int(0.75 * data.image_size), 2)
     training.max_epochs = 200
     training.batch_size = 32
     training.num_workers = 4
