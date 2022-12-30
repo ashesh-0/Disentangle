@@ -5,6 +5,7 @@ import argparse
 import os
 
 import pandas as pd
+import numpy as np
 
 import git
 import ml_collections
@@ -24,7 +25,8 @@ def _compare_config(config1, config2, prefix_key=''):
             val2 += nested_val2
         else:
             if key in config2:
-                if isinstance(config1[key], list) or isinstance(config1[key], tuple):
+                if isinstance(config1[key], list) or isinstance(config1[key], tuple) or isinstance(
+                        config1[key], np.ndarray):
                     unequal = tuple(config1[key]) != tuple(config2[key])
                 else:
                     unequal = config1[key] != config2[key]
