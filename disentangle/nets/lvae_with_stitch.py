@@ -16,10 +16,10 @@ class SqueezeLayer(nn.Module):
 class LadderVAEwithStitching(LadderVAE):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
-        self.offset_prediction_input_z_idx = 2
+        self.offset_prediction_input_z_idx = config.model.offset_prediction_input_z_idx
         latent_spatial_dims = config.data.image_size // np.power(2, 1 + self.offset_prediction_input_z_idx)
         in_channels = config.model.z_dims[self.offset_prediction_input_z_idx]
-        offset_latent_dims = 10
+        offset_latent_dims = config.model.offset_latent_dims
         self.offset_predictor = nn.Sequential(
             nn.Conv2d(in_channels, offset_latent_dims, 1),
             self.get_nonlin()(),
