@@ -8,7 +8,6 @@ from disentangle.core.stable_dist_params import StableLogVar
 
 
 class LikelihoodModule(nn.Module):
-
     def distr_params(self, x):
         return None
 
@@ -55,7 +54,6 @@ class LikelihoodModule(nn.Module):
 
 
 class NoiseModelLikelihood(LikelihoodModule):
-
     def __init__(self, ch_in, color_channels, data_mean, data_std, noiseModel):
         super().__init__()
         self.parameter_net = nn.Conv2d(ch_in, color_channels, kernel_size=3, padding=1)
@@ -113,7 +111,6 @@ class NoiseModelLikelihood(LikelihoodModule):
 
 
 class GaussianLikelihood(LikelihoodModule):
-
     def __init__(self, ch_in, color_channels, predict_logvar: Union[None, str] = None, logvar_lowerbound=None):
         super().__init__()
         # If True, then we also predict pixelwise logvar.
@@ -199,3 +196,26 @@ def log_normal(x, mean, logvar):
     var = torch.exp(logvar)
     log_prob = -0.5 * (((x - mean)**2) / var + logvar + torch.tensor(2 * math.pi).log())
     return log_prob
+
+
+class GaussianLikelihoodWithStitching(GaussianLikelihood):
+    def forward(self, input_, x, offset):
+        distr_params = self.distr_params(input_)
+        distr_params['mean'] = distr_params['mean'] + offset
+
+        mean = self.mean(distr_params)
+        mode = self.mode(distr_params)
+        sample = self.sample(distr_params)
+        logvar = self.logvar(distr_params)
+        if x is None:
+            ll = None
+        else:
+            ll = self.log_likelihood(x, distr_params)
+        dct = {
+            'mean': mean,
+            'mode': mode,
+            'sample': sample,
+            'params': distr_params,
+            'logvar': logvar,
+        }
+        return ll, dct

@@ -1,4 +1,5 @@
 from disentangle.core.enum import Enum
+from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
 
 
 class ModelType(Enum):
@@ -13,3 +14,4 @@ class ModelType(Enum):
     LadderVaeSepEncoderSingleOptim = 9
     UNet = 10
     BraveNet = 11
+    LadderVaeStitch = 12

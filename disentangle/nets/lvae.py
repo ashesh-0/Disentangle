@@ -242,6 +242,20 @@ class LadderVAE(pl.LightningModule):
                     gated=self.gated,
                 ))
         self.final_top_down = nn.Sequential(*modules)
+
+        self.create_likelihood_module()
+        # gradient norms. updated while training. this is also logged.
+        self.grad_norm_bottom_up = 0.0
+        self.grad_norm_top_down = 0.0
+        # PSNR computation on validation.
+        self.label1_psnr = RunningPSNR()
+        self.label2_psnr = RunningPSNR()
+        print(f'[{self.__class__.__name__}] Enc [ResKSize{self.encoder_res_block_kernel}',
+              f'SkipPadding:{self.encoder_res_block_skip_padding}]',
+              f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]',
+              f'Stoc:{not self.non_stochastic_version}')
+
+    def create_likelihood_module(self):
         # Define likelihood
         if self.likelihood_form == 'gaussian':
             self.likelihood = GaussianLikelihood(self.decoder_n_filters,
@@ -254,16 +268,6 @@ class LadderVAE(pl.LightningModule):
         else:
             msg = "Unrecognized likelihood '{}'".format(self.likelihood_form)
             raise RuntimeError(msg)
-        # gradient norms. updated while training. this is also logged.
-        self.grad_norm_bottom_up = 0.0
-        self.grad_norm_top_down = 0.0
-        # PSNR computation on validation.
-        self.label1_psnr = RunningPSNR()
-        self.label2_psnr = RunningPSNR()
-        print(f'[{self.__class__.__name__}] Enc [ResKSize{self.encoder_res_block_kernel}',
-              f'SkipPadding:{self.encoder_res_block_skip_padding}]',
-              f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]',
-              f'Stoc:{not self.non_stochastic_version}')
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
         nonlin = self.get_nonlin()

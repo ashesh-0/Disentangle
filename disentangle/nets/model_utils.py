@@ -14,6 +14,7 @@ from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
 from disentangle.nets.lvae_with_critic import LadderVAECritic
 from disentangle.nets.lvae_multiple_encoders import LadderVAEMultipleEncoders
 from disentangle.nets.lvae_multiple_encoder_single_opt import LadderVAEMulEncoder1Optim
+from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
 from disentangle.nets.unet import UNet
 from disentangle.nets.brave_net import BraveNetPL
 
@@ -32,9 +33,11 @@ def create_model(config, data_mean, data_std):
     elif config.model.model_type == ModelType.UNet:
         model = UNet(data_mean, data_std, config)
     elif config.model.model_type == ModelType.BraveNet:
-        model = BraveNetPL(data_mean,data_std,config)
+        model = BraveNetPL(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVaeStitch:
+        model = LadderVAEwithStitching(data_mean, data_std, config)
     else:
-        raise Exception('Invalid model type:' , config.model.model_type)
+        raise Exception('Invalid model type:', config.model.model_type)
     return model
 
 
