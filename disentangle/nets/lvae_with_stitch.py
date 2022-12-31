@@ -129,7 +129,6 @@ class LadderVAEwithStitching(LadderVAE):
 
         recons_loss = recons_loss_dict['loss']
         kl_loss = self.get_kl_divergence_loss(td_data)
-
         if optimizer_idx == 0:
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
             if enable_logging:
