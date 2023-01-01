@@ -93,10 +93,18 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                         losses.append(rec_loss.cpu().numpy())
 
                 else:
-                    recon_normalized, _ = model(x_normalized)
-                    rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
-                                                                   tar_normalized,
-                                                                   return_predicted_img=True)
+                    if model_type == ModelType.LadderVaeStitch:
+                        recon_normalized, td_data = model(x_normalized)
+                        offset = model.compute_offset(td_data['z'])
+                        rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
+                                                                               tar_normalized,
+                                                                               offset,
+                                                                               return_predicted_img=True)
+                    else:
+                        recon_normalized, _ = model(x_normalized)
+                        rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
+                                                                       tar_normalized,
+                                                                       return_predicted_img=True)
 
                     if mmse_idx == 0:
                         q_dic = model.likelihood.distr_params(recon_normalized)
