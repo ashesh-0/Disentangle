@@ -81,12 +81,18 @@ class SeamlessStitch(SeamlessStitchBase):
         bottom_p_boundary = self.get_bboundary(row_idx, col_idx)
         return (bottom_p_boundary, top_p_boundary, p)
 
-    def _compute_loss(self, row_idx, col_idx):
-        left_loss = self._compute_left_loss(row_idx, col_idx)
-        right_loss = self._compute_right_loss(row_idx, col_idx)
+    def _compute_loss(self,
+                      row_idx,
+                      col_idx,
+                      compute_left=True,
+                      compute_right=True,
+                      compute_top=True,
+                      compute_bottom=True):
+        left_loss = self._compute_left_loss(row_idx, col_idx) if compute_left else None
+        right_loss = self._compute_right_loss(row_idx, col_idx) if compute_right else None
 
-        top_loss = self._compute_top_loss(row_idx, col_idx)
-        bottom_loss = self._compute_bottom_loss(row_idx, col_idx)
+        top_loss = self._compute_top_loss(row_idx, col_idx) if compute_top else None
+        bottom_loss = self._compute_bottom_loss(row_idx, col_idx) if compute_bottom else None
 
         b1_arr = []
         b2_arr = []
@@ -113,7 +119,12 @@ class SeamlessStitch(SeamlessStitchBase):
 
         return b1_arr, b2_arr, offset_arr
 
-    def compute_loss(self, batch_size=100):
+    def compute_loss(self,
+                     batch_size=100,
+                     compute_left=True,
+                     compute_right=True,
+                     compute_top=True,
+                     compute_bottom=True):
         loss = 0.0
         b1_arr = []
         b2_arr = []
@@ -123,7 +134,12 @@ class SeamlessStitch(SeamlessStitchBase):
         normalizing_factor = self._data.shape[0] * (2 * ((self._N - 1)**2))
         for row_idx in range(self._N):
             for col_idx in range(self._N):
-                a, b, c = self._compute_loss(row_idx, col_idx)
+                a, b, c = self._compute_loss(row_idx,
+                                             col_idx,
+                                             compute_left=compute_left,
+                                             compute_right=compute_right,
+                                             compute_top=compute_top,
+                                             compute_bottom=compute_bottom)
                 b1_arr += a
                 b2_arr += b
                 offset_arr += c
