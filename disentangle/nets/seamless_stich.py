@@ -119,6 +119,8 @@ class SeamlessStitch(SeamlessStitchBase):
         b2_arr = []
         offset_arr = []
         loss = 0.0
+
+        normalizing_factor = self._data.shape[0] * (2 * ((self._N - 1)**2))
         for row_idx in range(self._N):
             for col_idx in range(self._N):
                 a, b, c = self._compute_loss(row_idx, col_idx)
@@ -127,14 +129,14 @@ class SeamlessStitch(SeamlessStitchBase):
                 offset_arr += c
                 if batch_size <= len(b1_arr):
                     loss += self._compute_loss_on_boundaries(torch.cat(b1_arr, dim=0), torch.cat(b2_arr, dim=0),
-                                                             torch.cat(offset_arr, dim=0)) / (2 * ((self._N - 1)**2))
+                                                             torch.cat(offset_arr, dim=0)) / normalizing_factor
                     b1_arr = []
                     b2_arr = []
                     offset_arr = []
 
         if len(offset_arr):
             loss += self._compute_loss_on_boundaries(torch.cat(b1_arr, dim=0), torch.cat(b2_arr, dim=0),
-                                                     torch.cat(offset_arr, dim=0)) / (2 * ((self._N - 1)**2))
+                                                     torch.cat(offset_arr, dim=0)) / normalizing_factor
         return loss
 
     def fit(self, batch_size=512, steps=100):
