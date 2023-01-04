@@ -21,19 +21,22 @@ class Model(nn.Module):
 
 
 class SeamlessStitch(SeamlessStitchBase):
-    def __init__(self, grid_size, stitched_frame, learning_rate, lr_patience=10):
+    def __init__(self, grid_size, stitched_frame, learning_rate, lr_patience=10, lr_reduction_factor=0.1):
         super().__init__(grid_size, stitched_frame)
         self.params = Model(len(stitched_frame), self._N)
-        self.opt = torch.optim.SGD(self.params.parameters(), lr=learning_rate)
+        self.opt = torch.optim.Adam(self.params.parameters(), lr=learning_rate)
         self.loss_metric = nn.L1Loss(reduction='sum')
 
         self.lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.opt,
                                                                  'min',
                                                                  patience=lr_patience,
-                                                                 factor=0.5,
+                                                                 factor=lr_reduction_factor,
                                                                  threshold_mode='abs',
                                                                  min_lr=1e-12,
                                                                  verbose=True)
+        print(
+            f'[{self.__class__.__name__}] Grid:{grid_size} LR:{learning_rate} LP:{lr_patience} LRF:{lr_reduction_factor}'
+        )
 
     def get_ch0_offset(self, row_idx, col_idx):
         return self.params[row_idx, col_idx].detach().cpu().numpy()[:, None, None]
@@ -167,4 +170,5 @@ class SeamlessStitch(SeamlessStitchBase):
             loss_arr.append(loss.item())
             steps_iter.set_description(f'Loss: {loss_arr[-1]:.3f}')
             self.lr_scheduler.step(loss)
+
         return loss_arr
