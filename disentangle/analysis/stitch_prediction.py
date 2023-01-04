@@ -128,20 +128,15 @@ def _get_smoothing_mask(cropped_pred_shape, smoothening_pixelcount, loc, frame_s
 
 
 def remove_pad(pred, loc, extra_padding, smoothening_pixelcount, frame_size):
+    assert smoothening_pixelcount == 0
     if extra_padding - smoothening_pixelcount > 0:
-        if loc.h_start < 0:
-            h_s = -1 * loc.h_start
-        else:
-            h_s = extra_padding - smoothening_pixelcount
+        h_s = extra_padding - smoothening_pixelcount
 
         if loc.h_end > frame_size:
             assert loc.h_end - extra_padding + smoothening_pixelcount <= frame_size
         h_e = extra_padding - smoothening_pixelcount
 
-        if loc.w_start < 0:
-            w_s = -1 * loc.w_start
-        else:
-            w_s = extra_padding - smoothening_pixelcount
+        w_s = extra_padding - smoothening_pixelcount
 
         if loc.w_end > frame_size:
             assert loc.w_end - extra_padding + smoothening_pixelcount <= frame_size

@@ -6,7 +6,7 @@ import numpy as np
 from disentangle.core.data_type import DataType
 from disentangle.data_loader.train_val_data import get_train_val_data
 from disentangle.core.data_split_type import DataSplitType
-from disentangle.data_loader.patch_index_manager import GridIndexManager
+from disentangle.data_loader.patch_index_manager import GridIndexManager, GridAlignement
 
 
 class MultiChDeterministicTiffDloader:
@@ -90,7 +90,7 @@ class MultiChDeterministicTiffDloader:
         """
         self._img_sz = image_size
         self._grid_sz = grid_size
-        self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz)
+        self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz, GridAlignement.LeftTop)
         self.set_repeat_factor()
 
     def set_repeat_factor(self):
