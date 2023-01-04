@@ -180,7 +180,7 @@ def main(argv):
                                                 config.training.batch_size,
                                                 valid_gridsizes=config.training.gridsizes,
                                                 nbr_set_count=nbr_set_count)
-                val_sampler = NeighborSampler(val_data, config.training.batch_size)
+                val_sampler = NeighborSampler(val_data, config.training.batch_size,nbr_set_count=0)
 
             train_dloader = DataLoader(train_data,
                                        pin_memory=False,

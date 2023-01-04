@@ -70,7 +70,7 @@ class NeighborSampler(BaseSampler):
 
         if self._nbr_set_count is not None and len(batch_idx_list) < self._batch_size:
             idx_list = list(np.random.randint(len(self._dset), size=self._batch_size - len(batch_idx_list)))
-            gridsizes = np.random.choice(self._valid_gridsizes, size=len(idx_list))
+            gridsizes = [-1] * len(idx_list)
             batch_idx_list += zip(idx_list, gridsizes)
             self.index_batches += batch_idx_list
         else:

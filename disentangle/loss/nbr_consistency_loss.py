@@ -102,6 +102,8 @@ class NeighborConsistencyLoss:
             relevant_imgs = min(relevant_imgs, 5 * self._nbr_set_count)
 
         imgs = imgs[:relevant_imgs]
+        if len(imgs) == 0:
+            return None
 
         imgs = imgs.view(5, relevant_imgs // 5, *imgs.shape[1:])
         loss = 0

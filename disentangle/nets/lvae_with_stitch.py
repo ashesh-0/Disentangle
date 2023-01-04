@@ -145,16 +145,17 @@ class LadderVAEwithStitching(LadderVAE):
         elif optimizer_idx == 1:
             assert len(batch) == 3
             grid_sizes = batch[2]
-            nbr_cons_loss = self.nbr_consistency_w * self.nbr_consistency_loss.get(imgs, grid_sizes=grid_sizes)
-            # print(recons_loss, nbr_cons_loss)
-            self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
+            nbr_cons_loss = self.nbr_consistency_loss.get(imgs, grid_sizes=grid_sizes)
+            if nbr_cons_loss is not None:
+                nbr_cons_loss = self.nbr_consistency_w * nbr_cons_loss
+                self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
             net_loss = nbr_cons_loss
 
         output = {
             'loss': net_loss,
         }
         # https://github.com/openai/vdvae/blob/main/train.py#L26
-        if torch.isnan(net_loss).any():
+        if net_loss is None or torch.isnan(net_loss).any():
             return None
 
         return output

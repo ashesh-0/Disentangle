@@ -14,7 +14,7 @@ def get_config():
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
-    data.nbr_set_count = 1
+    data.nbr_set_count = 0
 
     data.sampler_type = SamplerType.NeighborSampler
     data.threshold = 0.02
