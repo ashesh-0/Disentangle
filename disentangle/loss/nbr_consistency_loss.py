@@ -5,9 +5,11 @@ import numpy as np
 
 
 class NeighborConsistencyLoss:
-    def __init__(self, grid_size) -> None:
+    def __init__(self, grid_size, nbr_set_count=None) -> None:
         self.loss_metric = nn.MSELoss()
         self._default_grid_size = grid_size
+        self._nbr_set_count = nbr_set_count
+        print(f'[{self.__class__.__name__}] DefGrid:{self._default_grid_size} NbrSet:{self._nbr_set_count}')
 
     def use_default_grid(self, grid_size):
         return grid_size is None or grid_size < 0
@@ -96,6 +98,9 @@ class NeighborConsistencyLoss:
             grid_sizes = np.ones(len(imgs)) * self._default_grid_size
 
         relevant_imgs = 5 * (len(imgs) // 5)
+        if self._nbr_set_count is not None:
+            relevant_imgs = min(relevant_imgs, 5 * self._nbr_set_count)
+
         imgs = imgs[:relevant_imgs]
 
         imgs = imgs.view(5, relevant_imgs // 5, *imgs.shape[1:])

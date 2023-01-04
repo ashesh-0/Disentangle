@@ -33,12 +33,22 @@ class BaseSampler(Sampler):
 
 
 class NeighborSampler(BaseSampler):
-    def __init__(self, dataset, batch_size, valid_gridsizes=None) -> None:
+    def __init__(self, dataset, batch_size, nbr_set_count=None, valid_gridsizes=None) -> None:
+        """
+        Args:
+            nbr_set_count: how many set of neighbors should be provided. They are present in the beginning of the batch. 
+                        nbr_set_count=2 will mean 2 sets of neighbors are provided in each batch. And they will comprise first 10 instances in the batch.
+                        Remaining elements in the batch will be drawn randomly.
+        """
         super().__init__(dataset, batch_size)
         self._valid_gridsizes = valid_gridsizes
+        self._nbr_set_count = nbr_set_count
+        print(f'[{self.__class__.__name__}] NbrSet:{self._nbr_set_count}')
 
     def _add_one_batch(self):
         rand_sz = int(np.ceil(self._batch_size / 5))
+        if self._nbr_set_count is not None:
+            rand_sz = min(rand_sz, self._nbr_set_count)
 
         rand_idx_list = []
         rand_grid_list = []
@@ -58,7 +68,13 @@ class NeighborSampler(BaseSampler):
             batch_idx_list.append((self.idx_manager.get_top_nbr_idx(rand_idx, grid_size=grid_size), grid_size))
             batch_idx_list.append((self.idx_manager.get_bottom_nbr_idx(rand_idx, grid_size=grid_size), grid_size))
 
-        self.index_batches += batch_idx_list[:self._batch_size]
+        if self._nbr_set_count is not None and len(batch_idx_list) < self._batch_size:
+            idx_list = list(np.random.randint(len(self._dset), size=self._batch_size - len(batch_idx_list)))
+            gridsizes = np.random.choice(self._valid_gridsizes, size=len(idx_list))
+            batch_idx_list += zip(idx_list, gridsizes)
+            self.index_batches = batch_idx_list
+        else:
+            self.index_batches += batch_idx_list[:self._batch_size]
 
     def init(self):
         self.index_batches = []

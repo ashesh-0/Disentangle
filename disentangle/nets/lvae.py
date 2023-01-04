@@ -112,7 +112,7 @@ class LadderVAE(pl.LightningModule):
             assert 'grid_size' in config.data or 'gridsizes' in config.training
             self._grid_sz = config.data.grid_size if 'grid_size' in config.data else config.data.image_size
             # NeighborConsistencyLoss assumes the batch to be a sequence of [center, left, right, top bottom] images.
-            self.nbr_consistency_loss = NeighborConsistencyLoss(self._grid_sz)
+            self.nbr_consistency_loss = NeighborConsistencyLoss(self._grid_sz, nbr_set_count=config.data.nbr_set_count)
 
         self._global_step = 0
 

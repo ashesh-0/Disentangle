@@ -175,9 +175,11 @@ def main(argv):
                 val_sampler = SingleImgSampler(val_data, config.training.batch_size)
             elif config.data.sampler_type == SamplerType.NeighborSampler:
                 assert 'gridsizes' in config.training, 'For this to work, gridsizes must be provided'
+                nbr_set_count = config.data.nbr_set_count
                 train_sampler = NeighborSampler(train_data,
                                                 config.training.batch_size,
-                                                valid_gridsizes=config.training.gridsizes)
+                                                valid_gridsizes=config.training.gridsizes,
+                                                nbr_set_count=nbr_set_count)
                 val_sampler = NeighborSampler(val_data, config.training.batch_size)
 
             train_dloader = DataLoader(train_data,
