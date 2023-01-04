@@ -72,13 +72,12 @@ class NeighborSampler(BaseSampler):
             idx_list = list(np.random.randint(len(self._dset), size=self._batch_size - len(batch_idx_list)))
             gridsizes = np.random.choice(self._valid_gridsizes, size=len(idx_list))
             batch_idx_list += zip(idx_list, gridsizes)
-            self.index_batches = batch_idx_list
+            self.index_batches += batch_idx_list
         else:
             self.index_batches += batch_idx_list[:self._batch_size]
 
     def init(self):
         self.index_batches = []
         num_batches = len(self._dset) // self._batch_size
-
         for _ in range(num_batches):
             self._add_one_batch()
