@@ -11,20 +11,38 @@ The extra content on the right side will not be used( as shown below).
 .-----------.-.
 
 """
+from tkinter import Grid
+from disentangle.core.enum import Enum
+
+
+class GridAlignement(Enum):
+    """
+    A patch is formed by padding the grid with content. If the grids are 'Center' aligned, then padding is to done equally on all 4 sides.
+    On the other hand, if grids are 'LeftTop' aligned, padding is to be done on the right and bottom end of the grid.
+    In the former case, one needs (patch_size - grid_size)//2 amount of content on the right end of the frame. 
+    In the latter case, one needs patch_size - grid_size amount of content on the right end of the frame. 
+    """
+    LeftTop = 0
+    Center = 1
 
 
 class GridIndexManager:
-    def __init__(self, data_shape, grid_size, patch_size) -> None:
+    def __init__(self, data_shape, grid_size, patch_size, grid_alignement) -> None:
         self._data_shape = data_shape
         self._default_grid_size = grid_size
         self.patch_size = patch_size
         self.N = self._data_shape[0]
+        self._align = grid_alignement
 
     def use_default_grid(self, grid_size):
         return grid_size is None or grid_size < 0
 
     def grid_rows(self, grid_size):
-        extra_pixels = (self.patch_size - grid_size)
+        if self._align == GridAlignement.LeftTop:
+            extra_pixels = (self.patch_size - grid_size)
+        elif self._align == GridAlignement.Center:
+            extra_pixels = (self.patch_size - grid_size) // 2
+
         return ((self._data_shape[-2] - extra_pixels) // grid_size)
 
     def grid_cols(self, grid_size):

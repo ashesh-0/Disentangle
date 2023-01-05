@@ -83,7 +83,7 @@ class SeamlessStitchBase:
         pass
 
     def get_data(self):
-        return self._data.cpu().numpy()
+        return self._data.cpu().numpy().copy()
 
     def get_output(self):
         data = self.get_data()

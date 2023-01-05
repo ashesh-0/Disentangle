@@ -13,8 +13,8 @@ class SeamlessStitchGrad1(SeamlessStitch):
         ------------
             Bottom
     """
-    def __init__(self, grid_size, stitched_frame, learning_rate, lr_patience=10):
-        super().__init__(grid_size, stitched_frame, learning_rate, lr_patience)
+    def __init__(self, grid_size, stitched_frame, learning_rate, lr_patience=10, lr_reduction_factor=0.1):
+        super().__init__(grid_size, stitched_frame, learning_rate, lr_patience, lr_reduction_factor=lr_reduction_factor)
         self.cache = {'lgrad': {}, 'rgrad': {}, 'tgrad': {}, 'bgrad': {}, 'lnb': {}, 'rnb': {}, 'tnb': {}, 'bnb': {}}
         self.use_caching = False
 

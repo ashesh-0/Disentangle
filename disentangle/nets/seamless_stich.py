@@ -21,19 +21,22 @@ class Model(nn.Module):
 
 
 class SeamlessStitch(SeamlessStitchBase):
-    def __init__(self, grid_size, stitched_frame, learning_rate, lr_patience=10):
+    def __init__(self, grid_size, stitched_frame, learning_rate, lr_patience=10, lr_reduction_factor=0.1):
         super().__init__(grid_size, stitched_frame)
         self.params = Model(len(stitched_frame), self._N)
-        self.opt = torch.optim.SGD(self.params.parameters(), lr=learning_rate)
+        self.opt = torch.optim.Adam(self.params.parameters(), lr=learning_rate)
         self.loss_metric = nn.L1Loss(reduction='sum')
 
         self.lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.opt,
                                                                  'min',
                                                                  patience=lr_patience,
-                                                                 factor=0.5,
+                                                                 factor=lr_reduction_factor,
                                                                  threshold_mode='abs',
                                                                  min_lr=1e-12,
                                                                  verbose=True)
+        print(
+            f'[{self.__class__.__name__}] Grid:{grid_size} LR:{learning_rate} LP:{lr_patience} LRF:{lr_reduction_factor}'
+        )
 
     def get_ch0_offset(self, row_idx, col_idx):
         return self.params[row_idx, col_idx].detach().cpu().numpy()[:, None, None]
@@ -81,12 +84,18 @@ class SeamlessStitch(SeamlessStitchBase):
         bottom_p_boundary = self.get_bboundary(row_idx, col_idx)
         return (bottom_p_boundary, top_p_boundary, p)
 
-    def _compute_loss(self, row_idx, col_idx):
-        left_loss = self._compute_left_loss(row_idx, col_idx)
-        right_loss = self._compute_right_loss(row_idx, col_idx)
+    def _compute_loss(self,
+                      row_idx,
+                      col_idx,
+                      compute_left=True,
+                      compute_right=True,
+                      compute_top=True,
+                      compute_bottom=True):
+        left_loss = self._compute_left_loss(row_idx, col_idx) if compute_left else None
+        right_loss = self._compute_right_loss(row_idx, col_idx) if compute_right else None
 
-        top_loss = self._compute_top_loss(row_idx, col_idx)
-        bottom_loss = self._compute_bottom_loss(row_idx, col_idx)
+        top_loss = self._compute_top_loss(row_idx, col_idx) if compute_top else None
+        bottom_loss = self._compute_bottom_loss(row_idx, col_idx) if compute_bottom else None
 
         b1_arr = []
         b2_arr = []
@@ -113,28 +122,40 @@ class SeamlessStitch(SeamlessStitchBase):
 
         return b1_arr, b2_arr, offset_arr
 
-    def compute_loss(self, batch_size=100):
+    def compute_loss(self,
+                     batch_size=100,
+                     compute_left=True,
+                     compute_right=True,
+                     compute_top=True,
+                     compute_bottom=True):
         loss = 0.0
         b1_arr = []
         b2_arr = []
         offset_arr = []
         loss = 0.0
+
+        normalizing_factor = self._data.shape[0] * (2 * ((self._N - 1)**2))
         for row_idx in range(self._N):
             for col_idx in range(self._N):
-                a, b, c = self._compute_loss(row_idx, col_idx)
+                a, b, c = self._compute_loss(row_idx,
+                                             col_idx,
+                                             compute_left=compute_left,
+                                             compute_right=compute_right,
+                                             compute_top=compute_top,
+                                             compute_bottom=compute_bottom)
                 b1_arr += a
                 b2_arr += b
                 offset_arr += c
                 if batch_size <= len(b1_arr):
                     loss += self._compute_loss_on_boundaries(torch.cat(b1_arr, dim=0), torch.cat(b2_arr, dim=0),
-                                                             torch.cat(offset_arr, dim=0)) / (2 * ((self._N - 1)**2))
+                                                             torch.cat(offset_arr, dim=0)) / normalizing_factor
                     b1_arr = []
                     b2_arr = []
                     offset_arr = []
 
         if len(offset_arr):
             loss += self._compute_loss_on_boundaries(torch.cat(b1_arr, dim=0), torch.cat(b2_arr, dim=0),
-                                                     torch.cat(offset_arr, dim=0)) / (2 * ((self._N - 1)**2))
+                                                     torch.cat(offset_arr, dim=0)) / normalizing_factor
         return loss
 
     def fit(self, batch_size=512, steps=100):
@@ -149,4 +170,5 @@ class SeamlessStitch(SeamlessStitchBase):
             loss_arr.append(loss.item())
             steps_iter.set_description(f'Loss: {loss_arr[-1]:.3f}')
             self.lr_scheduler.step(loss)
+
         return loss_arr
