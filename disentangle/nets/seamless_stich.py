@@ -24,7 +24,7 @@ class SeamlessStitch(SeamlessStitchBase):
     def __init__(self, grid_size, stitched_frame, learning_rate, lr_patience=10, lr_reduction_factor=0.1):
         super().__init__(grid_size, stitched_frame)
         self.params = Model(len(stitched_frame), self._N)
-        self.opt = torch.optim.Adam(self.params.parameters(), lr=learning_rate)
+        self.opt = torch.optim.SGD(self.params.parameters(), lr=learning_rate)
         self.loss_metric = nn.L1Loss(reduction='sum')
 
         self.lr_scheduler = optim.lr_scheduler.ReduceLROnPlateau(self.opt,
