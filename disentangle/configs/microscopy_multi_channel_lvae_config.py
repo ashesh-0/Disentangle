@@ -17,7 +17,7 @@ def get_config():
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
-    data.deterministic_grid = True
+    data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
@@ -42,7 +42,6 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.nbr_consistency_w = 1
 
     model = config.model
     model.model_type = ModelType.LadderVae
@@ -86,7 +85,6 @@ def get_config():
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 15
-    training.gridsizes = np.arange(int(0.25 * data.image_size), int(0.75 * data.image_size), 2)
     training.max_epochs = 200
     training.batch_size = 32
     training.num_workers = 4
