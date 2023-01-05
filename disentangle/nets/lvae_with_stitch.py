@@ -20,6 +20,8 @@ class LadderVAEwithStitching(LadderVAE):
         latent_spatial_dims = config.data.image_size // np.power(2, 1 + self.offset_prediction_input_z_idx)
         in_channels = config.model.z_dims[self.offset_prediction_input_z_idx]
         offset_latent_dims = config.model.offset_latent_dims
+        self.nbr_set_count = config.data.get('nbr_set_count', None)
+
         self.offset_predictor = nn.Sequential(
             nn.Conv2d(in_channels, offset_latent_dims, 1),
             self.get_nonlin()(),
@@ -112,7 +114,14 @@ class LadderVAEwithStitching(LadderVAE):
         return offset[..., None, None]
 
     def training_step(self, batch: tuple, batch_idx: int, optimizer_idx: int, enable_logging=True):
-        x, target = batch[:2]
+        x, target, grid_sizes = batch
+
+        if optimizer_idx == 0 and self.nbr_set_count is not None:
+            mask = np.arange(len(x)) >= 5 * self.nbr_set_count
+            x = x[mask]
+            target = target[mask]
+            grid_sizes = grid_sizes[mask]
+
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
 
@@ -143,8 +152,6 @@ class LadderVAEwithStitching(LadderVAE):
                 self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
 
         elif optimizer_idx == 1:
-            assert len(batch) == 3
-            grid_sizes = batch[2]
             nbr_cons_loss = self.nbr_consistency_loss.get(imgs, grid_sizes=grid_sizes)
             if nbr_cons_loss is not None:
                 nbr_cons_loss = self.nbr_consistency_w * nbr_cons_loss
