@@ -14,7 +14,7 @@ def get_config():
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
-    data.nbr_set_count = 1
+    data.nbr_set_count = 2
 
     data.sampler_type = SamplerType.NeighborSampler
     data.threshold = 0.02
@@ -43,7 +43,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.nbr_consistency_w = 0.1
+    loss.nbr_consistency_w = 0.01
 
     model = config.model
     model.model_type = ModelType.LadderVaeStitch
