@@ -45,6 +45,9 @@ class NeighborSampler(BaseSampler):
         self._nbr_set_count = nbr_set_count
         print(f'[{self.__class__.__name__}] NbrSet:{self._nbr_set_count}')
 
+    def dset_len(self, grid_size):
+        return self.idx_manager.grid_count(grid_size=grid_size)
+
     def _add_one_batch(self):
         rand_sz = int(np.ceil(self._batch_size / 5))
         if self._nbr_set_count is not None:
@@ -53,11 +56,11 @@ class NeighborSampler(BaseSampler):
         rand_idx_list = []
         rand_grid_list = []
         for _ in range(rand_sz):
-            idx = np.random.randint(len(self._dset))
-            rand_grid_list.append(np.random.choice(self._valid_gridsizes) if self._valid_gridsizes is not None else -1)
-            while self.idx_manager.on_boundary(idx, grid_size=rand_grid_list[-1]):
-                idx = np.random.randint(len(self._dset))
-
+            grid_size = np.random.choice(self._valid_gridsizes) if self._valid_gridsizes is not None else 1
+            rand_grid_list.append(grid_size)
+            idx = np.random.randint(self.dset_len(grid_size))
+            while self.idx_manager.on_boundary(idx, grid_size=grid_size):
+                idx = np.random.randint(self.dset_len(grid_size))
             rand_idx_list.append(idx)
 
         batch_idx_list = []
@@ -69,8 +72,9 @@ class NeighborSampler(BaseSampler):
             batch_idx_list.append((self.idx_manager.get_bottom_nbr_idx(rand_idx, grid_size=grid_size), grid_size))
 
         if self._nbr_set_count is not None and len(batch_idx_list) < self._batch_size:
-            idx_list = list(np.random.randint(len(self._dset), size=self._batch_size - len(batch_idx_list)))
-            gridsizes = [-1] * len(idx_list)
+            grid_size = 1  # This size ensures that patch can begin at any random pixel.
+            idx_list = list(np.random.randint(self.dset_len(grid_size), size=self._batch_size - len(batch_idx_list)))
+            gridsizes = [grid_size] * len(idx_list)
             batch_idx_list += zip(idx_list, gridsizes)
             self.index_batches += batch_idx_list
         else:
