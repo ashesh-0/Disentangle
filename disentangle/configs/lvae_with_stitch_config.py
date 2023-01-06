@@ -91,7 +91,7 @@ def get_config():
     training.lr_scheduler_patience = 15
     training.gridsizes = np.arange(12, 16, 2)
     training.max_epochs = 200
-    training.batch_size = 32
+    training.batch_size = 37
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
