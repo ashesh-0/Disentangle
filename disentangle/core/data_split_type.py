@@ -33,12 +33,12 @@ def adjust_for_imbalance_in_fraction_value(val: List[int], test: List[int], val_
         diff_fraction = test_fraction - val_fraction
         if diff_fraction > 0:
             imb_count = int(diff_fraction * total_size / 2)
-            val = np.random.permutation(val)
+            val = np.random.RandomState(seed=955).permutation(val)
             test += val[:imb_count]
             val = val[imb_count:]
         elif diff_fraction < 0:
             imb_count = int(-1 * diff_fraction * total_size / 2)
-            test = np.random.permutation(test)
+            test = np.random.RandomState(seed=955).permutation(test)
             val += test[:imb_count]
             test = test[imb_count:]
     return val, test
@@ -83,7 +83,7 @@ def get_datasplit_tuples(val_fraction: float, test_fraction: float, total_size: 
 
 
 if __name__ == '__main__':
-    train, val, test = get_datasplit_tuples(0.2, 0., 6)
+    train, val, test = get_datasplit_tuples(0.2, 0.2, 6)
     print(train)
     print(val)
     print(test)
