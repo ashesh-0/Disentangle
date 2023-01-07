@@ -55,6 +55,11 @@ def get_datasplit_tuples(val_fraction: float, test_fraction: float, total_size: 
         test_val_size = int((val_fraction + test_fraction) * total_size)
         train = list(range(test_val_size, total_size))
 
+        if test_val_size == 0:
+            test = []
+            val = []
+            return train, val, test
+
         # Split the test and validation in chunks.
         chunksize = max(1, min(3, test_val_size // 2))
 
@@ -83,7 +88,7 @@ def get_datasplit_tuples(val_fraction: float, test_fraction: float, total_size: 
 
 
 if __name__ == '__main__':
-    train, val, test = get_datasplit_tuples(0.2, 0.2, 6)
+    train, val, test = get_datasplit_tuples(0.0, 0.0, 6)
     print(train)
     print(val)
     print(test)
