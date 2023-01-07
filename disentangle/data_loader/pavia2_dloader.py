@@ -40,7 +40,7 @@ class Pavia2Dloader:
 
             dconf = deepcopy(data_config)
             dconf.dset_type = Pavia2DataSetType.JustCYAN
-            self._dloader2 = MultiChDeterministicTiffDloader(data_config,
+            self._dloader2 = MultiChDeterministicTiffDloader(dconf,
                                                              fpath,
                                                              datasplit_type=datasplit_type,
                                                              val_fraction=0,
@@ -55,7 +55,7 @@ class Pavia2Dloader:
             dconf = deepcopy(data_config)
             dconf.dset_type = Pavia2DataSetType.MIXED
             self._type1_prob = 1.0
-            self._dloader1 = MultiChDeterministicTiffDloader(data_config,
+            self._dloader1 = MultiChDeterministicTiffDloader(dconf,
                                                              fpath,
                                                              datasplit_type=datasplit_type,
                                                              val_fraction=val_fraction,
@@ -67,6 +67,11 @@ class Pavia2Dloader:
                                                              allow_generation=allow_generation,
                                                              max_val=max(max_val))
         self.process_data()
+
+    def sum_channels(self, data, first_index_arr, second_index_arr):
+        fst_channel = data[..., first_index_arr].sum(axis=-1, keepdims=True)
+        scnd_channel = data[..., second_index_arr].sum(axis=-1, keepdims=True)
+        return np.concatenate([fst_channel, scnd_channel], axis=-1)
 
     def process_data(self):
         """
@@ -81,18 +86,15 @@ class Pavia2Dloader:
             ..., [Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.TUBULIN]]
 
         if self._datasplit_type == DataSplitType.Train:
-            self._dloader1._data = self._dloader1._data[
-                ..., [Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN]].sum(axis=-1, retaindims=True)
-            self._dloader2._data = self._dloader2._data[
-                ..., [Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.NucRFP670]].sum(axis=-1, retaindims=True)
+            self._dloader1._data = self.sum_channels(self._dloader1._data, [1], [0, 2])
+            self._dloader2._data = self.sum_channels(self._dloader2._data, [0, 1], [2])
         else:
-            self._dloader1._data = self._dloader1._data[
-                ..., [Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.NucRFP670]].sum(axis=-1, retaindims=True)
+            self._dloader1._data = self.sum_channels(self._dloader1._data, [0, 1], [2])
 
     def __len__(self):
         return len(self._dloader1) + (len(self._dloader2) if self._dloader2 is not None else 0)
 
-    def __gettiem__(self, index):
+    def __getitem__(self, index):
         """
         Returns:
             (inp,tar,mixed_recons_flag): When mixed_recons_flag is set, then do only the mixed reconstruction. This is set when we've bleedthrough
@@ -110,3 +112,13 @@ class Pavia2Dloader:
         max_val1 = self._dloader1.get_max_val()
         max_val2 = self._dloader2.get_max_val() if self._dloader2 is not None else None
         return (max_val1, max_val2)
+
+    def compute_mean_std(self):
+        mean_std1 = self._dloader1.compute_mean_std()
+        mean_std2 = self._dloader2.compute_mean_std() if self._dloader2 is not None else (None, None)
+        return (mean_std1[0], mean_std2[0]), (mean_std1[1], mean_std2[1])
+
+    def set_mean_std(self, mean_val, std_val):
+        self._dloader1.set_mean_std(mean_val[0], std_val[0])
+        if self._dloader2 is not None:
+            self._dloader2.set_mean_std(mean_val[1], std_val[1])
