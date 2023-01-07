@@ -12,7 +12,7 @@ The extra content on the right side will not be used( as shown below).
 
 """
 from tkinter import Grid
-from disentangle.core.enum import Enum
+from disentangle.core.custom_enum import Enum
 
 
 class GridAlignement(Enum):
