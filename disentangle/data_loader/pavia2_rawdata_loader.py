@@ -30,6 +30,13 @@ class Pavia2DataSetType(Enum):
     MIXED = '0b100'
 
 
+class Pavia2DataSetChannels(Enum):
+    NucRFP670 = 0
+    NucMTORQ = 1
+    ACTIN = 2
+    TUBULIN = 3
+
+
 class Pavia2DataSetVersion(Enum):
     DD = 'DenoisedDeconvolved'
     RAW = 'Raw data'
@@ -89,7 +96,11 @@ def load_data(datadir, dset_type, dset_version=Pavia2DataSetVersion.RAW):
     return data
 
 
-def train_val_test_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
+def get_train_val_test_datadict(datadir,
+                                data_config,
+                                datasplit_type: DataSplitType,
+                                val_fraction=None,
+                                test_fraction=None):
     dtypes = data_config.dset_types
     data = {}
     for dset_type in [Pavia2DataSetType.MIXED, Pavia2DataSetType.JustMAGENTA, Pavia2DataSetType.JustCYAN]:
@@ -107,4 +118,20 @@ def train_val_test_data(datadir, data_config, datasplit_type: DataSplitType, val
             data[key] = data[key][test_idx].astype(np.float32)
         else:
             raise Exception("invalid datasplit")
+    return data
+
+
+def train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
+    dset_type = data_config.dset_type
+    data = load_data(datadir, dset_type)
+
+    train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
+    if datasplit_type == DataSplitType.Train:
+        data = data[train_idx].astype(np.float32)
+    elif datasplit_type == DataSplitType.Val:
+        data = data[val_idx].astype(np.float32)
+    elif datasplit_type == DataSplitType.Test:
+        data = data[test_idx].astype(np.float32)
+    else:
+        raise Exception("invalid datasplit")
     return data
