@@ -7,6 +7,7 @@ import os
 import numpy as np
 from nd2reader import ND2Reader
 from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
+from disentangle.core.custom_enum import Enum
 
 
 def load_nd2(fpaths):
@@ -23,13 +24,13 @@ def load_nd2(fpaths):
     return np.concatenate(images, axis=0)
 
 
-class Pavia2DataSetType:
-    JustCYAN = '001'
-    JustMAGENTA = '010'
-    MIXED = '100'
+class Pavia2DataSetType(Enum):
+    JustCYAN = '0b001'
+    JustMAGENTA = '0b010'
+    MIXED = '0b100'
 
 
-class Pavia2DataSetVersion:
+class Pavia2DataSetVersion(Enum):
     DD = 'DenoisedDeconvolved'
     RAW = 'Raw data'
 
@@ -64,15 +65,23 @@ def get_justmagenta_fnames(version):
         ]
 
 
+def version_dir(dset_version):
+    if dset_version == Pavia2DataSetVersion.RAW:
+        return "RAW_DATA"
+    elif dset_version == Pavia2DataSetVersion.DD:
+        return "DD"
+
+
 def load_data(datadir, dset_type, dset_version=Pavia2DataSetVersion.RAW):
+    print(f'Loading Data from', datadir, Pavia2DataSetType.name(dset_type), Pavia2DataSetVersion.name(dset_version))
     if dset_type == Pavia2DataSetType.JustCYAN:
-        datadir = os.path.join(datadir, 'ONLY_CYAN')
+        datadir = os.path.join(datadir, version_dir(dset_version), 'ONLY_CYAN')
         fnames = get_justcyan_fnames(dset_version)
     elif dset_type == Pavia2DataSetType.JustMAGENTA:
-        datadir = os.path.join(datadir, 'ONLY_MAGENTA')
+        datadir = os.path.join(datadir, version_dir(dset_version), 'ONLY_MAGENTA')
         fnames = get_justmagenta_fnames(dset_version)
     elif dset_type == Pavia2DataSetType.MIXED:
-        datadir = os.path.join(datadir, 'MIXED')
+        datadir = os.path.join(datadir, version_dir(dset_version), 'MIXED')
         fnames = get_mixed_fnames(dset_version)
 
     fpaths = [os.path.join(datadir, x) for x in fnames]
@@ -84,13 +93,12 @@ def train_val_test_data(datadir, data_config, datasplit_type: DataSplitType, val
     dtypes = data_config.dset_types
     data = {}
     for dset_type in [Pavia2DataSetType.MIXED, Pavia2DataSetType.JustMAGENTA, Pavia2DataSetType.JustCYAN]:
-        if int(dtypes) & int(dset_type):
+        if int(dtypes, 2) & int(dset_type, 2):
             data[dset_type] = load_data(datadir, dset_type)
 
     assert len(data) > 0
     for key in data.keys():
         train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data[key]))
-
         if datasplit_type == DataSplitType.Train:
             data[key] = data[key][train_idx].astype(np.float32)
         elif datasplit_type == DataSplitType.Val:
