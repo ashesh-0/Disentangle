@@ -5,7 +5,22 @@ It has 2 versions: denoised and raw data.
 """
 import os
 import numpy as np
+from nd2reader import ND2Reader
 from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
+
+
+def load_nd2(fpaths):
+    """
+    Load .nd2 images.
+    """
+    images = []
+    for fpath in fpaths:
+        with ND2Reader(fpath) as img:
+            # channels are the last dimension.
+            img = np.concatenate([x[..., None] for x in img], axis=-1)
+            images.append(img[None])
+    # number of images is the first dimension.
+    return np.concatenate(images, axis=0)
 
 
 class Pavia2DataSetType:
