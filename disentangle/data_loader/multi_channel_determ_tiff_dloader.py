@@ -41,14 +41,9 @@ class MultiChDeterministicTiffDloader:
                                         allow_generation=allow_generation)
         self._normalized_input = normalized_input
         self._quantile = data_config.get('clip_percentile', 0.995)
-        if datasplit_type == DataSplitType.Train:
-            assert max_val is None
-            self.max_val = np.quantile(self._data, self._quantile)
-        else:
-            assert max_val is not None
-            self.max_val = max_val
+        self._channelwise_quantile = data_config.get('channelwise_quantile', False)
 
-        self._data[self._data > self.max_val] = self.max_val
+        self.set_max_val_and_upperclip_data(max_val, datasplit_type)
 
         self.N = len(self._data)
         self._is_train = datasplit_type == DataSplitType.Train
@@ -74,6 +69,36 @@ class MultiChDeterministicTiffDloader:
 
         msg = self._init_msg()
         print(msg)
+
+    def set_max_val_and_upperclip_data(self, max_val, datasplit_type):
+        self.set_max_val(max_val, datasplit_type)
+        self.upperclip_data()
+
+    def upperclip_data(self):
+        if isinstance(self.max_val, list):
+            chN = self._data.shape[-1]
+            assert chN == len(self.max_val)
+            for ch in range(chN):
+                ch_data = self._data[..., ch]
+                ch_q = self.max_val[ch]
+                ch_data[ch_data > ch_q] = ch_q
+                self._data[..., ch] = ch_data
+        else:
+            self._data[self._data > self.max_val] = self.max_val
+
+    def compute_max_val(self):
+        if self._channelwise_quantile:
+            return [np.quantile(self._data[..., i], self._quantile) for i in range(self._data.shape[-1])]
+        else:
+            return np.quantile(self._data, self._quantile)
+
+    def set_max_val(self, max_val, datasplit_type):
+        if datasplit_type == DataSplitType.Train:
+            assert max_val is None
+            self.max_val = self.compute_max_val()
+        else:
+            assert max_val is not None
+            self.max_val = max_val
 
     def get_max_val(self):
         return self.max_val
