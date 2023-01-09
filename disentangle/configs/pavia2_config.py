@@ -10,10 +10,12 @@ import numpy as np
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 512
+    data.image_size = 64
     data.data_type = DataType.Pavia2
+    data.dset_type = None  # This will be filled in the dataloader
     data.channel_1 = 2
     data.channel_2 = 3
+    data.channelwise_quantile = True
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -45,7 +47,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVaeMixedRecons
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1

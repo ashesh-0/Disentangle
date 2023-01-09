@@ -1,8 +1,8 @@
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.data_loader.pavia2_rawdata_loader import Pavia2DataSetType, Pavia2DataSetChannels
-from copy import deepcopy
 import numpy as np
+import ml_collections
 
 
 class Pavia2Dloader:
@@ -19,11 +19,13 @@ class Pavia2Dloader:
                  allow_generation=False,
                  max_val=None) -> None:
 
-        assert enable_random_cropping is True
         self._datasplit_type = datasplit_type
+        self._enable_random_cropping = enable_random_cropping
+        self._dloader1 = self._dloader2 = None
 
         if self._datasplit_type == DataSplitType.Train:
-            dconf = deepcopy(data_config)
+            assert enable_random_cropping is True
+            dconf = ml_collections.ConfigDict(data_config)
             dconf.dset_type = Pavia2DataSetType.JustMAGENTA
             self._type1_prob = dconf.dset_justmagenta_prob
             self._dloader1 = MultiChDeterministicTiffDloader(dconf,
@@ -38,7 +40,6 @@ class Pavia2Dloader:
                                                              allow_generation=allow_generation,
                                                              max_val=None)
 
-            dconf = deepcopy(data_config)
             dconf.dset_type = Pavia2DataSetType.JustCYAN
             self._dloader2 = MultiChDeterministicTiffDloader(dconf,
                                                              fpath,
@@ -52,7 +53,8 @@ class Pavia2Dloader:
                                                              allow_generation=allow_generation,
                                                              max_val=None)
         else:
-            dconf = deepcopy(data_config)
+            assert enable_random_cropping is False
+            dconf = ml_collections.ConfigDict(data_config)
             dconf.dset_type = Pavia2DataSetType.MIXED
             self._type1_prob = 1.0
             self._dloader1 = MultiChDeterministicTiffDloader(dconf,
@@ -94,19 +96,33 @@ class Pavia2Dloader:
     def __len__(self):
         return len(self._dloader1) + (len(self._dloader2) if self._dloader2 is not None else 0)
 
+    def compute_individual_mean_std(self):
+        mean_std1 = self._dloader1.compute_individual_mean_std()
+        mean_std2 = self._dloader2.compute_individual_mean_std() if self._dloader2 is not None else None
+        if mean_std2 is None:
+            return mean_std1
+
+        mean_val = (mean_std1[0] + mean_std2[0]) / 2
+        std_val = (mean_std1[1] + mean_std2[1]) / 2
+
+        return (mean_val, std_val)
+
     def __getitem__(self, index):
         """
         Returns:
             (inp,tar,mixed_recons_flag): When mixed_recons_flag is set, then do only the mixed reconstruction. This is set when we've bleedthrough
         """
-        if np.random.rand() <= self._type1_prob:
-            inp, tar = self._dloader1[np.random.randint(len(self._dloader1))]
-            inp = 2 * inp  # dataloader takes the average of the two channels. To, undo that, we are multipying it with 2.
-            return (inp, tar, False)
+        if self._enable_random_cropping:
+            if np.random.rand() <= self._type1_prob:
+                inp, tar = self._dloader1[np.random.randint(len(self._dloader1))]
+                inp = 2 * inp  # dataloader takes the average of the two channels. To, undo that, we are multipying it with 2.
+                return (inp, tar, False)
+            else:
+                inp, tar = self._dloader2[np.random.randint(len(self._dloader2))]
+                inp = 2 * inp
+                return (inp, tar, True)
         else:
-            inp, tar = self._dloader2[np.random.randint(len(self._dloader2))]
-            inp = 2 * inp
-            return (inp, tar, True)
+            return self._dloader1[index]
 
     def get_max_val(self):
         max_val1 = self._dloader1.get_max_val()
@@ -116,9 +132,15 @@ class Pavia2Dloader:
     def compute_mean_std(self):
         mean_std1 = self._dloader1.compute_mean_std()
         mean_std2 = self._dloader2.compute_mean_std() if self._dloader2 is not None else (None, None)
-        return (mean_std1[0], mean_std2[0]), (mean_std1[1], mean_std2[1])
+        if mean_std2 is None:
+            return mean_std1
+
+        mean_val = (mean_std1[0] + mean_std2[0]) / 2
+        std_val = (mean_std1[1] + mean_std2[1]) / 2
+
+        return (mean_val, std_val)
 
     def set_mean_std(self, mean_val, std_val):
-        self._dloader1.set_mean_std(mean_val[0], std_val[0])
+        self._dloader1.set_mean_std(mean_val, std_val)
         if self._dloader2 is not None:
-            self._dloader2.set_mean_std(mean_val[1], std_val[1])
+            self._dloader2.set_mean_std(mean_val, std_val)
