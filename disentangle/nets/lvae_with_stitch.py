@@ -21,6 +21,10 @@ class LadderVAEwithStitching(LadderVAE):
         in_channels = config.model.z_dims[self.offset_prediction_input_z_idx]
         offset_latent_dims = config.model.offset_latent_dims
         self.nbr_set_count = config.data.get('nbr_set_count', None)
+        self.regularize_offset = config.model.get('regularize_offset', False)
+        self._offset_reg_w = None
+        if self.regularize_offset:
+            self._offset_reg_w = config.model.offset_regularization_w
 
         if config.model.get('offset_prediction_scalar_prediction', False):
             output_ch = 1
@@ -163,10 +167,16 @@ class LadderVAEwithStitching(LadderVAE):
 
         elif optimizer_idx == 1:
             nbr_cons_loss = self.nbr_consistency_loss.get(imgs, grid_sizes=grid_sizes)
+            offset_reg_loss = 0.0
+            if self.regularize_offset:
+                offset_reg_loss = torch.norm(offset)
+                offset_reg_loss = self._offset_reg_w * offset_reg_loss
+                self.log('offset_reg_loss', offset_reg_loss.item(), on_epoch=True)
+
             if nbr_cons_loss is not None:
                 nbr_cons_loss = self.nbr_consistency_w * nbr_cons_loss
                 self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
-            net_loss = nbr_cons_loss
+            net_loss = nbr_cons_loss + offset_reg_loss
 
         output = {
             'loss': net_loss,
