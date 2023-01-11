@@ -32,7 +32,8 @@ class LadderVAEwithStitching(LadderVAE):
             self.get_nonlin()(),
             nn.AvgPool2d(latent_spatial_dims),
             SqueezeLayer(),
-            nn.Linear(offset_latent_dims, output_ch),
+            nn.Linear(offset_latent_dims, output_ch,
+                      bias=output_ch != 1),  # If we predict just one value, then bias is not needed
         )
 
     def create_likelihood_module(self):
