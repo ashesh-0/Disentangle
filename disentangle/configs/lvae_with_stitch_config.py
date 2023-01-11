@@ -14,7 +14,7 @@ def get_config():
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
-    data.nbr_set_count = 1
+    data.nbr_set_count = 2
 
     data.sampler_type = SamplerType.NeighborSampler
     data.threshold = 0.02
@@ -89,12 +89,13 @@ def get_config():
     model.regularize_offset = True
     model.offset_regularization_w = 0.001
     model.offset_prediction_focus_on_opposite_gradients = True
+
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 15
     training.gridsizes = np.arange(12, 16, 2)
     training.max_epochs = 200
-    training.batch_size = 32
+    training.batch_size = 42
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
