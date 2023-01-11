@@ -83,7 +83,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     model.non_stochastic_version = False
-    model.offset_prediction_input_z_idx = 1
+    model.offset_prediction_input_z_idx = 3
     model.offset_latent_dims = 50
     model.offset_prediction_scalar_prediction = True
 
