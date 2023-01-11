@@ -81,6 +81,8 @@ class NeighborConsistencyLoss:
         ref_lgrad = self.on_boundary_lgrad(imgs[0], grid_size=grid_size)
         left_rgrad = self.on_boundary_rgrad(imgs[1], grid_size=grid_size)
         across_horizontal_grad = self.across_boundary_horizontal_grad(imgs[1], imgs[0], grid_size=grid_size)
+
+        grad_product = None
         if self._only_on_opposite_gradients:
             grad_product = self.compute_opposite_gradient(across_horizontal_grad)
 
@@ -92,6 +94,8 @@ class NeighborConsistencyLoss:
         ref_rgrad = self.on_boundary_rgrad(imgs[0], grid_size=grid_size)
         left_lgrad = self.on_boundary_lgrad(imgs[2], grid_size=grid_size)
         across_horizontal_grad = self.across_boundary_horizontal_grad(imgs[0], imgs[2], grid_size=grid_size)
+
+        grad_product = None
         if self._only_on_opposite_gradients:
             grad_product = self.compute_opposite_gradient(across_horizontal_grad)
 
@@ -103,6 +107,8 @@ class NeighborConsistencyLoss:
         ref_ugrad = self.on_boundary_ugrad(imgs[0], grid_size=grid_size)
         up_dgrad = self.on_boundary_dgrad(imgs[3], grid_size=grid_size)
         across_vertical_grad = self.across_boundary_vertical_grad(imgs[3], imgs[0], grid_size=grid_size)
+
+        grad_product = None
         if self._only_on_opposite_gradients:
             grad_product = self.compute_opposite_gradient(across_vertical_grad)
 
@@ -114,6 +120,8 @@ class NeighborConsistencyLoss:
         ref_dgrad = self.on_boundary_dgrad(imgs[0], grid_size=grid_size)
         down_ugrad = self.on_boundary_ugrad(imgs[4], grid_size=grid_size)
         across_vertical_grad = self.across_boundary_vertical_grad(imgs[0], imgs[4], grid_size=grid_size)
+        
+        grad_product = None
         if self._only_on_opposite_gradients:
             grad_product = self.compute_opposite_gradient(across_vertical_grad)
 
