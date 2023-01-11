@@ -176,7 +176,7 @@ class LadderVAEwithStitching(LadderVAE):
             if nbr_cons_loss is not None:
                 nbr_cons_loss = self.nbr_consistency_w * nbr_cons_loss
                 self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
-            net_loss = nbr_cons_loss + offset_reg_loss
+                net_loss = nbr_cons_loss + offset_reg_loss
 
         output = {
             'loss': net_loss,

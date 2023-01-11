@@ -6,7 +6,7 @@ import torch.nn as nn
 
 
 class NeighborConsistencyLoss:
-    def __init__(self, grid_size, nbr_set_count=None, only_on_opposite_gradients=False) -> None:
+    def __init__(self, grid_size, nbr_set_count=None, focus_on_opposite_gradients=False) -> None:
         self.loss_metric = nn.MSELoss(reduction='none')
         self._default_grid_size = grid_size
         self._nbr_set_count = nbr_set_count
@@ -14,8 +14,10 @@ class NeighborConsistencyLoss:
         # then that is a sure case of neighbor consistency
         # if any of the four gradients indicate that there is an issue, then we need to compute the loss for all four.
         # If none of the four gradients flag any issue, then we can simply ignore that sample from loss computation.
-        self._only_on_opposite_gradients = only_on_opposite_gradients
-        print(f'[{self.__class__.__name__}] DefGrid:{self._default_grid_size} NbrSet:{self._nbr_set_count}')
+        self._focus_on_opposite_gradients = focus_on_opposite_gradients
+        print(
+            f'[{self.__class__.__name__}] DefGrid:{self._default_grid_size} NbrSet:{self._nbr_set_count} FocusOnOppGrads:{focus_on_opposite_gradients}'
+        )
 
     def use_default_grid(self, grid_size):
         return grid_size is None or grid_size < 0
@@ -83,7 +85,7 @@ class NeighborConsistencyLoss:
         across_horizontal_grad = self.across_boundary_horizontal_grad(imgs[1], imgs[0], grid_size=grid_size)
 
         grad_product = None
-        if self._only_on_opposite_gradients:
+        if self._focus_on_opposite_gradients:
             grad_product = self.compute_opposite_gradient(across_horizontal_grad)
 
         loss = self.loss_metric(across_horizontal_grad, (left_rgrad + ref_lgrad) / 2)
@@ -96,7 +98,7 @@ class NeighborConsistencyLoss:
         across_horizontal_grad = self.across_boundary_horizontal_grad(imgs[0], imgs[2], grid_size=grid_size)
 
         grad_product = None
-        if self._only_on_opposite_gradients:
+        if self._focus_on_opposite_gradients:
             grad_product = self.compute_opposite_gradient(across_horizontal_grad)
 
         loss = self.loss_metric(across_horizontal_grad, (left_lgrad + ref_rgrad) / 2)
@@ -109,7 +111,7 @@ class NeighborConsistencyLoss:
         across_vertical_grad = self.across_boundary_vertical_grad(imgs[3], imgs[0], grid_size=grid_size)
 
         grad_product = None
-        if self._only_on_opposite_gradients:
+        if self._focus_on_opposite_gradients:
             grad_product = self.compute_opposite_gradient(across_vertical_grad)
 
         loss = self.loss_metric(across_vertical_grad, (up_dgrad + ref_ugrad) / 2)
@@ -120,9 +122,9 @@ class NeighborConsistencyLoss:
         ref_dgrad = self.on_boundary_dgrad(imgs[0], grid_size=grid_size)
         down_ugrad = self.on_boundary_ugrad(imgs[4], grid_size=grid_size)
         across_vertical_grad = self.across_boundary_vertical_grad(imgs[0], imgs[4], grid_size=grid_size)
-        
+
         grad_product = None
-        if self._only_on_opposite_gradients:
+        if self._focus_on_opposite_gradients:
             grad_product = self.compute_opposite_gradient(across_vertical_grad)
 
         loss = self.loss_metric(across_vertical_grad, (ref_dgrad + down_ugrad) / 2)
@@ -130,8 +132,9 @@ class NeighborConsistencyLoss:
         return loss, grad_product
 
     def _compute_opposite_gradient_factor(self, grad_product_arr):
-        grad_products = torch.cat(grad_product_arr, dim=1)
-        return torch.exp(-1 * torch.min(grad_products, dim=1)[0])
+        with torch.no_grad():
+            grad_products = torch.cat(grad_product_arr, dim=1)
+            return torch.exp(-1 * torch.min(grad_products, dim=1)[0])
 
     def get(self, imgs, grid_sizes=None):
         if grid_sizes is not None:
@@ -159,7 +162,7 @@ class NeighborConsistencyLoss:
             temp_loss3, grad_product3 = self.get_top_loss(imgs[:, idx:idx + 1], grid_size=grid_size)
             temp_loss4, grad_product4 = self.get_bottom_loss(imgs[:, idx:idx + 1], grid_size=grid_size)
             idx_loss = temp_loss1 + temp_loss2 + temp_loss3 + temp_loss4
-            if self._only_on_opposite_gradients:
+            if self._focus_on_opposite_gradients:
                 grad_factor = self._compute_opposite_gradient_factor(
                     [grad_product1, grad_product2, grad_product3, grad_product4])
                 loss += idx_loss * grad_factor
@@ -174,7 +177,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     grid_size = 20
     factor = 0.01
-    loss = NeighborConsistencyLoss(grid_size, only_on_opposite_gradients=True)
+    loss = NeighborConsistencyLoss(grid_size, focus_on_opposite_gradients=True)
     center = factor * torch.Tensor(np.arange(grid_size)[None, None, None]).repeat(1, 2, grid_size, 1)
     left = factor * torch.Tensor(np.arange(-grid_size - 10, -10)[None, None, None]).repeat(1, 2, grid_size, 1)
     right = factor * torch.Tensor(np.arange(grid_size, 2 * grid_size)[None, None, None]).repeat(1, 2, grid_size, 1)
@@ -205,6 +208,6 @@ if __name__ == '__main__':
     out = loss.get(imgs, grid_sizes=grid_sizes)
     # out = loss.get_left_loss(imgs, grid_size=grid_size)
 
-    loss = NeighborConsistencyLoss(grid_size, only_on_opposite_gradients=True)
+    loss = NeighborConsistencyLoss(grid_size, focus_on_opposite_gradients=True)
     center = torch.Tensor(np.arange(grid_size)[None, None, None]).repeat(1, 2, grid_size, 1)
     left = torch.Tensor(np.arange(-grid_size - 10, -10)[None, None, None]).repeat(1, 2, grid_size, 1)
