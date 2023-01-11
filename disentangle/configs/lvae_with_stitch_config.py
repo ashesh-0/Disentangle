@@ -43,7 +43,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.nbr_consistency_w = 0.0
+    loss.nbr_consistency_w = 0.01
 
     model = config.model
     model.model_type = ModelType.LadderVaeStitch
@@ -84,7 +84,8 @@ def get_config():
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     model.non_stochastic_version = False
     model.offset_prediction_input_z_idx = 3
-    model.offset_latent_dims = 10
+    model.offset_latent_dims = 50
+    model.offset_prediction_scalar_prediction = True
 
     training = config.training
     training.lr = 0.001

@@ -22,12 +22,17 @@ class LadderVAEwithStitching(LadderVAE):
         offset_latent_dims = config.model.offset_latent_dims
         self.nbr_set_count = config.data.get('nbr_set_count', None)
 
+        if config.model.get('offset_prediction_scalar_prediction', False):
+            output_ch = 1
+        else:
+            output_ch = 2
+
         self.offset_predictor = nn.Sequential(
             nn.Conv2d(in_channels, offset_latent_dims, 1),
             self.get_nonlin()(),
             nn.AvgPool2d(latent_spatial_dims),
             SqueezeLayer(),
-            nn.Linear(offset_latent_dims, 2),
+            nn.Linear(offset_latent_dims, output_ch),
         )
 
     def create_likelihood_module(self):
@@ -111,6 +116,10 @@ class LadderVAEwithStitching(LadderVAE):
 
     def compute_offset(self, z_arr):
         offset = self.offset_predictor(z_arr[self.offset_prediction_input_z_idx])
+        # In case of a scalar prediction
+        if offset.shape[-1] == 1:
+            offset = torch.cat([offset, -1 * offset], dim=-1)
+
         return offset[..., None, None]
 
     def training_step(self, batch: tuple, batch_idx: int, optimizer_idx: int, enable_logging=True):
