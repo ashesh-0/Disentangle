@@ -7,6 +7,7 @@ from disentangle.data_loader.sinosoid_dloader import train_val_data as _loadsino
 from disentangle.data_loader.sinosoid_threecurve_dloader import train_val_data as _loadsinosoid3curve
 from disentangle.data_loader.allencell_rawdata_loader import get_train_val_data as _loadallencellmito
 from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data as _loadseparatetiff
+from disentangle.data_loader.embl_semisup_rawdata_loader import get_train_val_data as _loadembl2_semisup
 from typing import Union
 from disentangle.core.data_split_type import DataSplitType
 
@@ -54,5 +55,11 @@ def get_train_val_data(data_config,
         return _loadallencellmito(fpath, data_config, datasplit_type, val_fraction, test_fraction)
     elif data_config.data_type == DataType.SeparateTiffData:
         return _loadseparatetiff(fpath, data_config, datasplit_type, val_fraction, test_fraction)
+    elif data_config.data_type == DataType.SemiSupBloodVesselsEMBL:
+        return _loadembl2_semisup(fpath,
+                                    data_config,
+                                    datasplit_type,
+                                    val_fraction=val_fraction,
+                                    test_fraction=test_fraction)
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')

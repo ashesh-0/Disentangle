@@ -35,7 +35,6 @@ class MultiChDeterministicTiffDloader:
         self._fpath = fpath
         self._data = self.N = None
         self.load_data(data_config,
-                       self._fpath,
                        datasplit_type,
                        val_fraction=val_fraction,
                        test_fraction=test_fraction,

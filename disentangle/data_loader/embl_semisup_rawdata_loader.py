@@ -21,7 +21,7 @@ def get_random_datasplit_tuples(val_fraction, test_fraction, N):
     return idx_arr[:trainN].copy(), idx_arr[trainN:trainN + valN].copy(), idx_arr[trainN + valN:].copy()
 
 
-def train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
+def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     fpath_mix = os.path.join(datadir, data_config.mix_fpath)
     fpath_ch1 = os.path.join(datadir, data_config.ch1_fpath)
     print(f'Loading Mix:{fpath_mix} & Ch1:{fpath_ch1} datasplit mode:{DataSplitType.name(datasplit_type)}')
