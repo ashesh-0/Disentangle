@@ -33,19 +33,19 @@ class MultiChDeterministicTiffDloader:
 
         """
         self._fpath = fpath
-        self._data = get_train_val_data(data_config,
-                                        self._fpath,
-                                        datasplit_type,
-                                        val_fraction=val_fraction,
-                                        test_fraction=test_fraction,
-                                        allow_generation=allow_generation)
+        self._data = self.N = None
+        self.load_data(data_config,
+                       self._fpath,
+                       datasplit_type,
+                       val_fraction=val_fraction,
+                       test_fraction=test_fraction,
+                       allow_generation=allow_generation)
         self._normalized_input = normalized_input
         self._quantile = data_config.get('clip_percentile', 0.995)
         self._channelwise_quantile = data_config.get('channelwise_quantile', False)
 
         self.set_max_val_and_upperclip_data(max_val, datasplit_type)
 
-        self.N = len(self._data)
         self._is_train = datasplit_type == DataSplitType.Train
 
         self._img_sz = self._grid_sz = self._repeat_factor = self.idx_manager = None
@@ -69,6 +69,15 @@ class MultiChDeterministicTiffDloader:
 
         msg = self._init_msg()
         print(msg)
+
+    def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
+        self._data = get_train_val_data(data_config,
+                                        self._fpath,
+                                        datasplit_type,
+                                        val_fraction=val_fraction,
+                                        test_fraction=test_fraction,
+                                        allow_generation=allow_generation)
+        self.N = len(self._data)
 
     def set_max_val_and_upperclip_data(self, max_val, datasplit_type):
         self.set_max_val(max_val, datasplit_type)
