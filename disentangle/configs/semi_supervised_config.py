@@ -11,7 +11,7 @@ import numpy as np
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 512
+    data.image_size = 64
     data.data_type = DataType.SemiSupBloodVesselsEMBL
     data.mix_fpath = 'THG-SJS42_0-1000_FITC_221116-1.tif'
     data.ch1_fpath = 'FITC_C1-SJS42_0-1000_FITC_221116-1.tif'
@@ -22,7 +22,7 @@ def get_config():
     data.clip_percentile = 0.995
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
-    data.use_one_mu_std = True
+    data.use_one_mu_std = False
     data.train_aug_rotate = False
     data.randomized_channels = False
     data.multiscale_lowres_count = None
@@ -33,8 +33,8 @@ def get_config():
     data.target_separate_normalization = True
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
-    # loss.mixed_rec_weight = 1
+    loss.loss_type = LossType.ElboSemiSupMixedReconstruction
+    loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
     loss.kl_annealing = False
@@ -44,7 +44,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVaeSemiSupervised
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1

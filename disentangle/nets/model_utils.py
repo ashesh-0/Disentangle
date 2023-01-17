@@ -17,7 +17,7 @@ from disentangle.nets.lvae_multiple_encoder_single_opt import LadderVAEMulEncode
 from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
 from disentangle.nets.unet import UNet
 from disentangle.nets.brave_net import BraveNetPL
-
+from disentangle.nets.lvae_semi_supervised import LadderVAESemiSupervised
 
 def create_model(config, data_mean, data_std):
     if config.model.model_type == ModelType.LadderVae:
@@ -36,6 +36,8 @@ def create_model(config, data_mean, data_std):
         model = BraveNetPL(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVaeStitch:
         model = LadderVAEwithStitching(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVaeSemiSupervised:
+        model = LadderVAESemiSupervised(data_mean, data_std, config)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
     return model

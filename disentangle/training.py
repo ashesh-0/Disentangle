@@ -26,7 +26,7 @@ from disentangle.data_loader.places_dloader import PlacesLoader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
 from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
-
+from disentangle.data_loader.single_channel_dloader import SingleChannelDloader
 
 def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False):
     if config.data.data_type == DataType.NotMNIST:
@@ -52,6 +52,48 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_data = None if skip_train_dataset else PlacesLoader(
             train_datapath, label1, label2, img_dsample=img_dsample)
         val_data = PlacesLoader(val_datapath, label1, label2, img_dsample=img_dsample)
+    elif config.data.data_type == DataType.SemiSupBloodVesselsEMBL:
+        datapath = datadir
+        normalized_input = config.data.normalized_input
+        use_one_mu_std = config.data.use_one_mu_std
+        train_aug_rotate = config.data.train_aug_rotate
+        enable_random_cropping = config.data.deterministic_grid is False
+        train_data_kwargs = {}
+        val_data_kwargs = {}
+    
+        train_data_kwargs['enable_random_cropping'] = enable_random_cropping
+        val_data_kwargs['enable_random_cropping'] = False
+        
+
+        train_data = None if skip_train_dataset else SingleChannelDloader(config.data,
+                                                                    datapath,
+                                                                    datasplit_type=DataSplitType.Train,
+                                                                    val_fraction=config.training.val_fraction,
+                                                                    test_fraction=config.training.test_fraction,
+                                                                    normalized_input=normalized_input,
+                                                                    use_one_mu_std=use_one_mu_std,
+                                                                    enable_rotation_aug=train_aug_rotate,
+                                                                    **train_data_kwargs)
+
+        max_val = train_data.get_max_val()
+        val_data = SingleChannelDloader(
+                config.data,
+                datapath,
+                datasplit_type=DataSplitType.Val,
+                val_fraction=config.training.val_fraction,
+                test_fraction=config.training.test_fraction,
+                normalized_input=normalized_input,
+                use_one_mu_std=use_one_mu_std,
+                enable_rotation_aug=False,  # No rotation aug on validation
+                max_val = max_val,
+                **val_data_kwargs,
+            )
+
+        # For normalizing, we should be using the training data's mean and std.
+        mean_val, std_val = train_data.compute_mean_std()
+        train_data.set_mean_std(mean_val, std_val)
+        val_data.set_mean_std(mean_val, std_val)
+
     elif config.data.data_type in [
             DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.Prevedel_EMBL,
             DataType.AllenCellMito, DataType.SeparateTiffData
@@ -152,6 +194,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         mean_val, std_val = train_data.compute_mean_std()
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
+    
     return train_data, val_data
 
 

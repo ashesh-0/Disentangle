@@ -101,12 +101,13 @@ class LadderVAE(pl.LightningModule):
         self.mixed_rec_w = 0
         self.enable_mixed_rec = False
         self.nbr_consistency_w = 0
-        if self.loss_type == LossType.ElboMixedReconstruction:
+        if self.loss_type in [LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction]:
             self.mixed_rec_w = config.loss.mixed_rec_weight
             self.enable_mixed_rec = True
-            raise NotImplementedError(
-                "This cannot work since now, different channels have different mean. One needs to reweigh the "
-                "predicted channels and then take their sum. This would then be equivalent to the input.")
+            if self.loss_type != LossType.ElboSemiSupMixedReconstruction:
+                raise NotImplementedError(
+                    "This cannot work since now, different channels have different mean. One needs to reweigh the "
+                    "predicted channels and then take their sum. This would then be equivalent to the input.")
         elif self.loss_type == LossType.ElboWithNbrConsistency:
             self.nbr_consistency_w = config.loss.nbr_consistency_w
             assert 'grid_size' in config.data or 'gridsizes' in config.training
