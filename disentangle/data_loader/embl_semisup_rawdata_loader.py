@@ -35,7 +35,6 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
     assert len(data_mix) == len(data_ch1)
     # Here, we have a very clear distribution shift as we increase the index. So, best option is to random splitting.
     train_idx, val_idx, test_idx = get_random_datasplit_tuples(val_fraction, test_fraction, len(data_mix))
-    print(train_idx,'\n',val_idx,'\n',test_idx)
     if datasplit_type == DataSplitType.Train:
         return {'mix': data_mix[train_idx], 'C1': data_ch1[train_idx]}
     elif datasplit_type == DataSplitType.Val:
