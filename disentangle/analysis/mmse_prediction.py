@@ -97,9 +97,16 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                         recon_normalized, td_data = model(x_normalized)
                         offset = model.compute_offset(td_data['z'])
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
-                                                                               tar_normalized,
-                                                                               offset,
-                                                                               return_predicted_img=True)
+                                                                       tar_normalized,
+                                                                       offset,
+                                                                       return_predicted_img=True)
+                    elif model_type == ModelType.LadderVaeSemiSupervised:
+                        recon_normalized, td_data = model(x_normalized)
+                        rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
+                                                                       x_normalized,
+                                                                       tar_normalized,
+                                                                       return_predicted_img=True)
+
                     else:
                         recon_normalized, _ = model(x_normalized)
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,

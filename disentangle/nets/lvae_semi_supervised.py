@@ -4,24 +4,23 @@ import torch
 from disentangle.core.loss_type import LossType
 from disentangle.core.psnr import RangeInvariantPsnr
 
+
 class LadderVAESemiSupervised(LadderVAE):
+
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
         assert self.enable_mixed_rec is True
 
-
-
-    def _get_reconstruction_loss_vector(self, reconstruction, input,target_ch1, return_predicted_img=False):
+    def _get_reconstruction_loss_vector(self, reconstruction, input, target_ch1, return_predicted_img=False):
         """
         Args:
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
-
         # Log likelihood
         ll, like_dict = self.likelihood(reconstruction, target_ch1)
-        
+
         # We just want to compute it for the first channel.
-        ll = ll[:,:1]
+        ll = ll[:, :1]
 
         if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
             pad = self.skip_nboundary_pixels_from_loss
@@ -34,16 +33,16 @@ class LadderVAESemiSupervised(LadderVAE):
             'ch1_loss': compute_batch_mean(-ll[:, 0]),
             'ch2_loss': None,
         }
-        
+
         mixed_target = input
-        mixed_prediction = like_dict['params']['mean'][:,:1] + like_dict['params']['mean'][:,1:]
+        mixed_prediction = like_dict['params']['mean'][:, :1] + like_dict['params']['mean'][:, 1:]
         var = torch.exp(like_dict['params']['logvar'])
         # sum of variance.
-        var = var[:,:1] +var[:,1:]
-        logvar= torch.log(var)
+        var = var[:, :1] + var[:, 1:]
+        logvar = torch.log(var)
 
         # TODO: We must enable standard deviation here in some way. I think this is very much needed.
-        mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_prediction,'logvar':logvar})
+        mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_prediction, 'logvar': logvar})
         output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
         if return_predicted_img:
@@ -51,14 +50,16 @@ class LadderVAESemiSupervised(LadderVAE):
 
         return output
 
-
     def get_reconstruction_loss(self, reconstruction, input, target_ch1, return_predicted_img=False):
-        output = self._get_reconstruction_loss_vector(reconstruction, input, target_ch1, return_predicted_img=return_predicted_img)
+        output = self._get_reconstruction_loss_vector(reconstruction,
+                                                      input,
+                                                      target_ch1,
+                                                      return_predicted_img=return_predicted_img)
         loss_dict = output[0] if return_predicted_img else output
         loss_dict['loss'] = torch.mean(loss_dict['loss'])
         loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'])
         loss_dict['ch2_loss'] = None
-        
+
         if 'mixed_loss' in loss_dict:
             loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'])
         if return_predicted_img:
@@ -68,7 +69,7 @@ class LadderVAESemiSupervised(LadderVAE):
             return loss_dict
 
     def normalize_target(self, target):
-        return (target - self.data_mean[:,1:]) / self.data_std[:,1:]
+        return (target - self.data_mean[:, 1:]) / self.data_std[:, 1:]
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         x, target = batch[:2]
@@ -79,7 +80,10 @@ class LadderVAESemiSupervised(LadderVAE):
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict, imgs = self.get_reconstruction_loss(out, x_normalized, target_normalized, return_predicted_img=True)
+        recons_loss_dict, imgs = self.get_reconstruction_loss(out,
+                                                              x_normalized,
+                                                              target_normalized,
+                                                              return_predicted_img=True)
 
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
@@ -91,7 +95,7 @@ class LadderVAESemiSupervised(LadderVAE):
         recons_loss += self.mixed_rec_w * recons_loss_dict['mixed_loss']
         if enable_logging:
             self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
-        
+
         kl_loss = self.get_kl_divergence_loss(td_data)
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
@@ -116,7 +120,6 @@ class LadderVAESemiSupervised(LadderVAE):
             return None
 
         return output
-    
 
     def validation_step(self, batch, batch_idx):
         x, target = batch[:2]
@@ -125,10 +128,14 @@ class LadderVAESemiSupervised(LadderVAE):
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
         out, td_data = self.forward(x_normalized)
+
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict, recons_img = self.get_reconstruction_loss(out, x_normalized, target_normalized, return_predicted_img=True)
+        recons_loss_dict, recons_img = self.get_reconstruction_loss(out,
+                                                                    x_normalized,
+                                                                    target_normalized,
+                                                                    return_predicted_img=True)
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
