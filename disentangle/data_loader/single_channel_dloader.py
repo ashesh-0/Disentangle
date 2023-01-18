@@ -20,7 +20,7 @@ class SingleChannelDloader(MultiChDeterministicTiffDloader):
                  max_val=None):
         super().__init__(data_config, fpath, datasplit_type, val_fraction, test_fraction, normalized_input,
                          enable_rotation_aug, enable_random_cropping, use_one_mu_std, allow_generation, max_val)
-        
+
         assert self._use_one_mu_std is False, 'One of channels is target. Other is input. They must have different mean/std'
         assert self._normalized_input is True, 'Now that input is not related to target, this must be done on dataloader side'
 
@@ -31,11 +31,11 @@ class SingleChannelDloader(MultiChDeterministicTiffDloader):
                                        val_fraction=val_fraction,
                                        test_fraction=test_fraction,
                                        allow_generation=allow_generation)
-        self._data = np.concatenate([data_dict['mix'][...,None], data_dict['C1'][...,None]], axis=-1)
+        self._data = np.concatenate([data_dict['mix'][..., None], data_dict['C1'][..., None]], axis=-1)
         self.N = len(self._data)
 
     def normalize_input(self, inp):
-        return (inp - self._mean.squeeze()[0])/self._std.squeeze()[0]
+        return (inp - self._mean.squeeze()[0]) / self._std.squeeze()[0]
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         inp, target = self._get_img(index)

@@ -15,6 +15,7 @@ def get_config():
     data.data_type = DataType.SemiSupBloodVesselsEMBL
     data.mix_fpath = 'THG-SJS42_0-1000_FITC_221116-1.tif'
     data.ch1_fpath = 'FITC_C1-SJS42_0-1000_FITC_221116-1.tif'
+    # data.ignore_frames = [list(range(7)) + list(range(249, 260))]
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
     data.deterministic_grid = False
@@ -23,6 +24,8 @@ def get_config():
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = False
+    # if this is set to True, then for each image, you normalize using it's mean and std.
+    # data.use_per_image_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
     data.multiscale_lowres_count = None

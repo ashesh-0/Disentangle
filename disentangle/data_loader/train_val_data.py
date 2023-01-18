@@ -17,7 +17,8 @@ def get_train_val_data(data_config,
                        datasplit_type: DataSplitType,
                        val_fraction=None,
                        test_fraction=None,
-                       allow_generation=None):
+                       allow_generation=None,
+                       ignore_specific_datapoints=None):
     """
     Ensure that the shape of data should be N*H*W*C: N is number of data points. H,W are the image dimensions.
     C is the number of channels.

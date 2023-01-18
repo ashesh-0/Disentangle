@@ -3,10 +3,10 @@ from disentangle.nets.lvae import LadderVAE, compute_batch_mean, torch_nanmean
 import torch
 from disentangle.core.loss_type import LossType
 from disentangle.core.psnr import RangeInvariantPsnr
+from disentangle.loss.exclusive_loss import compute_exclusion_loss
 
 
 class LadderVAESemiSupervised(LadderVAE):
-
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
         assert self.enable_mixed_rec is True
@@ -16,6 +16,10 @@ class LadderVAESemiSupervised(LadderVAE):
         Args:
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
+
+        exclusion_loss = compute_exclusion_loss(reconstruction[:, :1], reconstruction[:, 1:])
+        import pdb
+        pdb.set_trace()
         # Log likelihood
         ll, like_dict = self.likelihood(reconstruction, target_ch1)
 
