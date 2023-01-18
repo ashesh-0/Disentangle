@@ -38,7 +38,7 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.ElboSemiSupMixedReconstruction
     loss.mixed_rec_weight = 1
-    loss.exclusion_loss_w = 0.01
+    loss.exclusion_loss_weight = 0.01
 
     loss.kl_weight = 1
     loss.kl_annealing = False
