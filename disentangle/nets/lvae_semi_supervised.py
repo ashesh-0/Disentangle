@@ -4,12 +4,21 @@ import torch
 from disentangle.core.loss_type import LossType
 from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.loss.exclusive_loss import compute_exclusion_loss
+import torch.nn as nn
 
 
 class LadderVAESemiSupervised(LadderVAE):
+
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
         assert self.enable_mixed_rec is True
+        self._exclusion_loss_w = config.loss.get('exclusion_loss_weight', None)
+        conv1 = nn.Conv2d(config.model.decoder.n_filters, 32, 5, stride=2, padding=2)
+        conv2 = nn.Conv2d(32, 16, 5, stride=2, padding=2)
+        conv3 = nn.Conv2d(16, 1, 5, stride=2, padding=2)
+        self._factor_branch = nn.Sequential(conv1, nn.LeakyReLU(), conv2, nn.LeakyReLU(), conv3, nn.ReLU(),
+                                            nn.AvgPool2d(8))
+        print(f'[{self.__class__.__name__}] Exclusion Loss w', self._exclusion_loss_w)
 
     def _get_reconstruction_loss_vector(self, reconstruction, input, target_ch1, return_predicted_img=False):
         """
@@ -17,9 +26,6 @@ class LadderVAESemiSupervised(LadderVAE):
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
 
-        exclusion_loss = compute_exclusion_loss(reconstruction[:, :1], reconstruction[:, 1:])
-        import pdb
-        pdb.set_trace()
         # Log likelihood
         ll, like_dict = self.likelihood(reconstruction, target_ch1)
 
@@ -32,17 +38,24 @@ class LadderVAESemiSupervised(LadderVAE):
             like_dict['params']['mean'] = like_dict['params']['mean'][:, :, pad:-pad, pad:-pad]
 
         recons_loss = compute_batch_mean(-1 * ll)
+        exclusion_loss = None
+        if self._exclusion_loss_w:
+            exclusion_loss = compute_exclusion_loss(reconstruction[:, :1], reconstruction[:, 1:])
+
         output = {
             'loss': recons_loss,
             'ch1_loss': compute_batch_mean(-ll[:, 0]),
             'ch2_loss': None,
+            'exclusion_loss': exclusion_loss
         }
 
         mixed_target = input
-        mixed_prediction = like_dict['params']['mean'][:, :1] + like_dict['params']['mean'][:, 1:]
+
+        factor = self._factor_branch(reconstruction) + 1
+        mixed_prediction = like_dict['params']['mean'][:, :1] * factor + like_dict['params']['mean'][:, 1:]
         var = torch.exp(like_dict['params']['logvar'])
         # sum of variance.
-        var = var[:, :1] + var[:, 1:]
+        var = var[:, :1] * (factor * factor) + var[:, 1:]
         logvar = torch.log(var)
 
         # TODO: We must enable standard deviation here in some way. I think this is very much needed.
@@ -97,11 +110,17 @@ class LadderVAESemiSupervised(LadderVAE):
         assert self.loss_type == LossType.ElboSemiSupMixedReconstruction
 
         recons_loss += self.mixed_rec_w * recons_loss_dict['mixed_loss']
+
         if enable_logging:
             self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
 
         kl_loss = self.get_kl_divergence_loss(td_data)
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
+        if self._exclusion_loss_w:
+            excl_loss = self._exclusion_loss_w * recons_loss_dict['exclusion_loss']
+            net_loss += net_loss
+            if enable_logging:
+                self.log('exclusion_loss', excl_loss, on_epoch=True)
 
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):
