@@ -8,7 +8,6 @@ import torch.nn as nn
 
 
 class LadderVAESemiSupervised(LadderVAE):
-
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
         assert self.enable_mixed_rec is True
@@ -19,6 +18,17 @@ class LadderVAESemiSupervised(LadderVAE):
         self._factor_branch = nn.Sequential(conv1, nn.LeakyReLU(), conv2, nn.LeakyReLU(), conv3, nn.ReLU(),
                                             nn.AvgPool2d(8))
         print(f'[{self.__class__.__name__}] Exclusion Loss w', self._exclusion_loss_w)
+
+    def get_mixed_prediction(self, reconstruction, channelwise_prediction, channelwise_logvar):
+        factor = self._factor_branch(reconstruction) + 1
+        mixed_prediction = channelwise_prediction[:, :1] * factor + channelwise_prediction[:, 1:]
+
+        var = torch.exp(channelwise_logvar)
+        # sum of variance.
+        var = var[:, :1] * (factor * factor) + var[:, 1:]
+        logvar = torch.log(var)
+
+        return mixed_prediction, logvar
 
     def _get_reconstruction_loss_vector(self, reconstruction, input, target_ch1, return_predicted_img=False):
         """
@@ -50,16 +60,13 @@ class LadderVAESemiSupervised(LadderVAE):
         }
 
         mixed_target = input
-
-        factor = self._factor_branch(reconstruction) + 1
-        mixed_prediction = like_dict['params']['mean'][:, :1] * factor + like_dict['params']['mean'][:, 1:]
-        var = torch.exp(like_dict['params']['logvar'])
-        # sum of variance.
-        var = var[:, :1] * (factor * factor) + var[:, 1:]
-        logvar = torch.log(var)
+        mixed_prediction, mixed_logvar = self.get_mixed_prediction(reconstruction, like_dict['params']['mean'])
 
         # TODO: We must enable standard deviation here in some way. I think this is very much needed.
-        mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_prediction, 'logvar': logvar})
+        mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {
+            'mean': mixed_prediction,
+            'logvar': mixed_logvar
+        })
         output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
         if return_predicted_img:
