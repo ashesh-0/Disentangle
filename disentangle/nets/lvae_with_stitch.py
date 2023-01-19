@@ -151,6 +151,7 @@ class LadderVAEwithStitching(LadderVAE):
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         recons_loss = recons_loss_dict['loss']
+
         kl_loss = self.get_kl_divergence_loss(td_data)
         if optimizer_idx == 0:
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
@@ -203,6 +204,7 @@ class LadderVAEwithStitching(LadderVAE):
                                                                     target_normalized,
                                                                     offset,
                                                                     return_predicted_img=True)
+
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]

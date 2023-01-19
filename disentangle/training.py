@@ -144,7 +144,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 normalized_input=normalized_input,
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=False,  # No rotation aug on validation
-                max_val = max_val,
+                max_val=max_val,
                 **val_data_kwargs,
             )
 
