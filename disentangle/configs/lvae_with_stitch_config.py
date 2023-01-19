@@ -85,7 +85,7 @@ def get_config():
     model.non_stochastic_version = False
     model.offset_prediction_input_z_idx = 3
     model.offset_latent_dims = 50
-    model.offset_prediction_scalar_prediction = False
+    model.offset_prediction_scalar_prediction = True
     model.regularize_offset = True
     model.offset_regularization_w = 0.001
     model.offset_prediction_focus_on_opposite_gradients = True
