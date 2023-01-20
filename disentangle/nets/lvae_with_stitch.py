@@ -17,7 +17,9 @@ class LadderVAEwithStitching(LadderVAE):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
         self.offset_prediction_input_z_idx = config.model.offset_prediction_input_z_idx
-        latent_spatial_dims = config.data.image_size // np.power(2, 1 + self.offset_prediction_input_z_idx)
+        latent_spatial_dims = config.data.image_size
+        if config.model.decoder.multiscale_retain_spatial_dims is False:
+            latent_spatial_dims = latent_spatial_dims // np.power(2, 1 + self.offset_prediction_input_z_idx)
         in_channels = config.model.z_dims[self.offset_prediction_input_z_idx]
         offset_latent_dims = config.model.offset_latent_dims
         self.nbr_set_count = config.data.get('nbr_set_count', None)
