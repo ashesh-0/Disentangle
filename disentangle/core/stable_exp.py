@@ -12,7 +12,6 @@ class StableExponential:
     What is done here is that definition of exp() has been changed. This, naturally, has changed the result of log. 
     but the log is still the mathematical log, that is, it takes the math.log() on whatever comes out of exp().
     """
-
     def __init__(self, tensor):
         self._raw_tensor = tensor
         posneg_dic = self.posneg_separation(self._raw_tensor)
@@ -55,4 +54,9 @@ def log_prob(nn_output_mu, nn_output_logvar, x):
     var_gen = StableExponential(nn_output_logvar)
     var = var_gen.exp()
     logstd = 1 / 2 * var_gen.log()
-    return -((x - mu) ** 2) / (2 * var) - logstd - math.log(math.sqrt(2 * math.pi))
+    return -((x - mu)**2) / (2 * var) - logstd - math.log(math.sqrt(2 * math.pi))
+
+
+if __name__ == '__main__':
+    stable = StableExponential(torch.Tensor([-0.1]).mean())
+    print(stable.exp())
