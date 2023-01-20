@@ -88,7 +88,7 @@ def get_config():
     model.offset_prediction_scalar_prediction = True
     model.regularize_offset = True
     model.offset_regularization_w = 0.001
-    model.offset_prediction_focus_on_opposite_gradients = False
+    model.offset_prediction_focus_on_opposite_gradients = True
 
     training = config.training
     training.lr = 0.001
