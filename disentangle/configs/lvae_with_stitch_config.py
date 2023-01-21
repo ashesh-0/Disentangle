@@ -12,8 +12,8 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
-    data.channel_1 = 2
-    data.channel_2 = 3
+    data.channel_1 = 0
+    data.channel_2 = 2
     data.nbr_set_count = 2
 
     data.sampler_type = SamplerType.NeighborSampler
@@ -83,7 +83,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     model.non_stochastic_version = False
-    model.offset_prediction_input_z_idx = 1
+    model.offset_prediction_input_z_idx = 3
     model.offset_latent_dims = 50
     model.offset_prediction_scalar_prediction = True
     model.regularize_offset = True
@@ -93,7 +93,7 @@ def get_config():
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 15
-    training.gridsizes = np.arange(12, 16, 2)
+    training.gridsizes = np.arange(12, 20, 2)
     training.max_epochs = 200
     training.batch_size = 42
     training.num_workers = 4
