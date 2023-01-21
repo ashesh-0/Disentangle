@@ -166,6 +166,11 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
         os.remove(filename)
 
     model = create_model(config, data_mean, data_std)
+    if config.training.pre_trained_ckpt_fpath:
+        print('Starting with pre-trained model', config.training.pre_trained_ckpt_fpath)
+        checkpoint = torch.load(config.training.pre_trained_ckpt_fpath)
+        _ = model.load_state_dict(checkpoint['state_dict'], strict=False)
+
     # print(model)
     estop_monitor = config.model.get('monitor', 'val_loss')
     estop_mode = MetricMonitor(estop_monitor).mode()
