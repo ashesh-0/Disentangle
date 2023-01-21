@@ -170,7 +170,7 @@ class NeighborConsistencyLoss:
             else:
                 loss += idx_loss
 
-        return loss / (4 * relevant_imgs / 5)
+        return torch.mean(loss / (4 * relevant_imgs / 5))
 
 
 if __name__ == '__main__':

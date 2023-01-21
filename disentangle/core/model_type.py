@@ -15,3 +15,4 @@ class ModelType(Enum):
     UNet = 10
     BraveNet = 11
     LadderVaeStitch = 12
+    LadderVaeStitch2Stage = 13
