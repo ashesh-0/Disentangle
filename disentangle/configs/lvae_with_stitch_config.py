@@ -12,8 +12,8 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
-    data.channel_1 = 0
-    data.channel_2 = 2
+    data.channel_1 = 2
+    data.channel_2 = 3
     data.nbr_set_count = 2
 
     data.sampler_type = SamplerType.NeighborSampler
@@ -93,7 +93,7 @@ def get_config():
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 15
-    training.gridsizes = np.arange(12, 20, 2)
+    training.gridsizes = np.arange(6, 20, 2)
     training.max_epochs = 200
     training.batch_size = 42
     training.num_workers = 4
