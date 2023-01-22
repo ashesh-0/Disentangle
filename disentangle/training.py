@@ -27,6 +27,8 @@ from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
 from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
 from disentangle.data_loader.single_channel_dloader import SingleChannelDloader
+from disentangle.data_loader.single_channel_mc_dloader import SingleChannelMSDloader
+
 
 def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False):
     if config.data.data_type == DataType.NotMNIST:
@@ -60,23 +62,30 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         enable_random_cropping = config.data.deterministic_grid is False
         train_data_kwargs = {}
         val_data_kwargs = {}
-    
+
         train_data_kwargs['enable_random_cropping'] = enable_random_cropping
         val_data_kwargs['enable_random_cropping'] = False
-        
 
-        train_data = None if skip_train_dataset else SingleChannelDloader(config.data,
-                                                                    datapath,
-                                                                    datasplit_type=DataSplitType.Train,
-                                                                    val_fraction=config.training.val_fraction,
-                                                                    test_fraction=config.training.test_fraction,
-                                                                    normalized_input=normalized_input,
-                                                                    use_one_mu_std=use_one_mu_std,
-                                                                    enable_rotation_aug=train_aug_rotate,
-                                                                    **train_data_kwargs)
+        if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
+            padding_kwargs = {'mode': config.data.padding_mode}
+            if 'padding_value' in config.data and config.data.padding_value is not None:
+                padding_kwargs['constant_values'] = config.data.padding_value
 
-        max_val = train_data.get_max_val()
-        val_data = SingleChannelDloader(
+            train_data = None if skip_train_dataset else SingleChannelMSDloader(
+                config.data,
+                datapath,
+                datasplit_type=DataSplitType.Train,
+                val_fraction=config.training.val_fraction,
+                test_fraction=config.training.test_fraction,
+                normalized_input=normalized_input,
+                use_one_mu_std=use_one_mu_std,
+                enable_rotation_aug=train_aug_rotate,
+                num_scales=config.data.multiscale_lowres_count,
+                padding_kwargs=padding_kwargs,
+                **train_data_kwargs)
+
+            max_val = train_data.get_max_val()
+            val_data = SingleChannelMSDloader(
                 config.data,
                 datapath,
                 datasplit_type=DataSplitType.Val,
@@ -85,7 +94,35 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 normalized_input=normalized_input,
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=False,  # No rotation aug on validation
-                max_val = max_val,
+                max_val=max_val,
+                num_scales=config.data.multiscale_lowres_count,
+                padding_kwargs=padding_kwargs,
+                **val_data_kwargs,
+            )
+
+        else:
+            train_data = None if skip_train_dataset else SingleChannelDloader(
+                config.data,
+                datapath,
+                datasplit_type=DataSplitType.Train,
+                val_fraction=config.training.val_fraction,
+                test_fraction=config.training.test_fraction,
+                normalized_input=normalized_input,
+                use_one_mu_std=use_one_mu_std,
+                enable_rotation_aug=train_aug_rotate,
+                **train_data_kwargs)
+
+            max_val = train_data.get_max_val()
+            val_data = SingleChannelDloader(
+                config.data,
+                datapath,
+                datasplit_type=DataSplitType.Val,
+                val_fraction=config.training.val_fraction,
+                test_fraction=config.training.test_fraction,
+                normalized_input=normalized_input,
+                use_one_mu_std=use_one_mu_std,
+                enable_rotation_aug=False,  # No rotation aug on validation
+                max_val=max_val,
                 **val_data_kwargs,
             )
 
@@ -186,7 +223,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 normalized_input=normalized_input,
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=False,  # No rotation aug on validation
-                max_val = max_val,
+                max_val=max_val,
                 **val_data_kwargs,
             )
 
@@ -194,7 +231,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         mean_val, std_val = train_data.compute_mean_std()
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
-    
+
     return train_data, val_data
 
 

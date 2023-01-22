@@ -1,4 +1,5 @@
 from distutils.command.config import LANG_EXT
+from turtle import pd
 from disentangle.nets.lvae import LadderVAE, compute_batch_mean, torch_nanmean
 import torch
 from disentangle.core.loss_type import LossType
@@ -8,6 +9,7 @@ import torch.nn as nn
 
 
 class LadderVAESemiSupervised(LadderVAE):
+
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
         assert self.enable_mixed_rec is True
@@ -59,8 +61,9 @@ class LadderVAESemiSupervised(LadderVAE):
             'exclusion_loss': exclusion_loss
         }
 
-        mixed_target = input
-        mixed_prediction, mixed_logvar = self.get_mixed_prediction(reconstruction, like_dict['params']['mean'])
+        mixed_target = input[:, :1]
+        mixed_prediction, mixed_logvar = self.get_mixed_prediction(reconstruction, like_dict['params']['mean'],
+                                                                   like_dict['params']['logvar'])
 
         # TODO: We must enable standard deviation here in some way. I think this is very much needed.
         mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {
