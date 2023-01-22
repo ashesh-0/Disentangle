@@ -28,7 +28,7 @@ def get_config():
     # data.use_per_image_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 3
+    data.multiscale_lowres_count = 4
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -49,7 +49,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVaeSemiSupervised
-    model.z_dims = [128, 128, 128, 128, 128, 128, 128]
+    model.z_dims = [128, 128, 128, 128, 128, 128, 128,128]
 
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
