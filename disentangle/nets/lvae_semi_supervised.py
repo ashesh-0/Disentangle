@@ -27,6 +27,7 @@ class LadderVAESemiSupervised(LadderVAE):
 
     def get_mixed_prediction(self, reconstruction, channelwise_prediction, channelwise_logvar):
         factor = self.get_factor(reconstruction)
+
         mixed_prediction = channelwise_prediction[:, :1] * factor + channelwise_prediction[:, 1:]
 
         var = torch.exp(channelwise_logvar)
@@ -111,10 +112,10 @@ class LadderVAESemiSupervised(LadderVAE):
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict, imgs = self.get_reconstruction_loss(out,
-                                                              x_normalized,
-                                                              target_normalized,
-                                                              return_predicted_img=False)
+        recons_loss_dict = self.get_reconstruction_loss(out,
+                                                        x_normalized,
+                                                        target_normalized,
+                                                        return_predicted_img=False)
 
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
