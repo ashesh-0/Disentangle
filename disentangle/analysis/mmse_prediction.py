@@ -67,7 +67,6 @@ def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, pred
 
 def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1, num_workers=4):
     dloader = DataLoader(dset, pin_memory=False, num_workers=num_workers, shuffle=False, batch_size=batch_size)
-
     predictions = []
     losses = []
     logvar_arr = []

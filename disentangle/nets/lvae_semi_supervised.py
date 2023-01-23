@@ -21,8 +21,12 @@ class LadderVAESemiSupervised(LadderVAE):
                                             nn.AvgPool2d(8))
         print(f'[{self.__class__.__name__}] Exclusion Loss w', self._exclusion_loss_w)
 
-    def get_mixed_prediction(self, reconstruction, channelwise_prediction, channelwise_logvar):
+    def get_factor(self, reconstruction):
         factor = self._factor_branch(reconstruction) + 1
+        return factor
+
+    def get_mixed_prediction(self, reconstruction, channelwise_prediction, channelwise_logvar):
+        factor = self.get_factor(reconstruction)
         mixed_prediction = channelwise_prediction[:, :1] * factor + channelwise_prediction[:, 1:]
 
         var = torch.exp(channelwise_logvar)
@@ -73,7 +77,7 @@ class LadderVAESemiSupervised(LadderVAE):
         output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
         if return_predicted_img:
-            return output, like_dict['params']['mean']
+            return output, torch.cat([like_dict['params']['mean'], mixed_prediction], dim=1)
 
         return output
 
@@ -110,7 +114,7 @@ class LadderVAESemiSupervised(LadderVAE):
         recons_loss_dict, imgs = self.get_reconstruction_loss(out,
                                                               x_normalized,
                                                               target_normalized,
-                                                              return_predicted_img=True)
+                                                              return_predicted_img=False)
 
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
