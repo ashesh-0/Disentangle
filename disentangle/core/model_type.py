@@ -16,3 +16,4 @@ class ModelType(Enum):
     BraveNet = 11
     LadderVaeStitch = 12
     LadderVaeStitch2Stage = 13
+    LadderVaeSemiSupervised = 14
