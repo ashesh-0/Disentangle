@@ -26,7 +26,7 @@ class UNet(pl.LightningModule):
         self.lr_scheduler_mode = MetricMonitor(self.lr_scheduler_monitor).mode()
         self.enable_context_transfer = config.model.enable_context_transfer
         self.ct_modules = nn.ModuleList()
-        init_ch = 64
+        init_ch = config.model.init_channel_count
         if self.enable_context_transfer:
             hw = config.data.image_size
             cur_ch = init_ch
@@ -37,7 +37,7 @@ class UNet(pl.LightningModule):
                 cur_ch *= 2
                 hw //= 2
 
-        self.inc = DoubleConv(1, 64)
+        self.inc = DoubleConv(1, init_ch)
         ch = init_ch
         for i in range(1, self.n_levels):
             setattr(self, f'down{i}', Down(ch, 2 * ch))
@@ -89,6 +89,7 @@ class UNet(pl.LightningModule):
         # assert self._multiscale_count == 1 or self.color_ch == 1, msg
         lowres_first_bottom_up_list = []
         lowres_merge_list = []
+        lowres_nets = []
 
         multiscale_lowres_size_factor = 1
         n_filters = init_n_filters
@@ -108,18 +109,17 @@ class UNet(pl.LightningModule):
                     skip_padding=res_block_skip_padding,
                 ))
             lowres_first_bottom_up_list.append(first_bottom_up)
-            lowres_merge = MergeLowRes(
-                channels=2*n_filters,
-                merge_type='residual',
-                nonlin=nonlin,
-                batchnorm=self.batchnorm,
-                dropout=0,
-                res_block_type=res_block_type,
-                multiscale_retain_spatial_dims=multiscale_retain_spatial_dims,
-                multiscale_lowres_size_factor=multiscale_lowres_size_factor)
+            lowres_merge = MergeLowRes(channels=2 * n_filters,
+                                       merge_type='residual',
+                                       nonlin=nonlin,
+                                       batchnorm=self.batchnorm,
+                                       dropout=0,
+                                       res_block_type=res_block_type,
+                                       multiscale_retain_spatial_dims=multiscale_retain_spatial_dims,
+                                       multiscale_lowres_size_factor=multiscale_lowres_size_factor)
 
             lowres_merge_list.append(lowres_merge)
-            n_filters = 2*n_filters
+            n_filters = 2 * n_filters
         self.lowres_first_bottom_ups = nn.ModuleList(lowres_first_bottom_up_list) if len(
             lowres_first_bottom_up_list) else None
 
@@ -143,10 +143,13 @@ class UNet(pl.LightningModule):
 
         if self._multiscale_count > 1:
             for i in range(1, self._multiscale_count):
-                lowres_x = self.lowres_first_bottom_ups[i-1](x[:, i:i + 1])
+                lowres_x = self.lowres_first_bottom_ups[i - 1](x[:, i:i + 1])
                 lowres_net = getattr(self, f'down{i}')
+
+                lowres_net = lowres_net.maxpool_conv[1]  # skipping the maxpool
+
                 lowres_flow = lowres_net(lowres_x)
-                latents[i] = self.lowres_merge[i-1](latents[i], lowres_flow)
+                latents[i] = self.lowres_merge[i - 1](latents[i], lowres_flow)
 
         for i in range(1, self.n_levels + 1):
             x_end = getattr(self, f'up{i}')(x_end, latents[-1 * i])
@@ -261,11 +264,10 @@ class UNet(pl.LightningModule):
         self.label2_psnr.reset()
 
 
-
 if __name__ == '__main__':
     from disentangle.configs.unet_config import get_config
     cnf = get_config()
     model = UNet(0.0, 1.0, cnf)
     # print(model)
-    inp = torch.rand((12, 4, 64, 64))
+    inp = torch.rand((12, 4, G4, 64))
     model(inp)
