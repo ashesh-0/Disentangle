@@ -11,6 +11,7 @@ from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.metrics.running_psnr import RunningPSNR
 from disentangle.nets.context_transfer_module import ContextTransferModule
 from disentangle.nets.lvae_layers import BottomUpDeterministicResBlock, MergeLowRes
+import torch.nn.functional as F
 
 
 class UNet(pl.LightningModule):
@@ -133,26 +134,29 @@ class UNet(pl.LightningModule):
 
         latents = []
         x_end = x1
+        latents.append(x1)
         for i in range(1, self.n_levels + 1):
-            latents.append(x_end)
             x_end = getattr(self, f'down{i}')(x_end)
 
-        if self.enable_context_transfer:
-            for i in range(len(latents)):
-                latents[i] = self.ct_modules[i](latents[i])
-
-        if self._multiscale_count > 1:
-            for i in range(1, self._multiscale_count):
+            if i < self._multiscale_count:
                 lowres_x = self.lowres_first_bottom_ups[i - 1](x[:, i:i + 1])
                 lowres_net = getattr(self, f'down{i}')
 
                 lowres_net = lowres_net.maxpool_conv[1]  # skipping the maxpool
 
                 lowres_flow = lowres_net(lowres_x)
-                latents[i] = self.lowres_merge[i - 1](latents[i], lowres_flow)
+                x_end = self.lowres_merge[i - 1](x_end, lowres_flow)
+
+            latents.append(x_end)
+
+        if self.enable_context_transfer:
+            for i in range(len(latents)):
+                latents[i] = self.ct_modules[i](latents[i])
 
         for i in range(1, self.n_levels + 1):
-            x_end = getattr(self, f'up{i}')(x_end, latents[-1 * i])
+            x_end = getattr(self, f'up{i}')(x_end, latents[-1 * (i + 1)])
+            if x_end.shape[-1] > x.shape[-1]:
+                x_end = F.center_crop(x_end, x.shape[-2:])
 
         pred = self.outc(x_end)
         return pred
@@ -269,5 +273,5 @@ if __name__ == '__main__':
     cnf = get_config()
     model = UNet(0.0, 1.0, cnf)
     # print(model)
-    inp = torch.rand((12, 4, G4, 64))
+    inp = torch.rand((12, 4, 64, 64))
     model(inp)
