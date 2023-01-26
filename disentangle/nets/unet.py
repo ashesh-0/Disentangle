@@ -12,6 +12,7 @@ from disentangle.metrics.running_psnr import RunningPSNR
 from disentangle.nets.context_transfer_module import ContextTransferModule
 from disentangle.nets.lvae_layers import BottomUpDeterministicResBlock, MergeLowRes
 import torch.nn.functional as F
+from copy import deepcopy
 
 
 class UNet(pl.LightningModule):
@@ -28,6 +29,7 @@ class UNet(pl.LightningModule):
         self.enable_context_transfer = config.model.enable_context_transfer
         self.ct_modules = nn.ModuleList()
         init_ch = config.model.init_channel_count
+        self.multiscale_lowres_separate_branch = config.model.multiscale_lowres_separate_branch
         if self.enable_context_transfer:
             hw = config.data.image_size
             cur_ch = init_ch
@@ -56,7 +58,7 @@ class UNet(pl.LightningModule):
         self.outc = OutConv(ch, 2)
 
         # multiscale architecture
-        self.lowres_first_bottom_ups = self._multiscale_count = self.lowres_merge = None
+        self.lowres_first_bottom_ups = self._multiscale_count = self.lowres_merge = self.lowres_net = None
         self._init_multires(config, init_ch)
 
         self.normalized_input = config.data.normalized_input
@@ -64,7 +66,7 @@ class UNet(pl.LightningModule):
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
         self.label1_psnr = RunningPSNR()
         self.label2_psnr = RunningPSNR()
-        print(f'[{self.__class__.__name__}] ContextTransfer:{self.enable_context_transfer}')
+        print(f'[{self.__class__.__name__}] ContextTransfer:{self.enable_context_transfer} SepBranch:{self.multiscale_lowres_separate_branch}')
 
     def _init_multires(self, config, init_n_filters):
         """
@@ -90,6 +92,7 @@ class UNet(pl.LightningModule):
         # assert self._multiscale_count == 1 or self.color_ch == 1, msg
         lowres_first_bottom_up_list = []
         lowres_merge_list = []
+        lowres_net_list = []
 
         multiscale_lowres_size_factor = 1
         n_filters = init_n_filters
@@ -119,7 +122,16 @@ class UNet(pl.LightningModule):
                                        multiscale_lowres_size_factor=multiscale_lowres_size_factor)
 
             lowres_merge_list.append(lowres_merge)
+
+            net = getattr(self, f'down{i}')
+            net = net.maxpool_conv[1]  # skipping the maxpool
+            if self.multiscale_lowres_separate_branch:
+                net = deepcopy(net)
+            lowres_net_list.append(net)
+
             n_filters = 2 * n_filters
+
+        self.lowres_net = nn.ModuleList(lowres_net_list) if len(lowres_net_list) else None
         self.lowres_first_bottom_ups = nn.ModuleList(lowres_first_bottom_up_list) if len(
             lowres_first_bottom_up_list) else None
 
@@ -139,10 +151,9 @@ class UNet(pl.LightningModule):
 
             if i < self._multiscale_count:
                 lowres_x = self.lowres_first_bottom_ups[i - 1](x[:, i:i + 1])
-                lowres_net = getattr(self, f'down{i}')
-                lowres_net = lowres_net.maxpool_conv[1]  # skipping the maxpool
-
-                lowres_flow = lowres_net(lowres_x)
+                # lowres_net = getattr(self, f'down{i}')
+                # lowres_net = lowres_net.maxpool_conv[1]  # skipping the maxpool
+                lowres_flow = self.lowres_net[i-1](lowres_x)
                 x_end = self.lowres_merge[i - 1](x_end, lowres_flow)
 
             latents.append(x_end)
@@ -270,6 +281,6 @@ if __name__ == '__main__':
     from disentangle.configs.unet_config import get_config
     cnf = get_config()
     model = UNet(0.0, 1.0, cnf)
-    # print(model)
+    # print(model)G
     inp = torch.rand((12, 4, 64, 64))
     model(inp)
