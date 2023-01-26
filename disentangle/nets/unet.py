@@ -90,7 +90,6 @@ class UNet(pl.LightningModule):
         # assert self._multiscale_count == 1 or self.color_ch == 1, msg
         lowres_first_bottom_up_list = []
         lowres_merge_list = []
-        lowres_nets = []
 
         multiscale_lowres_size_factor = 1
         n_filters = init_n_filters
@@ -141,7 +140,6 @@ class UNet(pl.LightningModule):
             if i < self._multiscale_count:
                 lowres_x = self.lowres_first_bottom_ups[i - 1](x[:, i:i + 1])
                 lowres_net = getattr(self, f'down{i}')
-
                 lowres_net = lowres_net.maxpool_conv[1]  # skipping the maxpool
 
                 lowres_flow = lowres_net(lowres_x)
