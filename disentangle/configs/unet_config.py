@@ -37,7 +37,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.UNet
     model.n_levels = 5
-    model.init_channel_count = 64
+    model.init_channel_count = 32
     model.enable_context_transfer = False
     model.context_transfer_initial_weight_factor = 0
     model.multiscale_lowres_separate_branch = True
