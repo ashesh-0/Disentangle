@@ -205,7 +205,7 @@ class LadderVAESemiSupervised(LadderVAE):
                 all_samples.append(sample[None])
 
             all_samples = torch.cat(all_samples, dim=0)
-            all_samples = all_samples * self.data_std + self.data_mean
+            all_samples = all_samples * self.data_std[dataset_index[0]] + self.data_mean[dataset_index[0]]
             all_samples = all_samples.cpu()
             img_mmse = torch.mean(all_samples, dim=0)[0]
             self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
