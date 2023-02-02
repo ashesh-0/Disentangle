@@ -13,8 +13,12 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.SemiSupBloodVesselsEMBL
-    data.mix_fpath = 'THG-SJS42_0-1000_FITC_221116-1.tif'
-    data.ch1_fpath = 'FITC_C1-SJS42_0-1000_FITC_221116-1.tif'
+    data.mix_fpath = ''#THG-SJS42_0-1000_FITC_221116-1.tif'
+    data.ch1_fpath = ''#FITC_C1-SJS42_0-1000_FITC_221116-1.tif'
+    data.mix_fpath_list = ['THG_MS29_z0_403um_sl4_bin10_z03_fr3_p9_lz290_px512_XYn119n152_AOFull_FITC_00002.tif','THG_MS29_z0_905um_sl4_bin10_z03_fr3_p28_lz250_px512_XYn119n152_AOFull_FITC_00001.tif',
+    'THG_MS29_z0_905um_sl4_bin10_z03_fr3_p33_lz250_px512_XYn119n152_AOFull_FITC_00001.tif']
+    data.ch1_fpath_list = [x.replace('THG_','FITC_') for x in data.mix_fpath_list]
+    
     # data.ignore_frames = [list(range(7)) + list(range(249, 260))]
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02

@@ -1,4 +1,5 @@
 from distutils.command.config import LANG_EXT
+from statistics import mode
 from turtle import pd
 from disentangle.nets.lvae import LadderVAE, compute_batch_mean, torch_nanmean
 import torch
@@ -100,13 +101,23 @@ class LadderVAESemiSupervised(LadderVAE):
         else:
             return loss_dict
 
-    def normalize_target(self, target):
-        return (target - self.data_mean[:, 1:]) / self.data_std[:, 1:]
+    def normalize_target(self, target, dataset_index):
+        mean_ = self.data_mean[dataset_index, :, 1:]
+        assert mean_.shape[-1] == 1
+        mean_ = mean_[..., 0]
+        assert len(mean_) == len(target)
+        std_ = self.data_std[dataset_index, :, 1:]
+        return (target - mean_) / std_[..., 0]
+
+    def normalize_input(self, x, dataset_index):
+        if self.normalized_input:
+            return x
+        return (x - self.data_mean[dataset_index].mean()) / self.data_std[dataset_index].mean()
 
     def training_step(self, batch, batch_idx, enable_logging=True):
-        x, target = batch[:2]
-        x_normalized = self.normalize_input(x)
-        target_normalized = self.normalize_target(target)
+        x, target, dataset_index = batch
+        x_normalized = self.normalize_input(x, dataset_index)
+        target_normalized = self.normalize_target(target, dataset_index)
 
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
@@ -160,11 +171,12 @@ class LadderVAESemiSupervised(LadderVAE):
         return output
 
     def validation_step(self, batch, batch_idx):
-        x, target = batch[:2]
+        x, target, dataset_index = batch
         self.set_params_to_same_device_as(target)
 
-        x_normalized = self.normalize_input(x)
-        target_normalized = self.normalize_target(target)
+        x_normalized = self.normalize_input(x, dataset_index)
+        target_normalized = self.normalize_target(target, dataset_index)
+
         out, td_data = self.forward(x_normalized)
 
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
@@ -179,7 +191,6 @@ class LadderVAESemiSupervised(LadderVAE):
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
-
         psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0].clone(), recons_img[:, 0].clone())
         recons_loss = recons_loss_dict['loss']
         self.log('val_loss', recons_loss, on_epoch=True)
@@ -204,3 +215,15 @@ class LadderVAESemiSupervised(LadderVAE):
         psnr = psnrl1
         self.log('val_psnr', psnr, on_epoch=True)
         self.label1_psnr.reset()
+
+
+if __name__ == '__main__':
+    from disentangle.configs.semi_supervised_config import get_config
+    config = get_config()
+    data_mean = torch.ones([3, 1, 2, 1, 1])
+    data_std = torch.ones([3, 1, 2, 1, 1])
+    model = LadderVAESemiSupervised(data_mean, data_std, config)
+    inp = torch.rand((32, 1, 64, 64))
+    tar = torch.rand(32, 1, 64, 64)
+    dset_index = torch.randint(low=0, high=3, size=(len(inp), ))
+    model.training_step((inp, tar, dset_index), 0)
