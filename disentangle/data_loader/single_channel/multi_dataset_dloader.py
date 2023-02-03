@@ -1,14 +1,18 @@
-import enum
-from disentangle.core import data_split_type
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
-from disentangle.core.data_split_type import DataSplitType
-from disentangle.data_loader.train_val_data import get_train_val_data
-import numpy as np
-from typing import Union, Tuple
-from copy import deepcopy
+"""
+If one has multiple .tif files, each corresponding to a different hardware setting. 
+In this case, one needs to normalize these separate files separately.
+"""
 import ml_collections
 import torch
+import enum
+from typing import Union, Tuple
+import numpy as np
+
 from disentangle.data_loader.patch_index_manager import GridIndexManager, GridAlignement
+from disentangle.core import data_split_type
+from disentangle.core.data_split_type import DataSplitType
+from disentangle.data_loader.single_channel.single_channel_dloader import SingleChannelDloader
+from disentangle.data_loader.single_channel.single_channel_mc_dloader import SingleChannelMSDloader
 
 
 class SingleChannelMultiDatasetDloader:
@@ -23,6 +27,8 @@ class SingleChannelMultiDatasetDloader:
                  enable_rotation_aug: bool = False,
                  enable_random_cropping: bool = False,
                  use_one_mu_std=None,
+                 num_scales=None,
+                 padding_kwargs: dict = None,
                  allow_generation=False,
                  max_val=None) -> None:
 
@@ -34,17 +40,32 @@ class SingleChannelMultiDatasetDloader:
             new_data_config = ml_collections.ConfigDict(data_config)
             new_data_config.mix_fpath = fpath_tuple[0]
             new_data_config.ch1_fpath = fpath_tuple[1]
-            dset = SingleChannelDloader(new_data_config,
-                                        fpath,
-                                        datasplit_type=datasplit_type,
-                                        val_fraction=val_fraction,
-                                        test_fraction=test_fraction,
-                                        normalized_input=normalized_input,
-                                        enable_rotation_aug=enable_rotation_aug,
-                                        enable_random_cropping=enable_random_cropping,
-                                        use_one_mu_std=use_one_mu_std,
-                                        allow_generation=allow_generation,
-                                        max_val=max_val[i] if max_val is not None else None)
+            if num_scales is None:
+                dset = SingleChannelDloader(new_data_config,
+                                            fpath,
+                                            datasplit_type=datasplit_type,
+                                            val_fraction=val_fraction,
+                                            test_fraction=test_fraction,
+                                            normalized_input=normalized_input,
+                                            enable_rotation_aug=enable_rotation_aug,
+                                            enable_random_cropping=enable_random_cropping,
+                                            use_one_mu_std=use_one_mu_std,
+                                            allow_generation=allow_generation,
+                                            max_val=max_val[i] if max_val is not None else None)
+            else:
+                dset = SingleChannelMSDloader(new_data_config,
+                                              fpath,
+                                              datasplit_type=datasplit_type,
+                                              val_fraction=val_fraction,
+                                              test_fraction=test_fraction,
+                                              normalized_input=normalized_input,
+                                              enable_rotation_aug=enable_rotation_aug,
+                                              enable_random_cropping=enable_random_cropping,
+                                              use_one_mu_std=use_one_mu_std,
+                                              allow_generation=allow_generation,
+                                              num_scales=num_scales,
+                                              padding_kwargs=padding_kwargs,
+                                              max_val=max_val[i] if max_val is not None else None)
             self._dsets.append(dset)
         self._img_sz = self._dsets[0]._img_sz
         self._grid_sz = self._dsets[0]._grid_sz
@@ -138,55 +159,6 @@ class SingleChannelMultiDatasetDloader:
         for dset in self._dsets:
             tot_len += len(dset)
         return tot_len
-
-
-class SingleChannelDloader(MultiChDeterministicTiffDloader):
-
-    def __init__(self,
-                 data_config,
-                 fpath: str,
-                 datasplit_type: DataSplitType = None,
-                 val_fraction=None,
-                 test_fraction=None,
-                 normalized_input=None,
-                 enable_rotation_aug: bool = False,
-                 enable_random_cropping: bool = False,
-                 use_one_mu_std=None,
-                 allow_generation=False,
-                 max_val=None):
-        super().__init__(data_config, fpath, datasplit_type, val_fraction, test_fraction, normalized_input,
-                         enable_rotation_aug, enable_random_cropping, use_one_mu_std, allow_generation, max_val)
-
-        assert self._use_one_mu_std is False, 'One of channels is target. Other is input. They must have different mean/std'
-        assert self._normalized_input is True, 'Now that input is not related to target, this must be done on dataloader side'
-
-    def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
-        data_dict = get_train_val_data(data_config,
-                                       self._fpath,
-                                       datasplit_type,
-                                       val_fraction=val_fraction,
-                                       test_fraction=test_fraction,
-                                       allow_generation=allow_generation)
-        self._data = np.concatenate([data_dict['mix'][..., None], data_dict['C1'][..., None]], axis=-1)
-        self.N = len(self._data)
-
-    def normalize_input(self, inp):
-        return (inp - self._mean.squeeze()[0]) / self._std.squeeze()[0]
-
-    def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
-        inp, target = self._get_img(index)
-        if self._enable_rotation:
-            # passing just the 2D input. 3rd dimension messes up things.
-            rot_dic = self._rotation_transform(image=img1[0], mask=img2[0])
-            img1 = rot_dic['image'][None]
-            img2 = rot_dic['mask'][None]
-
-        inp = self.normalize_input(inp)
-        if isinstance(index, int):
-            return inp, target
-
-        _, grid_size = index
-        return inp, target, grid_size
 
 
 if __name__ == '__main__':

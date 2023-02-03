@@ -26,8 +26,7 @@ from disentangle.data_loader.places_dloader import PlacesLoader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
 from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
-from disentangle.data_loader.single_channel_dloader import SingleChannelMultiDatasetDloader
-from disentangle.data_loader.single_channel_mc_dloader import SingleChannelMSDloader
+from disentangle.data_loader.single_channel.multi_dataset_dloader import SingleChannelMultiDatasetDloader
 
 
 def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False):
@@ -71,7 +70,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             if 'padding_value' in config.data and config.data.padding_value is not None:
                 padding_kwargs['constant_values'] = config.data.padding_value
 
-            train_data = None if skip_train_dataset else SingleChannelMSDloader(
+            train_data = None if skip_train_dataset else SingleChannelMultiDatasetDloader(
                 config.data,
                 datapath,
                 datasplit_type=DataSplitType.Train,
@@ -85,7 +84,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 **train_data_kwargs)
 
             max_val = train_data.get_max_val()
-            val_data = SingleChannelMSDloader(
+            val_data = SingleChannelMultiDatasetDloader(
                 config.data,
                 datapath,
                 datasplit_type=DataSplitType.Val,

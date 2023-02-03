@@ -12,6 +12,7 @@ class StableExponential:
     What is done here is that definition of exp() has been changed. This, naturally, has changed the result of log. 
     but the log is still the mathematical log, that is, it takes the math.log() on whatever comes out of exp().
     """
+
     def __init__(self, tensor):
         self._raw_tensor = tensor
         posneg_dic = self.posneg_separation(self._raw_tensor)

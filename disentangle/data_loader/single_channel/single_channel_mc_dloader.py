@@ -7,7 +7,7 @@ import numpy as np
 from skimage.transform import resize
 from disentangle.core.data_split_type import DataSplitType
 
-from disentangle.data_loader.single_channel_dloader import SingleChannelDloader
+from disentangle.data_loader.single_channel.single_channel_dloader import SingleChannelDloader
 from disentangle.core.data_type import DataType
 
 
