@@ -8,6 +8,7 @@ from typing import Union, Tuple
 from copy import deepcopy
 import ml_collections
 import torch
+from disentangle.data_loader.patch_index_manager import GridIndexManager, GridAlignement
 
 
 class SingleChannelMultiDatasetDloader:
@@ -91,9 +92,12 @@ class SingleChannelMultiDatasetDloader:
         for i, dset in enumerate(self._dsets):
             dset.set_mean_std(mean_val[i], std_val[i])
 
-    def set_repeat_factor(self):
+    def set_img_sz(self, image_size, grid_size, alignment=GridAlignement.LeftTop):
+        self._img_sz = image_size
+        self._grid_sz = grid_size
+        self.idx_manager = GridIndexManager(self.get_data_shape(), self._grid_sz, self._img_sz, alignment)
         for dset in self._dsets:
-            dset.set_repeat_factor()
+            dset.set_img_sz(image_size, grid_size, alignment=alignment)
 
     def get_max_val(self):
         max_val_arr = []

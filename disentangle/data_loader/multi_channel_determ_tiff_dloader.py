@@ -10,6 +10,7 @@ from disentangle.data_loader.patch_index_manager import GridIndexManager, GridAl
 
 
 class MultiChDeterministicTiffDloader:
+
     def __init__(self,
                  data_config,
                  fpath: str,
@@ -71,7 +72,7 @@ class MultiChDeterministicTiffDloader:
 
     def get_data_shape(self):
         return self._data.shape
-        
+
     def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
         self._data = get_train_val_data(data_config,
                                         self._fpath,
@@ -117,7 +118,7 @@ class MultiChDeterministicTiffDloader:
     def get_img_sz(self):
         return self._img_sz
 
-    def set_img_sz(self, image_size, grid_size):
+    def set_img_sz(self, image_size, grid_size, alignment=GridAlignement.LeftTop):
         """
         If one wants to change the image size on the go, then this can be used.
         Args:
@@ -126,7 +127,7 @@ class MultiChDeterministicTiffDloader:
         """
         self._img_sz = image_size
         self._grid_sz = grid_size
-        self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz, GridAlignement.LeftTop)
+        self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz, alignment)
         self.set_repeat_factor()
 
     def set_repeat_factor(self):

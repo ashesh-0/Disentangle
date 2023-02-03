@@ -27,6 +27,7 @@ class GridAlignement(Enum):
 
 
 class GridIndexManager:
+
     def __init__(self, data_shape, grid_size, patch_size, grid_alignement) -> None:
         self._data_shape = data_shape
         self._default_grid_size = grid_size
