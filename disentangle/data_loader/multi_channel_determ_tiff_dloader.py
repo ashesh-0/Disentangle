@@ -69,6 +69,9 @@ class MultiChDeterministicTiffDloader:
         msg = self._init_msg()
         print(msg)
 
+    def get_data_shape(self):
+        return self._data.shape
+        
     def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
         self._data = get_train_val_data(data_config,
                                         self._fpath,

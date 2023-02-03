@@ -38,7 +38,7 @@ def get_overlapping_dset(dset_class):
             """
             self._img_sz = image_size
             self._grid_sz = grid_size
-            self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz, GridAlignement.Center)
+            self.idx_manager = GridIndexManager(self.get_data_shape(), self._grid_sz, self._img_sz, GridAlignement.Center)
             self.set_repeat_factor()
 
         def get_begin_end_padding(self, start_pos, max_len):

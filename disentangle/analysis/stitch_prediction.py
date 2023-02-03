@@ -77,7 +77,7 @@ def stitched_prediction_mask(dset, padded_patch_shape, skip_boundary_pixel_count
 
     Returns:
     """
-    N, H, W, C = dset._data.shape
+    N, H, W, C = dset.get_data_shape()
     mask = np.full((N, C, H, W), True)
     hN, wN = padded_patch_shape
     for dset_input_idx in range(len(dset)):
@@ -166,11 +166,11 @@ def stitch_predictions(predictions, dset, smoothening_pixelcount=0):
 
     extra_padding = dset.per_side_overlap_pixelcount()
     # if there are more channels, use all of them.
-    shape = list(dset._data.shape)
+    shape = list(dset.get_data_shape())
     shape[-1] = max(shape[-1], predictions.shape[1])
 
     output = np.zeros(shape, dtype=predictions.dtype)
-    frame_size = dset._data.shape[1]
+    frame_size = dset.get_data_shape()[1]
     for dset_input_idx in range(predictions.shape[0]):
         loc = get_location_from_idx(dset, dset_input_idx, predictions.shape[-2], predictions.shape[-1])
         mask = None

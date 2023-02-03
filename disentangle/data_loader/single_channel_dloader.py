@@ -45,6 +45,17 @@ class SingleChannelMultiDatasetDloader:
                                         allow_generation=allow_generation,
                                         max_val=max_val[i] if max_val is not None else None)
             self._dsets.append(dset)
+        self._img_sz = self._dsets[0]._img_sz
+        self._grid_sz = self._dsets[0]._grid_sz
+
+    def get_data_shape(self):
+        N = 0
+        default_shape = list(self._dsets[0]._data.shape)
+        for dset in self._dsets:
+            N += dset._data.shape[0]
+
+        default_shape[0] = N
+        return tuple(default_shape)
 
     def compute_mean_std(self, allow_for_validation_data=False):
         mean_arr = []
@@ -67,9 +78,22 @@ class SingleChannelMultiDatasetDloader:
             std_arr.append(std_[None])
         return np.concatenate(mean_arr, axis=0), np.concatenate(std_arr, axis=0)
 
+    def get_mean_std(self):
+        mean_arr = []
+        std_arr = []
+        for i, dset in enumerate(self._dsets):
+            mean_, std_ = dset.get_mean_std()
+            mean_arr.append(mean_[None])
+            std_arr.append(std_[None])
+        return np.concatenate(mean_arr, axis=0), np.concatenate(std_arr, axis=0)
+
     def set_mean_std(self, mean_val, std_val):
         for i, dset in enumerate(self._dsets):
             dset.set_mean_std(mean_val[i], std_val[i])
+
+    def set_repeat_factor(self):
+        for dset in self._dsets:
+            dset.set_repeat_factor()
 
     def get_max_val(self):
         max_val_arr = []
