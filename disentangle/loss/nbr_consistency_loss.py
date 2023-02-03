@@ -3,6 +3,7 @@ import numpy as np
 
 import torch
 import torch.nn as nn
+from disentangle.core.stable_exp import StableExponential
 
 
 class NeighborConsistencyLoss:
@@ -134,7 +135,7 @@ class NeighborConsistencyLoss:
     def _compute_opposite_gradient_factor(self, grad_product_arr):
         with torch.no_grad():
             grad_products = torch.cat(grad_product_arr, dim=1)
-            return torch.exp(-1 * torch.min(grad_products, dim=1)[0])
+            return StableExponential(-1 * torch.min(grad_products, dim=1)[0]).exp()
 
     def get(self, imgs, grid_sizes=None):
         if grid_sizes is not None:
@@ -169,7 +170,7 @@ class NeighborConsistencyLoss:
             else:
                 loss += idx_loss
 
-        return loss / (4 * relevant_imgs / 5)
+        return torch.mean(loss / (4 * relevant_imgs / 5))
 
 
 if __name__ == '__main__':

@@ -15,9 +15,11 @@ class SqueezeLayer(nn.Module):
 
 class LadderVAEwithStitching(LadderVAE):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
-        super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
+        super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
         self.offset_prediction_input_z_idx = config.model.offset_prediction_input_z_idx
-        latent_spatial_dims = config.data.image_size // np.power(2, 1 + self.offset_prediction_input_z_idx)
+        latent_spatial_dims = config.data.image_size
+        if config.model.decoder.multiscale_retain_spatial_dims is False or config.data.multiscale_lowres_count is None:
+            latent_spatial_dims = latent_spatial_dims // np.power(2, 1 + self.offset_prediction_input_z_idx)
         in_channels = config.model.z_dims[self.offset_prediction_input_z_idx]
         offset_latent_dims = config.model.offset_latent_dims
         self.nbr_set_count = config.data.get('nbr_set_count', None)
@@ -151,6 +153,7 @@ class LadderVAEwithStitching(LadderVAE):
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         recons_loss = recons_loss_dict['loss']
+
         kl_loss = self.get_kl_divergence_loss(td_data)
         if optimizer_idx == 0:
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
@@ -203,6 +206,7 @@ class LadderVAEwithStitching(LadderVAE):
                                                                     target_normalized,
                                                                     offset,
                                                                     return_predicted_img=True)
+
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]

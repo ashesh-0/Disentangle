@@ -16,3 +16,5 @@ class ModelType(Enum):
     BraveNet = 11
     LadderVaeStitch = 12
     LadderVaeSemiSupervised = 13
+    LadderVaeStitch2Stage = 14 # Note that previously trained models will have issue.     
+    # since earlier, LadderVaeStitch2Stage = 13, LadderVaeSemiSupervised = 14

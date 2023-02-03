@@ -12,6 +12,7 @@ from disentangle.core.data_type import DataType
 
 
 class SingleChannelMSDloader(SingleChannelDloader):
+
     def __init__(
         self,
         data_config,

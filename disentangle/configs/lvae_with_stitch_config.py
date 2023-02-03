@@ -14,7 +14,7 @@ def get_config():
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
-    data.nbr_set_count = 2
+    data.nbr_set_count = None
 
     data.sampler_type = SamplerType.NeighborSampler
     data.threshold = 0.02
@@ -26,7 +26,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -43,10 +43,10 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.nbr_consistency_w = 0.1
+    loss.nbr_consistency_w = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVaeStitch
+    model.model_type = ModelType.LadderVaeStitch2Stage
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1
@@ -60,7 +60,7 @@ def get_config():
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-    model.decoder.multiscale_retain_spatial_dims = False
+    model.decoder.multiscale_retain_spatial_dims = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -77,7 +77,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'pixelwise'
+    model.predict_logvar = 'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
@@ -85,7 +85,7 @@ def get_config():
     model.non_stochastic_version = False
     model.offset_prediction_input_z_idx = 3
     model.offset_latent_dims = 50
-    model.offset_prediction_scalar_prediction = False
+    model.offset_prediction_scalar_prediction = True
     model.regularize_offset = True
     model.offset_regularization_w = 0.001
     model.offset_prediction_focus_on_opposite_gradients = True
@@ -93,9 +93,9 @@ def get_config():
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 15
-    training.gridsizes = np.arange(12, 16, 2)
+    training.gridsizes = np.arange(6, 20, 2)
     training.max_epochs = 200
-    training.batch_size = 42
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None

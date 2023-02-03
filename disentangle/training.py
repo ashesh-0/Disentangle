@@ -246,6 +246,14 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
         os.remove(filename)
 
     model = create_model(config, data_mean, data_std)
+    if config.model.model_type == ModelType.LadderVaeStitch2Stage:
+        assert config.training.pre_trained_ckpt_fpath and os.path.exists(config.training.pre_trained_ckpt_fpath)
+
+    if config.training.pre_trained_ckpt_fpath:
+        print('Starting with pre-trained model', config.training.pre_trained_ckpt_fpath)
+        checkpoint = torch.load(config.training.pre_trained_ckpt_fpath)
+        _ = model.load_state_dict(checkpoint['state_dict'], strict=False)
+
     # print(model)
     estop_monitor = config.model.get('monitor', 'val_loss')
     estop_mode = MetricMonitor(estop_monitor).mode()
@@ -273,7 +281,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             logger=logger,
             # fast_dev_run=10,
             #  profiler=profiler,
-            # overfit_batches=10,
+            # overfit_batches=100,
             callbacks=callbacks,
             weights_summary=weights_summary,
             precision=config.training.precision)

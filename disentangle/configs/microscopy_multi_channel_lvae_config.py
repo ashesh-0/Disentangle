@@ -1,3 +1,4 @@
+from tkinter.tix import Tree
 from disentangle.configs.default_config import get_default_config
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
@@ -10,7 +11,7 @@ import numpy as np
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 128
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
@@ -25,7 +26,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = 2
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -45,7 +46,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128]
+    model.z_dims = [128,128,128,128]
 
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
@@ -58,7 +59,7 @@ def get_config():
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-    model.decoder.multiscale_retain_spatial_dims = False
+    model.decoder.multiscale_retain_spatial_dims = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -86,7 +87,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
-    training.batch_size = 32
+    training.batch_size = 16
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
