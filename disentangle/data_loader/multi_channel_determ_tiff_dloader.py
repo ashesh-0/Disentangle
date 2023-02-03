@@ -131,7 +131,7 @@ class MultiChDeterministicTiffDloader:
         self.set_repeat_factor()
 
     def set_repeat_factor(self):
-        self._repeat_factor = (self.idx_manager.grid_rows(self._grid_sz))**2
+        self._repeat_factor = self.idx_manager.grid_rows(self._grid_sz) * self.idx_manager.grid_cols(self._grid_sz)
 
     def _init_msg(self, ):
         msg = f'[{self.__class__.__name__}] Sz:{self._img_sz}'

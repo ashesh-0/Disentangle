@@ -81,6 +81,7 @@ def get_overlapping_dset(dset_class):
             # max() is needed since h_start could be negative.
             new_img = img[..., max(0, h_start):h_start + self._img_sz, max(0, w_start):w_start + self._img_sz]
             padding = np.array([[0, 0], [0, 0], [0, 0]])
+            
             if h_on_boundary:
                 pad = self.get_begin_end_padding(h_start, H)
                 padding[1] = pad
