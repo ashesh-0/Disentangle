@@ -10,6 +10,7 @@ from disentangle.data_loader.patch_index_manager import GridIndexManager, GridAl
 
 
 class MultiChDeterministicTiffDloader:
+
     def __init__(self,
                  data_config,
                  fpath: str,
@@ -33,19 +34,18 @@ class MultiChDeterministicTiffDloader:
 
         """
         self._fpath = fpath
-        self._data = get_train_val_data(data_config,
-                                        self._fpath,
-                                        datasplit_type,
-                                        val_fraction=val_fraction,
-                                        test_fraction=test_fraction,
-                                        allow_generation=allow_generation)
+        self._data = self.N = None
+        self.load_data(data_config,
+                       datasplit_type,
+                       val_fraction=val_fraction,
+                       test_fraction=test_fraction,
+                       allow_generation=allow_generation)
         self._normalized_input = normalized_input
         self._quantile = data_config.get('clip_percentile', 0.995)
         self._channelwise_quantile = data_config.get('channelwise_quantile', False)
 
         self.set_max_val_and_upperclip_data(max_val, datasplit_type)
 
-        self.N = len(self._data)
         self._is_train = datasplit_type == DataSplitType.Train
 
         self._img_sz = self._grid_sz = self._repeat_factor = self.idx_manager = None
@@ -69,6 +69,18 @@ class MultiChDeterministicTiffDloader:
 
         msg = self._init_msg()
         print(msg)
+
+    def get_data_shape(self):
+        return self._data.shape
+
+    def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
+        self._data = get_train_val_data(data_config,
+                                        self._fpath,
+                                        datasplit_type,
+                                        val_fraction=val_fraction,
+                                        test_fraction=test_fraction,
+                                        allow_generation=allow_generation)
+        self.N = len(self._data)
 
     def set_max_val_and_upperclip_data(self, max_val, datasplit_type):
         self.set_max_val(max_val, datasplit_type)
@@ -106,7 +118,7 @@ class MultiChDeterministicTiffDloader:
     def get_img_sz(self):
         return self._img_sz
 
-    def set_img_sz(self, image_size, grid_size):
+    def set_img_sz(self, image_size, grid_size, alignment=GridAlignement.LeftTop):
         """
         If one wants to change the image size on the go, then this can be used.
         Args:
@@ -115,11 +127,11 @@ class MultiChDeterministicTiffDloader:
         """
         self._img_sz = image_size
         self._grid_sz = grid_size
-        self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz, GridAlignement.LeftTop)
+        self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz, alignment)
         self.set_repeat_factor()
 
     def set_repeat_factor(self):
-        self._repeat_factor = (self.idx_manager.grid_rows(self._grid_sz))**2
+        self._repeat_factor = self.idx_manager.grid_rows(self._grid_sz) * self.idx_manager.grid_cols(self._grid_sz)
 
     def _init_msg(self, ):
         msg = f'[{self.__class__.__name__}] Sz:{self._img_sz}'

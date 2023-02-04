@@ -27,6 +27,7 @@ class GridAlignement(Enum):
 
 
 class GridIndexManager:
+
     def __init__(self, data_shape, grid_size, patch_size, grid_alignement) -> None:
         self._data_shape = data_shape
         self._default_grid_size = grid_size
@@ -43,10 +44,15 @@ class GridIndexManager:
         elif self._align == GridAlignement.Center:
             extra_pixels = (self.patch_size - grid_size) // 2
 
-        return ((self._data_shape[-2] - extra_pixels) // grid_size)
+        return ((self._data_shape[-3] - extra_pixels) // grid_size)
 
     def grid_cols(self, grid_size):
-        return self.grid_rows(grid_size)
+        if self._align == GridAlignement.LeftTop:
+            extra_pixels = (self.patch_size - grid_size)
+        elif self._align == GridAlignement.Center:
+            extra_pixels = (self.patch_size - grid_size) // 2
+
+        return ((self._data_shape[-2] - extra_pixels) // grid_size)
 
     def grid_count(self, grid_size=None):
         if self.use_default_grid(grid_size):
@@ -65,8 +71,8 @@ class GridIndexManager:
         if self.use_default_grid(grid_size):
             grid_size = self._default_grid_size
 
-        nrows = self.grid_rows(grid_size)
-        index -= nrows * self.N
+        ncols = self.grid_cols(grid_size)
+        index -= ncols * self.N
         if index < 0:
             return None
 
@@ -76,8 +82,8 @@ class GridIndexManager:
         if self.use_default_grid(grid_size):
             grid_size = self._default_grid_size
 
-        nrows = self.grid_rows(grid_size)
-        index += nrows * self.N
+        ncols = self.grid_cols(grid_size)
+        index += ncols * self.N
         if index > self.grid_count(grid_size=grid_size):
             return None
 
@@ -101,9 +107,9 @@ class GridIndexManager:
             grid_size = self._default_grid_size
 
         factor = index // self.N
-        nrows = self.grid_rows(grid_size)
+        ncols = self.grid_cols(grid_size)
 
-        left_boundary = (factor // nrows) != (factor - 1) // nrows
+        left_boundary = (factor // ncols) != (factor - 1) // ncols
         return left_boundary
 
     def on_right_boundary(self, index, grid_size=None):
@@ -111,24 +117,24 @@ class GridIndexManager:
             grid_size = self._default_grid_size
 
         factor = index // self.N
-        nrows = self.grid_rows(grid_size)
+        ncols = self.grid_cols(grid_size)
 
-        right_boundary = (factor // nrows) != (factor + 1) // nrows
+        right_boundary = (factor // ncols) != (factor + 1) // ncols
         return right_boundary
 
     def on_top_boundary(self, index, grid_size=None):
         if self.use_default_grid(grid_size):
             grid_size = self._default_grid_size
 
-        nrows = self.grid_rows(grid_size)
-        return index < self.N * nrows
+        ncols = self.grid_cols(grid_size)
+        return index < self.N * ncols
 
     def on_bottom_boundary(self, index, grid_size=None):
         if self.use_default_grid(grid_size):
             grid_size = self._default_grid_size
 
-        nrows = self.grid_rows(grid_size)
-        return index + self.N * nrows > self.grid_count(grid_size=grid_size)
+        ncols = self.grid_cols(grid_size)
+        return index + self.N * ncols > self.grid_count(grid_size=grid_size)
 
     def on_boundary(self, idx, grid_size=None):
         if self.on_left_boundary(idx, grid_size=grid_size):
@@ -154,10 +160,20 @@ class GridIndexManager:
         # _, h, w, _ = self._data_shape
         # assert h == w
         factor = index // self.N
-        nrows = self.grid_rows(grid_size)
+        ncols = self.grid_cols(grid_size)
 
-        ith_row = factor // nrows
-        jth_col = factor % nrows
+        ith_row = factor // ncols
+        jth_col = factor % ncols
         h_start = ith_row * grid_size
         w_start = jth_col * grid_size
         return h_start, w_start
+
+
+if __name__ == '__main__':
+    grid_size = 32
+    patch_size = 64
+    index = 13
+    manager = GridIndexManager((1, 499, 469, 2), grid_size, patch_size, GridAlignement.Center)
+    h_start, w_start = manager.get_deterministic_hw(index)
+    print(h_start, w_start, manager.grid_count())
+    print(manager.grid_rows(grid_size), manager.grid_cols(grid_size))

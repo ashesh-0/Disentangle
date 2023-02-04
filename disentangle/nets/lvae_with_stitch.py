@@ -15,19 +15,31 @@ class SqueezeLayer(nn.Module):
 
 class LadderVAEwithStitching(LadderVAE):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
-        super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
+        super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
         self.offset_prediction_input_z_idx = config.model.offset_prediction_input_z_idx
-        latent_spatial_dims = config.data.image_size // np.power(2, 1 + self.offset_prediction_input_z_idx)
+        latent_spatial_dims = config.data.image_size
+        if config.model.decoder.multiscale_retain_spatial_dims is False or config.data.multiscale_lowres_count is None:
+            latent_spatial_dims = latent_spatial_dims // np.power(2, 1 + self.offset_prediction_input_z_idx)
         in_channels = config.model.z_dims[self.offset_prediction_input_z_idx]
         offset_latent_dims = config.model.offset_latent_dims
         self.nbr_set_count = config.data.get('nbr_set_count', None)
+        self.regularize_offset = config.model.get('regularize_offset', False)
+        self._offset_reg_w = None
+        if self.regularize_offset:
+            self._offset_reg_w = config.model.offset_regularization_w
+
+        if config.model.get('offset_prediction_scalar_prediction', False):
+            output_ch = 1
+        else:
+            output_ch = 2
 
         self.offset_predictor = nn.Sequential(
             nn.Conv2d(in_channels, offset_latent_dims, 1),
             self.get_nonlin()(),
             nn.AvgPool2d(latent_spatial_dims),
             SqueezeLayer(),
-            nn.Linear(offset_latent_dims, 2),
+            nn.Linear(offset_latent_dims, output_ch,
+                      bias=output_ch != 1),  # If we predict just one value, then bias is not needed
         )
 
     def create_likelihood_module(self):
@@ -111,6 +123,10 @@ class LadderVAEwithStitching(LadderVAE):
 
     def compute_offset(self, z_arr):
         offset = self.offset_predictor(z_arr[self.offset_prediction_input_z_idx])
+        # In case of a scalar prediction
+        if offset.shape[-1] == 1:
+            offset = torch.cat([offset, -1 * offset], dim=-1)
+
         return offset[..., None, None]
 
     def training_step(self, batch: tuple, batch_idx: int, optimizer_idx: int, enable_logging=True):
@@ -137,6 +153,7 @@ class LadderVAEwithStitching(LadderVAE):
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         recons_loss = recons_loss_dict['loss']
+
         kl_loss = self.get_kl_divergence_loss(td_data)
         if optimizer_idx == 0:
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
@@ -153,10 +170,16 @@ class LadderVAEwithStitching(LadderVAE):
 
         elif optimizer_idx == 1:
             nbr_cons_loss = self.nbr_consistency_loss.get(imgs, grid_sizes=grid_sizes)
+            offset_reg_loss = 0.0
+            if self.regularize_offset:
+                offset_reg_loss = torch.norm(offset)
+                offset_reg_loss = self._offset_reg_w * offset_reg_loss
+                self.log('offset_reg_loss', offset_reg_loss.item(), on_epoch=True)
+
             if nbr_cons_loss is not None:
                 nbr_cons_loss = self.nbr_consistency_w * nbr_cons_loss
                 self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
-            net_loss = nbr_cons_loss
+                net_loss = nbr_cons_loss + offset_reg_loss
 
         output = {
             'loss': net_loss,
@@ -183,6 +206,7 @@ class LadderVAEwithStitching(LadderVAE):
                                                                     target_normalized,
                                                                     offset,
                                                                     return_predicted_img=True)
+
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]

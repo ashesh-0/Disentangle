@@ -10,7 +10,9 @@ def get_overlapping_dset(dset_class):
     dset_class must have _crop_img function and _get_deterministic_hw functions.
     (and ofcourse used in the same way as they should be :D)
     """
+
     class OverlappingDset(dset_class):
+
         def __init__(self, *args, **kwargs):
             image_size_for_grid_centers = kwargs.pop('image_size_for_grid_centers')
             overlapping_padding_kwargs = kwargs.pop('overlapping_padding_kwargs')
@@ -36,10 +38,7 @@ def get_overlapping_dset(dset_class):
                 image_size: size of one patch
                 grid_size: frame is divided into square grids of this size. A patch centered on a grid having size `image_size` is returned.
             """
-            self._img_sz = image_size
-            self._grid_sz = grid_size
-            self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz, GridAlignement.Center)
-            self.set_repeat_factor()
+            super().set_img_sz(image_size, grid_size, alignment=GridAlignement.Center)
 
         def get_begin_end_padding(self, start_pos, max_len):
             """
@@ -82,6 +81,7 @@ def get_overlapping_dset(dset_class):
             # max() is needed since h_start could be negative.
             new_img = img[..., max(0, h_start):h_start + self._img_sz, max(0, w_start):w_start + self._img_sz]
             padding = np.array([[0, 0], [0, 0], [0, 0]])
+            
             if h_on_boundary:
                 pad = self.get_begin_end_padding(h_start, H)
                 padding[1] = pad

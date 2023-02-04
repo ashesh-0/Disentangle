@@ -10,9 +10,13 @@ import numpy as np
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.metrics.running_psnr import RunningPSNR
 from disentangle.nets.context_transfer_module import ContextTransferModule
+from disentangle.nets.lvae_layers import BottomUpDeterministicResBlock, MergeLowRes
+import torch.nn.functional as F
+from copy import deepcopy
 
 
 class UNet(pl.LightningModule):
+
     def __init__(self, data_mean, data_std, config):
         super(UNet, self).__init__()
         bilinear = True
@@ -24,7 +28,8 @@ class UNet(pl.LightningModule):
         self.lr_scheduler_mode = MetricMonitor(self.lr_scheduler_monitor).mode()
         self.enable_context_transfer = config.model.enable_context_transfer
         self.ct_modules = nn.ModuleList()
-        init_ch = 64
+        init_ch = config.model.init_channel_count
+        self.multiscale_lowres_separate_branch = config.model.multiscale_lowres_separate_branch
         if self.enable_context_transfer:
             hw = config.data.image_size
             cur_ch = init_ch
@@ -35,7 +40,7 @@ class UNet(pl.LightningModule):
                 cur_ch *= 2
                 hw //= 2
 
-        self.inc = DoubleConv(1, 64)
+        self.inc = DoubleConv(1, init_ch)
         ch = init_ch
         for i in range(1, self.n_levels):
             setattr(self, f'down{i}', Down(ch, 2 * ch))
@@ -44,42 +49,123 @@ class UNet(pl.LightningModule):
         factor = 2 if bilinear else 1
         setattr(self, f'down{self.n_levels}', Down(ch, 2 * ch // factor))
         ch = 2 * ch
-        # self.down1 = Down(64, 128)
-        # self.down2 = Down(128, 256)
-        # self.down3 = Down(256, 512)
-        # self.down4 = Down(512, 1024 // factor)
         for i in range(1, self.n_levels):
             setattr(self, f'up{i}', Up(ch, (ch // 2) // factor, bilinear))
             ch = ch // 2
 
         setattr(self, f'up{self.n_levels}', Up(ch, ch // 2, bilinear))
         ch = ch // 2
-        # self.up1 = Up(1024, 512 // factor, bilinear)
-        # self.up2 = Up(512, 256 // factor, bilinear)
-        # self.up3 = Up(256, 128 // factor, bilinear)
-        # self.up4 = Up(128, 64, bilinear)
         self.outc = OutConv(ch, 2)
+
+        # multiscale architecture
+        self.lowres_first_bottom_ups = self._multiscale_count = self.lowres_merge = self.lowres_net = None
+        self._init_multires(config, init_ch)
+
         self.normalized_input = config.data.normalized_input
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
         self.label1_psnr = RunningPSNR()
         self.label2_psnr = RunningPSNR()
-        print(f'[{self.__class__.__name__}] ContextTransfer:{self.enable_context_transfer}')
+        print(f'[{self.__class__.__name__}] ContextTransfer:{self.enable_context_transfer} SepBranch:{self.multiscale_lowres_separate_branch}')
+
+    def _init_multires(self, config, init_n_filters):
+        """
+        Initialize everything related to multiresolution approach.
+        """
+        self.batchnorm = True
+        # self.encoder_n_filters = 34
+        multiscale_retain_spatial_dims = True
+        res_block_type = 'bacdbacd'
+        res_block_skip_padding = False
+        # assuming no initial downscaling. otherwise it will be 2
+        stride = 1
+        nonlin = nn.ELU
+        self._multiscale_count = config.data.multiscale_lowres_count
+        if self._multiscale_count is None:
+            self._multiscale_count = 1
+
+        msg = "Multiscale count({}) should not exceed the number of bottom up layers ({}) by more than 1"
+        msg = msg.format(config.data.multiscale_lowres_count, config.model.n_levels)
+        assert self._multiscale_count <= 1 or config.data.multiscale_lowres_count <= 1 + config.model.n_levels, msg
+
+        # msg = "if multiscale is enabled, then we are just working with monocrome images."
+        # assert self._multiscale_count == 1 or self.color_ch == 1, msg
+        lowres_first_bottom_up_list = []
+        lowres_merge_list = []
+        lowres_net_list = []
+
+        multiscale_lowres_size_factor = 1
+        n_filters = init_n_filters
+        for i in range(1, self._multiscale_count):
+            layer_enable_multiscale = self._multiscale_count > i + 1
+            multiscale_lowres_size_factor *= (1 + int(layer_enable_multiscale))
+
+            first_bottom_up = nn.Sequential(
+                nn.Conv2d(1, n_filters, 5, padding=2, stride=stride), nonlin(),
+                BottomUpDeterministicResBlock(
+                    c_in=n_filters,
+                    c_out=n_filters,
+                    nonlin=nonlin,
+                    batchnorm=self.batchnorm,
+                    dropout=0,
+                    res_block_type=res_block_type,
+                    skip_padding=res_block_skip_padding,
+                ))
+            lowres_first_bottom_up_list.append(first_bottom_up)
+            lowres_merge = MergeLowRes(channels=2 * n_filters,
+                                       merge_type='residual',
+                                       nonlin=nonlin,
+                                       batchnorm=self.batchnorm,
+                                       dropout=0,
+                                       res_block_type=res_block_type,
+                                       multiscale_retain_spatial_dims=multiscale_retain_spatial_dims,
+                                       multiscale_lowres_size_factor=multiscale_lowres_size_factor)
+
+            lowres_merge_list.append(lowres_merge)
+
+            net = getattr(self, f'down{i}')
+            net = net.maxpool_conv[1]  # skipping the maxpool
+            if self.multiscale_lowres_separate_branch:
+                net = deepcopy(net)
+            lowres_net_list.append(net)
+
+            n_filters = 2 * n_filters
+
+        self.lowres_net = nn.ModuleList(lowres_net_list) if len(lowres_net_list) else None
+        self.lowres_first_bottom_ups = nn.ModuleList(lowres_first_bottom_up_list) if len(
+            lowres_first_bottom_up_list) else None
+
+        self.lowres_merge = nn.ModuleList(lowres_merge_list) if len(lowres_merge_list) else None
 
     def forward(self, x):
-        x1 = self.inc(x)
+        if self._multiscale_count == 1:
+            x1 = self.inc(x)
+        else:
+            x1 = self.inc(x[:, :1])
+
         latents = []
         x_end = x1
+        latents.append(x1)
         for i in range(1, self.n_levels + 1):
-            latents.append(x_end)
             x_end = getattr(self, f'down{i}')(x_end)
+
+            if i < self._multiscale_count:
+                lowres_x = self.lowres_first_bottom_ups[i - 1](x[:, i:i + 1])
+                # lowres_net = getattr(self, f'down{i}')
+                # lowres_net = lowres_net.maxpool_conv[1]  # skipping the maxpool
+                lowres_flow = self.lowres_net[i-1](lowres_x)
+                x_end = self.lowres_merge[i - 1](x_end, lowres_flow)
+
+            latents.append(x_end)
 
         if self.enable_context_transfer:
             for i in range(len(latents)):
                 latents[i] = self.ct_modules[i](latents[i])
 
         for i in range(1, self.n_levels + 1):
-            x_end = getattr(self, f'up{i}')(x_end, latents[-1 * i])
+            x_end = getattr(self, f'up{i}')(x_end, latents[-1 * (i + 1)])
+            if x_end.shape[-1] > x.shape[-1]:
+                x_end = F.center_crop(x_end, x.shape[-2:])
 
         pred = self.outc(x_end)
         return pred
@@ -189,3 +275,12 @@ class UNet(pl.LightningModule):
         self.log('val_psnr', psnr, on_epoch=True)
         self.label1_psnr.reset()
         self.label2_psnr.reset()
+
+
+if __name__ == '__main__':
+    from disentangle.configs.unet_config import get_config
+    cnf = get_config()
+    model = UNet(0.0, 1.0, cnf)
+    # print(model)G
+    inp = torch.rand((12, 4, 64, 64))
+    model(inp)

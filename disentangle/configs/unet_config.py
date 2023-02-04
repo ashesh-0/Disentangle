@@ -23,7 +23,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 5
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -37,8 +37,10 @@ def get_config():
     model = config.model
     model.model_type = ModelType.UNet
     model.n_levels = 5
+    model.init_channel_count = 32
     model.enable_context_transfer = False
     model.context_transfer_initial_weight_factor = 0
+    model.multiscale_lowres_separate_branch = True
     model.monitor = 'val_psnr'
 
     training = config.training

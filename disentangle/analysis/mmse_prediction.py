@@ -67,20 +67,21 @@ def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, pred
 
 def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1, num_workers=4):
     dloader = DataLoader(dset, pin_memory=False, num_workers=num_workers, shuffle=False, batch_size=batch_size)
-
     predictions = []
     losses = []
     logvar_arr = []
     with torch.no_grad():
-        for inp, tar in tqdm(dloader):
+        for batch in tqdm(dloader):
+            inp, tar = batch[:2]
             inp = inp.cuda()
-            x_normalized = model.normalize_input(inp)
             tar = tar.cuda()
-            tar_normalized = model.normalize_target(tar)
 
             recon_img_list = []
             for mmse_idx in range(mmse_count):
                 if model_type in [ModelType.UNet, ModelType.BraveNet]:
+                    x_normalized = model.normalize_input(inp)
+                    tar_normalized = model.normalize_target(tar)
+
                     recon_normalized = model(x_normalized)
                     if model_type == ModelType.BraveNet:
                         recon_normalized = recon_normalized[0]
@@ -94,13 +95,30 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
 
                 else:
                     if model_type == ModelType.LadderVaeStitch:
+                        x_normalized = model.normalize_input(inp)
+                        tar_normalized = model.normalize_target(tar)
+
                         recon_normalized, td_data = model(x_normalized)
                         offset = model.compute_offset(td_data['z'])
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
-                                                                               tar_normalized,
-                                                                               offset,
-                                                                               return_predicted_img=True)
+                                                                       tar_normalized,
+                                                                       offset,
+                                                                       return_predicted_img=True)
+                    elif model_type == ModelType.LadderVaeSemiSupervised:
+                        x_normalized = model.normalize_input(inp, torch.zeros_like(tar[:, 0, 0, 0], dtype=torch.int64))
+                        tar_normalized = model.normalize_target(tar, torch.zeros_like(tar[:, 0, 0, 0],
+                                                                                      dtype=torch.int64))
+
+                        recon_normalized, td_data = model(x_normalized)
+                        rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
+                                                                       x_normalized,
+                                                                       tar_normalized,
+                                                                       return_predicted_img=True)
+
                     else:
+                        x_normalized = model.normalize_input(inp)
+                        tar_normalized = model.normalize_target(tar)
+
                         recon_normalized, _ = model(x_normalized)
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
                                                                        tar_normalized,

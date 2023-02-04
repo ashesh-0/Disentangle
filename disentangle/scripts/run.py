@@ -36,6 +36,7 @@ flags.DEFINE_enum("mode", None, ["train", "eval"], "Running mode: train or eval"
 flags.DEFINE_string("logdir", '.', "The folder name for storing logging")
 flags.DEFINE_string("datadir", '/tmp2/ashesh/ashesh/VAE_based/data/MNIST/noisy/', "Data directory.")
 flags.DEFINE_boolean("use_max_version", False, "Overwrite the max version of the model")
+flags.DEFINE_string("load_ckptfpath", '', "The path to a previous ckpt from which the weights should be loaded")
 flags.mark_flags_as_required(["workdir", "config", "mode"])
 
 
@@ -133,6 +134,7 @@ def main(argv):
     config.exptname = relative_path
     config.hostname = socket.gethostname()
     config.datadir = FLAGS.datadir
+    config.training.pre_trained_ckpt_fpath = FLAGS.load_ckptfpath
 
     if FLAGS.mode == "train":
         set_logger()
@@ -180,7 +182,7 @@ def main(argv):
                                                 config.training.batch_size,
                                                 valid_gridsizes=config.training.gridsizes,
                                                 nbr_set_count=nbr_set_count)
-                val_sampler = NeighborSampler(val_data, config.training.batch_size,nbr_set_count=0)
+                val_sampler = NeighborSampler(val_data, config.training.batch_size, nbr_set_count=0)
 
             train_dloader = DataLoader(train_data,
                                        pin_memory=False,

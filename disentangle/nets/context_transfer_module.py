@@ -6,6 +6,7 @@ import torch
 
 
 class ContextTransferModule(nn.Module):
+
     def __init__(self, tensor_shape, initial_weight_factor=0):
         super().__init__()
         self.C, self.H, self.W = tensor_shape
@@ -38,8 +39,8 @@ class ContextTransferModule(nn.Module):
         assert out.shape[3] == self.W
         w = self.get_up_W()
         for i in range(1, self.H):
-            old_version = out[:, :, i]
-            new_version = w[i - 1] * out[:, :, i - 1] + old_version
+            old_version = out[:, :, i].clone()
+            new_version = w[i - 1] * out[:, :, i - 1].clone() + old_version
             new_version[new_version < 0] = 0
             out[:, :, i] = new_version
         return out
@@ -52,8 +53,8 @@ class ContextTransferModule(nn.Module):
         w = self.get_down_W()
         rel_idx = -1
         for i in range(self.H - 2, -1, -1):
-            old_version = out[:, :, i]
-            new_version = w[i - rel_idx] * out[:, :, i - rel_idx] + old_version
+            old_version = out[:, :, i].clone()
+            new_version = w[i - rel_idx] * out[:, :, i - rel_idx].clone() + old_version
             new_version[new_version < 0] = 0
             out[:, :, i] = new_version
         return out
@@ -66,8 +67,8 @@ class ContextTransferModule(nn.Module):
         w = self.get_right_W()
         rel_idx = -1
         for i in range(self.W - 2, -1, -1):
-            old_version = out[:, :, :, i]
-            new_version = w[:, i - rel_idx] * out[:, :, :, i - rel_idx] + old_version
+            old_version = out[:, :, :, i].clone()
+            new_version = w[:, i - rel_idx] * out[:, :, :, i - rel_idx].clone() + old_version
             new_version[new_version < 0] = 0
             out[:, :, :, i] = new_version
         return out
@@ -80,8 +81,8 @@ class ContextTransferModule(nn.Module):
         w = self.get_left_W()
         rel_idx = 1
         for i in range(1, self.W):
-            old_version = out[:, :, :, i]
-            new_version = w[:, i - rel_idx] * out[:, :, :, i - rel_idx] + old_version
+            old_version = out[:, :, :, i].clone()
+            new_version = w[:, i - rel_idx] * out[:, :, :, i - rel_idx].clone() + old_version
             new_version[new_version < 0] = 0
             out[:, :, :, i] = new_version
         return out

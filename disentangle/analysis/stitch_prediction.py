@@ -5,6 +5,7 @@ class PatchLocation:
     """
     Encapsulates t_idx and spatial location.
     """
+
     def __init__(self, h_idx_range, w_idx_range, t_idx):
         self.t = t_idx
         self.h_start, self.h_end = h_idx_range
@@ -76,7 +77,7 @@ def stitched_prediction_mask(dset, padded_patch_shape, skip_boundary_pixel_count
 
     Returns:
     """
-    N, H, W, C = dset._data.shape
+    N, H, W, C = dset.get_data_shape()
     mask = np.full((N, C, H, W), True)
     hN, wN = padded_patch_shape
     for dset_input_idx in range(len(dset)):
@@ -164,25 +165,31 @@ def stitch_predictions(predictions, dset, smoothening_pixelcount=0):
     assert smoothening_pixelcount >= 0 and isinstance(smoothening_pixelcount, int)
 
     extra_padding = dset.per_side_overlap_pixelcount()
-    output = np.zeros_like(dset._data, dtype=predictions.dtype)
-    frame_size = dset._data.shape[1]
+    # if there are more channels, use all of them.
+    shape = list(dset.get_data_shape())
+    shape[-1] = max(shape[-1], predictions.shape[1])
+
+    output = np.zeros(shape, dtype=predictions.dtype)
+    frame_size = dset.get_data_shape()[1]
     for dset_input_idx in range(predictions.shape[0]):
         loc = get_location_from_idx(dset, dset_input_idx, predictions.shape[-2], predictions.shape[-1])
-        # class 0
-        cropped_pred0 = remove_pad(predictions[dset_input_idx, 0], loc, extra_padding, smoothening_pixelcount,
-                                   frame_size)
+        mask = None
+        cropped_pred_list = []
+        for ch_idx in range(predictions.shape[1]):
+            # class i
+            cropped_pred_i = remove_pad(predictions[dset_input_idx, ch_idx], loc, extra_padding, smoothening_pixelcount,
+                                        frame_size)
 
-        # class 1
-        cropped_pred1 = remove_pad(predictions[dset_input_idx, 1], loc, extra_padding, smoothening_pixelcount,
-                                   frame_size)
+            if mask is None:
+                # NOTE: don't need to compute it for every patch.
+                mask = _get_smoothing_mask(cropped_pred_i.shape, smoothening_pixelcount, loc, frame_size)
 
-        # NOTE: don't need to compute it for every patch.
-        mask = _get_smoothing_mask(cropped_pred1.shape, smoothening_pixelcount, loc, frame_size)
+            cropped_pred_list.append(cropped_pred_i)
 
         loc = update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount, frame_size)
-        # print(loc, cropped_pred0.shape)
-        output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, 0] += cropped_pred0 * mask
-        output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, 1] += cropped_pred1 * mask
+        for ch_idx in range(predictions.shape[1]):
+            # print(loc, cropped_pred0.shape)
+            output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, ch_idx] += cropped_pred_list[ch_idx] * mask
 
     return output
 

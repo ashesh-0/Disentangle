@@ -55,4 +55,9 @@ def log_prob(nn_output_mu, nn_output_logvar, x):
     var_gen = StableExponential(nn_output_logvar)
     var = var_gen.exp()
     logstd = 1 / 2 * var_gen.log()
-    return -((x - mu) ** 2) / (2 * var) - logstd - math.log(math.sqrt(2 * math.pi))
+    return -((x - mu)**2) / (2 * var) - logstd - math.log(math.sqrt(2 * math.pi))
+
+
+if __name__ == '__main__':
+    stable = StableExponential(torch.Tensor([-0.1]).mean())
+    print(stable.exp())

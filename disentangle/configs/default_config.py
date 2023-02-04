@@ -22,6 +22,7 @@ def get_default_config():
     config.training.gradient_clip_algorithm = 'value'
     config.training.earlystop_patience = 100
     config.training.precision = 32
+    config.training.pre_trained_ckpt_fpath = ''
 
     config.git = ml_collections.ConfigDict()
     config.git.changedFiles = []

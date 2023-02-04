@@ -1,4 +1,4 @@
-from tkinter.tix import Tree
+from disentangle.configs.default_config import get_default_config
 from disentangle.configs.default_config import get_default_config
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
@@ -11,11 +11,18 @@ import numpy as np
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
-    data.data_type = DataType.OptiMEM100_014
-    data.channel_1 = 2
-    data.channel_2 = 3
+    data.image_size = 64
+    data.data_type = DataType.SemiSupBloodVesselsEMBL
+    data.mix_fpath = ''  #THG-SJS42_0-1000_FITC_221116-1.tif'
+    data.ch1_fpath = ''  #FITC_C1-SJS42_0-1000_FITC_221116-1.tif'
+    data.mix_fpath_list = [
+        'THG_MS29_z0_403um_sl4_bin10_z03_fr3_p9_lz290_px512_XYn119n152_AOFull_FITC_00002.tif',
+        'THG_MS29_z0_905um_sl4_bin10_z03_fr3_p28_lz250_px512_XYn119n152_AOFull_FITC_00001.tif',
+        'THG_MS29_z0_905um_sl4_bin10_z03_fr3_p33_lz250_px512_XYn119n152_AOFull_FITC_00001.tif'
+    ]
+    data.ch1_fpath_list = [x.replace('THG_', 'FITC_') for x in data.mix_fpath_list]
 
+    # data.ignore_frames = [list(range(7)) + list(range(249, 260))]
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
     data.deterministic_grid = False
@@ -23,10 +30,12 @@ def get_config():
     data.clip_percentile = 0.995
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
-    data.use_one_mu_std = True
+    data.use_one_mu_std = False
+    # if this is set to True, then for each image, you normalize using it's mean and std.
+    # data.use_per_image_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 2
+    data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -34,8 +43,9 @@ def get_config():
     data.target_separate_normalization = True
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
-    # loss.mixed_rec_weight = 1
+    loss.loss_type = LossType.ElboSemiSupMixedReconstruction
+    loss.mixed_rec_weight = 1
+    loss.exclusion_loss_weight = 0.1
 
     loss.kl_weight = 1
     loss.kl_annealing = False
@@ -45,8 +55,8 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVae
-    model.z_dims = [128,128,128,128]
+    model.model_type = ModelType.LadderVaeSemiSupervised
+    model.z_dims = [128, 128, 128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
@@ -85,15 +95,15 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 15
-    training.max_epochs = 200
-    training.batch_size = 16
+    training.lr_scheduler_patience = 30
+    training.max_epochs = 400
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 100
+    training.earlystop_patience = 200
     training.precision = 16
 
     return config

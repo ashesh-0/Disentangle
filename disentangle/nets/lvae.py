@@ -34,6 +34,7 @@ def compute_batch_mean(x):
 
 
 class LadderVAE(pl.LightningModule):
+
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__()
         self.lr = config.training.lr
@@ -101,19 +102,22 @@ class LadderVAE(pl.LightningModule):
         self.mixed_rec_w = 0
         self.enable_mixed_rec = False
         self.nbr_consistency_w = 0
-        if self.loss_type == LossType.ElboMixedReconstruction:
+        if self.loss_type in [LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction]:
             self.mixed_rec_w = config.loss.mixed_rec_weight
             self.enable_mixed_rec = True
-            raise NotImplementedError(
-                "This cannot work since now, different channels have different mean. One needs to reweigh the "
-                "predicted channels and then take their sum. This would then be equivalent to the input.")
+            if self.loss_type != LossType.ElboSemiSupMixedReconstruction:
+                raise NotImplementedError(
+                    "This cannot work since now, different channels have different mean. One needs to reweigh the "
+                    "predicted channels and then take their sum. This would then be equivalent to the input.")
         elif self.loss_type == LossType.ElboWithNbrConsistency:
             self.nbr_consistency_w = config.loss.nbr_consistency_w
             assert 'grid_size' in config.data or 'gridsizes' in config.training
             self._grid_sz = config.data.grid_size if 'grid_size' in config.data else config.data.image_size
             # NeighborConsistencyLoss assumes the batch to be a sequence of [center, left, right, top bottom] images.
-            self.nbr_consistency_loss = NeighborConsistencyLoss(self._grid_sz,
-                                                                nbr_set_count=config.data.get('nbr_set_count', None))
+            self.nbr_consistency_loss = NeighborConsistencyLoss(
+                self._grid_sz,
+                nbr_set_count=config.data.get('nbr_set_count', None),
+                focus_on_opposite_gradients=config.model.offset_prediction_focus_on_opposite_gradients)
 
         self._global_step = 0
 
@@ -721,7 +725,8 @@ class LadderVAE(pl.LightningModule):
                    "if and only if we're not doing inference")
             raise RuntimeError(msg)
         if inference_mode and prior_experiment and (self.non_stochastic_version is False):
-            msg = ("Prior experiments (e.g. sampling from mode) are not" " compatible with inference mode")
+            msg = ("Prior experiments (e.g. sampling from mode) are not"
+                   " compatible with inference mode")
             raise RuntimeError(msg)
 
         # Sampled latent variables at each layer

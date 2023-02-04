@@ -11,4 +11,5 @@ class DataType(Enum):
     AllenCellMito = 6
     SeparateTiffData = 7
     CustomSinosoidThreeCurve = 8
-    Pavia2 = 9
+    SemiSupBloodVesselsEMBL = 9
+    Pavia2 = 10

@@ -1,5 +1,5 @@
 import numpy as np
-from skimage.io import imread
+from skimage.io import imread, imsave
 
 
 def load_tiff(path):
@@ -8,7 +8,9 @@ def load_tiff(path):
     """
     return imread(path, plugin='tifffile')
 
-
+def save_tiff(path, data):
+    imsave(path,data,plugin='tifffile')
+    
 def load_tiffs(paths):
     data = [load_tiff(path) for path in paths]
     return np.concatenate(data, axis=0)
