@@ -7,11 +7,8 @@ from disentangle.data_loader.sinosoid_dloader import train_val_data as _loadsino
 from disentangle.data_loader.sinosoid_threecurve_dloader import train_val_data as _loadsinosoid3curve
 from disentangle.data_loader.allencell_rawdata_loader import get_train_val_data as _loadallencellmito
 from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data as _loadseparatetiff
-<<<<<<< HEAD
 from disentangle.data_loader.pavia2_rawdata_loader import get_train_val_data as _loadpavia2
-=======
 from disentangle.data_loader.embl_semisup_rawdata_loader import get_train_val_data as _loadembl2_semisup
->>>>>>> master
 from typing import Union
 from disentangle.core.data_split_type import DataSplitType
 

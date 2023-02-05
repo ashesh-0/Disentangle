@@ -105,7 +105,7 @@ class LadderVAE(pl.LightningModule):
         if self.loss_type in [LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction]:
             self.mixed_rec_w = config.loss.mixed_rec_weight
             self.enable_mixed_rec = True
-            if self.loss_type != LossType.ElboSemiSupMixedReconstruction:
+            if self.loss_type not in [LossType.ElboSemiSupMixedReconstruction, LossType.ElboMixedReconstruction] and config.data.use_one_mu_std is False:
                 raise NotImplementedError(
                     "This cannot work since now, different channels have different mean. One needs to reweigh the "
                     "predicted channels and then take their sum. This would then be equivalent to the input.")
@@ -405,6 +405,7 @@ class LadderVAE(pl.LightningModule):
         """
         Computes the reconstruction loss on the mixed input and mixed prediction
         """
+        assert False, "This is incorrect implementation"
         dist_params = self.likelihood.distr_params(reconstruction)
         mixed_prediction = torch.mean(dist_params['mean'], dim=1, keepdim=True)
         dist_params['mean'] = mixed_prediction

@@ -1,22 +1,115 @@
-from disentangle.nets.lvae import LadderVAE
+from distutils.command.config import config
+
+from numpy import dtype
+from disentangle.nets.lvae import LadderVAE, compute_batch_mean, torch_nanmean
 import torch
 from disentangle.core.loss_type import LossType
+from disentangle.core.psnr import RangeInvariantPsnr
 
+def empty_tensor(tens):
+    """
+    Returns true if there are no elements in this tensor. 
+    """
+    return tens.nelement() ==0
 
 class LadderVAEWithMixedRecons(LadderVAE):
+    """
+    Ex: Pavia2 dataset.
+    Here, we work with 2 data sources. For one data source, we have both channels. 
+    For the other, we just have one channel and the input. Here, we apply the mixed reconstruction loss.
+
+    """
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
+        assert isinstance(self.data_mean,dict)
+        self.data_mean['target'] = torch.Tensor(self.data_mean['target'])
+        self.data_mean['mix'] = torch.Tensor(self.data_mean['mix'])
+
+        self.data_std['target'] = torch.Tensor(self.data_std['target'])
+        self.data_std['mix'] = torch.Tensor(self.data_std['mix'])
+
+    def normalize_input(self, x):
+        if self.normalized_input:
+            return x
+        return (x - self.data_mean['mix']) / self.data_std['mix']
+
+    def normalize_target(self, target):
+        return (target - self.data_mean['target']) / self.data_std['target']
+
+    def get_reconstruction_loss(self, reconstruction, input, target, return_predicted_img=False):
+        if empty_tensor(reconstruction):
+            return None, None
+
+        output = self._get_reconstruction_loss_vector(reconstruction, input, target, return_predicted_img=return_predicted_img)
+        loss_dict = output[0] if return_predicted_img else output
+        loss_dict['loss'] = torch.mean(loss_dict['loss'])
+        loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'])
+        loss_dict['ch2_loss'] = torch.mean(loss_dict['ch2_loss'])
+        if 'mixed_loss' in loss_dict:
+            loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'])
+        if return_predicted_img:
+            assert len(output) == 2
+            return loss_dict, output[1]
+        else:
+            return loss_dict
+
+    def get_mixed_prediction(self, prediction, prediction_logvar):
+
+        pred_unorm = prediction*self.data_std['target'] + self.data_mean['target']
+
+        mixed_prediction =  (torch.sum(pred_unorm,dim=1,keepdim=True) - self.data_mean['mix'])/self.data_std['mix']
+
+        var = torch.exp(prediction_logvar)
+        var = var * (self.data_std['target']/self.data_std['mix'])**2
+        # sum of variance.
+        var = var[:, :1] + var[:, 1:]
+        logvar = torch.log(var)
+
+        return mixed_prediction, logvar
+
+    def _get_reconstruction_loss_vector(self, reconstruction, input, target,  return_predicted_img=False):
+        """
+        Args:
+            return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
+        """
+
+        # Log likelihood
+        ll, like_dict = self.likelihood(reconstruction, target)
+        if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
+            pad = self.skip_nboundary_pixels_from_loss
+            ll = ll[:, :, pad:-pad, pad:-pad]
+            like_dict['params']['mean'] = like_dict['params']['mean'][:, :, pad:-pad, pad:-pad]
+
+        recons_loss = compute_batch_mean(-1 * ll)
+        output = {
+            'loss': recons_loss,
+            'ch1_loss': compute_batch_mean(-ll[:, 0]),
+            'ch2_loss': compute_batch_mean(-ll[:, 1]),
+        }
+        assert self.enable_mixed_rec is True
+        mixed_pred, mixed_logvar = self.get_mixed_prediction(like_dict['params']['mean'], like_dict['params']['logvar'])
+
+        mixed_target = input
+        mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_pred,'logvar':mixed_logvar})
+        output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
+
+        if return_predicted_img:
+            return output, like_dict['params']['mean']
+
+        return output
+
 
     def training_step(self, batch, batch_idx, enable_logging=True):
-        x, target, mixed_recons_flag = batch[:2]
+        x, target, mixed_recons_flag = batch
         x_normalized = self.normalize_input(x)
+        # TODO: check normalization. it is so because nucleus is from two datasets.
         target_normalized = self.normalize_target(target)
-
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict, imgs = self.get_reconstruction_loss(out[~mixed_recons_flag],
+        recons_loss_dict, _ = self.get_reconstruction_loss(out[~mixed_recons_flag],
+                                                            x_normalized[~mixed_recons_flag],
                                                               target_normalized[~mixed_recons_flag],
                                                               return_predicted_img=True)
 
@@ -24,14 +117,19 @@ class LadderVAEWithMixedRecons(LadderVAE):
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
-        recons_loss = recons_loss_dict['loss']
+        recons_loss = 0.0
+        if recons_loss_dict is not None:
+            recons_loss += recons_loss_dict['loss']
 
         recons_loss_dict2, _ = self.get_reconstruction_loss(out[mixed_recons_flag],
+                                                            x_normalized[mixed_recons_flag],
                                                             target_normalized[mixed_recons_flag],
                                                             return_predicted_img=True)
 
         assert self.loss_type == LossType.ElboMixedReconstruction
-        recons_loss += self.mixed_rec_w * recons_loss_dict2['mixed_loss']
+        if recons_loss_dict2 is not None:
+            # can be None if there are no elements with mixed_recons_flag set.
+            recons_loss += self.mixed_rec_w * recons_loss_dict2['mixed_loss']
         if enable_logging:
             self.log('mixed_reconstruction_loss', recons_loss_dict2['mixed_loss'], on_epoch=True)
 
@@ -41,13 +139,13 @@ class LadderVAEWithMixedRecons(LadderVAE):
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):
                 self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
-
-            self.log('reconstruction_loss', recons_loss_dict['loss'], on_epoch=True)
-            self.log('kl_loss', kl_loss, on_epoch=True)
-            self.log('training_loss', net_loss, on_epoch=True)
-            self.log('lr', self.lr, on_epoch=True)
-            self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
-            self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
+                self.log('kl_loss', kl_loss, on_epoch=True)
+                self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
+                self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
+                self.log('lr', self.lr, on_epoch=True)
+            if recons_loss_dict is not None:
+                self.log('reconstruction_loss', recons_loss_dict['loss'], on_epoch=True)
+                self.log('training_loss', net_loss, on_epoch=True)
 
         output = {
             'loss': net_loss,
@@ -62,5 +160,84 @@ class LadderVAEWithMixedRecons(LadderVAE):
         return output
 
     def validation_step(self, batch, batch_idx):
-        batch = batch[:2]
-        return super().validation_step(batch, batch_idx)
+        x, target, mixed_recons_flag = batch
+        self.set_params_to_same_device_as(target)
+
+        x_normalized = self.normalize_input(x)
+        target_normalized = self.normalize_target(target)
+        out, td_data = self.forward(x_normalized)
+        if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
+            target_normalized = F.center_crop(target_normalized, out.shape[-2:])
+
+        recons_loss_dict, recons_img = self.get_reconstruction_loss(out[~mixed_recons_flag],
+                                                            x_normalized[~mixed_recons_flag],
+                                                              target_normalized[~mixed_recons_flag],
+                                                              return_predicted_img=True)
+
+        if self.skip_nboundary_pixels_from_loss:
+            pad = self.skip_nboundary_pixels_from_loss
+            target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
+
+        self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
+        self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
+
+        psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0].clone(), recons_img[:, 0].clone())
+        psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1].clone(), recons_img[:, 1].clone())
+        recons_loss = recons_loss_dict['loss']
+        # kl_loss = self.get_kl_divergence_loss(td_data)
+        # net_loss = recons_loss + self.get_kl_weight() * kl_loss
+        self.log('val_loss', recons_loss, on_epoch=True)
+        val_psnr_l1 = torch_nanmean(psnr_label1).item()
+        val_psnr_l2 = torch_nanmean(psnr_label2).item()
+        self.log('val_psnr_l1', val_psnr_l1, on_epoch=True)
+        self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
+        # self.log('val_psnr', (val_psnr_l1 + val_psnr_l2) / 2, on_epoch=True)
+
+        if batch_idx == 0 and self.power_of_2(self.current_epoch):
+            all_samples = []
+            for i in range(20):
+                sample, _ = self(x_normalized[0:1, ...])
+                sample = self.likelihood.get_mean_lv(sample)[0]
+                all_samples.append(sample[None])
+
+            all_samples = torch.cat(all_samples, dim=0)
+            all_samples = all_samples * self.data_std + self.data_mean
+            all_samples = all_samples.cpu()
+            img_mmse = torch.mean(all_samples, dim=0)[0]
+            self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
+            self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
+
+        # return net_loss
+
+    def set_params_to_same_device_as(self, correct_device_tensor):
+        if isinstance(self.data_mean['mix'], torch.Tensor):
+            if self.data_mean['mix'].device != correct_device_tensor.device:
+                self.data_mean['mix'] = self.data_mean['mix'].to(correct_device_tensor.device)
+                self.data_mean['target'] = self.data_mean['target'].to(correct_device_tensor.device)
+                self.data_std['mix'] = self.data_std['mix'].to(correct_device_tensor.device)
+                self.data_std['target'] = self.data_std['target'].to(correct_device_tensor.device)
+
+                self.likelihood.set_params_to_same_device_as(correct_device_tensor)
+
+
+if __name__ == '__main__':
+    import numpy as np
+    from disentangle.configs.pavia2_config import get_config
+    data_mean = {
+        'target':np.array([0.0,10.0],dtype=np.float32).reshape(1,2,1,1),
+        'mix':np.array([110.0],dtype=np.float32).reshape(1,1,1,1),
+
+    }
+    data_std = {
+        'target':np.array([1.0,5],dtype=np.float32).reshape(1,2,1,1),
+        'mix':np.array([25.0],dtype=np.float32).reshape(1,1,1,1),
+
+    }
+    config = get_config()
+    model = LadderVAEWithMixedRecons(data_mean,data_std,config)
+    x = torch.rand((32,1,64,64), dtype=torch.float32)
+    target = torch.rand((32,2,64,64),dtype=torch.float32)
+    mixed_recons_flag = torch.Tensor(np.array([1]*32)).type(torch.bool)
+    batch = (x, target, mixed_recons_flag)
+    output = model.training_step(batch,0)
+    print('All ')

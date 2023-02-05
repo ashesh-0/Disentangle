@@ -44,7 +44,6 @@ class Pavia2DataSetVersion(Enum):
 
 def get_mixed_fnames(version):
     if version == Pavia2DataSetVersion.RAW:
-        return ['HaCaT005.nd2', 'HaCaT006.nd2', 'HaCaT007.nd2']
         return [
             'HaCaT005.nd2', 'HaCaT009.nd2', 'HaCaT013.nd2', 'HaCaT016.nd2', 'HaCaT019.nd2', 'HaCaT029.nd2',
             'HaCaT037.nd2', 'HaCaT041.nd2', 'HaCaT044.nd2', 'HaCaT051.nd2', 'HaCaT054.nd2', 'HaCaT059.nd2',
@@ -58,7 +57,6 @@ def get_mixed_fnames(version):
 
 def get_justcyan_fnames(version):
     if version == Pavia2DataSetVersion.RAW:
-        return ['HaCaT005.nd2', 'HaCaT006.nd2', 'HaCaT007.nd2']
         return [
             'HaCaT023.nd2', 'HaCaT024.nd2', 'HaCaT026.nd2', 'HaCaT032.nd2', 'HaCaT033.nd2', 'HaCaT036.nd2',
             'HaCaT048.nd2', 'HaCaT049.nd2', 'HaCaT057.nd2', 'HaCaT060.nd2', 'HaCaT062.nd2'
@@ -67,7 +65,6 @@ def get_justcyan_fnames(version):
 
 def get_justmagenta_fnames(version):
     if version == Pavia2DataSetVersion.RAW:
-        return ['HaCaT005.nd2', 'HaCaT006.nd2', 'HaCaT007.nd2']
         return [
             'HaCaT008.nd2', 'HaCaT021.nd2', 'HaCaT025.nd2', 'HaCaT030.nd2', 'HaCaT038.nd2', 'HaCaT050.nd2',
             'HaCaT061.nd2', 'HaCaT069.nd2', 'HaCaT010.nd2', 'HaCaT022.nd2', 'HaCaT028.nd2', 'HaCaT035.nd2',
