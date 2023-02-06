@@ -99,7 +99,7 @@ class Pavia2V1Dloader:
             # In bleedthrough dataset, the nucleus channel is empty. 
             self._dloader_bleedthrough._data = self.sum_channels(self._dloader_bleedthrough._data, [0], [1, 2])
         else:
-            self._dloader_clean._data = self.sum_channels(self._dloader_clean._data, [0], [1, 2])
+            self._dloader_clean._data = self.sum_channels(self._dloader_clean._data, [0,1], [2])
 
     def __len__(self):
         return len(self._dloader_clean) + (len(self._dloader_bleedthrough) if self._dloader_bleedthrough is not None else 0)
