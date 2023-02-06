@@ -22,7 +22,10 @@ def get_config():
     data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
-    data.dset_justmagenta_prob = 0.5
+    # mixed probablity will be 1 - the sum of following these. 
+    data.dset_clean_sample_probab = 0.5
+    data.dset_bleedthrough_sample_probab = 0.25
+
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = False

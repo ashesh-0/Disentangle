@@ -130,8 +130,8 @@ class LadderVAEWithMixedRecons(LadderVAE):
         if recons_loss_dict2 is not None:
             # can be None if there are no elements with mixed_recons_flag set.
             recons_loss += self.mixed_rec_w * recons_loss_dict2['mixed_loss']
-        if enable_logging:
-            self.log('mixed_reconstruction_loss', recons_loss_dict2['mixed_loss'], on_epoch=True)
+            if enable_logging:
+                self.log('mixed_reconstruction_loss', recons_loss_dict2['mixed_loss'], on_epoch=True)
 
         kl_loss = self.get_kl_divergence_loss(td_data)
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
@@ -160,7 +160,7 @@ class LadderVAEWithMixedRecons(LadderVAE):
         return output
 
     def validation_step(self, batch, batch_idx):
-        x, target, mixed_recons_flag = batch
+        x, target, _ = batch
         self.set_params_to_same_device_as(target)
 
         x_normalized = self.normalize_input(x)
@@ -169,9 +169,9 @@ class LadderVAEWithMixedRecons(LadderVAE):
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict, recons_img = self.get_reconstruction_loss(out[~mixed_recons_flag],
-                                                            x_normalized[~mixed_recons_flag],
-                                                              target_normalized[~mixed_recons_flag],
+        recons_loss_dict, recons_img = self.get_reconstruction_loss(out,
+                                                            x_normalized,
+                                                              target_normalized,
                                                               return_predicted_img=True)
 
         if self.skip_nboundary_pixels_from_loss:
@@ -207,7 +207,6 @@ class LadderVAEWithMixedRecons(LadderVAE):
             self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
             self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
 
-        # return net_loss
 
     def set_params_to_same_device_as(self, correct_device_tensor):
         if isinstance(self.data_mean['mix'], torch.Tensor):
