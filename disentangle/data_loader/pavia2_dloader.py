@@ -196,7 +196,7 @@ class Pavia2V1Dloader:
 
             inp = 2 * inp  # dataloader takes the average of the two channels. To, undo that, we are multipying it with 2.
             inp = self.normalize_input(inp)
-            return (inp, tar, False)
+            return (inp, tar, mixed_recons_flag)
         
         else:
             inp, tar = self._dloader_mix[index]
