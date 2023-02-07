@@ -116,6 +116,7 @@ class Pavia2V1Dloader:
             self._dloader_bleedthrough._data = self._dloader_bleedthrough._data[..., [Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN]]
             self._dloader_mix._data = self._dloader_mix._data[..., [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN]]
             self._dloader_mix._data = self.sum_channels(self._dloader_mix._data, [0,1],[2])
+            self._dloader_mix._data[...,0] = self._dloader_mix._data[...,0]/2
             # self._dloader_clean._data = self.sum_channels(self._dloader_clean._data, [1], [0, 2])
             # In bleedthrough dataset, the nucleus channel is empty. 
             # self._dloader_bleedthrough._data = self.sum_channels(self._dloader_bleedthrough._data, [0], [1, 2])
@@ -185,14 +186,21 @@ class Pavia2V1Dloader:
         if self._datasplit_type == DataSplitType.Train:
 
             if coin_flip <= self._clean_prob:
-                inp, tar = self._dloader_clean[np.random.randint(len(self._dloader_clean))]
+                idx = np.random.randint(len(self._dloader_clean))
+                inp, tar = self._dloader_clean[idx]
                 mixed_recons_flag = False
+                print('Clean', idx)
             elif coin_flip > self._clean_prob and coin_flip <= self._clean_prob + self._bleedthrough_prob:
-                inp, tar = self._dloader_bleedthrough[np.random.randint(len(self._dloader_bleedthrough))]
+                idx = np.random.randint(len(self._dloader_bleedthrough))
+                inp, tar = self._dloader_bleedthrough[idx]
                 mixed_recons_flag = True
+                print('Bleedthrough')
             else:
-                inp, tar = self._dloader_mix[np.random.randint(len(self._dloader_mix))]
+                idx = np.random.randint(len(self._dloader_mix))
+                inp, tar = self._dloader_mix[idx]
                 mixed_recons_flag = True
+                print('Mixed',idx)
+
 
             inp = 2 * inp  # dataloader takes the average of the two channels. To, undo that, we are multipying it with 2.
             inp = self.normalize_input(inp)
