@@ -143,25 +143,27 @@ class MultiChDeterministicTiffDloader:
         msg += f' Q:{self._quantile}'
         return msg
 
-    def _crop_imgs(self, index, img1: np.ndarray, img2: np.ndarray):
-        h, w = img1.shape[-2:]
+    def _crop_imgs(self, index, *img_tuples: np.ndarray):
+        h, w = img_tuples[0].shape[-2:]
         if self._img_sz is None:
-            return img1, img2, {'h': [0, h], 'w': [0, w], 'hflip': False, 'wflip': False}
+            return (*img_tuples, {'h': [0, h], 'w': [0, w], 'hflip': False, 'wflip': False})
 
         if self._enable_random_cropping:
             h_start, w_start = self._get_random_hw(h, w)
         else:
             h_start, w_start = self._get_deterministic_hw(index)
 
-        img1 = self._crop_flip_img(img1, h_start, w_start, False, False)
-        img2 = self._crop_flip_img(img2, h_start, w_start, False, False)
+        cropped_imgs = []
+        for img in img_tuples:
+            img = self._crop_flip_img(img, h_start, w_start, False, False)
+            cropped_imgs.append(img)
 
-        return img1, img2, {
+        return (*tuple(cropped_imgs), {
             'h': [h_start, h_start + self._img_sz],
             'w': [w_start, w_start + self._img_sz],
             'hflip': False,
             'wflip': False,
-        }
+        })
 
     def _crop_img(self, img: np.ndarray, h_start: int, w_start: int):
         new_img = img[..., h_start:h_start + self._img_sz, w_start:w_start + self._img_sz]
@@ -186,7 +188,8 @@ class MultiChDeterministicTiffDloader:
             idx = index[0]
 
         imgs = self._data[self.idx_manager.get_t(idx)]
-        return imgs[None, :, :, 0], imgs[None, :, :, 1]
+        loaded_imgs = [imgs[None, ..., i] for i in range(imgs.shape[-1])]
+        return tuple(loaded_imgs)
 
     def get_mean_std(self):
         return self._mean, self._std
@@ -195,13 +198,15 @@ class MultiChDeterministicTiffDloader:
         self._mean = mean_val
         self._std = std_val
 
-    def normalize_img(self, img1, img2):
+    def normalize_img(self, *img_tuples):
         mean, std = self.get_mean_std()
         mean = mean.squeeze()
         std = std.squeeze()
-        img1 = (img1 - mean[0]) / std[0]
-        img2 = (img2 - mean[1]) / std[1]
-        return img1, img2
+        normalized_imgs = []
+        for i, img in enumerate(img_tuples):
+            img = (img - mean[i]) / std[i]
+            normalized_imgs.append(img)
+        return tuple(normalized_imgs)
 
     def _get_deterministic_hw(self, index: Union[int, Tuple[int, int]]):
         if isinstance(index, int):
@@ -255,22 +260,28 @@ class MultiChDeterministicTiffDloader:
         Loads an image.
         Crops the image such that cropped image has content.
         """
-        img1, img2 = self._load_img(index)
-        cropped_img1, cropped_img2 = self._crop_imgs(index, img1, img2)[:2]
-        return cropped_img1, cropped_img2
+        img_tuples = self._load_img(index)
+        cropped_img_tuples = self._crop_imgs(index, *img_tuples)[:-1]
+        return cropped_img_tuples
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
-        img1, img2 = self._get_img(index)
+        img_tuples = self._get_img(index)
         if self._enable_rotation:
             # passing just the 2D input. 3rd dimension messes up things.
-            rot_dic = self._rotation_transform(image=img1[0], mask=img2[0])
+            assert len(img_tuples) == 2
+            rot_dic = self._rotation_transform(image=img_tuples[0][0], mask=img_tuples[1][0])
             img1 = rot_dic['image'][None]
             img2 = rot_dic['mask'][None]
-        target = np.concatenate([img1, img2], axis=0)
-        if self._normalized_input:
-            img1, img2 = self.normalize_img(img1, img2)
 
-        inp = (0.5 * img1 + 0.5 * img2).astype(np.float32)
+        target = np.concatenate(img_tuples, axis=0)
+        if self._normalized_input:
+            img_tuples = self.normalize_img(*img_tuples)
+
+        inp = 0
+        for img in img_tuples:
+            inp += img / (len(img_tuples))
+
+        inp = inp.astype(np.float32)
 
         if isinstance(index, int):
             return inp, target
