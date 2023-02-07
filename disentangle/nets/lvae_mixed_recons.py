@@ -101,6 +101,8 @@ class LadderVAEWithMixedRecons(LadderVAE):
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         x, target, mixed_recons_flag = batch
+        self.set_params_to_same_device_as(target)
+
         x_normalized = self.normalize_input(x)
         # TODO: check normalization. it is so because nucleus is from two datasets.
         target_normalized = self.normalize_target(target)
@@ -121,9 +123,9 @@ class LadderVAEWithMixedRecons(LadderVAE):
         if recons_loss_dict is not None:
             recons_loss += recons_loss_dict['loss']
 
-        recons_loss_dict2, _ = self.get_reconstruction_loss(out[mixed_recons_flag],
-                                                            x_normalized[mixed_recons_flag],
-                                                            target_normalized[mixed_recons_flag],
+        recons_loss_dict2, _ = self.get_reconstruction_loss(out,
+                                                            x_normalized,
+                                                            target_normalized,
                                                             return_predicted_img=True)
 
         assert self.loss_type == LossType.ElboMixedReconstruction
@@ -201,7 +203,7 @@ class LadderVAEWithMixedRecons(LadderVAE):
                 all_samples.append(sample[None])
 
             all_samples = torch.cat(all_samples, dim=0)
-            all_samples = all_samples * self.data_std + self.data_mean
+            all_samples = all_samples * self.data_std['target'] + self.data_mean['target']
             all_samples = all_samples.cpu()
             img_mmse = torch.mean(all_samples, dim=0)[0]
             self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
