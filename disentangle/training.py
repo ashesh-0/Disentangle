@@ -242,15 +242,16 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_data_kwargs['enable_random_cropping'] = enable_random_cropping
         val_data_kwargs['enable_random_cropping'] = False
         datapath = datadir
-        train_data = None if skip_train_dataset else Pavia2ThreeChannelDloader(config.data,
-                                                                   datapath,
-                                                                   datasplit_type=DataSplitType.Train,
-                                                                   val_fraction=config.training.val_fraction,
-                                                                   test_fraction=config.training.test_fraction,
-                                                                   normalized_input=normalized_input,
-                                                                   use_one_mu_std=use_one_mu_std,
-                                                                   enable_rotation_aug=train_aug_rotate,
-                                                                   **train_data_kwargs)
+        train_data = None if skip_train_dataset else Pavia2ThreeChannelDloader(
+            config.data,
+            datapath,
+            datasplit_type=DataSplitType.Train,
+            val_fraction=config.training.val_fraction,
+            test_fraction=config.training.test_fraction,
+            normalized_input=normalized_input,
+            use_one_mu_std=use_one_mu_std,
+            enable_rotation_aug=train_aug_rotate,
+            **train_data_kwargs)
 
         max_val = train_data.get_max_val()
         val_data = Pavia2ThreeChannelDloader(
