@@ -3,6 +3,8 @@ from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDet
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.data_loader.pavia2_rawdata_loader import Pavia2DataSetType, Pavia2DataSetChannels
 from disentangle.data_loader.pavia2_enums import Pavia2BleedthroughType
+from disentangle.data_loader.patch_index_manager import GridIndexManager
+
 import numpy as np
 import ml_collections
 
@@ -33,7 +35,7 @@ class Pavia2V1Dloader:
         # We don't normalalize inside the self._dloader_clean or bleedthrough. We normalize in this class.
         normalized_input = False
         if self._datasplit_type == DataSplitType.Train:
-            assert enable_random_cropping is True
+            # assert enable_random_cropping is True
             dconf = ml_collections.ConfigDict(data_config)
             # take channels mean from this.
             dconf.dset_type = Pavia2DataSetType.JustMAGENTA
@@ -97,6 +99,11 @@ class Pavia2V1Dloader:
                                                                 allow_generation=allow_generation,
                                                                 max_val=max(max_val))
         self.process_data()
+        
+        # needed just during evaluation.
+        self._img_sz = self._dloader_mix._img_sz
+        self._grid_sz = self._dloader_mix._grid_sz
+
         print(f'[{self.__class__.__name__}] BleedTh prob:{self._bleedthrough_prob} Clean prob:{self._clean_prob}')
 
     def sum_channels(self, data, first_index_arr, second_index_arr):
@@ -129,6 +136,54 @@ class Pavia2V1Dloader:
             self._dloader_mix._data = self._dloader_mix._data[
                 ..., [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN]]
             self._dloader_mix._data = self.sum_channels(self._dloader_mix._data, [0, 1], [2])
+
+
+    def set_img_sz(self, image_size, grid_size, alignment=None):
+        """
+        Needed just for the notebooks
+        If one wants to change the image size on the go, then this can be used.
+        Args:
+            image_size: size of one patch
+            grid_size: frame is divided into square grids of this size. A patch centered on a grid having size `image_size` is returned.
+        """
+        self._img_sz = image_size
+        self._grid_sz = grid_size
+        if self._dloader_mix is not None:
+            self._dloader_mix.set_img_sz(image_size, grid_size, alignment=alignment)
+
+        if self._dloader_clean is not None:
+            self._dloader_clean.set_img_sz(image_size, grid_size, alignment=alignment)
+
+
+        if self._dloader_bleedthrough is not None:
+            self._dloader_bleedthrough.set_img_sz(image_size, grid_size, alignment=alignment)
+
+        self.idx_manager = GridIndexManager(self.get_data_shape(), self._grid_sz, self._img_sz, alignment)
+
+    def get_mean_std(self):
+        """
+        Needed just for running the notebooks
+        """
+        return self._mean, self._std
+
+    def get_data_shape(self):
+        N = 0
+        default_shape = None
+        if self._dloader_mix is not None:
+            default_shape = self._dloader_mix.get_data_shape()
+            N  += default_shape[0]
+
+        if self._dloader_clean is not None:
+            default_shape = self._dloader_clean.get_data_shape()
+            N  += default_shape[0]  
+
+        if self._dloader_bleedthrough is not None:
+            default_shape = self._dloader_bleedthrough.get_data_shape()
+            N  += default_shape[0]  
+        
+        default_shape = list(default_shape)
+        default_shape[0] = N
+        return tuple(default_shape)
 
     def __len__(self):
         sz = 0

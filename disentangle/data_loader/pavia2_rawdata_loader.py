@@ -78,37 +78,15 @@ def load_data(datadir, dset_type, dset_version=Pavia2DataSetVersion.RAW):
     return data
 
 
-def get_train_val_test_datadict(datadir,
-                                data_config,
-                                datasplit_type: DataSplitType,
-                                val_fraction=None,
-                                test_fraction=None):
-    dtypes = data_config.dset_types
-    data = {}
-    for dset_type in [Pavia2DataSetType.MIXED, Pavia2DataSetType.JustMAGENTA, Pavia2DataSetType.JustCYAN]:
-        if int(dtypes, 2) & int(dset_type, 2):
-            data[dset_type] = load_data(datadir, dset_type)
-
-    assert len(data) > 0
-    for key in data.keys():
-        train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data[key]))
-        if datasplit_type == DataSplitType.Train:
-            data[key] = data[key][train_idx].astype(np.float32)
-        elif datasplit_type == DataSplitType.Val:
-            data[key] = data[key][val_idx].astype(np.float32)
-        elif datasplit_type == DataSplitType.Test:
-            data[key] = data[key][test_idx].astype(np.float32)
-        else:
-            raise Exception("invalid datasplit")
-    return data
-
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     dset_type = data_config.dset_type
     data = load_data(datadir, dset_type)
 
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
-    if datasplit_type == DataSplitType.Train:
+    if datasplit_type == DataSplitType.All:
+        data = data.astype(np.float32)
+    elif datasplit_type == DataSplitType.Train:
         data = data[train_idx].astype(np.float32)
     elif datasplit_type == DataSplitType.Val:
         data = data[val_idx].astype(np.float32)
