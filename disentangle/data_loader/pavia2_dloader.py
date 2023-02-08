@@ -10,7 +10,6 @@ import ml_collections
 
 
 class Pavia2V1Dloader:
-
     def __init__(self,
                  data_config,
                  fpath: str,
@@ -87,7 +86,7 @@ class Pavia2V1Dloader:
             # we want to evaluate on mixed samples.
             self._clean_prob = 1.0
             self._bleedthrough_prob = 0.0
-            self._dloader_mix = MultiChDeterministicTiffDloader(dconf,
+            self._dloader_clean = MultiChDeterministicTiffDloader(dconf,
                                                                 fpath,
                                                                 datasplit_type=datasplit_type,
                                                                 val_fraction=val_fraction,
@@ -97,12 +96,12 @@ class Pavia2V1Dloader:
                                                                 enable_random_cropping=enable_random_cropping,
                                                                 use_one_mu_std=use_one_mu_std,
                                                                 allow_generation=allow_generation,
-                                                                max_val=max(max_val))
+                                                                max_val=max_val)
         self.process_data()
-        
+
         # needed just during evaluation.
-        self._img_sz = self._dloader_mix._img_sz
-        self._grid_sz = self._dloader_mix._grid_sz
+        self._img_sz = self._dloader_clean._img_sz
+        self._grid_sz = self._dloader_clean._grid_sz
 
         print(f'[{self.__class__.__name__}] BleedTh prob:{self._bleedthrough_prob} Clean prob:{self._clean_prob}')
 
@@ -137,7 +136,6 @@ class Pavia2V1Dloader:
                 ..., [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN]]
             self._dloader_mix._data = self.sum_channels(self._dloader_mix._data, [0, 1], [2])
 
-
     def set_img_sz(self, image_size, grid_size, alignment=None):
         """
         Needed just for the notebooks
@@ -153,7 +151,6 @@ class Pavia2V1Dloader:
 
         if self._dloader_clean is not None:
             self._dloader_clean.set_img_sz(image_size, grid_size, alignment=alignment)
-
 
         if self._dloader_bleedthrough is not None:
             self._dloader_bleedthrough.set_img_sz(image_size, grid_size, alignment=alignment)
@@ -171,16 +168,16 @@ class Pavia2V1Dloader:
         default_shape = None
         if self._dloader_mix is not None:
             default_shape = self._dloader_mix.get_data_shape()
-            N  += default_shape[0]
+            N += default_shape[0]
 
         if self._dloader_clean is not None:
             default_shape = self._dloader_clean.get_data_shape()
-            N  += default_shape[0]  
+            N += default_shape[0]
 
         if self._dloader_bleedthrough is not None:
             default_shape = self._dloader_bleedthrough.get_data_shape()
-            N  += default_shape[0]  
-        
+            N += default_shape[0]
+
         default_shape = list(default_shape)
         default_shape[0] = N
         return tuple(default_shape)
@@ -188,11 +185,12 @@ class Pavia2V1Dloader:
     def __len__(self):
         sz = 0
         if self._dloader_clean is not None:
-            sz += len(self._dloader_clean)
+            sz += int(self._clean_prob * len(self._dloader_clean))
         if self._dloader_bleedthrough is not None:
-            sz += len(self._dloader_bleedthrough)
+            sz += int(self._bleedthrough_prob * len(self._dloader_bleedthrough))
         if self._dloader_mix is not None:
-            sz += len(self._dloader_mix)
+            mix_prob = 1 - self._clean_prob - self._bleedthrough_prob
+            sz += int(mix_prob * len(self._dloader_mix))
         return sz
 
     def compute_individual_mean_std(self):
@@ -268,15 +266,14 @@ class Pavia2V1Dloader:
             return (inp, tar, mixed_recons_flag)
 
         else:
-            inp, tar = self._dloader_mix[index]
+            inp, tar = self._dloader_clean[index]
             inp = len(tar) * inp
             inp = self.normalize_input(inp)
-            return (inp, tar, Pavia2BleedthroughType.Mixed)
+            return (inp, tar, Pavia2BleedthroughType.Clean)
 
     def get_max_val(self):
-        max_val1 = self._dloader_clean.get_max_val()
-        max_val2 = self._dloader_bleedthrough.get_max_val() if self._dloader_bleedthrough is not None else None
-        return (max_val1, max_val2)
+        max_val = self._dloader_clean.get_max_val()
+        return max_val
 
 
 if __name__ == '__main__':
@@ -285,13 +282,16 @@ if __name__ == '__main__':
     fpath = '/group/jug/ashesh/data/pavia2/'
     dloader = Pavia2V1Dloader(config.data,
                               fpath,
-                              datasplit_type=DataSplitType.Train,
+                              datasplit_type=DataSplitType.Val,
                               val_fraction=0.1,
                               test_fraction=0.1,
                               normalized_input=True,
                               use_one_mu_std=False,
-                              enable_random_cropping=True)
+                              enable_random_cropping=False,
+                              max_val=100,
+                              )
     mean_val, std_val = dloader.compute_mean_std()
     dloader.set_mean_std(mean_val, std_val)
     inp, tar, source = dloader[0]
+    len(dloader)
     print('This is working')

@@ -1,6 +1,6 @@
 from disentangle.data_loader.pavia2_dloader import Pavia2V1Dloader, Pavia2DataSetChannels
 from disentangle.core.data_split_type import DataSplitType
-
+import numpy as np
 
 class Pavia2ThreeChannelDloader(Pavia2V1Dloader):
 
@@ -18,10 +18,18 @@ class Pavia2ThreeChannelDloader(Pavia2V1Dloader):
                  max_val=None) -> None:
 
         # which are the indices for bleedthrough nucleus, clean nucleus, tubulin
-        self._bt_nuc_idx = self._cl_nuc_idx = self._tubuln_idx = None
+        self._bt_nuc_idx = data_config.channel_idx_list.index(Pavia2DataSetChannels.NucMTORQ)
+        self._cl_nuc_idx = data_config.channel_idx_list.index(Pavia2DataSetChannels.NucRFP670)
+        self._tubuln_idx = data_config.channel_idx_list.index(Pavia2DataSetChannels.TUBULIN)
+
+        # self._relv_channel_idx = [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN]
         super().__init__(data_config, fpath, datasplit_type, val_fraction, test_fraction, normalized_input,
                          enable_rotation_aug, enable_random_cropping, use_one_mu_std, allow_generation, max_val)
 
+
+    def get_max_val(self):
+        return self._dloader_clean.get_max_val()
+        
     def process_data(self):
         """
         We are ignoring the actin channel.
@@ -30,20 +38,7 @@ class Pavia2ThreeChannelDloader(Pavia2V1Dloader):
         When MTORQ has content, then we sum RFP670 with tubulin. This makes sure that tubulin channel has the same data distribution. 
         During validation/testing, we always feed sum of these three channels as the input.
         """
-        relv_channels = [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN]
-
-        self._bt_nuc_idx = relv_channels.index(Pavia2DataSetChannels.NucMTORQ)
-        self._cl_nuc_idx = relv_channels.index(Pavia2DataSetChannels.NucRFP670)
-        self._tubuln_idx = relv_channels.index(Pavia2DataSetChannels.TUBULIN)
-
-        if self._datasplit_type == DataSplitType.Train:
-            self._dloader_clean._data = self._dloader_clean._data[..., relv_channels]
-            self._dloader_bleedthrough._data = self._dloader_bleedthrough._data[..., relv_channels]
-            self._dloader_mix._data = self._dloader_mix._data[..., relv_channels]
-
-        else:
-            self._dloader_mix._data = self._dloader_mix._data[..., relv_channels]
-
+        pass
 
 if __name__ == '__main__':
     from disentangle.configs.pavia2_config import get_config

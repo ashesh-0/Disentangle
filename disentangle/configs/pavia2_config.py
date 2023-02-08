@@ -3,7 +3,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
-
+from disentangle.data_loader.pavia2_enums import Pavia2DataSetChannels
 import numpy as np
 
 
@@ -13,8 +13,7 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.Pavia2
     data.dset_type = None  # This will be filled in the dataloader
-    data.channel_1 = 2
-    data.channel_2 = 3
+    data.channel_idx_list = [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ,Pavia2DataSetChannels.TUBULIN]
     data.channelwise_quantile = True
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -23,8 +22,8 @@ def get_config():
     data.normalized_input = True
     data.clip_percentile = 0.995
     # mixed probablity will be 1 - the sum of following these.
-    data.dset_clean_sample_probab = 0.7
-    data.dset_bleedthrough_sample_probab = 0.15
+    data.dset_clean_sample_probab = 1.0
+    data.dset_bleedthrough_sample_probab = 0.0
 
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
@@ -96,7 +95,7 @@ def get_config():
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
-    training.val_fraction = 0.1
+    training.val_fraction = 0.2
     training.test_fraction = 0.1
     training.earlystop_patience = 100
     training.precision = 16

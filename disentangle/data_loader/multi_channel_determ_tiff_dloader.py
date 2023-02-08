@@ -100,7 +100,8 @@ class MultiChDeterministicTiffDloader:
 
     def compute_max_val(self):
         if self._channelwise_quantile:
-            return [np.quantile(self._data[..., i], self._quantile) for i in range(self._data.shape[-1])]
+            max_val_arr = [np.quantile(self._data[..., i], self._quantile) for i in range(self._data.shape[-1])]
+            return max_val_arr
         else:
             return np.quantile(self._data, self._quantile)
 
