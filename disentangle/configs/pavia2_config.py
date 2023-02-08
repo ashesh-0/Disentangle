@@ -10,7 +10,7 @@ import numpy as np
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 256
     data.data_type = DataType.Pavia2
     data.dset_type = None  # This will be filled in the dataloader
     data.channel_idx_list = [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ,Pavia2DataSetChannels.TUBULIN]
