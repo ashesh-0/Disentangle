@@ -7,7 +7,7 @@ import os
 import numpy as np
 from nd2reader import ND2Reader
 from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
-from disentangle.core.custom_enum import Enum
+from disentangle.data_loader.pavia2_enums import Pavia2DataSetType, Pavia2DataSetChannels, Pavia2DataSetVersion
 
 
 def load_nd2(fpaths):
@@ -22,24 +22,6 @@ def load_nd2(fpaths):
             images.append(img[None])
     # number of images is the first dimension.
     return np.concatenate(images, axis=0)
-
-
-class Pavia2DataSetType(Enum):
-    JustCYAN = '0b001'
-    JustMAGENTA = '0b010'
-    MIXED = '0b100'
-
-
-class Pavia2DataSetChannels(Enum):
-    NucRFP670 = 0
-    NucMTORQ = 1
-    ACTIN = 2
-    TUBULIN = 3
-
-
-class Pavia2DataSetVersion(Enum):
-    DD = 'DenoisedDeconvolved'
-    RAW = 'Raw data'
 
 
 def get_mixed_fnames(version):

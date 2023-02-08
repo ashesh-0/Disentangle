@@ -43,3 +43,21 @@ class Pavia2ThreeChannelDloader(Pavia2V1Dloader):
 
         else:
             self._dloader_mix._data = self._dloader_mix._data[..., relv_channels]
+
+
+if __name__ == '__main__':
+    from disentangle.configs.pavia2_config import get_config
+    config = get_config()
+    fpath = '/group/jug/ashesh/data/pavia2/'
+    dloader = Pavia2ThreeChannelDloader(config.data,
+                                        fpath,
+                                        datasplit_type=DataSplitType.Train,
+                                        val_fraction=0.1,
+                                        test_fraction=0.1,
+                                        normalized_input=True,
+                                        use_one_mu_std=False,
+                                        enable_random_cropping=True)
+    mean_val, std_val = dloader.compute_mean_std()
+    dloader.set_mean_std(mean_val, std_val)
+    inp, tar, source = dloader[0]
+    print('This is working')

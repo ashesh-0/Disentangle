@@ -221,8 +221,16 @@ class MultiChDeterministicTiffDloader:
         # numpy 1.19.2 has issues in computing for large arrays. https://github.com/numpy/numpy/issues/8869
         # mean = np.mean(self._data, axis=(0, 1, 2))
         # std = np.std(self._data, axis=(0, 1, 2))
-        mean = np.array([self._data[..., 0].mean(), self._data[..., 1].mean()])
-        std = np.array([self._data[..., 0].std(), self._data[..., 1].std()])
+        mean_arr = []
+        std_arr = []
+        for ch_idx in range(self._data.shape[-1]):
+            mean_ = self._data[..., ch_idx].mean()
+            std_ = self._data[..., ch_idx].std()
+            mean_arr.append(mean_)
+            std_arr.append(std_)
+
+        mean = np.array(mean_arr)
+        std = np.array(std_arr)
 
         return mean[None, :, None, None], std[None, :, None, None]
 

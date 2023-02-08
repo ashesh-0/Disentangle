@@ -17,7 +17,7 @@ from disentangle.nets.lvae_multiple_encoder_single_opt import LadderVAEMulEncode
 from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
 from disentangle.nets.unet import UNet
 from disentangle.nets.brave_net import BraveNetPL
-from disentangle.nets.lvae_mixed_recons import LadderVAEWithMixedRecons
+from disentangle.nets.lvae_bleedthrough import LadderVAEWithMixedRecons
 from disentangle.nets.lvae_semi_supervised import LadderVAESemiSupervised
 from disentangle.nets.lvae_with_stitch_2stage import LadderVAEwithStitching2Stage
 

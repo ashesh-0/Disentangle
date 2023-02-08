@@ -26,7 +26,7 @@ from disentangle.data_loader.places_dloader import PlacesLoader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
 from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
-from disentangle.data_loader.pavia2_dloader import Pavia2V1Dloader
+from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
 from disentangle.data_loader.single_channel.multi_dataset_dloader import SingleChannelMultiDatasetDloader
 
 
@@ -242,7 +242,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_data_kwargs['enable_random_cropping'] = enable_random_cropping
         val_data_kwargs['enable_random_cropping'] = False
         datapath = datadir
-        train_data = None if skip_train_dataset else Pavia2V1Dloader(config.data,
+        train_data = None if skip_train_dataset else Pavia2ThreeChannelDloader(config.data,
                                                                    datapath,
                                                                    datasplit_type=DataSplitType.Train,
                                                                    val_fraction=config.training.val_fraction,
@@ -253,7 +253,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                                                                    **train_data_kwargs)
 
         max_val = train_data.get_max_val()
-        val_data = Pavia2V1Dloader(
+        val_data = Pavia2ThreeChannelDloader(
             config.data,
             datapath,
             datasplit_type=DataSplitType.Val,

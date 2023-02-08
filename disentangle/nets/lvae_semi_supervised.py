@@ -6,6 +6,7 @@ import torch
 from disentangle.core.loss_type import LossType
 from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.loss.exclusive_loss import compute_exclusion_loss
+from disentangle.data_loader.pavia2_enums import Pavia2BleedthroughType
 import torch.nn as nn
 
 
