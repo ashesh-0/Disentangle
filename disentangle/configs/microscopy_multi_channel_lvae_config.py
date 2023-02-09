@@ -11,8 +11,8 @@ import numpy as np
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
-    data.data_type = DataType.OptiMEM100_014
+    data.image_size = 64
+    data.data_type = DataType.Pavia2VanillaSplitting
     data.channel_1 = 2
     data.channel_2 = 3
 
@@ -26,7 +26,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 2
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.

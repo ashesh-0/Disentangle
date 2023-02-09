@@ -98,3 +98,21 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
         raise Exception("invalid datasplit")
     
     return data
+
+def get_train_val_data_vanilla(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
+    dset_type = Pavia2DataSetType.JustMAGENTA
+    data = load_data(datadir, dset_type)
+    data = data[...,[Pavia2DataSetChannels.NucMTORQ,Pavia2DataSetChannels.NucRFP670]]
+    train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
+    if datasplit_type == DataSplitType.All:
+        data = data.astype(np.float32)
+    elif datasplit_type == DataSplitType.Train:
+        data = data[train_idx].astype(np.float32)
+    elif datasplit_type == DataSplitType.Val:
+        data = data[val_idx].astype(np.float32)
+    elif datasplit_type == DataSplitType.Test:
+        data = data[test_idx].astype(np.float32)
+    else:
+        raise Exception("invalid datasplit")
+    
+    return data

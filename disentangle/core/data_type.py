@@ -13,3 +13,4 @@ class DataType(Enum):
     CustomSinosoidThreeCurve = 8
     SemiSupBloodVesselsEMBL = 9
     Pavia2 = 10
+    Pavia2VanillaSplitting = 11
