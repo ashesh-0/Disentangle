@@ -83,8 +83,7 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
     dset_type = data_config.dset_type
     data = load_data(datadir, dset_type)
     # NOTE: This is temporary change. 
-    data[...,Pavia2DataSetChannels.TUBULIN] = data[...,Pavia2DataSetChannels.TUBULIN]/10
-
+    data[...,Pavia2DataSetChannels.TUBULIN] = data[...,Pavia2DataSetChannels.TUBULIN]/1000
     data = data[..., data_config.channel_idx_list]
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
     if datasplit_type == DataSplitType.All:
