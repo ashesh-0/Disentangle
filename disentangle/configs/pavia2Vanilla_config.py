@@ -4,7 +4,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
-
+from disentangle.data_loader.pavia2_enums import Pavia2DataSetChannels
 import numpy as np
 
 
@@ -12,9 +12,9 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.data_type = DataType.OptiMEM100_014
-    data.channel_1 = 2
-    data.channel_2 = 3
+    data.data_type = DataType.Pavia2VanillaSplitting
+    data.channel_1 = Pavia2DataSetChannels.NucRFP670
+    data.channel_2 = Pavia2DataSetChannels.TUBULIN
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
