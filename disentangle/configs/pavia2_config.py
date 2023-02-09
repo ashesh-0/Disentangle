@@ -10,7 +10,7 @@ import numpy as np
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
+    data.image_size = 64
     data.data_type = DataType.Pavia2
     data.dset_type = None  # This will be filled in the dataloader
     data.channel_idx_list = [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ,Pavia2DataSetChannels.TUBULIN]
@@ -80,7 +80,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'pixelwise'
+    model.predict_logvar = 'global'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
