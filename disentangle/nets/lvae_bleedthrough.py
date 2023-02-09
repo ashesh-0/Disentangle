@@ -95,7 +95,8 @@ class LadderVAEWithMixedRecons(LadderVAE):
             ll = ll[:, :, pad:-pad, pad:-pad]
             like_dict['params']['mean'] = like_dict['params']['mean'][:, :, pad:-pad, pad:-pad]
 
-        recons_loss = compute_batch_mean(-1 * ll)
+        # NOTE: This is a bug, which has been added to just reconstruct the nucleus channel. 
+        recons_loss = compute_batch_mean(-1 * ll[:,:1])
         output = {
             'loss': recons_loss,
         }
