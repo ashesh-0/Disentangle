@@ -103,6 +103,7 @@ def get_train_val_data_vanilla(datadir, data_config, datasplit_type: DataSplitTy
     dset_type = Pavia2DataSetType.JustMAGENTA
     data = load_data(datadir, dset_type)
     data = data[...,[data_config.channel_1,data_config.channel_2]]
+    data[...,1] = data[...,1]/data_config.channel_2_downscale_factor
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
     if datasplit_type == DataSplitType.All:
         data = data.astype(np.float32)
