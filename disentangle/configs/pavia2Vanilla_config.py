@@ -15,7 +15,7 @@ def get_config():
     data.data_type = DataType.Pavia2VanillaSplitting
     data.channel_1 = Pavia2DataSetChannels.NucRFP670
     data.channel_2 = Pavia2DataSetChannels.TUBULIN
-    data.channel_2_downscale_factor = 10
+    data.channel_2_downscale_factor = 1
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
