@@ -36,7 +36,9 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.channel_1_w = 5
+    loss.channel_1_w = 1
+    loss.channel_2_w = 0
+
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
