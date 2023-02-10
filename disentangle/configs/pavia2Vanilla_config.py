@@ -11,7 +11,7 @@ import numpy as np
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 256
     data.data_type = DataType.Pavia2VanillaSplitting
     data.channel_1 = Pavia2DataSetChannels.NucRFP670
     data.channel_2 = Pavia2DataSetChannels.TUBULIN
