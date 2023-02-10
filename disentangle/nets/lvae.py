@@ -248,6 +248,9 @@ class LadderVAE(pl.LightningModule):
                 ))
         self.final_top_down = nn.Sequential(*modules)
 
+        self.channel_1_w = config.loss.get('channel_1_w',1)
+        self.channel_2_w = config.loss.get('channel_2_w',1)
+
         self.create_likelihood_module()
         # gradient norms. updated while training. this is also logged.
         self.grad_norm_bottom_up = 0.0
@@ -426,12 +429,15 @@ class LadderVAE(pl.LightningModule):
             ll = ll[:, :, pad:-pad, pad:-pad]
             like_dict['params']['mean'] = like_dict['params']['mean'][:, :, pad:-pad, pad:-pad]
 
-        recons_loss = compute_batch_mean(-1 * ll)
         output = {
-            'loss': recons_loss,
+            'loss': compute_batch_mean(-1 * ll),
             'ch1_loss': compute_batch_mean(-ll[:, 0]),
             'ch2_loss': compute_batch_mean(-ll[:, 1]),
         }
+        if self.channel_1_w is not None or self.channel_2_w is not None:
+            output['loss'] =(self.channel_1_w * output['ch1_loss'] + self.channel_2_w*output['ch2_loss'])/(self.channel_1_w + self.channel_2_w)
+    
+
         if self.enable_mixed_rec:
             mixed_target = torch.mean(input, dim=1, keepdim=True)
             mixed_prediction = torch.mean(like_dict['params']['mean'], dim=1, keepdim=True)

@@ -259,7 +259,7 @@ class Pavia2V1Dloader:
                 inp, tar = self._dloader_mix[idx]
                 mixed_recons_flag = Pavia2BleedthroughType.Mixed
                 # print('Mixed', idx)
-
+ 
             # dataloader takes the average of the K channels. To, undo that, we are multipying it with K.
             inp = len(tar) * inp
             inp = self.normalize_input(inp)
