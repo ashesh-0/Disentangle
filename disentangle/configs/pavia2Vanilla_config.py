@@ -47,7 +47,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.lres_recloss_w = [0.52, 0.16, 0.16, 0.16]
+    loss.lres_recloss_w = [0.4, 0.2, 0.2, 0.2]
 
     model = config.model
     model.model_type = ModelType.LadderVAEMultiTarget
