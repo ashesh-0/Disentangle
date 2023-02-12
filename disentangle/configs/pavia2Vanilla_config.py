@@ -47,10 +47,10 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.lres_recloss_w = [0.25, 0.25, 0.25, 0.25]
+    # loss.lres_recloss_w = [0.25, 0.25, 0.25, 0.25]
 
     model = config.model
-    model.model_type = ModelType.LadderVAEMultiTarget
+    model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1
