@@ -20,6 +20,7 @@ from disentangle.nets.brave_net import BraveNetPL
 from disentangle.nets.lvae_bleedthrough import LadderVAEWithMixedRecons
 from disentangle.nets.lvae_semi_supervised import LadderVAESemiSupervised
 from disentangle.nets.lvae_with_stitch_2stage import LadderVAEwithStitching2Stage
+from disentangle.nets.lvae_multires_target import LadderVAEMultiTarget
 
 
 def create_model(config, data_mean, data_std):
@@ -31,6 +32,8 @@ def create_model(config, data_mean, data_std):
         model = LadderVAECritic(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVaeSepEncoder:
         model = LadderVAEMultipleEncoders(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVAEMultiTarget:
+        model = LadderVAEMultiTarget(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVaeSepEncoderSingleOptim:
         model = LadderVAEMulEncoder1Optim(data_mean, data_std, config)
     elif config.model.model_type == ModelType.UNet:

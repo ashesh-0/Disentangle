@@ -150,6 +150,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         use_one_mu_std = config.data.use_one_mu_std
         train_aug_rotate = config.data.train_aug_rotate
         enable_random_cropping = config.data.deterministic_grid is False
+        lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
         if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
             padding_kwargs = {'mode': config.data.padding_mode}
             if 'padding_value' in config.data and config.data.padding_value is not None:
@@ -166,6 +167,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 enable_rotation_aug=train_aug_rotate,
                 enable_random_cropping=enable_random_cropping,
                 num_scales=config.data.multiscale_lowres_count,
+                lowres_supervision=lowres_supervision,
                 padding_kwargs=padding_kwargs,
                 allow_generation=True)
             max_val = train_data.get_max_val()
@@ -182,6 +184,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 enable_random_cropping=False,
                 # No random cropping on validation. Validation is evaluated on determistic grids
                 num_scales=config.data.multiscale_lowres_count,
+                lowres_supervision=lowres_supervision,
                 padding_kwargs=padding_kwargs,
                 allow_generation=False,
                 max_val=max_val,

@@ -36,8 +36,8 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.channel_1_w = 1
-    loss.channel_2_w = 0.01
+    loss.channel_1_w = 5
+    loss.channel_2_w = 1
 
     # loss.mixed_rec_weight = 1
 
@@ -47,12 +47,11 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.lres_recloss_w = [0.8, 0.15,0.05]
-
+    loss.lres_recloss_w = [0.25, 0.25, 0.25, 0.25]
 
     model = config.model
-    model.model_type = ModelType.LadderVae
-    model.z_dims = [128,128,128,128]
+    model.model_type = ModelType.LadderVAEMultiTarget
+    model.z_dims = [128, 128, 128, 128]
 
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
@@ -66,7 +65,6 @@ def get_config():
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
     model.decoder.multiscale_retain_spatial_dims = True
-
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'

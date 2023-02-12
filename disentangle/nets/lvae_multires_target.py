@@ -1,9 +1,11 @@
 from disentangle.nets.lvae import LadderVAE
 import torch.nn as nn
 import torch
+from disentangle.core.loss_type import LossType
 
 
 class LadderVAEMultiTarget(LadderVAE):
+
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super(LadderVAEMultiTarget, self).__init__(data_mean,
                                                    data_std,
@@ -23,9 +25,10 @@ class LadderVAEMultiTarget(LadderVAE):
         self._lres_likelihoods = None
         self._lres_likelihoods = nn.ModuleList()
         for _ in range(self._multiscale_count - 1):
-            self._lres_likelihoods.append(self.create_likelihood())
-        self._lres_recloss_w = config.model.get('lres_recloss_w', [1 / config.data.multiscale_lowres_count] *
-                                                config.data.multiscale_lowres_count)
+            self._lres_likelihoods.append(self.create_likelihood_module())
+        self._lres_recloss_w = config.loss.lres_recloss_w
+        assert len(self._lres_recloss_w) == config.data.multiscale_lowres_count
+
         print(f'[{self.__class__.__name__}] LowResSupLen:{len(self._lres_likelihoods)} rec_w:{self._lres_recloss_w}')
 
     def validation_step(self, batch, batch_idx):
@@ -88,6 +91,8 @@ class LadderVAEMultiTarget(LadderVAE):
         recons_loss = self.get_all_res_reconstruction_loss(out, td_data, target_normalized)
         kl_loss = self.get_kl_divergence_loss(td_data)
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
+        assert self.loss_type not in [LossType.ElboMixedReconstruction, LossType.ElboWithNbrConsistency]
+        assert self.non_stochastic_version is False
 
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):

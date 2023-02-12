@@ -105,7 +105,8 @@ class LadderVAE(pl.LightningModule):
         if self.loss_type in [LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction]:
             self.mixed_rec_w = config.loss.mixed_rec_weight
             self.enable_mixed_rec = True
-            if self.loss_type not in [LossType.ElboSemiSupMixedReconstruction, LossType.ElboMixedReconstruction] and config.data.use_one_mu_std is False:
+            if self.loss_type not in [LossType.ElboSemiSupMixedReconstruction, LossType.ElboMixedReconstruction
+                                      ] and config.data.use_one_mu_std is False:
                 raise NotImplementedError(
                     "This cannot work since now, different channels have different mean. One needs to reweigh the "
                     "predicted channels and then take their sum. This would then be equivalent to the input.")
@@ -228,30 +229,14 @@ class LadderVAE(pl.LightningModule):
                     non_stochastic_version=self.non_stochastic_version,
                     input_image_shape=self.img_shape,
                     normalize_latent_factor=normalize_latent_factor))
+
         # Final top-down layer
+        self.final_top_down = self.create_final_topdown_layer(not self.no_initial_downscaling)
 
-        modules = list()
-        if not self.no_initial_downscaling:
-            modules.append(Interpolate(scale=2))
-        for i in range(self.decoder_blocks_per_layer):
-            modules.append(
-                TopDownDeterministicResBlock(
-                    c_in=self.decoder_n_filters,
-                    c_out=self.decoder_n_filters,
-                    nonlin=nonlin,
-                    batchnorm=self.batchnorm,
-                    dropout=self.decoder_dropout,
-                    res_block_type=self.res_block_type,
-                    res_block_kernel=self.decoder_res_block_kernel,
-                    skip_padding=self.decoder_res_block_skip_padding,
-                    gated=self.gated,
-                ))
-        self.final_top_down = nn.Sequential(*modules)
+        self.channel_1_w = config.loss.get('channel_1_w', 1)
+        self.channel_2_w = config.loss.get('channel_2_w', 1)
 
-        self.channel_1_w = config.loss.get('channel_1_w',1)
-        self.channel_2_w = config.loss.get('channel_2_w',1)
-
-        self.create_likelihood_module()
+        self.likelihood = self.create_likelihood_module()
         # gradient norms. updated while training. this is also logged.
         self.grad_norm_bottom_up = 0.0
         self.grad_norm_top_down = 0.0
@@ -263,19 +248,42 @@ class LadderVAE(pl.LightningModule):
               f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]',
               f'Stoc:{not self.non_stochastic_version}')
 
+    def create_final_topdown_layer(self, upsample):
+
+        # Final top-down layer
+
+        modules = list()
+        if upsample:
+            modules.append(Interpolate(scale=2))
+        for i in range(self.decoder_blocks_per_layer):
+            modules.append(
+                TopDownDeterministicResBlock(
+                    c_in=self.decoder_n_filters,
+                    c_out=self.decoder_n_filters,
+                    nonlin=self.get_nonlin(),
+                    batchnorm=self.batchnorm,
+                    dropout=self.decoder_dropout,
+                    res_block_type=self.res_block_type,
+                    res_block_kernel=self.decoder_res_block_kernel,
+                    skip_padding=self.decoder_res_block_skip_padding,
+                    gated=self.gated,
+                ))
+        return nn.Sequential(*modules)
+
     def create_likelihood_module(self):
         # Define likelihood
         if self.likelihood_form == 'gaussian':
-            self.likelihood = GaussianLikelihood(self.decoder_n_filters,
-                                                 self.target_ch,
-                                                 predict_logvar=self.predict_logvar,
-                                                 logvar_lowerbound=self.logvar_lowerbound)
+            likelihood = GaussianLikelihood(self.decoder_n_filters,
+                                            self.target_ch,
+                                            predict_logvar=self.predict_logvar,
+                                            logvar_lowerbound=self.logvar_lowerbound)
         elif self.likelihood_form == 'noise_model':
-            self.likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean,
-                                                   self.data_std, self.noiseModel)
+            likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std,
+                                              self.noiseModel)
         else:
             msg = "Unrecognized likelihood '{}'".format(self.likelihood_form)
             raise RuntimeError(msg)
+        return likelihood
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
         nonlin = self.get_nonlin()
@@ -384,8 +392,9 @@ class LadderVAE(pl.LightningModule):
             kl_weight = 1.0
         return kl_weight
 
-    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False):
-        output = self._get_reconstruction_loss_vector(reconstruction, input, return_predicted_img=return_predicted_img)
+    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False,likelihood_obj=None):
+        output = self._get_reconstruction_loss_vector(reconstruction, input, return_predicted_img=return_predicted_img,
+        likelihood_obj=likelihood_obj)
         loss_dict = output[0] if return_predicted_img else output
         loss_dict['loss'] = torch.mean(loss_dict['loss'])
         loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'])
@@ -416,28 +425,30 @@ class LadderVAE(pl.LightningModule):
         output = compute_batch_mean(-1 * mixed_recons_ll)
         return output
 
-    def _get_reconstruction_loss_vector(self, reconstruction, input, return_predicted_img=False):
+    def _get_reconstruction_loss_vector(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
         """
         Args:
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
 
+        if likelihood_obj is None:
+            likelihood_obj = self.likelihood
         # Log likelihood
-        ll, like_dict = self.likelihood(reconstruction, input)
+        ll, like_dict = likelihood_obj(reconstruction, input)
         if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
             pad = self.skip_nboundary_pixels_from_loss
             ll = ll[:, :, pad:-pad, pad:-pad]
             like_dict['params']['mean'] = like_dict['params']['mean'][:, :, pad:-pad, pad:-pad]
 
-        assert ll.shape[1] ==2, f"Change the code below to handle >2 channels first. ll.shape {ll.shape}"
+        assert ll.shape[1] == 2, f"Change the code below to handle >2 channels first. ll.shape {ll.shape}"
         output = {
             'loss': compute_batch_mean(-1 * ll),
             'ch1_loss': compute_batch_mean(-ll[:, 0]),
             'ch2_loss': compute_batch_mean(-ll[:, 1]),
         }
         if self.channel_1_w is not None or self.channel_2_w is not None:
-            output['loss'] =(self.channel_1_w * output['ch1_loss'] + self.channel_2_w*output['ch2_loss'])/(self.channel_1_w + self.channel_2_w)
-    
+            output['loss'] = (self.channel_1_w * output['ch1_loss'] +
+                              self.channel_2_w * output['ch2_loss']) / (self.channel_1_w + self.channel_2_w)
 
         if self.enable_mixed_rec:
             mixed_target = torch.mean(input, dim=1, keepdim=True)

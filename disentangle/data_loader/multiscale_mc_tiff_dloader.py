@@ -26,6 +26,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         enable_random_cropping=False,
         padding_kwargs: dict = None,
         allow_generation: bool = False,
+        lowres_supervision = None,
         max_val=None,
     ):
         """
@@ -52,6 +53,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         # self.enable_padding_while_cropping is used only for overlapping_dloader. This is a hack and at some point be
         # fixed properly
         self.enable_padding_while_cropping = False
+        self._lowres_supervision = lowres_supervision
         assert isinstance(self._padding_kwargs, dict)
         assert 'mode' in self._padding_kwargs
 
@@ -149,7 +151,12 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
     def __getitem__(self, index: Union[int, Tuple[int, int]]):
         img1, img2 = self._get_img(index)
         assert self._enable_rotation is False
-        target = np.concatenate([img1[:1], img2[:1]], axis=0)
+        
+        if self._lowres_supervision:
+            target = np.concatenate([img1[:, None], img2[:, None]], axis=1)
+        else:
+            target = np.concatenate([img1[:1], img2[:1]], axis=0)
+        
         if self._normalized_input:
             img1, img2 = self.normalize_img(img1, img2)
 
