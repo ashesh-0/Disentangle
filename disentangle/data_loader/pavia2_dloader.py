@@ -1,5 +1,6 @@
 import torch
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
+from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.data_loader.pavia2_rawdata_loader import Pavia2DataSetType, Pavia2DataSetChannels
 from disentangle.data_loader.pavia2_enums import Pavia2BleedthroughType
@@ -10,6 +11,7 @@ import ml_collections
 
 
 class Pavia2V1Dloader:
+
     def __init__(self,
                  data_config,
                  fpath: str,
@@ -33,6 +35,23 @@ class Pavia2V1Dloader:
         assert normalized_input is True, "We are doing the normalization in this dataloader.So you better pass it as True"
         # We don't normalalize inside the self._dloader_clean or bleedthrough. We normalize in this class.
         normalized_input = False
+        use_LC = 'multiscale_lowres_count' in data_config and data_config.multiscale_lowres_count is not None
+        data_class = MultiScaleTiffDloader if use_LC else MultiChDeterministicTiffDloader
+
+        kwargs = {
+            'normalized_input': normalized_input,
+            'enable_rotation_aug': enable_rotation_aug,
+            'use_one_mu_std': use_one_mu_std,
+            'allow_generation': allow_generation,
+            'datasplit_type': datasplit_type
+        }
+        if use_LC:
+            padding_kwargs = {'mode': data_config.padding_mode}
+            if 'padding_value' in data_config and data_config.padding_value is not None:
+                padding_kwargs['constant_values'] = data_config.padding_value
+            kwargs['padding_kwargs'] = padding_kwargs
+            kwargs['num_scales'] = data_config.multiscale_lowres_count
+
         if self._datasplit_type == DataSplitType.Train:
             # assert enable_random_cropping is True
             dconf = ml_collections.ConfigDict(data_config)
@@ -41,44 +60,31 @@ class Pavia2V1Dloader:
             self._clean_prob = dconf.dset_clean_sample_probab
             self._bleedthrough_prob = dconf.dset_bleedthrough_sample_probab
             assert self._clean_prob + self._bleedthrough_prob <= 1
-
-            self._dloader_clean = MultiChDeterministicTiffDloader(dconf,
-                                                                  fpath,
-                                                                  datasplit_type=datasplit_type,
-                                                                  val_fraction=val_fraction,
-                                                                  test_fraction=test_fraction,
-                                                                  normalized_input=normalized_input,
-                                                                  enable_rotation_aug=enable_rotation_aug,
-                                                                  enable_random_cropping=True,
-                                                                  use_one_mu_std=use_one_mu_std,
-                                                                  allow_generation=allow_generation,
-                                                                  max_val=None)
+            self._dloader_clean = data_class(dconf,
+                                             fpath,
+                                             val_fraction=val_fraction,
+                                             test_fraction=test_fraction,
+                                             enable_random_cropping=True,
+                                             max_val=None,
+                                             **kwargs)
 
             dconf.dset_type = Pavia2DataSetType.JustCYAN
-            self._dloader_bleedthrough = MultiChDeterministicTiffDloader(dconf,
-                                                                         fpath,
-                                                                         datasplit_type=datasplit_type,
-                                                                         val_fraction=0,
-                                                                         test_fraction=0,
-                                                                         normalized_input=normalized_input,
-                                                                         enable_rotation_aug=enable_rotation_aug,
-                                                                         enable_random_cropping=True,
-                                                                         use_one_mu_std=use_one_mu_std,
-                                                                         allow_generation=allow_generation,
-                                                                         max_val=None)
+            self._dloader_bleedthrough = data_class(dconf,
+                                                    fpath,
+                                                    val_fraction=val_fraction,
+                                                    test_fraction=test_fraction,
+                                                    enable_random_cropping=True,
+                                                    max_val=None,
+                                                    **kwargs)
 
             dconf.dset_type = Pavia2DataSetType.MIXED
-            self._dloader_mix = MultiChDeterministicTiffDloader(dconf,
-                                                                fpath,
-                                                                datasplit_type=datasplit_type,
-                                                                val_fraction=0,
-                                                                test_fraction=0,
-                                                                normalized_input=normalized_input,
-                                                                enable_rotation_aug=enable_rotation_aug,
-                                                                enable_random_cropping=True,
-                                                                use_one_mu_std=use_one_mu_std,
-                                                                allow_generation=allow_generation,
-                                                                max_val=None)
+            self._dloader_mix = data_class(dconf,
+                                           fpath,
+                                           val_fraction=val_fraction,
+                                           test_fraction=test_fraction,
+                                           enable_random_cropping=True,
+                                           max_val=None,
+                                           **kwargs)
         else:
             assert enable_random_cropping is False
             dconf = ml_collections.ConfigDict(data_config)
@@ -86,17 +92,13 @@ class Pavia2V1Dloader:
             # we want to evaluate on mixed samples.
             self._clean_prob = 1.0
             self._bleedthrough_prob = 0.0
-            self._dloader_clean = MultiChDeterministicTiffDloader(dconf,
-                                                                fpath,
-                                                                datasplit_type=datasplit_type,
-                                                                val_fraction=val_fraction,
-                                                                test_fraction=test_fraction,
-                                                                normalized_input=normalized_input,
-                                                                enable_rotation_aug=enable_rotation_aug,
-                                                                enable_random_cropping=enable_random_cropping,
-                                                                use_one_mu_std=use_one_mu_std,
-                                                                allow_generation=allow_generation,
-                                                                max_val=max_val)
+            self._dloader_clean = data_class(dconf,
+                                             fpath,
+                                             val_fraction=val_fraction,
+                                             test_fraction=test_fraction,
+                                             enable_random_cropping=enable_random_cropping,
+                                             max_val=max_val,
+                                             **kwargs)
         self.process_data()
 
         # needed just during evaluation.
@@ -259,7 +261,7 @@ class Pavia2V1Dloader:
                 inp, tar = self._dloader_mix[idx]
                 mixed_recons_flag = Pavia2BleedthroughType.Mixed
                 # print('Mixed', idx)
- 
+
             # dataloader takes the average of the K channels. To, undo that, we are multipying it with K.
             inp = len(tar) * inp
             inp = self.normalize_input(inp)
@@ -280,16 +282,17 @@ if __name__ == '__main__':
     from disentangle.configs.pavia2_config import get_config
     config = get_config()
     fpath = '/group/jug/ashesh/data/pavia2/'
-    dloader = Pavia2V1Dloader(config.data,
-                              fpath,
-                              datasplit_type=DataSplitType.Val,
-                              val_fraction=0.1,
-                              test_fraction=0.1,
-                              normalized_input=True,
-                              use_one_mu_std=False,
-                              enable_random_cropping=False,
-                              max_val=100,
-                              )
+    dloader = Pavia2V1Dloader(
+        config.data,
+        fpath,
+        datasplit_type=DataSplitType.Val,
+        val_fraction=0.1,
+        test_fraction=0.1,
+        normalized_input=True,
+        use_one_mu_std=False,
+        enable_random_cropping=False,
+        max_val=100,
+    )
     mean_val, std_val = dloader.compute_mean_std()
     dloader.set_mean_std(mean_val, std_val)
     inp, tar, source = dloader[0]

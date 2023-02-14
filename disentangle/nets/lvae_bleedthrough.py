@@ -34,6 +34,8 @@ class LadderVAEWithMixedRecons(LadderVAE):
 
         self.data_std['target'] = torch.Tensor(self.data_std['target'])
         self.data_std['mix'] = torch.Tensor(self.data_std['mix'])
+        self.rec_loss_ch_w = config.loss.get('rec_loss_channel_weights',None)
+        print(f'[{self.__class__.__name__}] Ch weights: {self.rec_loss_ch_w}')
 
     def normalize_input(self, x):
         if self.normalized_input:
@@ -52,13 +54,7 @@ class LadderVAEWithMixedRecons(LadderVAE):
                                                       target,
                                                       return_predicted_img=return_predicted_img)
         loss_dict = output[0] if return_predicted_img else output
-        # loss_dict['loss'] = torch.mean(loss_dict['loss'])
 
-        # for ch_idx in range(target.shape[1]):
-        #     loss_dict[f'ch{ch_idx}_loss'] = torch.mean(loss_dict[f'ch{ch_idx}_loss'])
-
-        # if 'mixed_loss' in loss_dict:
-        #     loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'])
         if return_predicted_img:
             assert len(output) == 2
             return loss_dict, output[1]
@@ -95,14 +91,19 @@ class LadderVAEWithMixedRecons(LadderVAE):
             ll = ll[:, :, pad:-pad, pad:-pad]
             like_dict['params']['mean'] = like_dict['params']['mean'][:, :, pad:-pad, pad:-pad]
 
-        # NOTE: This is a bug, which has been added to just reconstruct the nucleus channel. 
-        recons_loss = compute_batch_mean(-1 * ll[:,:1])
+        recons_loss = compute_batch_mean(-1 * ll)
         output = {
-            'loss': recons_loss,
+            'loss': recons_loss if self.rec_loss_ch_w is None else 0,
         }
         for ch_idx in range(ll.shape[1]):
-            output[f'ch{ch_idx}_loss'] = compute_batch_mean(-ll[:, ch_idx])
+            ch_idx_loss = compute_batch_mean(-ll[:, ch_idx])
+            output[f'ch{ch_idx}_loss'] = ch_idx_loss
+            if self.rec_loss_ch_w is not None:
+                assert len(self.rec_loss_ch_w) == ll.shape[1]
+                output['loss'] += (self.rec_loss_ch_w[ch_idx] * ch_idx_loss)/sum(self.rec_loss_ch_w)
+    
 
+        
         assert self.enable_mixed_rec is True
         mixed_pred, mixed_logvar = self.get_mixed_prediction(like_dict['params']['mean'], like_dict['params']['logvar'])
 

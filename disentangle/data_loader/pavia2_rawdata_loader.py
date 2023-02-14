@@ -78,7 +78,6 @@ def load_data(datadir, dset_type, dset_version=Pavia2DataSetVersion.RAW):
     return data
 
 
-
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     dset_type = data_config.dset_type
     data = load_data(datadir, dset_type)
@@ -94,14 +93,19 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
         data = data[test_idx].astype(np.float32)
     else:
         raise Exception("invalid datasplit")
-    
+
     return data
 
-def get_train_val_data_vanilla(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
+
+def get_train_val_data_vanilla(datadir,
+                               data_config,
+                               datasplit_type: DataSplitType,
+                               val_fraction=None,
+                               test_fraction=None):
     dset_type = Pavia2DataSetType.JustMAGENTA
     data = load_data(datadir, dset_type)
-    data = data[...,[data_config.channel_1,data_config.channel_2]]
-    data[...,1] = data[...,1]/data_config.channel_2_downscale_factor
+    data = data[..., [data_config.channel_1, data_config.channel_2]]
+    data[..., 1] = data[..., 1] / data_config.channel_2_downscale_factor
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
     if datasplit_type == DataSplitType.All:
         data = data.astype(np.float32)
@@ -113,5 +117,5 @@ def get_train_val_data_vanilla(datadir, data_config, datasplit_type: DataSplitTy
         data = data[test_idx].astype(np.float32)
     else:
         raise Exception("invalid datasplit")
-    
+
     return data

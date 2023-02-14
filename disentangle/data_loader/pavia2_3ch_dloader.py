@@ -2,6 +2,7 @@ from disentangle.data_loader.pavia2_dloader import Pavia2V1Dloader, Pavia2DataSe
 from disentangle.core.data_split_type import DataSplitType
 import numpy as np
 
+
 class Pavia2ThreeChannelDloader(Pavia2V1Dloader):
 
     def __init__(self,
@@ -26,10 +27,9 @@ class Pavia2ThreeChannelDloader(Pavia2V1Dloader):
         super().__init__(data_config, fpath, datasplit_type, val_fraction, test_fraction, normalized_input,
                          enable_rotation_aug, enable_random_cropping, use_one_mu_std, allow_generation, max_val)
 
-
     def get_max_val(self):
         return self._dloader_clean.get_max_val()
-        
+
     def process_data(self):
         """
         We are ignoring the actin channel.
@@ -39,6 +39,7 @@ class Pavia2ThreeChannelDloader(Pavia2V1Dloader):
         During validation/testing, we always feed sum of these three channels as the input.
         """
         pass
+
 
 if __name__ == '__main__':
     from disentangle.configs.pavia2_config import get_config

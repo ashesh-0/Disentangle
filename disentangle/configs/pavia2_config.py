@@ -22,15 +22,15 @@ def get_config():
     data.normalized_input = True
     data.clip_percentile = 0.995
     # mixed probablity will be 1 - the sum of following these.
-    data.dset_clean_sample_probab = 1.0
-    data.dset_bleedthrough_sample_probab = 0.0
+    data.dset_clean_sample_probab = 0.5
+    data.dset_bleedthrough_sample_probab = 0.25
 
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = False
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 4
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -39,8 +39,9 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.ElboMixedReconstruction
-    loss.mixed_rec_weight = 0.0
-
+    loss.mixed_rec_weight = 0.1
+    loss.rec_loss_channel_weights = [5,1,1]
+    
     loss.kl_weight = 0.001
     loss.kl_annealing = False
     loss.kl_annealtime = 10
@@ -95,7 +96,7 @@ def get_config():
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
-    training.val_fraction = 0.2
+    training.val_fraction = 0.1
     training.test_fraction = 0.1
     training.earlystop_patience = 100
     training.precision = 16

@@ -12,6 +12,7 @@ from disentangle.core.data_type import DataType
 
 
 class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
+
     def __init__(
         self,
         data_config,
@@ -26,7 +27,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         enable_random_cropping=False,
         padding_kwargs: dict = None,
         allow_generation: bool = False,
-        lowres_supervision = None,
+        lowres_supervision=None,
         max_val=None,
     ):
         """
@@ -75,7 +76,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         else:
             idx, _ = index
         imgs = self._scaled_data[scaled_index][idx % self.N]
-        return imgs[None, :, :, 0], imgs[None, :, :, 1]
+        return tuple([imgs[None, :, :, i] for i in range(imgs.shape[-1])])
 
     def _crop_img(self, img: np.ndarray, h_start: int, w_start: int):
         """
@@ -94,22 +95,23 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         Loads an image.
         Crops the image such that cropped image has content.
         """
-        img1, img2 = self._load_img(index)
+        img_tuples = self._load_img(index)
         assert self._img_sz is not None
-        h, w = img1.shape[-2:]
+        h, w = img_tuples[0].shape[-2:]
         if self._enable_random_cropping:
             h_start, w_start = self._get_random_hw(h, w)
         else:
             h_start, w_start = self._get_deterministic_hw(index)
-        img1_cropped = self._crop_flip_img(img1, h_start, w_start, False, False)
-        img2_cropped = self._crop_flip_img(img2, h_start, w_start, False, False)
+
+        cropped_img_tuples = [self._crop_flip_img(img, h_start, w_start, False, False) for img in img_tuples]
 
         h_center = h_start + self._img_sz // 2
         w_center = w_start + self._img_sz // 2
-        img1_versions = [img1_cropped]
-        img2_versions = [img2_cropped]
+        allres_versions = {i: [cropped_img_tuples[i]] for i in range(len(cropped_img_tuples))}
         for scale_idx in range(1, self.num_scales):
-            img1, img2 = self._load_scaled_img(scale_idx, index)
+            # img1, img2 = self._load_scaled_img(scale_idx, index)
+            scaled_img_tuples = self._load_scaled_img(scale_idx, index)
+
             h_center = h_center // 2
             w_center = w_center // 2
             # img1_padded = np.zeros_like(img1_versions[-1])
@@ -117,52 +119,53 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
             h_start = h_center - self._img_sz // 2
             w_start = w_center - self._img_sz // 2
 
-            img1_cropped = self._crop_flip_img(img1, h_start, w_start, False, False)
-            img2_cropped = self._crop_flip_img(img2, h_start, w_start, False, False)
+            scaled_cropped_img_tuples = [
+                self._crop_flip_img(img, h_start, w_start, False, False) for img in scaled_img_tuples
+            ]
 
             h_start = max(0, -h_start)
             w_start = max(0, -w_start)
-            h_end = h_start + img1_cropped.shape[1]
-            w_end = w_start + img1_cropped.shape[2]
+            h_end = h_start + scaled_cropped_img_tuples[0].shape[1]
+            w_end = w_start + scaled_cropped_img_tuples[0].shape[2]
             if self.enable_padding_while_cropping:
-                assert img1_cropped.shape == img1_versions[-1].shape
-                assert img2_cropped.shape == img2_versions[-1].shape
-                img1_padded = img1_cropped
-                img2_padded = img2_cropped
+                for ch_idx in len(img_tuples):
+                    assert scaled_cropped_img_tuples[ch_idx].shape == allres_versions[ch_idx][-1].shape
+                    # assert img2_cropped.shape == img2_versions[-1].shape
+                    allres_versions[ch_idx].append(scaled_cropped_img_tuples[ch_idx])
 
             else:
-                h_max, w_max = img1_versions[-1].shape[1:]
-                assert img1_versions[-1].shape == img2_versions[-1].shape
+                h_max, w_max = allres_versions[0][-1].shape[1:]
                 padding = np.array([[0, 0], [h_start, h_max - h_end], [w_start, w_max - w_end]])
-                # mode=padding_mode, constant_values=constant_value
-                img1_padded = np.pad(img1_cropped, padding, **self._padding_kwargs)
-                img2_padded = np.pad(img2_cropped, padding, **self._padding_kwargs)
 
-                # img1_padded[:, h_start:h_end, w_start:w_end] = img1_cropped
-                # img2_padded[:, h_start:h_end, w_start:w_end] = img2_cropped
+                for ch_idx in range(len(img_tuples)):
+                    if ch_idx +1 < len(img_tuples):
+                        assert allres_versions[ch_idx + 1][-1].shape == allres_versions[ch_idx][-1].shape
+                    allres_versions[ch_idx].append(
+                        np.pad(scaled_cropped_img_tuples[ch_idx], padding, **self._padding_kwargs))
 
-            img1_versions.append(img1_padded)
-            img2_versions.append(img2_padded)
-
-        img1 = np.concatenate(img1_versions, axis=0)
-        img2 = np.concatenate(img2_versions, axis=0)
-        return img1, img2
+        output_img_tuples = tuple([np.concatenate(allres_versions[ch_idx]) for ch_idx in range(len(img_tuples))])
+        return output_img_tuples
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]):
-        img1, img2 = self._get_img(index)
+        img_tuples = self._get_img(index)
         assert self._enable_rotation is False
-        
-        if self._lowres_supervision:
-            target = np.concatenate([img1[:, None], img2[:, None]], axis=1)
-        else:
-            target = np.concatenate([img1[:1], img2[:1]], axis=0)
-        
-        if self._normalized_input:
-            img1, img2 = self.normalize_img(img1, img2)
 
-        inp = (0.5 * img1 + 0.5 * img2).astype(np.float32)
+        if self._lowres_supervision:
+            target = np.concatenate([img[:, None] for img in img_tuples], axis=1)
+        else:
+            target = np.concatenate([img[:1] for img in img_tuples], axis=0)
+
+        if self._normalized_input:
+            img_tuples = self.normalize_img(*img_tuples)
+
+        inp = 0
+        for img in img_tuples:
+            inp += img / (len(img_tuples))
+
+        inp = inp.astype(np.float32)
 
         if isinstance(index, int):
             return inp, target
+
         _, grid_size = index
         return inp, target, grid_size
