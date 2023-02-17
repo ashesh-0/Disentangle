@@ -3,6 +3,7 @@ from disentangle.core.custom_enum import Enum
 from czifile import imread as imread_czi
 import os
 import numpy as np
+from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
 
 
 class SubDatasetType:
@@ -35,7 +36,7 @@ def get_fnames(subdset_type):
             'Experiment-181-Airyscan Processing-58.czi',
             'Experiment-182-Airyscan Processing-60.czi',
             'Experiment-183-Airyscan Processing-62.czi',
-        ][:2]
+        ]
     elif subdset_type == SubDatasetType.ChannelA:
         return [
             'Experiment-124-Airyscan Processing-01.czi',
@@ -49,10 +50,10 @@ def get_fnames(subdset_type):
             'Experiment-134-Airyscan Processing-21.czi',
             'Experiment-135-Airyscan Processing-23.czi',
             'Experiment-136-Airyscan Processing-25.czi',
-        ][:2]
+        ]
     elif subdset_type == SubDatasetType.ChannelAeB:
         return [
-            # 'Experiment-140-Airyscan Processing-03.czi', # this has an issue. There is a straight line 
+            # 'Experiment-140-Airyscan Processing-03.czi', # this has an issue. There is a straight line
             # across which we see a clear change in intensity
             'Experiment-155-Airyscan Processing-06.czi',
             'Experiment-156-Airyscan Processing-12.czi',
@@ -77,7 +78,7 @@ def get_fnames(subdset_type):
             'Experiment-174-Airyscan Processing-43.czi',
             'Experiment-175-Airyscan Processing-45.czi',
             'Experiment-176-Airyscan Processing-47.czi',
-        ][:2]
+        ]
     else:
         raise ValueError("Invalid subdset_type:", subdset_type)
 
@@ -86,7 +87,6 @@ def load_czi(fpaths):
     imgs = []
     for fpath in fpaths:
         img = imread_czi(fpath)
-        print(fpath, img.shape)
         # the first dimension of img stored in imgs will have dim of 1, where the contenation will happen
         imgs.append(img)
     return imgs
@@ -101,4 +101,36 @@ def load_data(datadir, subset_dtype):
         assert data[i].shape[-1] == 1
         assert data[i].shape[0] == 1
         data[i] = data[i][0, ..., 0]
+    return data
+
+
+def concat_z(data):
+    data = np.concatenate(data, axis=1)[..., None]
+    # channel index should be the last.
+    data = np.swapaxes(data, 0, 4)
+    return data
+
+
+def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
+    dset_type = data_config.subdset_type
+    data = load_data(datadir, dset_type)
+
+    train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
+    if datasplit_type == DataSplitType.All:
+        data = concat_z(data).astype(np.float32)
+    elif datasplit_type == DataSplitType.Train:
+        print(train_idx)
+        data = concat_z([data[i] for i in train_idx]).astype(np.float32)
+    elif datasplit_type == DataSplitType.Val:
+        print(val_idx)
+        data = concat_z([data[i] for i in val_idx]).astype(np.float32)
+    elif datasplit_type == DataSplitType.Test:
+        print(test_idx)
+        data = concat_z([data[i] for i in test_idx]).astype(np.float32)
+    else:
+        raise Exception("invalid datasplit")
+
+    print(data[0].shape)
+    data = np.concatenate(data, axis=1)
+
     return data

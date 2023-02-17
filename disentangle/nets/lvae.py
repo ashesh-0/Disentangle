@@ -243,10 +243,14 @@ class LadderVAE(pl.LightningModule):
         # PSNR computation on validation.
         self.label1_psnr = RunningPSNR()
         self.label2_psnr = RunningPSNR()
-        print(f'[{self.__class__.__name__}] Enc [ResKSize{self.encoder_res_block_kernel}',
-              f'SkipPadding:{self.encoder_res_block_skip_padding}]',
-              f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]',
-              f'Stoc:{not self.non_stochastic_version}')
+
+        msg = f'[{self.__class__.__name__}] Enc [ResKSize{self.encoder_res_block_kernel}'
+        msg += f' SkipPadding:{self.encoder_res_block_skip_padding}]'
+        msg += f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]'
+        msg += f' Stoc:{not self.non_stochastic_version}'
+        if self.channel_1_w != 1 or self.channel_2_w != 1:
+            msg += f' Weighted Recons: Ch1:{self.channel_1_w} Ch2:{self.channel_2_w}'
+        print(msg)
 
     def create_final_topdown_layer(self, upsample):
 
@@ -392,9 +396,11 @@ class LadderVAE(pl.LightningModule):
             kl_weight = 1.0
         return kl_weight
 
-    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False,likelihood_obj=None):
-        output = self._get_reconstruction_loss_vector(reconstruction, input, return_predicted_img=return_predicted_img,
-        likelihood_obj=likelihood_obj)
+    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
+        output = self._get_reconstruction_loss_vector(reconstruction,
+                                                      input,
+                                                      return_predicted_img=return_predicted_img,
+                                                      likelihood_obj=likelihood_obj)
         loss_dict = output[0] if return_predicted_img else output
         loss_dict['loss'] = torch.mean(loss_dict['loss'])
         loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'])

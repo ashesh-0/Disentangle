@@ -11,6 +11,7 @@ from disentangle.data_loader.pavia2_rawdata_loader import get_train_val_data as 
 from disentangle.data_loader.pavia2_rawdata_loader import get_train_val_data_vanilla as _loadpavia2_vanilla
 
 from disentangle.data_loader.embl_semisup_rawdata_loader import get_train_val_data as _loadembl2_semisup
+from disentangle.data_loader.expansion_microscopy_raw_data import get_train_val_data as _loadexpansion_micr
 from typing import Union
 from disentangle.core.data_split_type import DataSplitType
 
@@ -62,13 +63,23 @@ def get_train_val_data(data_config,
     elif data_config.data_type == DataType.Pavia2:
         return _loadpavia2(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
     elif data_config.data_type == DataType.Pavia2VanillaSplitting:
-        return _loadpavia2_vanilla(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
+        return _loadpavia2_vanilla(fpath,
+                                   data_config,
+                                   datasplit_type,
+                                   val_fraction=val_fraction,
+                                   test_fraction=test_fraction)
+    elif data_config.data_type == DataType.ExpansionMicroscopyMitoTub:
+        return _loadexpansion_micr(fpath,
+                                   data_config,
+                                   datasplit_type,
+                                   val_fraction=val_fraction,
+                                   test_fraction=test_fraction)
     elif data_config.data_type == DataType.SemiSupBloodVesselsEMBL:
         return _loadembl2_semisup(fpath,
-                                    data_config,
-                                    datasplit_type,
-                                    val_fraction=val_fraction,
-                                    test_fraction=test_fraction)
+                                  data_config,
+                                  datasplit_type,
+                                  val_fraction=val_fraction,
+                                  test_fraction=test_fraction)
 
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')
