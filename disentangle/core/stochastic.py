@@ -21,6 +21,7 @@ class NormalStochasticBlock2d(nn.Module):
     same for p(z), then sample z ~ q(z) and return conv(z).
     If q's parameters are not given, do the same but sample from p(z).
     """
+
     def __init__(self, c_in: int, c_vars: int, c_out, kernel: int = 3, transform_p_params: bool = True):
         """
         Args:
@@ -154,7 +155,11 @@ class NormalStochasticBlock2d(nn.Module):
 
         q_mu = StableMean(q_mu)
         q_lv = StableLogVar(q_lv)
-        q = Normal(q_mu.get(), q_lv.get_std())
+        try:
+            q = Normal(q_mu.get(), q_lv.get_std())
+        except:
+            import pdb
+            pdb.set_trace()
         return q_mu, q_lv, q
 
     def forward(self,
