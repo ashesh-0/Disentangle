@@ -4,9 +4,15 @@ import torchvision.transforms.functional as F
 
 
 class StableLogVar:
-    def __init__(self, logvar, enable_stable=True):
+
+    def __init__(self, logvar, enable_stable=True, var_eps=1e-6):
+        """
+        Args:
+            var_eps: var() has this minimum value.
+        """
         self._lv = logvar
         self._enable_stable = enable_stable
+        self._eps = var_eps
 
     def get(self):
         if self._enable_stable is False:
@@ -17,7 +23,7 @@ class StableLogVar:
     def get_var(self):
         if self._enable_stable is False:
             return torch.exp(self._lv)
-        return StableExponential(self._lv).exp()
+        return StableExponential(self._lv).exp() + self._eps
 
     def get_std(self):
         return torch.sqrt(self.get_var())
@@ -30,7 +36,9 @@ class StableLogVar:
         assert diff > 0 and diff % 2 == 0
         self._lv = F.center_crop(self._lv, (size, size))
 
+
 class StableMean:
+
     def __init__(self, mean):
         self._mean = mean
 
