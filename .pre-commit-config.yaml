@@ -5,7 +5,7 @@ repos:
        name: formatting_yapf_isort
        description: "A formatter for Python files."
        entry: bash -c 'yapf "$@"; git add -u'
-       args: [ '--style={column_limit: 120}', -i]
+       args: [ --style=yapf_style.txt, -i]
        language: python
        types: [python]
 
