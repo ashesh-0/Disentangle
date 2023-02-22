@@ -49,6 +49,7 @@ def get_config():
     model.z_dims = [128, 128, 128, 128, 
     128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128]
 
+
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
