@@ -16,6 +16,7 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.core.sampler_type import SamplerType
+from disentangle.loss.contrastive_loss import ContrastiveLearninglossOnLatent
 from disentangle.loss.nbr_consistency_loss import NeighborConsistencyLoss
 from disentangle.losses import free_bits_kl
 from disentangle.metrics.running_psnr import RunningPSNR
@@ -102,6 +103,9 @@ class LadderVAE(pl.LightningModule):
         self.mixed_rec_w = 0
         self.enable_mixed_rec = False
         self.nbr_consistency_w = 0
+        # contrastive learning loss.
+        self._cl_loss = None
+
         if self.loss_type in [LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction]:
             self.mixed_rec_w = config.loss.mixed_rec_weight
             self.enable_mixed_rec = True
@@ -120,6 +124,17 @@ class LadderVAE(pl.LightningModule):
                 nbr_set_count=config.data.get('nbr_set_count', None),
                 focus_on_opposite_gradients=config.model.offset_prediction_focus_on_opposite_gradients)
 
+        elif self.loss_type == LossType.ElboCL:
+            # Contrastive learning loss.
+            # TODO: Figure out the logic for CL. This will be different.
+            tau_pos = config.loss.cl_tau_pos
+            tau_neg = config.loss.cl_tau_neg
+            self._cl_loss = ContrastiveLearninglossOnLatent(
+                {config.data.image_size // 2**(i + 1): self.cl_channels[i]
+                 for i in range(len(self.cl_channels))},
+                tau_pos,
+                tau_neg,
+            )
         self._global_step = 0
 
         # normalized_input: If input is normalized, then we don't normalize the input.
@@ -396,6 +411,44 @@ class LadderVAE(pl.LightningModule):
             kl_weight = 1.0
         return kl_weight
 
+    def contrastive_learning_loss(self,
+                                  latent_activations,
+                                  noise_levels,
+                                  ch_start=None,
+                                  ch_end=None,
+                                  tau_pos=None,
+                                  tau_neg=None):
+        loss_dict = self._cl_loss.forward(
+            latent_activations,
+            noise_levels,
+            ch_start=ch_start,
+            ch_end=ch_end,
+            tau_pos=tau_pos,
+            tau_neg=tau_neg,
+        )
+        return loss_dict
+
+    def get_contrastive_learning_loss(self,
+                                      latent_activations,
+                                      noise_levels,
+                                      ch_start=None,
+                                      ch_end=None,
+                                      tau_pos=None,
+                                      tau_neg=None):
+        cl_loss = 0
+        cl_loss_dict = self.contrastive_learning_loss(
+            latent_activations,
+            noise_levels,
+            ch_start=ch_start,
+            ch_end=ch_end,
+            tau_pos=tau_pos,
+            tau_neg=tau_neg,
+        )
+        for _, v in cl_loss_dict.items():
+            cl_loss += v
+        cl_loss = cl_loss / len(cl_loss_dict)
+        return cl_loss
+
     def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
         output = self._get_reconstruction_loss_vector(reconstruction,
                                                       input,
@@ -516,6 +569,7 @@ class LadderVAE(pl.LightningModule):
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         recons_loss = recons_loss_dict['loss']
+        cl_loss = 0
         if self.loss_type == LossType.ElboMixedReconstruction:
             recons_loss += self.mixed_rec_w * recons_loss_dict['mixed_loss']
             if enable_logging:
@@ -527,13 +581,16 @@ class LadderVAE(pl.LightningModule):
             # print(recons_loss, nbr_cons_loss)
             self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
             recons_loss += nbr_cons_loss
+        elif self.loss_type == LossType.ElboCL:
+            cl_loss = self.get_contrastive_learning_loss(td_data['q_mu'], noise_levels)
+            self.log('cl_loss', cl_loss, on_epoch=True)
 
         if self.non_stochastic_version:
             kl_loss = torch.Tensor([0.0]).cuda()
-            net_loss = recons_loss
+            net_loss = recons_loss + self.cl_weight * cl_loss
         else:
             kl_loss = self.get_kl_divergence_loss(td_data)
-            net_loss = recons_loss + self.get_kl_weight() * kl_loss
+            net_loss = recons_loss + self.get_kl_weight() * kl_loss + self.cl_weight * cl_loss
 
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):
