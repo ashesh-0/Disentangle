@@ -1,11 +1,13 @@
 from tkinter.tix import Tree
+
+import numpy as np
+
 from disentangle.configs.default_config import get_default_config
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
 from disentangle.data_loader.pavia2_enums import Pavia2DataSetChannels
-import numpy as np
 
 
 def get_config():
@@ -15,6 +17,8 @@ def get_config():
     data.data_type = DataType.Pavia2VanillaSplitting
     data.channel_1 = Pavia2DataSetChannels.NucRFP670
     data.channel_2 = Pavia2DataSetChannels.TUBULIN
+    data.ch1_min_scale_factor = 0.5
+    data.ch1_max_scale_factor = 0.95
     data.channel_2_downscale_factor = 1
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -24,10 +28,10 @@ def get_config():
     data.clip_percentile = 0.995
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
-    data.use_one_mu_std = True
+    data.use_one_mu_std = False
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 4
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.

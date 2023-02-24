@@ -1,12 +1,12 @@
-from typing import Tuple, Union
+from typing import List, Tuple, Union
 
 import albumentations as A
 import numpy as np
 
-from disentangle.core.data_type import DataType
-from disentangle.data_loader.train_val_data import get_train_val_data
 from disentangle.core.data_split_type import DataSplitType
-from disentangle.data_loader.patch_index_manager import GridIndexManager, GridAlignement
+from disentangle.core.data_type import DataType
+from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+from disentangle.data_loader.train_val_data import get_train_val_data
 
 
 class MultiChDeterministicTiffDloader:
@@ -273,6 +273,17 @@ class MultiChDeterministicTiffDloader:
         cropped_img_tuples = self._crop_imgs(index, *img_tuples)[:-1]
         return cropped_img_tuples
 
+    def _compute_input(self, img_tuples):
+        if self._normalized_input:
+            img_tuples = self.normalize_img(*img_tuples)
+
+        inp = 0
+        for i, img in enumerate(img_tuples):
+            inp += img / (len(img_tuples))
+
+        inp = inp.astype(np.float32)
+        return inp
+
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         img_tuples = self._get_img(index)
         if self._enable_rotation:
@@ -283,14 +294,7 @@ class MultiChDeterministicTiffDloader:
             img2 = rot_dic['mask'][None]
 
         target = np.concatenate(img_tuples, axis=0)
-        if self._normalized_input:
-            img_tuples = self.normalize_img(*img_tuples)
-
-        inp = 0
-        for img in img_tuples:
-            inp += img / (len(img_tuples))
-
-        inp = inp.astype(np.float32)
+        inp = self._compute_input(img_tuples)
 
         if isinstance(index, int):
             return inp, target
