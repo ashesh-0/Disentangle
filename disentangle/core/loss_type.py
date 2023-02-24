@@ -8,3 +8,4 @@ class LossType:
     MSE = 3
     ElboWithNbrConsistency = 4
     ElboSemiSupMixedReconstruction = 5
+    ElboCL = 6

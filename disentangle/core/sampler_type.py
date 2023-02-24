@@ -6,3 +6,4 @@ class SamplerType(Enum):
     RandomSampler = 1
     SingleImgSampler = 2
     NeighborSampler = 3
+    ContrastiveSampler = 4
