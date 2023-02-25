@@ -18,30 +18,30 @@ class LevelIndexIterator:
 
 class ContrastiveSampler(Sampler):
     """
-    It ensures that in most batches there are exactly 2 images with same level of structural noise.
+    It ensures that in a batch there are exactly 2 images with same level of overlap.
     Note that it is not always true due to:
     1. If number of noise levels is less than half of the batch size, then it is not possible.
     2. In the last few batches, it may not be true.
     """
 
-    def __init__(self, dataset, data_size, noise_levels, batch_size) -> None:
+    def __init__(self, dataset, data_size, ch1_alpha_interval_count, batch_size) -> None:
         super().__init__(dataset)
         self._dset = dataset
         self._N = data_size
-        self._noise_levels = noise_levels
-        self._noise_N = len(self._noise_levels)
+        self._class_N = ch1_alpha_interval_count
         self._batch_N = batch_size
         assert batch_size % 2 == 0
         self.idx = None
         self.batches_levels = None
         self.level_iters = None
-        print(f'[{self.__class__.__name__}] Noise levels:{self._noise_levels}')
+        print(f'[{self.__class__.__name__}] Noise levels:{self._alpha_class}')
 
     def __iter__(self):
         self.init()
-
+        # We want to pick a patch from any position. so grid_size is 1
+        grid_size = 1
         self.level_iters = []
-        for _ in range(self._noise_N):
+        for _ in range(self._class_N):
             idx = self.idx.copy()
             np.random.shuffle(idx)
             self.level_iters.append(LevelIndexIterator(idx))
@@ -51,22 +51,22 @@ class ContrastiveSampler(Sampler):
             for level_idx in one_batch_levels:
                 # two same level idx
                 data_idx = self.level_iters[level_idx].next()
-                batch_data_idx.append(self._dset.get_index(data_idx, level_idx))
+                batch_data_idx.append((data_idx, grid_size, level_idx))
                 data_idx = self.level_iters[level_idx].next()
-                batch_data_idx.append(self._dset.get_index(data_idx, level_idx))
+                batch_data_idx.append((data_idx, grid_size, level_idx))
             yield batch_data_idx
 
     def init(self):
         self.batches_levels = []
-        total_size = self._N * self._noise_N
+        total_size = self._N * self._class_N
         num_batches = int(np.ceil(total_size / self._batch_N))
         for _ in range(num_batches):
-            if self._noise_N >= self._batch_N / 2:
-                levels = np.random.choice(np.arange(self._noise_N), size=self._batch_N // 2, replace=False)
+            if self._class_N >= self._batch_N / 2:
+                levels = np.random.choice(np.arange(self._class_N), size=self._batch_N // 2, replace=False)
             else:
-                levels = np.random.choice(np.arange(self._noise_N), size=self._batch_N // 2, replace=True)
+                levels = np.random.choice(np.arange(self._class_N), size=self._batch_N // 2, replace=True)
                 while len(np.unique(levels)) == 1:
-                    levels = np.random.choice(np.arange(self._noise_N), size=self._batch_N // 2, replace=True)
+                    levels = np.random.choice(np.arange(self._class_N), size=self._batch_N // 2, replace=True)
 
             self.batches_levels.append(levels)
 
