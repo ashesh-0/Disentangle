@@ -15,60 +15,115 @@ class LevelIndexIterator:
         self._cur_position = self._cur_position % self._N
         return self._index_list[output_pos]
 
+    def next_k(self, N):
+        return [self.next() for _ in range(N)]
+
 
 class ContrastiveSampler(Sampler):
-    """
-    It ensures that in a batch there are exactly 2 images with same level of overlap.
-    Note that it is not always true due to:
-    1. If number of noise levels is less than half of the batch size, then it is not possible.
-    2. In the last few batches, it may not be true.
-    """
+    INVALID = -955
 
     def __init__(self, dataset, data_size, ch1_alpha_interval_count, batch_size) -> None:
         super().__init__(dataset)
         self._dset = dataset
         self._N = data_size
-        self._class_N = ch1_alpha_interval_count
+        self._alpha_class_N = ch1_alpha_interval_count
         self._batch_N = batch_size
         assert batch_size % 2 == 0
-        self.idx = None
-        self.batches_levels = None
+        # We'll be using grid_size of 1, this allows us to pick from any random location in the frame. However,
+        # as far as one epoch is concerned, we'll use data_size. So, values in self.idx will be much larger than
+        # self._N
+        self._grid_size = 1
+        self.idx = np.arange(self._dset.idx_manager.grid_count(grid_size=self._grid_size))
+        self.batches_idx_list = None
         self.level_iters = None
-        print(f'[{self.__class__.__name__}] Noise levels:{self._alpha_class}')
+        print(f'[{self.__class__.__name__}] Alpha class count:{self._alpha_class_N}')
 
     def __iter__(self):
+        """
+        3 attributes are present. 
+        32
+        16 pairs => alpha is same. 
+        0-1
+        2-3
+        4-5
+        ...
+        16 pairs => ch1 is same. 
+        1-2
+        3-4
+        5-6
+        7-8
+        ...
+        31-0
+        15 pairs => ch2 is same.
+        0-3
+        2-5
+        ...
+        """
         self.init()
-        # We want to pick a patch from any position. so grid_size is 1
-        grid_size = 1
-        self.level_iters = []
-        for _ in range(self._class_N):
-            idx = self.idx.copy()
-            np.random.shuffle(idx)
-            self.level_iters.append(LevelIndexIterator(idx))
+        for one_batch_idx in self.batches_idx_list:
+            alpha_idx_list, ch1_idx_list, ch2_idx_list = one_batch_idx
 
-        for one_batch_levels in self.batches_levels:
-            batch_data_idx = []
-            for level_idx in one_batch_levels:
-                # two same level idx
-                data_idx = self.level_iters[level_idx].next()
-                batch_data_idx.append((data_idx, grid_size, level_idx))
-                data_idx = self.level_iters[level_idx].next()
-                batch_data_idx.append((data_idx, grid_size, level_idx))
+            # 4 channels: ch1_idx, ch2_idx, grid_size, alpha_idx
+            batch_data_idx = np.ones((self._batch_N, 4), dtype=np.int32) * self.INVALID
+            # grid size will always be 1.
+            batch_data_idx[:, 2] = self._grid_size
+
+            # Set alpha indices appropriately.
+            for idx in range(0, self._batch_N // 2):
+                batch_data_idx[2 * idx, 3] = alpha_idx_list[idx]
+                batch_data_idx[2 * idx + 1, 3] = alpha_idx_list[idx]
+
+            # Set ch1 indices
+            for idx in range(0, self._batch_N // 2 - 1):
+                batch_data_idx[2 * idx + 1, 0] = ch1_idx_list[idx]
+                batch_data_idx[2 * idx + 2, 0] = ch1_idx_list[idx]
+
+            batch_data_idx[0, 0] = ch1_idx_list[-1]
+            batch_data_idx[-1, 0] = ch1_idx_list[-1]
+
+            # Set ch2 indices
+            for idx in range(0, self._batch_N // 2 - 1):
+                batch_data_idx[2 * idx, 1] = ch2_idx_list[idx]
+                batch_data_idx[2 * idx + 3, 1] = ch2_idx_list[idx]
+
+            batch_data_idx[1, 1] = ch2_idx_list[-1]
+            batch_data_idx[-2, 1] = ch2_idx_list[-1]
+
+            assert (batch_data_idx == self.INVALID).any() == False
             yield batch_data_idx
 
     def init(self):
-        self.batches_levels = []
-        total_size = self._N * self._class_N
+        self.batches_idx_list = []
+        total_size = self._N * self._alpha_class_N
         num_batches = int(np.ceil(total_size / self._batch_N))
-        for _ in range(num_batches):
-            if self._class_N >= self._batch_N / 2:
-                levels = np.random.choice(np.arange(self._class_N), size=self._batch_N // 2, replace=False)
-            else:
-                levels = np.random.choice(np.arange(self._class_N), size=self._batch_N // 2, replace=True)
-                while len(np.unique(levels)) == 1:
-                    levels = np.random.choice(np.arange(self._class_N), size=self._batch_N // 2, replace=True)
+        idx = self.idx.copy()
+        np.random.shuffle(idx)
+        self.ch1_idx_iterator = LevelIndexIterator(idx)
 
-            self.batches_levels.append(levels)
+        idx = self.idx.copy()
+        np.random.shuffle(idx)
+        self.ch2_idx_iterator = LevelIndexIterator(idx)
+
+        for _ in range(num_batches):
+            if self._alpha_class_N >= self._batch_N / 2:
+                alpha_idx = np.random.choice(np.arange(self._alpha_class_N), size=self._batch_N // 2, replace=False)
+            else:
+                alpha_idx = np.random.choice(np.arange(self._alpha_class_N), size=self._batch_N // 2, replace=True)
+                while len(np.unique(alpha_idx)) == 1:
+                    alpha_idx = np.random.choice(np.arange(self._alpha_class_N), size=self._batch_N // 2, replace=True)
+
+            ch1_idx = self.ch1_idx_iterator.next_k(self._batch_N // 2)
+            ch2_idx = self.ch2_idx_iterator.next_k(self._batch_N // 2)
+            self.batches_idx_list.append((alpha_idx, ch1_idx, ch2_idx))
 
         self.idx = np.arange(self._N)
         np.random.shuffle(self.idx)
+
+
+if __name__ == '__main__':
+    ch1_alpha_interval_count = 30
+    data_size = 1000
+    batch_size = 32
+    sampler = ContrastiveSampler(None, data_size, ch1_alpha_interval_count, batch_size)
+    for batch in sampler:
+        break

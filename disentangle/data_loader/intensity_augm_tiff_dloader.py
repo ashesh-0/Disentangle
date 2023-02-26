@@ -35,7 +35,7 @@ class AlphaClasses:
         self._maxv = maxv
         step = (self._maxv - self._minv) / nintervals
         self._intervals = []
-        for minv_class in range(self._minv, self._maxv + 1e-5, step):
+        for minv_class in np.arange(self._minv, self._maxv + 1e-5, step):
             self._intervals.append(Interval(minv_class, minv_class + step))
 
     def class_ids(self):
@@ -132,7 +132,6 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
                  enable_random_cropping: bool = False,
                  use_one_mu_std=None,
                  allow_generation=False,
-                 intensity_scaling_augmentation_list: Union[List[int], None] = None,
                  max_val=None):
         super().__init__(data_config,
                          fpath,
@@ -153,14 +152,14 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
         assert alpha is not None
         return self._compute_input_with_alpha(img_tuples, alpha), alpha_class_idx
 
-    def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
-        data_idx, grid_size, alpha_class_idx = index
-        index = (data_idx, grid_size)
-        img_tuples = self._get_img(index)
+    def __getitem__(self, index: Union[int, Tuple[int, int, int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+        ch1_idx, ch2_idx, grid_size, alpha_class_idx = index
+        index1 = (ch1_idx, grid_size)
+        img1_tuples = self._get_img(index1)
+        index2 = (ch2_idx, grid_size)
+        img2_tuples = self._get_img(index2)
+
         assert self._enable_rotation is False
-
+        img_tuples = (img1_tuples[0], img2_tuples[1])
         inp, _ = self._compute_input(img_tuples, alpha_class_idx=alpha_class_idx)
-
-        assert isinstance(index, tuple)
-        data_idx, _ = index
-        return inp, alpha_class_idx, data_idx
+        return inp, alpha_class_idx, ch1_idx, ch2_idx

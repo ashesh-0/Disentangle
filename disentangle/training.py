@@ -12,26 +12,75 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from torch.utils.data import DataLoader
 
+from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
-from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.model_type import ModelType
+from disentangle.data_loader.intensity_augm_tiff_dloader import IntensityAugCLTiffDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
 from disentangle.data_loader.multi_channel_tiff_dloader import MultiChTiffDloader
 from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
+from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
 from disentangle.data_loader.places_dloader import PlacesLoader
+from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
+from disentangle.data_loader.single_channel.multi_dataset_dloader import SingleChannelMultiDatasetDloader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
-from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
-from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
-from disentangle.data_loader.single_channel.multi_dataset_dloader import SingleChannelMultiDatasetDloader
 
 
 def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False):
-    if config.data.data_type == DataType.NotMNIST:
+    if config.model.model_type == ModelType.LadderVaeCL:
+        normalized_input = config.data.normalized_input
+        use_one_mu_std = config.data.use_one_mu_std
+        train_aug_rotate = config.data.train_aug_rotate
+        enable_random_cropping = config.data.deterministic_grid is False
+        lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
+        if config.data.data_type == DataType.OptiMEM100_014:
+            datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
+
+        if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
+            raise NotImplementedError("LC needs to be integrated with contrastive learning")
+        else:
+            train_data_kwargs = {'allow_generation': True}
+            val_data_kwargs = {'allow_generation': False}
+
+            train_data_kwargs['enable_random_cropping'] = enable_random_cropping
+            val_data_kwargs['enable_random_cropping'] = False
+
+            train_data = None if skip_train_dataset else IntensityAugCLTiffDloader(
+                config.data,
+                datapath,
+                datasplit_type=DataSplitType.Train,
+                val_fraction=config.training.val_fraction,
+                test_fraction=config.training.test_fraction,
+                normalized_input=normalized_input,
+                use_one_mu_std=use_one_mu_std,
+                enable_rotation_aug=train_aug_rotate,
+                **train_data_kwargs)
+
+            max_val = train_data.get_max_val()
+            val_data = IntensityAugCLTiffDloader(
+                config.data,
+                datapath,
+                datasplit_type=DataSplitType.Val,
+                val_fraction=config.training.val_fraction,
+                test_fraction=config.training.test_fraction,
+                normalized_input=normalized_input,
+                use_one_mu_std=use_one_mu_std,
+                enable_rotation_aug=False,  # No rotation aug on validation
+                max_val=max_val,
+                **val_data_kwargs,
+            )
+
+        # For normalizing, we should be using the training data's mean and std.
+        mean_val, std_val = train_data.compute_mean_std()
+        train_data.set_mean_std(mean_val, std_val)
+        val_data.set_mean_std(mean_val, std_val)
+
+    elif config.data.data_type == DataType.NotMNIST:
         train_img_files_pkl = os.path.join(datadir, 'train_fnames.pkl')
         val_img_files_pkl = os.path.join(datadir, 'val_fnames.pkl')
 
