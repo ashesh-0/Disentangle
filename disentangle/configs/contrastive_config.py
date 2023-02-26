@@ -15,8 +15,8 @@ def get_config():
     data = config.data
     data.image_size = 128
     data.data_type = DataType.OptiMEM100_014
-    data.channel_1 = 2
-    data.channel_2 = 3
+    data.channel_1 = 0
+    data.channel_2 = 2
 
     data.ch1_min_alpha = 0.3
     data.ch1_max_alpha = 0.9
