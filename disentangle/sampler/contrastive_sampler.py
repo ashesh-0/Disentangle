@@ -116,7 +116,7 @@ class ContrastiveSampler(Sampler):
 
     def init(self):
         self.batches_idx_list = []
-        total_size = self._N * self._alpha_class_N
+        total_size = self._N
         num_batches = int(np.ceil(total_size / self._batch_N))
         idx = self.idx.copy()
         np.random.shuffle(idx)

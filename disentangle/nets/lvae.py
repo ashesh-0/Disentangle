@@ -1,6 +1,8 @@
 """
 Ladder VAE. Adapted from from https://github.com/juglab/HDN/blob/main/models/lvae.py
 """
+from typing import List
+
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -642,6 +644,10 @@ class LadderVAE(pl.LightningModule):
         self.log('val_psnr', psnr, on_epoch=True)
         self.label1_psnr.reset()
         self.label2_psnr.reset()
+
+    def decode(self, z: List[torch.Tensor]):
+        out, td_data = self.topdown_pass(None, n_img_prior=1, forced_latent=z)
+        return out, td_data
 
     def forward(self, x):
         img_size = x.size()[2:]

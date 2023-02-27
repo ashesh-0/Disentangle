@@ -2,16 +2,16 @@
 Taken from https://github.com/juglab/HDN/blob/main/models/lvae_layers.py
 """
 from copy import deepcopy
-from typing import Union, Tuple
+from typing import Tuple, Union
 
 import torch
-from torch import nn
 import torchvision.transforms.functional as F
+from torch import nn
 
 from disentangle.core.data_utils import crop_img_tensor, pad_img_tensor
 from disentangle.core.nn_submodules import ResidualBlock, ResidualGatedBlock
-from disentangle.core.stochastic import NormalStochasticBlock2d
 from disentangle.core.non_stochastic import NonStochasticBlock2d
+from disentangle.core.stochastic import NormalStochasticBlock2d
 
 
 class TopDownLayer(nn.Module):
@@ -284,7 +284,7 @@ class TopDownLayer(nn.Module):
         # depending on whether q_params is None
 
         # This is done, purely for stablity. See Very deep VAEs generalize autoregressive models.
-        if self.normalize_latent_factor:
+        if self.normalize_latent_factor and q_params is not None:
             q_params = q_params / self.normalize_latent_factor
 
         x, data_stoch = self.stochastic(p_params=p_params,

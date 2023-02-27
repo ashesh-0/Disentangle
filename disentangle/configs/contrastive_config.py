@@ -18,9 +18,9 @@ def get_config():
     data.channel_1 = 0
     data.channel_2 = 2
 
-    data.ch1_min_alpha = 0.3
-    data.ch1_max_alpha = 0.9
-    data.ch1_alpha_interval_count = 10
+    data.ch1_min_alpha = 0.01
+    data.ch1_max_alpha = 0.99
+    data.ch1_alpha_interval_count = 20
     # data.channel_2_downscale_factor = 1
 
     data.sampler_type = SamplerType.ContrastiveSampler
@@ -42,9 +42,9 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.cl_tau_pos = 0.01
+    loss.cl_tau_pos = 0.005
     loss.cl_tau_neg = 0.5
-    loss.cl_weight = 0.5
+    loss.cl_weight = 1
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -93,7 +93,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     model.non_stochastic_version = False
-    model.cl_latent_start_end_alpha = (0, 4)
+    model.cl_latent_start_end_alpha = (0, 2)
     diff = model.z_dims[0] - model.cl_latent_start_end_alpha[1]
     model.cl_latent_start_end_ch1 = (model.cl_latent_start_end_alpha[1], model.cl_latent_start_end_alpha[1] + diff // 2)
     model.cl_latent_start_end_ch2 = (model.cl_latent_start_end_ch1[1], model.z_dims[0])
@@ -102,7 +102,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 30
     training.max_epochs = 400
-    training.batch_size = 16
+    training.batch_size = 64
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
