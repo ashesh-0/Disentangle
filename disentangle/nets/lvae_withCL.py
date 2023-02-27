@@ -203,7 +203,7 @@ class LadderVAEwithCL(LadderVAE):
             all_samples = all_samples * self.data_std + self.data_mean
             all_samples = all_samples.cpu()
             img_mmse = torch.mean(all_samples, dim=0)[0]
-            self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
+            self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], inp[0, 0, ...], img_mmse[0], 'label1')
 
         # return net_loss
 
