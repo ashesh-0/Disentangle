@@ -19,6 +19,28 @@ class LevelIndexIterator:
         return [self.next() for _ in range(N)]
 
 
+class ContrastiveSamplerValSet(Sampler):
+
+    def __init__(self, dataset, grid_size, batch_size, fixed_alpha=-1) -> None:
+        super().__init__(dataset)
+        # In validation, we just look at the cases which we'll find in the test case. alpha=0.5 is that case. This corresponds to the -1 class.
+        self._alpha = fixed_alpha
+        self._N = len(dataset)
+        self._batch_N = batch_size
+        self._grid_size = grid_size
+
+    def __iter__(self):
+        num_batches = int(np.ceil(self._N / self._batch_N))
+        for batch_idx in range(num_batches):
+            # 4 channels: ch1_idx, ch2_idx, grid_size, alpha_idx
+            batch_data_idx = np.ones((self._batch_N, 4), dtype=np.int32) * self.INVALID
+            batch_data_idx[:, 0] = np.arange(batch_idx * self._batch_N, (batch_idx + 1) * self._batch_N)
+            batch_data_idx[:, 1] = batch_data_idx[:, 0]
+            batch_data_idx[:, 2] = self._grid_size
+            batch_data_idx[:, 3] = self._alpha
+            yield batch_data_idx
+
+
 class ContrastiveSampler(Sampler):
     INVALID = -955
 

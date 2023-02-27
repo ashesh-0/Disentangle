@@ -11,7 +11,6 @@ The extra content on the right side will not be used( as shown below).
 .-----------.-.
 
 """
-from tkinter import Grid
 from disentangle.core.custom_enum import Enum
 
 

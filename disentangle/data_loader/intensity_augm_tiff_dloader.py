@@ -148,7 +148,12 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
             Our custom sampler will provide index with single grid_size"
 
     def _compute_input(self, img_tuples, alpha_class_idx):
-        alpha, alpha_class_idx = self._sample_alpha(alpha_class_idx=alpha_class_idx)
+        if alpha_class_idx == -1:
+            # alpha=0.5 is the solution.
+            alpha = 0.5
+        else:
+            alpha, alpha_class_idx = self._sample_alpha(alpha_class_idx=alpha_class_idx)
+
         assert alpha is not None
         return self._compute_input_with_alpha(img_tuples, alpha), alpha_class_idx
 
