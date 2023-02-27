@@ -20,6 +20,7 @@ class LevelIndexIterator:
 
 
 class ContrastiveSamplerValSet(Sampler):
+    INVALID = -955
 
     def __init__(self, dataset, grid_size, batch_size, fixed_alpha=-1) -> None:
         super().__init__(dataset)

@@ -22,6 +22,7 @@ class LadderVAEwithCL(LadderVAE):
         self._cl_latent_start_end_ch2 = config.model.cl_latent_start_end_ch2
         self.cl_channels = config.model.z_dims
         self.cl_weight = config.loss.cl_weight
+        self._skip_cl_on_alpha = config.loss.skip_cl_on_alpha
 
         self._cl_loss = ContrastiveLearninglossOnLatent(
             {config.data.image_size // 2**(i + 1): self.cl_channels[i]
@@ -115,10 +116,13 @@ class LadderVAEwithCL(LadderVAE):
         def to_mu_dic(val):
             return {z.shape[-1]: val for z in q_mu}
 
-        cl_loss_alpha = self.get_contrastive_learning_loss(q_mu,
-                                                           alpha_class_idx,
-                                                           ch_start=to_mu_dic(alpha_ch_start),
-                                                           ch_end=to_mu_dic(alpha_ch_end))
+        if self._skip_cl_on_alpha:
+            cl_loss_alpha = 0.0
+        else:
+            cl_loss_alpha = self.get_contrastive_learning_loss(q_mu,
+                                                               alpha_class_idx,
+                                                               ch_start=to_mu_dic(alpha_ch_start),
+                                                               ch_end=to_mu_dic(alpha_ch_end))
 
         ch1_start, ch1_end = self._cl_latent_start_end_ch1
         cl_loss_ch1 = self.get_contrastive_learning_loss(q_mu,

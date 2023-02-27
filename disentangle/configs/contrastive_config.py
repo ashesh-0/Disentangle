@@ -18,9 +18,9 @@ def get_config():
     data.channel_1 = 0
     data.channel_2 = 2
 
-    data.ch1_min_alpha = 0.01
-    data.ch1_max_alpha = 0.99
-    data.ch1_alpha_interval_count = 20
+    data.ch1_min_alpha = 0.48
+    data.ch1_max_alpha = 0.52
+    data.ch1_alpha_interval_count = 1
     # data.channel_2_downscale_factor = 1
 
     data.sampler_type = SamplerType.ContrastiveSampler
@@ -54,6 +54,7 @@ def get_config():
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
     loss.lres_recloss_w = [0.4, 0.2, 0.2, 0.2]
+    loss.skip_cl_on_alpha = True
 
     model = config.model
     model.model_type = ModelType.LadderVaeCL
