@@ -132,7 +132,8 @@ class ContrastiveSampler(Sampler):
                 alpha_idx = np.random.choice(np.arange(self._alpha_class_N), size=self._batch_N // 2, replace=False)
             else:
                 alpha_idx = np.random.choice(np.arange(self._alpha_class_N), size=self._batch_N // 2, replace=True)
-                while len(np.unique(alpha_idx)) == 1:
+
+                while len(np.unique(alpha_idx)) == 1 and self._alpha_class_N > 1:
                     alpha_idx = np.random.choice(np.arange(self._alpha_class_N), size=self._batch_N // 2, replace=True)
 
             ch1_idx = self.ch1_idx_iterator.next_k(self._batch_N // 2)
@@ -144,9 +145,19 @@ class ContrastiveSampler(Sampler):
 
 
 if __name__ == '__main__':
+    from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+    grid_size = 1
+    patch_size = 64
+    grid_alignment = GridAlignement.LeftTop
+
+    class DummyDset:
+
+        def __init__(self) -> None:
+            self.idx_manager = GridIndexManager((6, 2400, 2400, 2), grid_size, patch_size, grid_alignment)
+
     ch1_alpha_interval_count = 30
     data_size = 1000
     batch_size = 32
-    sampler = ContrastiveSampler(None, data_size, ch1_alpha_interval_count, batch_size)
+    sampler = ContrastiveSampler(DummyDset(), data_size, ch1_alpha_interval_count, batch_size)
     for batch in sampler:
         break
