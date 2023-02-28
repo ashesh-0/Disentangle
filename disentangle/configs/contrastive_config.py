@@ -18,8 +18,8 @@ def get_config():
     data.channel_1 = 0
     data.channel_2 = 2
 
-    data.ch1_min_alpha = 0.98
-    data.ch1_max_alpha = 0.02
+    data.ch1_min_alpha = 0.49
+    data.ch1_max_alpha = 0.51
     data.ch1_alpha_interval_count = 20
     # data.channel_2_downscale_factor = 1
 
@@ -53,7 +53,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.skip_cl_on_alpha = False
+    loss.skip_cl_on_alpha = True
 
     model = config.model
     model.model_type = ModelType.LadderVaeCL
