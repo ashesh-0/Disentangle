@@ -18,9 +18,9 @@ def get_config():
     data.channel_1 = 0
     data.channel_2 = 2
 
-    data.ch1_min_alpha = 0.02
-    data.ch1_max_alpha = 0.98
-    data.ch1_alpha_interval_count = 20
+    data.ch1_min_alpha = 0.48
+    data.ch1_max_alpha = 0.52
+    data.ch1_alpha_interval_count = 1
     # data.channel_2_downscale_factor = 1
 
     data.sampler_type = SamplerType.ContrastiveSampler
