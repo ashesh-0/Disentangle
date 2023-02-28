@@ -167,4 +167,5 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
         assert self._enable_rotation is False
         img_tuples = (img1_tuples[0], img2_tuples[1])
         inp, _ = self._compute_input(img_tuples, alpha_class_idx=alpha_class_idx)
+
         return inp, alpha_class_idx, ch1_idx, ch2_idx

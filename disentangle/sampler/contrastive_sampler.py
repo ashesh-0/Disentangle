@@ -33,9 +33,11 @@ class ContrastiveSamplerValSet(Sampler):
     def __iter__(self):
         num_batches = int(np.ceil(self._N / self._batch_N))
         for batch_idx in range(num_batches):
+            start_idx = batch_idx * self._batch_N
+            end_idx = min((batch_idx + 1) * self._batch_N, self._N)
             # 4 channels: ch1_idx, ch2_idx, grid_size, alpha_idx
-            batch_data_idx = np.ones((self._batch_N, 4), dtype=np.int32) * self.INVALID
-            batch_data_idx[:, 0] = np.arange(batch_idx * self._batch_N, (batch_idx + 1) * self._batch_N)
+            batch_data_idx = np.ones((end_idx - start_idx, 4), dtype=np.int32) * self.INVALID
+            batch_data_idx[:, 0] = np.arange(start_idx, end_idx)
             batch_data_idx[:, 1] = batch_data_idx[:, 0]
             batch_data_idx[:, 2] = self._grid_size
             batch_data_idx[:, 3] = self._alpha
