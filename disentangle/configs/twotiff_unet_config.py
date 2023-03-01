@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 512
+    data.image_size = 64
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
@@ -39,6 +39,10 @@ def get_config():
     model = config.model
     model.model_type = ModelType.UNet
     model.n_levels = 5
+    model.init_channel_count = 64
+    model.enable_context_transfer = True
+    model.context_transfer_initial_weight_factor = 0
+    model.multiscale_lowres_separate_branch = False
     model.monitor = 'val_psnr'
 
     training = config.training
