@@ -128,7 +128,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
             h_end = h_start + scaled_cropped_img_tuples[0].shape[1]
             w_end = w_start + scaled_cropped_img_tuples[0].shape[2]
             if self.enable_padding_while_cropping:
-                for ch_idx in len(img_tuples):
+                for ch_idx in range(len(img_tuples)):
                     assert scaled_cropped_img_tuples[ch_idx].shape == allres_versions[ch_idx][-1].shape
                     # assert img2_cropped.shape == img2_versions[-1].shape
                     allres_versions[ch_idx].append(scaled_cropped_img_tuples[ch_idx])
@@ -138,7 +138,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
                 padding = np.array([[0, 0], [h_start, h_max - h_end], [w_start, w_max - w_end]])
 
                 for ch_idx in range(len(img_tuples)):
-                    if ch_idx +1 < len(img_tuples):
+                    if ch_idx + 1 < len(img_tuples):
                         assert allres_versions[ch_idx + 1][-1].shape == allres_versions[ch_idx][-1].shape
                     allres_versions[ch_idx].append(
                         np.pad(scaled_cropped_img_tuples[ch_idx], padding, **self._padding_kwargs))
