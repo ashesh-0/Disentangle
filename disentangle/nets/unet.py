@@ -1,18 +1,20 @@
 """ 
 Adapted from https://github.com/milesial/Pytorch-UNet/blob/master/unet/unet_model.py
 """
-import wandb
-from disentangle.nets.unet_parts import *
+from copy import deepcopy
+
+import numpy as np
 import pytorch_lightning as pl
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
-import numpy as np
+import wandb
+
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.metrics.running_psnr import RunningPSNR
 from disentangle.nets.context_transfer_module import ContextTransferModule
 from disentangle.nets.lvae_layers import BottomUpDeterministicResBlock, MergeLowRes
-import torch.nn.functional as F
-from copy import deepcopy
+from disentangle.nets.unet_parts import *
 
 
 class UNet(pl.LightningModule):
@@ -66,7 +68,9 @@ class UNet(pl.LightningModule):
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
         self.label1_psnr = RunningPSNR()
         self.label2_psnr = RunningPSNR()
-        print(f'[{self.__class__.__name__}] ContextTransfer:{self.enable_context_transfer} SepBranch:{self.multiscale_lowres_separate_branch}')
+        print(
+            f'[{self.__class__.__name__}] ContextTransfer:{self.enable_context_transfer} SepBranch:{self.multiscale_lowres_separate_branch}'
+        )
 
     def _init_multires(self, config, init_n_filters):
         """
@@ -153,13 +157,13 @@ class UNet(pl.LightningModule):
                 lowres_x = self.lowres_first_bottom_ups[i - 1](x[:, i:i + 1])
                 # lowres_net = getattr(self, f'down{i}')
                 # lowres_net = lowres_net.maxpool_conv[1]  # skipping the maxpool
-                lowres_flow = self.lowres_net[i-1](lowres_x)
+                lowres_flow = self.lowres_net[i - 1](lowres_x)
                 x_end = self.lowres_merge[i - 1](x_end, lowres_flow)
 
             latents.append(x_end)
 
         if self.enable_context_transfer:
-            for i in range(len(latents)):
+            for i in range(len(latents) - 1):
                 latents[i] = self.ct_modules[i](latents[i])
 
         for i in range(1, self.n_levels + 1):
