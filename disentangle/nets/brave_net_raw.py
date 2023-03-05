@@ -3,13 +3,15 @@ This file defines the unet architecture.
 """
 
 import numpy as np
-import torch.nn as nn
 import torch
+import torch.nn as nn
 
 
 def get_activation(activation_str):
     if activation_str == 'relu':
         return nn.ReLU()
+    elif activation_str is None:
+        return None
     else:
         raise Exception('Invalid activation string:', activation_str)
 
@@ -86,7 +88,9 @@ def convolution_layer(in_channels,
                       bn=True):
     branch = []
     branch.append(nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding))
-    branch.append(get_activation(activation))
+    nonlin = get_activation(activation)
+    if nonlin is not None:
+        branch.append(nonlin)
     if bn:
         branch.append(nn.BatchNorm2d(out_channels))
     if dropout > 0:
@@ -125,7 +129,8 @@ def up_scale_path(num_kernels, kernel_size, strides, padding, activation, dropou
 
 
 class BraveNet(nn.Module):
-    def __init__(self, num_kernels, kernel_size, strides, padding, activation, dropout, bn):
+
+    def __init__(self, num_kernels, kernel_size, strides, padding, activation, dropout, bn, final_activation):
         super().__init__()
         self.num_kernels = num_kernels
         self.input_bn = nn.BatchNorm2d(1)
@@ -137,7 +142,6 @@ class BraveNet(nn.Module):
 
         # Merging bu layer output with lowres bu layer output
         self.merge_block = merge_conv_block(num_kernels[-1])
-        final_activation = 'relu'
         self.lowres_output_branches = lowres_output_branches(num_kernels, final_activation, dropout)
         self.output_branch = convolution_layer(num_kernels[0],
                                                2,

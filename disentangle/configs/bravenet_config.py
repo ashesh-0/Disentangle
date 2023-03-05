@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 512
+    data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
     data.channel_2 = 2
@@ -40,7 +40,7 @@ def get_config():
     model.kernel_size = 3
     model.padding = 1
     model.activation = 'relu'
-    model.final_activation = 'relu'
+    model.final_activation = None
     model.dropout = 0.1
     model.batch_normalization = True
     model.strides = 1
