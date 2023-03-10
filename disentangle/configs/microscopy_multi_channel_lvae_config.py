@@ -45,7 +45,7 @@ def get_config():
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
     loss.enable_receptive_field_priorloss = True
-    loss.receptive_field_prior_w = 0.01
+    loss.receptive_field_prior_w = 1
     loss.receptive_field_prior_loss_minclip = -0.1
 
     model = config.model
