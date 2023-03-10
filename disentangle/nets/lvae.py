@@ -16,6 +16,7 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.core.sampler_type import SamplerType
+from disentangle.loss.conv_prior_loss import convolution_prior_loss
 from disentangle.loss.nbr_consistency_loss import NeighborConsistencyLoss
 from disentangle.losses import free_bits_kl
 from disentangle.metrics.running_psnr import RunningPSNR
@@ -89,6 +90,10 @@ class LadderVAE(pl.LightningModule):
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
+        self.enable_receptive_field_priorloss = config.loss.enable_receptive_field_priorloss
+        if self.enable_receptive_field_priorloss:
+            self.rf_prior_w = config.loss.receptive_field_prior_w
+            self.rf_clip_val = config.loss.receptive_field_prior_loss_minclip
 
         self.encoder_no_padding_mode = config.model.encoder.res_block_skip_padding is True and config.model.encoder.res_block_kernel > 1
         self.decoder_no_padding_mode = config.model.decoder.res_block_skip_padding is True and config.model.decoder.res_block_kernel > 1
@@ -392,9 +397,32 @@ class LadderVAE(pl.LightningModule):
             kl_weight = 1.0
         return kl_weight
 
-    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False,likelihood_obj=None):
-        output = self._get_reconstruction_loss_vector(reconstruction, input, return_predicted_img=return_predicted_img,
-        likelihood_obj=likelihood_obj)
+    def get_receptive_field_prior_loss(self):
+        loss = 0
+        count = 0
+        for name, param in self.named_parameters():
+            if len(param.size()) == 4:
+                if param.size()[-2:] != (1, 1):
+                    tokens = name.split('.')
+                    if 'bottom_up_layers' in tokens:
+                        if 'pre_conv' in tokens:
+                            continue
+                        else:
+                            loss += convolution_prior_loss(param, self.rf_clip_val)
+                            count += 1
+                    else:
+                        if 'top_prior_params' in tokens:
+                            continue
+                        loss += convolution_prior_loss(param, self.rf_clip_val)
+                        count += 1
+
+        return loss / count if count > 0 else 0.0
+
+    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
+        output = self._get_reconstruction_loss_vector(reconstruction,
+                                                      input,
+                                                      return_predicted_img=return_predicted_img,
+                                                      likelihood_obj=likelihood_obj)
         loss_dict = output[0] if return_predicted_img else output
         loss_dict['loss'] = torch.mean(loss_dict['loss'])
         loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'])
@@ -522,12 +550,17 @@ class LadderVAE(pl.LightningModule):
             self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
             recons_loss += nbr_cons_loss
 
+        rf_prior_loss = 0.0
+        if self.enable_receptive_field_priorloss:
+            rf_prior_loss = self.get_receptive_field_prior_loss()
+            self.log('rf_prior_loss', rf_prior_loss.item(), on_epoch=True)
+
         if self.non_stochastic_version:
             kl_loss = torch.Tensor([0.0]).cuda()
             net_loss = recons_loss
         else:
             kl_loss = self.get_kl_divergence_loss(td_data)
-            net_loss = recons_loss + self.get_kl_weight() * kl_loss
+            net_loss = recons_loss + self.get_kl_weight() * kl_loss + self.rf_prior_w * rf_prior_loss
 
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):
