@@ -46,7 +46,7 @@ def get_config():
     loss.free_bits = 0.0
     loss.enable_receptive_field_priorloss = True
     loss.receptive_field_prior_w = 100
-    loss.receptive_field_prior_loss_minclip = -0.1
+    loss.receptive_field_prior_loss_minclip = -0.3
 
     model = config.model
     model.model_type = ModelType.LadderVae
