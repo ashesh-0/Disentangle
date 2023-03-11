@@ -7,6 +7,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
+from disentangle.loss.conv_prior_loss import ConvolutionPriorLossType
 
 
 def get_config():
@@ -45,8 +46,10 @@ def get_config():
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
     loss.enable_receptive_field_priorloss = True
+    loss.receptive_field_prior_losstype = ConvolutionPriorLossType.FactorBased
     loss.receptive_field_prior_w = 100
-    loss.receptive_field_prior_loss_minclip = -0.3
+    # loss.receptive_field_prior_loss_minclip = -0.3
+    loss.receptive_field_prior_loss_factor = 0.7
 
     model = config.model
     model.model_type = ModelType.LadderVae

@@ -16,7 +16,7 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.core.sampler_type import SamplerType
-from disentangle.loss.conv_prior_loss import convolution_prior_loss
+from disentangle.loss.conv_prior_loss import ConvolutionPriorLoss
 from disentangle.loss.nbr_consistency_loss import NeighborConsistencyLoss
 from disentangle.losses import free_bits_kl
 from disentangle.metrics.running_psnr import RunningPSNR
@@ -90,10 +90,14 @@ class LadderVAE(pl.LightningModule):
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
-        self.enable_receptive_field_priorloss = config.loss.enable_receptive_field_priorloss
-        if self.enable_receptive_field_priorloss:
+        self.enable_rf_priorloss = config.loss.enable_receptive_field_priorloss
+        if self.enable_rf_priorloss:
             self.rf_prior_w = config.loss.receptive_field_prior_w
-            self.rf_clip_val = config.loss.receptive_field_prior_loss_minclip
+            self.rf_clip_val = config.loss.get('receptive_field_prior_loss_minclip', None)
+            self.rf_factor = config.loss.get('receptive_field_prior_loss_factor', None)
+            self.rf_prior_loss = ConvolutionPriorLoss(config.loss.receptive_field_prior_losstype,
+                                                      rf_clip_val=self.rf_clip_val,
+                                                      rf_factor=self.rf_factor)
 
         self.encoder_no_padding_mode = config.model.encoder.res_block_skip_padding is True and config.model.encoder.res_block_kernel > 1
         self.decoder_no_padding_mode = config.model.decoder.res_block_skip_padding is True and config.model.decoder.res_block_kernel > 1
@@ -408,12 +412,12 @@ class LadderVAE(pl.LightningModule):
                         if 'pre_conv' in tokens:
                             continue
                         else:
-                            loss += convolution_prior_loss(param, self.rf_clip_val)
+                            loss += self.rf_prior_loss.get(param)
                             count += 1
                     else:
                         if 'top_prior_params' in tokens:
                             continue
-                        loss += convolution_prior_loss(param, self.rf_clip_val)
+                        loss += self.rf_prior_loss.get(param)
                         count += 1
 
         return loss / count if count > 0 else 0.0
@@ -551,7 +555,7 @@ class LadderVAE(pl.LightningModule):
             recons_loss += nbr_cons_loss
 
         rf_prior_loss = 0.0
-        if self.enable_receptive_field_priorloss:
+        if self.enable_rf_priorloss:
             rf_prior_loss = self.get_receptive_field_prior_loss()
             self.log('rf_prior_loss', rf_prior_loss.item(), on_epoch=True)
 
