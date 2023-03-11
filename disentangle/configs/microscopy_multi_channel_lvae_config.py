@@ -49,7 +49,7 @@ def get_config():
     loss.receptive_field_prior_losstype = ConvolutionPriorLossType.FactorBased
     loss.receptive_field_prior_w = 100
     # loss.receptive_field_prior_loss_minclip = -0.3
-    loss.receptive_field_prior_loss_factor = 0.7
+    loss.receptive_field_prior_loss_factor = 0.3
 
     model = config.model
     model.model_type = ModelType.LadderVae
