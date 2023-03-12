@@ -90,7 +90,7 @@ class LadderVAE(pl.LightningModule):
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
-        self.enable_rf_priorloss = config.loss.enable_receptive_field_priorloss
+        self.enable_rf_priorloss = config.loss.get('enable_receptive_field_priorloss', False)
         if self.enable_rf_priorloss:
             self.rf_prior_w = config.loss.receptive_field_prior_w
             self.rf_clip_val = config.loss.get('receptive_field_prior_loss_minclip', None)
