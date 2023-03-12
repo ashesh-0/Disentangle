@@ -16,7 +16,7 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
-    data.channel_2 = 4
+    data.channel_2 = 3
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -31,7 +31,7 @@ def get_config():
     data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
-    data.ch2_multiplier = 3
+    data.ch2_multiplier = 4
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
