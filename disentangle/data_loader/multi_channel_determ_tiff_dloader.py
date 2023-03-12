@@ -3,10 +3,10 @@ from typing import Tuple, Union
 import albumentations as A
 import numpy as np
 
-from disentangle.core.data_type import DataType
-from disentangle.data_loader.train_val_data import get_train_val_data
 from disentangle.core.data_split_type import DataSplitType
-from disentangle.data_loader.patch_index_manager import GridIndexManager, GridAlignement
+from disentangle.core.data_type import DataType
+from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+from disentangle.data_loader.train_val_data import get_train_val_data
 
 
 class MultiChDeterministicTiffDloader:
@@ -35,6 +35,8 @@ class MultiChDeterministicTiffDloader:
         """
         self._fpath = fpath
         self._data = self.N = None
+        self.ch1_multiplier = data_config.get('ch1_multiplier', None)
+        self.ch2_multiplier = data_config.get('ch2_multiplier', None)
         self.load_data(data_config,
                        datasplit_type,
                        val_fraction=val_fraction,
@@ -80,6 +82,11 @@ class MultiChDeterministicTiffDloader:
                                         val_fraction=val_fraction,
                                         test_fraction=test_fraction,
                                         allow_generation=allow_generation)
+        if self.ch1_multiplier is not None:
+            self._data[..., 0] = self._data[..., 0] * self.ch1_multiplier
+        if self.ch2_multiplier is not None:
+            self._data[..., 1] = self._data[..., 1] * self.ch2_multiplier
+
         self.N = len(self._data)
 
     def set_max_val_and_upperclip_data(self, max_val, datasplit_type):
