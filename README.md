@@ -12,8 +12,9 @@ cd /home/ubuntu/code/Disentangle
 export PYTHONPATH=`pwd`
 ```
 ### Run the training script
+To train on Hagen Et al. dataset, run the following command.
 ```
-python /home/ubuntu/code/Disentangle/disentangle/scripts/run.py --workdir=/home/ubuntu/training/disentangle/ -mode=train --datadir=/home/ubuntu/data/ventura_gigascience/ --config=/home/ubuntu/code/Disentangle/disentangle/configs/twotiff_unet_config.py --logdir=/home/ubuntu/logs
+python /home/ubuntu/code/Disentangle/disentangle/scripts/run.py --workdir=/home/ubuntu/training/disentangle/ -mode=train --datadir=/home/ubuntu/data/ventura_gigascience/ --config=/home/ubuntu/code/Disentangle/disentangle/configs/twotiff_config.py --logdir=/home/ubuntu/logs
 ```
 
 ## Evaluation
