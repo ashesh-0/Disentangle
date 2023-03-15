@@ -38,8 +38,8 @@ from disentangle.training import create_dataset, create_model
 # from disentangle.data_loader.single_channel_dloader import SingleChannelDloader
 
 torch.multiprocessing.set_sharing_strategy('file_system')
-DATA_ROOT = 'PUT THE ROOT DIRECTORY FOR THE DATASET HERE'
-CODE_ROOT = 'PUT THE ROOT DIRECTORY FOR THE CODE HERE'
+# DATA_ROOT = "/group/jug/ashesh/data/ventura_gigascience/" #'PUT THE ROOT DIRECTORY FOR THE DATASET HERE'
+# CODE_ROOT = 'PUT THE ROOT DIRECTORY FOR THE CODE HERE'
 
 
 def _avg_psnr(target, prediction, psnr_fn):
@@ -82,7 +82,7 @@ def fix_seeds():
 
 def main(
     ckpt_dir,
-    DEBUG,
+    data_dir,
     image_size_for_grid_centers=64,
     mmse_count=1,
     custom_image_size=64,
@@ -99,44 +99,6 @@ def main(
     ignored_last_pixels=0,
     ignore_first_pixels=0,
 ):
-    global DATA_ROOT, CODE_ROOT
-
-    homedir = os.path.expanduser('~')
-    nodename = os.uname().nodename
-
-    if nodename == 'capablerutherford-02aa4':
-        DATA_ROOT = '/mnt/ashesh/'
-        CODE_ROOT = '/home/ubuntu/ashesh/'
-    elif nodename in ['capableturing-34a32', 'colorfuljug-fa782', 'agileschroedinger-a9b1c', 'rapidkepler-ca36f']:
-        DATA_ROOT = '/home/ubuntu/ashesh/data/'
-        CODE_ROOT = '/home/ubuntu/ashesh/'
-    elif (re.match('lin-jug-\d{2}', nodename) or re.match('gnode\d{2}', nodename)
-          or re.match('lin-jug-m-\d{2}', nodename) or re.match('lin-jug-l-\d{2}', nodename)):
-        DATA_ROOT = '/group/jug/ashesh/data/'
-        CODE_ROOT = '/home/ashesh.ashesh/'
-
-    dtype = int(ckpt_dir.split('/')[-2].split('-')[0][1:])
-    if DEBUG:
-        if dtype == DataType.CustomSinosoid:
-            data_dir = f'{DATA_ROOT}/sinosoid/'
-        elif dtype == DataType.OptiMEM100_014:
-            data_dir = f'{DATA_ROOT}/microscopy/'
-    else:
-        if dtype == DataType.CustomSinosoid:
-            data_dir = f'{DATA_ROOT}/sinosoid/'
-        elif dtype == DataType.CustomSinosoidThreeCurve:
-            data_dir = f'{DATA_ROOT}/sinosoid/'
-        elif dtype == DataType.OptiMEM100_014:
-            data_dir = f'{DATA_ROOT}/microscopy/'
-        elif dtype == DataType.Prevedel_EMBL:
-            data_dir = f'{DATA_ROOT}/Prevedel_EMBL/PKG_3P_dualcolor_stacks/NoAverage_NoRegistration/'
-        elif dtype == DataType.AllenCellMito:
-            data_dir = f'{DATA_ROOT}/allencell/2017_03_08_Struct_First_Pass_Seg/AICS-11/'
-        elif dtype == DataType.SeparateTiffData:
-            data_dir = f'{DATA_ROOT}/ventura_gigascience'
-
-    homedir = os.path.expanduser('~')
-    nodename = os.uname().nodename
 
     def get_best_checkpoint(ckpt_dir):
         output = []
@@ -498,11 +460,14 @@ def save_multiple_evaluations_to_file():
 
 if __name__ == '__main__':
     DEBUG = False
+
     parser = argparse.ArgumentParser()
     parser.add_argument('ckpt_dir', type=str)
     parser.add_argument('patch_size', type=int, default=64)
     parser.add_argument('grid_size', type=int, default=16)
+    parser.add_argument('data_directory', type=str)
     args = parser.parse_args()
+
     mmse_count = 1
     ignored_last_pixels = 32 if os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:] == '3' else 0
     OUTPUT_DIR = ''
@@ -510,7 +475,7 @@ if __name__ == '__main__':
 
     data = main(
         args.ckpt_dir,
-        DEBUG,
+        args.data_directory,
         image_size_for_grid_centers=args.grid_size,
         mmse_count=mmse_count,
         custom_image_size=args.patch_size,
