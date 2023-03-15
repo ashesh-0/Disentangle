@@ -1,49 +1,45 @@
+import argparse
+import glob
 import os
-from posixpath import basename
+import pickle
+import random
 import re
 import sys
+from posixpath import basename
 
-import random
-
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-import pickle
-import ml_collections
-import glob
-import torch
-from torch.utils.data import DataLoader
 import torch.nn as nn
 from skimage.metrics import structural_similarity
-from disentangle.core.tiff_reader import load_tiff
-
-from disentangle.core.data_split_type import get_datasplit_tuples
+from torch.utils.data import DataLoader
 from tqdm import tqdm
-import numpy as np
-from disentangle.training import create_dataset, create_model
-import matplotlib.pyplot as plt
-from disentangle.core.loss_type import LossType
-from disentangle.config_utils import load_config
-from disentangle.sampler.random_sampler import RandomSampler
+
+import ml_collections
+from disentangle.analysis.critic_notebook_utils import get_label_separated_loss, get_mmse_dict
 from disentangle.analysis.lvae_utils import get_img_from_forward_output
-from disentangle.analysis.plot_utils import clean_ax
+from disentangle.analysis.mmse_prediction import get_dset_predictions
+from disentangle.analysis.plot_utils import clean_ax, get_k_largest_indices, plot_imgs_from_idx
+from disentangle.analysis.results_handler import PaperResultsHandler
+from disentangle.analysis.stitch_prediction import stitch_predictions
+from disentangle.config_utils import load_config
+from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
 from disentangle.core.data_type import DataType
-from disentangle.core.psnr import PSNR
-from disentangle.analysis.plot_utils import get_k_largest_indices, plot_imgs_from_idx
-from disentangle.analysis.critic_notebook_utils import get_mmse_dict, get_label_separated_loss
-from disentangle.core.psnr import PSNR, RangeInvariantPsnr
-from disentangle.core.data_split_type import DataSplitType
+from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
-from disentangle.data_loader.overlapping_dloader import get_overlapping_dset
+from disentangle.core.psnr import PSNR, RangeInvariantPsnr
+from disentangle.core.tiff_reader import load_tiff
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
-from disentangle.core.data_split_type import DataSplitType
-from disentangle.analysis.stitch_prediction import stitch_predictions
-from disentangle.analysis.mmse_prediction import get_dset_predictions
-from disentangle.core.data_split_type import get_datasplit_tuples
-from disentangle.analysis.results_handler import PaperResultsHandler
+from disentangle.data_loader.overlapping_dloader import get_overlapping_dset
+from disentangle.sampler.random_sampler import RandomSampler
+from disentangle.training import create_dataset, create_model
+
 # from disentangle.data_loader.single_channel_dloader import SingleChannelDloader
 
 torch.multiprocessing.set_sharing_strategy('file_system')
+DATA_ROOT = 'PUT THE ROOT DIRECTORY FOR THE DATASET HERE'
+CODE_ROOT = 'PUT THE ROOT DIRECTORY FOR THE CODE HERE'
 
 
 def _avg_psnr(target, prediction, psnr_fn):
@@ -103,6 +99,8 @@ def main(
     ignored_last_pixels=0,
     ignore_first_pixels=0,
 ):
+    global DATA_ROOT, CODE_ROOT
+
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
 
@@ -359,7 +357,7 @@ def main(
         while (pred[0, -ignored_pixels:, -ignored_pixels:, ].std() == 0):
             ignored_pixels += 1
         ignored_pixels -= 1
-        print(f'In {pred.shape}, last {ignored_pixels} many rows and columns are all zero.')
+        # print(f'In {pred.shape}, {ignored_pixels} many rows and columns are all zero.')
         return ignored_pixels
 
     actual_ignored_pixels = print_ignored_pixels()
@@ -445,8 +443,7 @@ def main(
     return output_stats
 
 
-if __name__ == '__main__':
-    DEBUG = False
+def save_multiple_evaluations_to_file():
     ckpt_dirs = [
         '/home/ashesh.ashesh/training/disentangle/2301/D3-M12-S3-L4/23',
         '/home/ashesh.ashesh/training/disentangle/2301/D3-M12-S3-L4/24',
@@ -497,3 +494,40 @@ if __name__ == '__main__':
                     print('')
                     print('')
                     print('')
+
+
+if __name__ == '__main__':
+    DEBUG = False
+    parser = argparse.ArgumentParser()
+    parser.add_argument('ckpt_dir', type=str)
+    parser.add_argument('patch_size', type=int, default=64)
+    parser.add_argument('grid_size', type=int, default=16)
+    args = parser.parse_args()
+    mmse_count = 1
+    ignored_last_pixels = 32 if os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:] == '3' else 0
+    OUTPUT_DIR = ''
+    eval_datasplit_type = DataSplitType.Test
+
+    data = main(
+        args.ckpt_dir,
+        DEBUG,
+        image_size_for_grid_centers=args.grid_size,
+        mmse_count=mmse_count,
+        custom_image_size=args.patch_size,
+        batch_size=32,
+        num_workers=4,
+        COMPUTE_LOSS=False,
+        use_deterministic_grid=None,
+        threshold=None,  # 0.02,
+        compute_kl_loss=False,
+        evaluate_train=False,
+        eval_datasplit_type=eval_datasplit_type,
+        val_repeat_factor=None,
+        psnr_type='range_invariant',
+        ignored_last_pixels=ignored_last_pixels,
+        ignore_first_pixels=0)
+
+    print('')
+    print('Paper Related Stats')
+    print('PSNR', np.mean(data['rangeinvpsnr']))
+    print('SSIM', np.mean(data['ssim'][:2]))
