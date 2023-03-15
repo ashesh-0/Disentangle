@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 from skimage.metrics import structural_similarity
 from disentangle.core.tiff_reader import load_tiff
+import argparse
 
 from disentangle.core.data_split_type import get_datasplit_tuples
 from tqdm import tqdm
@@ -445,8 +446,7 @@ def main(
     return output_stats
 
 
-if __name__ == '__main__':
-    DEBUG = False
+def save_multiple_evaluations_to_file():
     ckpt_dirs = [
         '/home/ashesh.ashesh/training/disentangle/2301/D3-M12-S3-L4/23',
         '/home/ashesh.ashesh/training/disentangle/2301/D3-M12-S3-L4/24',
@@ -497,3 +497,44 @@ if __name__ == '__main__':
                     print('')
                     print('')
                     print('')
+
+
+if __name__ == '__main__':
+    DEBUG = False
+    parser = argparse.ArgumentParser()
+    parser.add_argument('ckpt_dir', type=str)
+    parser.add_argument('patch_size', type=int, default=64)
+    parser.add_argument('grid_size', type=int, default=16)
+    args = parser.parse_args()
+    mmse_count = 1
+    ignored_last_pixels = 32 if os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:] == '3' else 0
+    OUTPUT_DIR = ''
+    eval_datasplit_type = DataSplitType.Test
+    handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, args.patch_size, args.grid_size, mmse_count,
+                                  ignored_last_pixels)
+    data = main(
+        args.ckpt_dir,
+        DEBUG,
+        image_size_for_grid_centers=args.grid_size,
+        mmse_count=mmse_count,
+        custom_image_size=args.patch_size,
+        batch_size=32,
+        num_workers=4,
+        COMPUTE_LOSS=False,
+        use_deterministic_grid=None,
+        threshold=None,  # 0.02,
+        compute_kl_loss=False,
+        evaluate_train=False,
+        eval_datasplit_type=eval_datasplit_type,
+        val_repeat_factor=None,
+        psnr_type='range_invariant',
+        ignored_last_pixels=ignored_last_pixels,
+        ignore_first_pixels=0)
+
+    import pdb
+    pdb.set_trace()
+    # fpath = handler.save(args.ckpt_dir, data)
+    print(handler.load(fpath))
+    print('')
+    print('')
+    print('')
