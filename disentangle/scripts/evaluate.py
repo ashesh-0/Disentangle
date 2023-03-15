@@ -465,7 +465,7 @@ if __name__ == '__main__':
     parser.add_argument('ckpt_dir', type=str)
     parser.add_argument('patch_size', type=int, default=64)
     parser.add_argument('grid_size', type=int, default=16)
-    parser.add_argument('data_directory', type=str)
+    parser.add_argument('--datadir', type=str)
     args = parser.parse_args()
 
     mmse_count = 1
@@ -475,7 +475,7 @@ if __name__ == '__main__':
 
     data = main(
         args.ckpt_dir,
-        args.data_directory,
+        args.datadir,
         image_size_for_grid_centers=args.grid_size,
         mmse_count=mmse_count,
         custom_image_size=args.patch_size,
