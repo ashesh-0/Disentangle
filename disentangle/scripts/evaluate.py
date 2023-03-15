@@ -38,8 +38,6 @@ from disentangle.training import create_dataset, create_model
 # from disentangle.data_loader.single_channel_dloader import SingleChannelDloader
 
 torch.multiprocessing.set_sharing_strategy('file_system')
-# DATA_ROOT = "/group/jug/ashesh/data/ventura_gigascience/" #'PUT THE ROOT DIRECTORY FOR THE DATASET HERE'
-# CODE_ROOT = 'PUT THE ROOT DIRECTORY FOR THE CODE HERE'
 
 
 def _avg_psnr(target, prediction, psnr_fn):
@@ -381,9 +379,9 @@ def main(
     #                                                                   config.training.test_fraction,
     #                                                                   N,
     #                                                                   starting_test=True)
-    #     highres_actin = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/actin-60x-noise2-highsnr.tif')[...,
+    #     highres_actin = load_tiff('/home/ubuntu/data/ventura_gigascience/actin-60x-noise2-highsnr.tif')[...,
     #                                                                                                            None]
-    #     highres_mito = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/mito-60x-noise2-highsnr.tif')[..., None]
+    #     highres_mito = load_tiff('/home/ubuntu/data/ventura_gigascience/mito-60x-noise2-highsnr.tif')[..., None]
 
     #     if eval_datasplit_type == DataSplitType.Val:
     #         highres_data = np.concatenate([highres_actin[val_idx_list], highres_mito[val_idx_list]],
@@ -403,59 +401,6 @@ def main(
     #     print('PSNR with HighRes', output_stats['highres_psnr'][0], output_stats['highres_psnr'][1])
     #     print('RangeInvPSNR with HighRes', output_stats['highres_rinvpsnr'][0], output_stats['highres_rinvpsnr'][1])
     return output_stats
-
-
-def save_multiple_evaluations_to_file():
-    ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2301/D3-M12-S3-L4/23',
-        '/home/ashesh.ashesh/training/disentangle/2301/D3-M12-S3-L4/24',
-        '/home/ashesh.ashesh/training/disentangle/2301/D3-M12-S3-L4/26',
-        '/home/ashesh.ashesh/training/disentangle/2301/D3-M12-S3-L4/27',
-    ]
-    if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
-        OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
-    elif ckpt_dirs[0].startswith('/home/ubuntu/ashesh'):
-        OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
-    else:
-        raise Exception('Invalid server')
-
-    ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
-    mmse_count = 1
-
-    for custom_image_size in [64]:
-        for eval_datasplit_type in [DataSplitType.Test]:
-            for ckpt_dir in ckpt_dirs:
-                for image_size_for_grid_centers in [16]:
-                    ignored_last_pixels = 32 if os.path.basename(
-                        os.path.dirname(ckpt_dir)).split('-')[0][1:] == '3' else 0
-                    handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
-                                                  image_size_for_grid_centers, mmse_count, ignored_last_pixels)
-                    data = main(
-                        ckpt_dir,
-                        DEBUG,
-                        image_size_for_grid_centers=image_size_for_grid_centers,
-                        mmse_count=mmse_count,
-                        custom_image_size=custom_image_size,
-                        batch_size=32,
-                        num_workers=4,
-                        COMPUTE_LOSS=False,
-                        use_deterministic_grid=None,
-                        threshold=None,  # 0.02,
-                        compute_kl_loss=False,
-                        evaluate_train=False,
-                        eval_datasplit_type=eval_datasplit_type,
-                        val_repeat_factor=None,
-                        psnr_type='range_invariant',
-                        ignored_last_pixels=ignored_last_pixels,
-                        ignore_first_pixels=0)
-                    fpath = handler.save(ckpt_dir, data)
-                    # except:
-                    #     print('FAILED for ', handler.get_output_fpath(ckpt_dir))
-                    #     continue
-                    print(handler.load(fpath))
-                    print('')
-                    print('')
-                    print('')
 
 
 if __name__ == '__main__':

@@ -1,5 +1,6 @@
-import pickle
 import os
+import pickle
+
 from disentangle.core.data_split_type import DataSplitType
 
 
@@ -62,6 +63,6 @@ if __name__ == '__main__':
     skip_last_pixels = 0
 
     saver = PaperResultsHandler(output_dir, 1, patch_size, grid_size, mmse_count, skip_last_pixels)
-    fpath = saver.save('/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/82', {'a': [1, 2], 'b': [3]})
+    fpath = saver.save('/home/ubuntu/training/disentangle/2210/D7-M3-S0-L0/82', {'a': [1, 2], 'b': [3]})
 
     print(saver.load(fpath))

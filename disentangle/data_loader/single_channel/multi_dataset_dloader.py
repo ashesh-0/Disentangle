@@ -2,15 +2,16 @@
 If one has multiple .tif files, each corresponding to a different hardware setting. 
 In this case, one needs to normalize these separate files separately.
 """
-import ml_collections
-import torch
 import enum
-from typing import Union, Tuple
-import numpy as np
+from typing import Tuple, Union
 
-from disentangle.data_loader.patch_index_manager import GridIndexManager, GridAlignement
+import numpy as np
+import torch
+
+import ml_collections
 from disentangle.core import data_split_type
 from disentangle.core.data_split_type import DataSplitType
+from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 from disentangle.data_loader.single_channel.single_channel_dloader import SingleChannelDloader
 from disentangle.data_loader.single_channel.single_channel_mc_dloader import SingleChannelMSDloader
 
@@ -164,7 +165,7 @@ class SingleChannelMultiDatasetDloader:
 if __name__ == '__main__':
     from disentangle.configs.semi_supervised_config import get_config
     config = get_config()
-    datadir = '/group/jug/ashesh/data/EMBL_halfsupervised/Demixing_3P/'
+    datadir = '/data/Demixing_3P/'
     val_fraction = 0.1
     test_fraction = 0.1
 

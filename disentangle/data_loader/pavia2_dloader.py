@@ -1,13 +1,13 @@
+import numpy as np
 import torch
+
+import ml_collections
+from disentangle.core.data_split_type import DataSplitType
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
-from disentangle.core.data_split_type import DataSplitType
-from disentangle.data_loader.pavia2_rawdata_loader import Pavia2DataSetType, Pavia2DataSetChannels
-from disentangle.data_loader.pavia2_enums import Pavia2BleedthroughType
 from disentangle.data_loader.patch_index_manager import GridIndexManager
-
-import numpy as np
-import ml_collections
+from disentangle.data_loader.pavia2_enums import Pavia2BleedthroughType
+from disentangle.data_loader.pavia2_rawdata_loader import Pavia2DataSetChannels, Pavia2DataSetType
 
 
 class Pavia2V1Dloader:
@@ -281,7 +281,7 @@ class Pavia2V1Dloader:
 if __name__ == '__main__':
     from disentangle.configs.pavia2_config import get_config
     config = get_config()
-    fpath = '/group/jug/ashesh/data/pavia2/'
+    fpath = 'data/p2/'
     dloader = Pavia2V1Dloader(
         config.data,
         fpath,

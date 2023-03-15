@@ -1,6 +1,7 @@
-from disentangle.data_loader.pavia2_dloader import Pavia2V1Dloader, Pavia2DataSetChannels
-from disentangle.core.data_split_type import DataSplitType
 import numpy as np
+
+from disentangle.core.data_split_type import DataSplitType
+from disentangle.data_loader.pavia2_dloader import Pavia2DataSetChannels, Pavia2V1Dloader
 
 
 class Pavia2ThreeChannelDloader(Pavia2V1Dloader):
@@ -44,7 +45,7 @@ class Pavia2ThreeChannelDloader(Pavia2V1Dloader):
 if __name__ == '__main__':
     from disentangle.configs.pavia2_config import get_config
     config = get_config()
-    fpath = '/group/jug/ashesh/data/pavia2/'
+    fpath = 'data/p2/'
     dloader = Pavia2ThreeChannelDloader(config.data,
                                         fpath,
                                         datasplit_type=DataSplitType.Train,
