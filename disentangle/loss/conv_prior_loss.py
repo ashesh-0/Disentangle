@@ -8,6 +8,8 @@ class ConvolutionPriorLossType(Enum):
     Absolute = 0
     # we say that surrounding weights should less than alpha times central in absolute terms.
     FactorBased = 1
+    # deeper levels have more strict factor
+    MultiStepFactorBased = 2
 
 
 class ConvolutionPriorLoss:
@@ -29,11 +31,32 @@ class ConvolutionPriorLoss:
             f'[{self.__class__.__name__}] {ConvolutionPriorLossType.name(self._cp_loss_type)} Clip:{self.rf_clip_val} Factor:{self.rf_factor}'
         )
 
+    
+    def get_factor_from_name(self, name):
+        if self._cp_loss_type == ConvolutionPriorLossType.FactorBased:
+            return self.rf_factor
+        elif self._cp_loss_type == ConvolutionPriorLossType.MultiStepFactorBased:
+            all_possible_first_tokens = ['bottom_up_layers','final_top_down','first_bottom_up','likelihood','top_down_layers']
+            tokens = name.split('.')
+            first_token = tokens[0]
+            assert first_token in all_possible_first_tokens
+            if first_token in ['bottom_up_layers','top_down_layers']:
+                level = int(tokens[1])
+                pow = 2**level
+                return self.rf_factor**(pow)
+
+            else:
+                return self.rf_factor
+
     def get(self, conv_weight, **kwargs):
         if self._cp_loss_type == ConvolutionPriorLossType.Absolute:
             return convolution_prior_loss_absolute(conv_weight, self.rf_clip_val)
-        elif self._cp_loss_type == ConvolutionPriorLossType.FactorBased:
-            loss_term1 = self.convolution_prior_loss_factor_based(conv_weight, self.rf_factor)
+        elif self._cp_loss_type in [ConvolutionPriorLossType.FactorBased,ConvolutionPriorLossType.MultiStepFactorBased]:
+            if 'factor' in kwargs:
+                factor = kwargs['factor']
+            else:
+                factor = self.rf_factor
+            loss_term1 = self.convolution_prior_loss_factor_based(conv_weight, factor)
             loss_term2 = weight_less_than1_loss(conv_weight)
             return loss_term1 + loss_term2
 
@@ -83,6 +106,11 @@ def convolution_prior_loss_absolute(conv_weight, min_loss):
 
 
 if __name__ == '__main__':
-    loss = ConvolutionPriorLoss(ConvolutionPriorLossType.FactorBased, rf_factor=0.8)
+    loss = ConvolutionPriorLoss(ConvolutionPriorLossType.MultiStepFactorBased, rf_factor=0.5)
+    print(loss.get_factor_from_name('top_down_layers.0.deterministic_block.0.pre_conv.weight'))
+    print(loss.get_factor_from_name('top_down_layers.1.deterministic_block.0.pre_conv.weight'))
+    print(loss.get_factor_from_name('top_down_layers.2.deterministic_block.0.pre_conv.weight'))
+    print(loss.get_factor_from_name('top_down_layers.3.deterministic_block.0.pre_conv.weight'))
+    print(loss.get_factor_from_name('likelihood.3.deterministic_block.0.pre_conv.weight'))
     inp = torch.Tensor([[0.1, 0.8, 0.9], [0.6, 0.9, 0.95], [0.98, 0.9, 0.2]])[None, None]
     print(loss.get(inp))

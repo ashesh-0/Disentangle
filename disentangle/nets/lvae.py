@@ -403,6 +403,45 @@ class LadderVAE(pl.LightningModule):
         return kl_weight
 
     def get_receptive_field_prior_loss(self):
+        # don't apply loss on the prior, since it has zero receptive field contribution.
+        # on bias, one can anyways not apply
+        skip_last_tokens = ['top_prior_params','bias']
+        skip_first_tokens = ['likelihood']
+        # just for ensuring that no redundant names are present. 
+        skipped_last_tokens = [False]*len(skip_last_tokens)
+        skipped_first_tokens= [False]*len(skip_first_tokens)
+        
+        loss = 0
+        count = 0
+        for name, param in self.named_parameters():
+            last_token = name.split('.')[-1]
+            if last_token in skip_last_tokens:
+                skipped_last_tokens[skip_last_tokens.index(last_token)] = True
+                continue
+
+            first_token = name.split('.')[0]
+            if first_token in skip_first_tokens:
+                skipped_first_tokens[skip_first_tokens.index(first_token)] = True
+                continue
+
+            if len(param.shape) ==1:
+                # for batch normalization, the shape is [64]
+                continue
+            
+            # for 1x1 convolutions, it does not make sense.
+            if param.shape[-2:] == (1,1):
+                continue
+
+            factor = self.rf_prior_loss.get_factor_from_name(name)
+            print(name,factor)
+            loss += self.rf_prior_loss.get(param, factor=factor)
+            count += 1
+        
+        assert set(skipped_last_tokens + skipped_first_tokens) == {True}
+        
+        return loss / count if count > 0 else 0.0
+
+    def get_receptive_field_prior_loss_old(self):
         loss = 0
         count = 0
         for name, param in self.named_parameters():
