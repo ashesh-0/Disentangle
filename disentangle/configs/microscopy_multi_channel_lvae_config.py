@@ -16,7 +16,7 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
-    data.channel_2 = 2
+    data.channel_2 = 3
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -31,7 +31,7 @@ def get_config():
     data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
-    # data.ch2_multiplier = 4
+    data.ch2_multiplier = 8
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
@@ -46,12 +46,13 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.enable_receptive_field_priorloss = True
-    loss.receptive_field_prior_losstype = ConvolutionPriorLossType.MultiStepFactorBased
-    loss.receptive_field_prior_w = 100
+    loss.enable_receptive_field_priorloss = False
+    # loss.receptive_field_prior_losstype = ConvolutionPriorLossType.MultiStepFactorBased
+    # loss.receptive_field_prior_w = 100
+    # loss.receptive_field_prior_loss_factor = 0.3
+
+    # Old version needed these.
     # loss.receptive_field_prior_loss_minclip = -0.3
-    loss.receptive_field_prior_loss_factor = 0.3
-    # Old version needed this.
     # loss.skip_receptive_field_loss_tokens = ['final_top_down', 'likelihood', 'top_prior_params']
 
     model = config.model
