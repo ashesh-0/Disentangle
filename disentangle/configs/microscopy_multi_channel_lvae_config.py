@@ -16,7 +16,7 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
-    data.channel_2 = 2
+    data.channel_2 = 3
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -31,6 +31,7 @@ def get_config():
     data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
+    # data.ch2_multiplier = 4
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
@@ -49,7 +50,11 @@ def get_config():
     loss.receptive_field_prior_losstype = ConvolutionPriorLossType.MultiStepFactorBased
     loss.receptive_field_prior_w = 100
     # loss.receptive_field_prior_loss_minclip = -0.3
+<<<<<<< HEAD
     loss.receptive_field_prior_loss_factor = 0.5
+=======
+    loss.receptive_field_prior_loss_factor = 0.05
+>>>>>>> 86a7a2be52a68cbdcdd1c426cc3d251076839d9a
     loss.skip_receptive_field_loss_tokens = ['final_top_down', 'likelihood', 'top_prior_params']
 
     model = config.model
@@ -89,7 +94,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = False
+    model.non_stochastic_version = True
 
     training = config.training
     training.lr = 0.001
