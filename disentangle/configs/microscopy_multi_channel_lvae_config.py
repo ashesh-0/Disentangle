@@ -50,11 +50,7 @@ def get_config():
     loss.receptive_field_prior_losstype = ConvolutionPriorLossType.MultiStepFactorBased
     loss.receptive_field_prior_w = 100
     # loss.receptive_field_prior_loss_minclip = -0.3
-<<<<<<< HEAD
     loss.receptive_field_prior_loss_factor = 0.5
-=======
-    loss.receptive_field_prior_loss_factor = 0.05
->>>>>>> 86a7a2be52a68cbdcdd1c426cc3d251076839d9a
     loss.skip_receptive_field_loss_tokens = ['final_top_down', 'likelihood', 'top_prior_params']
 
     model = config.model
