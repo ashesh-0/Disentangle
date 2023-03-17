@@ -50,6 +50,7 @@ class ConvolutionPriorLoss:
 
 
 
+
     def get(self, conv_weight, **kwargs):
         if self._cp_loss_type == ConvolutionPriorLossType.Absolute:
             return convolution_prior_loss_absolute(conv_weight, self.rf_clip_val)
