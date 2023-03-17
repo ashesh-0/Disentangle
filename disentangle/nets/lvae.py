@@ -96,7 +96,7 @@ class LadderVAE(pl.LightningModule):
             self.rf_prior_w = config.loss.receptive_field_prior_w
             self.rf_clip_val = config.loss.get('receptive_field_prior_loss_minclip', None)
             self.rf_factor = config.loss.get('receptive_field_prior_loss_factor', None)
-            self.rf_loss_skip_tokens = config.loss.skip_receptive_field_loss_tokens
+            # self.rf_loss_skip_tokens = config.loss.skip_receptive_field_loss_tokens
             self.rf_prior_loss = ConvolutionPriorLoss(config.loss.receptive_field_prior_losstype,
                                                       rf_clip_val=self.rf_clip_val,
                                                       rf_factor=self.rf_factor)

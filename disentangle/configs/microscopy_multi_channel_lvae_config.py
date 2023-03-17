@@ -51,7 +51,8 @@ def get_config():
     loss.receptive_field_prior_w = 100
     # loss.receptive_field_prior_loss_minclip = -0.3
     loss.receptive_field_prior_loss_factor = 0.5
-    loss.skip_receptive_field_loss_tokens = ['final_top_down', 'likelihood', 'top_prior_params']
+    # Old version needed this.
+    # loss.skip_receptive_field_loss_tokens = ['final_top_down', 'likelihood', 'top_prior_params']
 
     model = config.model
     model.model_type = ModelType.LadderVae
