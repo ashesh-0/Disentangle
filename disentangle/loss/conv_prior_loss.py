@@ -31,16 +31,17 @@ class ConvolutionPriorLoss:
             f'[{self.__class__.__name__}] {ConvolutionPriorLossType.name(self._cp_loss_type)} Clip:{self.rf_clip_val} Factor:{self.rf_factor}'
         )
 
-    
     def get_factor_from_name(self, name):
         if self._cp_loss_type == ConvolutionPriorLossType.FactorBased:
             return self.rf_factor
         elif self._cp_loss_type == ConvolutionPriorLossType.MultiStepFactorBased:
-            all_possible_first_tokens = ['bottom_up_layers','final_top_down','first_bottom_up','likelihood','top_down_layers']
+            all_possible_first_tokens = [
+                'bottom_up_layers', 'final_top_down', 'first_bottom_up', 'likelihood', 'top_down_layers'
+            ]
             tokens = name.split('.')
             first_token = tokens[0]
             assert first_token in all_possible_first_tokens
-            if first_token in ['bottom_up_layers','top_down_layers']:
+            if first_token in ['bottom_up_layers', 'top_down_layers']:
                 level = int(tokens[1])
                 pow = 2**level
                 return self.rf_factor**(pow)
@@ -48,13 +49,12 @@ class ConvolutionPriorLoss:
             else:
                 return self.rf_factor
 
-
-
-
     def get(self, conv_weight, **kwargs):
         if self._cp_loss_type == ConvolutionPriorLossType.Absolute:
             return convolution_prior_loss_absolute(conv_weight, self.rf_clip_val)
-        elif self._cp_loss_type in [ConvolutionPriorLossType.FactorBased,ConvolutionPriorLossType.MultiStepFactorBased]:
+        elif self._cp_loss_type in [
+                ConvolutionPriorLossType.FactorBased, ConvolutionPriorLossType.MultiStepFactorBased
+        ]:
             if 'factor' in kwargs:
                 factor = kwargs['factor']
             else:
