@@ -18,9 +18,9 @@ def get_config():
     data.channel_1 = 0
     data.channel_2 = 2
 
-    data.ch1_min_alpha = 0.48
-    data.ch1_max_alpha = 0.52
-    data.ch1_alpha_interval_count = 1
+    data.ch1_min_alpha = 0.04
+    data.ch1_max_alpha = 0.95
+    data.ch1_alpha_interval_count = 20
     # data.channel_2_downscale_factor = 1
 
     data.sampler_type = SamplerType.ContrastiveSampler
@@ -102,7 +102,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 30
     training.max_epochs = 400
-    training.batch_size = 32
+    training.batch_size = 128
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
