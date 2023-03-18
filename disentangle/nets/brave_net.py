@@ -1,21 +1,24 @@
-from disentangle.nets.brave_net_raw import BraveNet
+import numpy as np
 import pytorch_lightning as pl
 import torch
-import numpy as np
-import torch.optim as optim
 import torch.nn as nn
-from disentangle.metrics.running_psnr import RunningPSNR
+import torch.optim as optim
+
 from disentangle.core.metric_monitor import MetricMonitor
+from disentangle.metrics.running_psnr import RunningPSNR
+from disentangle.nets.brave_net_raw import BraveNet
 
 
 class BraveNetPL(pl.LightningModule):
+
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__()
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
         self.normalized_input = config.data.normalized_input
         self.model = BraveNet(config.model.num_kernels, config.model.kernel_size, 1, config.model.padding,
-                              config.model.activation, config.model.dropout, config.model.batch_normalization)
+                              config.model.activation, config.model.dropout, config.model.batch_normalization,
+                              config.model.final_activation)
 
         self.label1_psnr = RunningPSNR()
         self.label2_psnr = RunningPSNR()
