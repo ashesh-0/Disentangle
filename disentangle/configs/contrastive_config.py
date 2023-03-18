@@ -13,7 +13,7 @@ from disentangle.data_loader.pavia2_enums import Pavia2DataSetChannels
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
     data.channel_2 = 2
