@@ -19,7 +19,7 @@ def get_config():
     data.channel_2 = 2
 
     data.ch1_min_alpha = 0.04
-    data.ch1_max_alpha = 0.95
+    data.ch1_max_alpha = 0.96
     data.ch1_alpha_interval_count = 20
     # data.channel_2_downscale_factor = 1
 

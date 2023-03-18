@@ -142,9 +142,6 @@ class ContrastiveSampler(Sampler):
             ch2_idx = self.ch2_idx_iterator.next_k(self._batch_N // 2)
             self.batches_idx_list.append((alpha_idx, ch1_idx, ch2_idx))
 
-        self.idx = np.arange(self._N)
-        np.random.shuffle(self.idx)
-
 
 if __name__ == '__main__':
     from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
