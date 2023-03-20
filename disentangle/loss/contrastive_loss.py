@@ -61,7 +61,6 @@ def get_contrastive_loss_vectorized(attribute_z, attribute_labels, tau_pos=None,
     c_neg = nc2(batch_size) - c_pos
     pairwise_mse[pairwise_sim] = pairwise_mse[pairwise_sim] * 1 / c_pos
     pairwise_mse[~pairwise_sim] = pairwise_mse[~pairwise_sim] * 1 / c_neg
-
     return pairwise_mse.sum() / 2
 
 

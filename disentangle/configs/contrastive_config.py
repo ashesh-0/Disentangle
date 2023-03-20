@@ -45,7 +45,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.cl_tau_pos = 0.005
+    loss.cl_tau_pos = 0.0
     loss.cl_tau_neg = 0.5
     loss.cl_weight = 1
     # loss.mixed_rec_weight = 1
