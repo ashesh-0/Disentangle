@@ -270,7 +270,7 @@ class TopDownLayer(nn.Module):
                 if mode_pred is False:
                     p_params, bu_value = self.align_pparams_buvalue(p_params, bu_value)
             else:
-                if use_uncond_mode:
+                if use_uncond_mode or bu_value is None:
                     q_params = p_params
                 else:
                     p_params, bu_value = self.align_pparams_buvalue(p_params, bu_value)

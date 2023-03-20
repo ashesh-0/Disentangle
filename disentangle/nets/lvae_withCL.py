@@ -64,6 +64,7 @@ class LadderVAEwithCL(LadderVAE):
                                   ch_end=None,
                                   tau_pos=None,
                                   tau_neg=None):
+
         loss_dict = self._cl_loss.forward(
             latent_activations,
             class_idx,

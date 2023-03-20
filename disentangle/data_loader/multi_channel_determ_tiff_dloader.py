@@ -1,6 +1,7 @@
 from typing import List, Tuple, Union
 
 import albumentations as A
+import cv2
 import numpy as np
 
 from disentangle.core.data_split_type import DataSplitType
@@ -35,6 +36,8 @@ class MultiChDeterministicTiffDloader:
         """
         self._fpath = fpath
         self._data = self.N = None
+        self._downsample_data_factor = data_config.get('downsample_data_factor', None)
+
         self.load_data(data_config,
                        datasplit_type,
                        val_fraction=val_fraction,
@@ -73,6 +76,34 @@ class MultiChDeterministicTiffDloader:
     def get_data_shape(self):
         return self._data.shape
 
+    @staticmethod
+    def downsample_data(data, factor):
+        """
+
+        Args:
+            data (np.ndArray): data which needs to be downsampled.
+            factor (int): Both height and width are equally reduced by this factor.
+
+        Returns:
+            np.ndarray: downsampled data.
+        """
+        ch_data = {}
+        H = data.shape[1] // factor
+        W = data.shape[2] // factor
+        ch_idxN = data.shape[-1]
+        for img_idx in range(len(data)):
+            for ch_idx in range(ch_idxN):
+                if ch_idx not in ch_data:
+                    ch_data[ch_idx] = []
+
+                ch_data[ch_idx].append(cv2.resize(data[img_idx, ..., ch_idx], (H, W))[None, ..., None])
+
+        for ch_idx in ch_data:
+            ch_data[ch_idx] = np.concatenate(ch_data[ch_idx], axis=0)
+
+        data = [ch_data[idx] for idx in range(ch_idxN)]
+        return np.concatenate(data, axis=-1)
+
     def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
         self._data = get_train_val_data(data_config,
                                         self._fpath,
@@ -80,6 +111,11 @@ class MultiChDeterministicTiffDloader:
                                         val_fraction=val_fraction,
                                         test_fraction=test_fraction,
                                         allow_generation=allow_generation)
+
+        if self._downsample_data_factor:
+            print(f'[{self.__class__.__name__}] Downsampling the data by a factor of ', self._downsample_data_factor)
+            self._data = self.downsample_data(self._data, self._downsample_data_factor)
+
         self.N = len(self._data)
 
     def set_max_val_and_upperclip_data(self, max_val, datasplit_type):

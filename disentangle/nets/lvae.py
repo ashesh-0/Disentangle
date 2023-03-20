@@ -66,6 +66,7 @@ class LadderVAE(pl.LightningModule):
         self.encoder_res_block_kernel = config.model.encoder.res_block_kernel
         self.decoder_res_block_kernel = config.model.decoder.res_block_kernel
 
+        self.decoder_skip_bottom_k_bu_values = config.model.decoder.get('skip_bottom_k_bu_values', None)
         self.encoder_res_block_skip_padding = config.model.encoder.res_block_skip_padding
         self.decoder_res_block_skip_padding = config.model.decoder.res_block_skip_padding
 
@@ -658,6 +659,10 @@ class LadderVAE(pl.LightningModule):
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
+        if self.decoder_skip_bottom_k_bu_values is not None:
+            for hierarchy_level_idx in range(self.decoder_skip_bottom_k_bu_values):
+                bu_values[hierarchy_level_idx] = None
+
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values, mode_layers=mode_layers)
 
