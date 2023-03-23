@@ -2,8 +2,8 @@
 Taken from https://github.com/juglab/HDN/blob/e30edf7ec2cd55c902e469b890d8fe44d15cbb7e/lib/nn.py
 """
 import torch
-from torch import nn
 import torchvision.transforms.functional as F
+from torch import nn
 
 
 class ResidualBlock(nn.Module):
@@ -35,7 +35,8 @@ class ResidualBlock(nn.Module):
                  block_type: str = None,
                  dropout=None,
                  gated=None,
-                 skip_padding=False):
+                 skip_padding=False,
+                 conv2d_bias=True):
         super().__init__()
         if kernel is None:
             kernel = self.default_kernel_size
@@ -53,7 +54,7 @@ class ResidualBlock(nn.Module):
 
         if block_type == 'cabdcabd':
             for i in range(2):
-                conv = nn.Conv2d(channels, channels, kernel[i], padding=pad[i], groups=groups)
+                conv = nn.Conv2d(channels, channels, kernel[i], padding=pad[i], groups=groups, bias=conv2d_bias)
                 modules.append(conv)
                 modules.append(nonlin())
                 if batchnorm:
@@ -66,7 +67,7 @@ class ResidualBlock(nn.Module):
                 if batchnorm:
                     modules.append(nn.BatchNorm2d(channels))
                 modules.append(nonlin())
-                conv = nn.Conv2d(channels, channels, kernel[i], padding=pad[i], groups=groups)
+                conv = nn.Conv2d(channels, channels, kernel[i], padding=pad[i], groups=groups, bias=conv2d_bias)
                 modules.append(conv)
                 if dropout is not None and i == 0:
                     modules.append(nn.Dropout2d(dropout))
@@ -76,7 +77,7 @@ class ResidualBlock(nn.Module):
                 if batchnorm:
                     modules.append(nn.BatchNorm2d(channels))
                 modules.append(nonlin())
-                conv = nn.Conv2d(channels, channels, kernel[i], padding=pad[i], groups=groups)
+                conv = nn.Conv2d(channels, channels, kernel[i], padding=pad[i], groups=groups, bias=conv2d_bias)
                 modules.append(conv)
                 modules.append(nn.Dropout2d(dropout))
 
@@ -97,6 +98,7 @@ class ResidualBlock(nn.Module):
 
 
 class ResidualGatedBlock(ResidualBlock):
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs, gated=True)
 
@@ -106,6 +108,7 @@ class GateLayer2d(nn.Module):
     Double the number of channels through a convolutional layer, then use
     half the channels as gate for the other half.
     """
+
     def __init__(self, channels, kernel_size, nonlin=nn.LeakyReLU):
         super().__init__()
         assert kernel_size % 2 == 1

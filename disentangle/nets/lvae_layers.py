@@ -46,6 +46,7 @@ class TopDownLayer(nn.Module):
                  res_block_type=None,
                  res_block_kernel=None,
                  res_block_skip_padding=None,
+                 groups: int = 1,
                  gated=None,
                  learn_top_prior=False,
                  top_prior_param_shape=None,
@@ -55,7 +56,8 @@ class TopDownLayer(nn.Module):
                  retain_spatial_dims: bool = False,
                  non_stochastic_version=False,
                  input_image_shape: Union[None, Tuple[int, int]] = None,
-                 normalize_latent_factor=1.0):
+                 normalize_latent_factor=1.0,
+                 conv2d_bias: bool = True):
         """
             Args:
                 z_dim:          This is the dimension of the latent space.
@@ -86,6 +88,7 @@ class TopDownLayer(nn.Module):
                             To achieve this, we centercrop the intermediate representation.
                 input_image_shape: This is the shape of the input patch. when retain_spatial_dims is set to True, then this is used to ensure that the output of this layer has this shape. 
                 normalize_latent_factor: Divide the latent space (q_params) by this factor.
+                conv2d_bias:    Whether or not bias should be present in the Conv2D layer.
         """
 
         super().__init__()
@@ -129,6 +132,8 @@ class TopDownLayer(nn.Module):
                     res_block_kernel=res_block_kernel,
                     skip_padding=res_block_skip_padding,
                     gated=gated,
+                    conv2d_bias=conv2d_bias,
+                    groups=groups,
                 ))
         self.deterministic_block = nn.Sequential(*block_list)
 
@@ -139,6 +144,8 @@ class TopDownLayer(nn.Module):
                 c_vars=z_dim,
                 c_out=n_filters,
                 transform_p_params=(not is_top_layer),
+                groups=groups,
+                conv2d_bias=conv2d_bias,
             )
         else:
             self.stochastic = NormalStochasticBlock2d(
@@ -160,6 +167,7 @@ class TopDownLayer(nn.Module):
                 dropout=dropout,
                 res_block_type=res_block_type,
                 res_block_kernel=res_block_kernel,
+                conv2d_bias=conv2d_bias,
             )
 
             # Skip connection that goes around the stochastic top-down layer
@@ -170,6 +178,8 @@ class TopDownLayer(nn.Module):
                     batchnorm=batchnorm,
                     dropout=dropout,
                     res_block_type=res_block_type,
+                    merge_type=merge_type,
+                    conv2d_bias=conv2d_bias,
                     res_block_kernel=res_block_kernel,
                     res_block_skip_padding=res_block_skip_padding,
                 )
@@ -522,7 +532,8 @@ class ResBlockWithResampling(nn.Module):
                  min_inner_channels=None,
                  gated=None,
                  lowres_input=False,
-                 skip_padding=False):
+                 skip_padding=False,
+                 conv2d_bias=True):
         super().__init__()
         assert mode in ['top-down', 'bottom-up']
         if min_inner_channels is None:
@@ -537,7 +548,8 @@ class ResBlockWithResampling(nn.Module):
                                           kernel_size=3,
                                           padding=1,
                                           stride=2,
-                                          groups=groups)
+                                          groups=groups,
+                                          bias=conv2d_bias)
             elif mode == 'top-down':  # upsample
                 self.pre_conv = nn.ConvTranspose2d(in_channels=c_in,
                                                    out_channels=inner_filters,
@@ -545,9 +557,10 @@ class ResBlockWithResampling(nn.Module):
                                                    padding=1,
                                                    stride=2,
                                                    groups=groups,
-                                                   output_padding=1)
+                                                   output_padding=1,
+                                                   bias=conv2d_bias)
         elif c_in != inner_filters:
-            self.pre_conv = nn.Conv2d(c_in, inner_filters, 1, groups=groups)
+            self.pre_conv = nn.Conv2d(c_in, inner_filters, 1, groups=groups, bias=conv2d_bias)
         else:
             self.pre_conv = None
 
@@ -562,42 +575,13 @@ class ResBlockWithResampling(nn.Module):
             gated=gated,
             block_type=res_block_type,
             skip_padding=skip_padding,
+            conv2d_bias=conv2d_bias,
         )
-        # self.lowres_input = lowres_input
-        # self.lowres_pre_conv = self.lowres_body = self.lowres_merge = None
-        # if self.lowres_input:
-        #     self._init_lowres(c_in=c_in, inner_filters=inner_filters, nonlin=nonlin, res_block_kernel=res_block_kernel,
-        #                       groups=groups, batchnorm=batchnorm, dropout=dropout, gated=gated,
-        #                       res_block_type=res_block_type)
-
         # Define last conv layer to get correct num output channels
         if inner_filters != c_out:
-            self.post_conv = nn.Conv2d(inner_filters, c_out, 1, groups=groups)
+            self.post_conv = nn.Conv2d(inner_filters, c_out, 1, groups=groups, bias=conv2d_bias)
         else:
             self.post_conv = None
-
-    # def _init_lowres(self, c_in=None, inner_filters=None, nonlin=None, res_block_kernel=None,
-    #                  groups=None, batchnorm=None, dropout=None, gated=None,
-    #                  res_block_type=None):
-    #     self.lowres_pre_conv = nn.Conv2d(c_in, inner_filters, 1, groups=groups)
-    #     self.lowres_body = ResidualBlock(
-    #         channels=inner_filters,
-    #         nonlin=nonlin,
-    #         kernel=res_block_kernel,
-    #         groups=groups,
-    #         batchnorm=batchnorm,
-    #         dropout=dropout,
-    #         gated=gated,
-    #         block_type=res_block_type,
-    #     )
-    #     self.lowres_merge = MergeLowRes(
-    #         channels=inner_filters,
-    #         merge_type='residual',
-    #         nonlin=nonlin,
-    #         batchnorm=batchnorm,
-    #         dropout=dropout,
-    #         res_block_type=res_block_type,
-    #     )
 
     def forward(self, x):
         if self.pre_conv is not None:
@@ -607,20 +591,6 @@ class ResBlockWithResampling(nn.Module):
         if self.post_conv is not None:
             x = self.post_conv(x)
         return x
-
-    # def forward(self, x, lowres=None):
-    #     if self.pre_conv is not None:
-    #         x = self.pre_conv(x)
-    #
-    #     x = self.res(x)
-    #     if lowres is not None:
-    #         lowres = self.lowres_pre_conv(lowres)
-    #         lowres = self.lowres_body(lowres)
-    #         x = self.lowres_merge(x, lowres)
-    #
-    #     if self.post_conv is not None:
-    #         x = self.post_conv(x)
-    #     return x
 
 
 class TopDownDeterministicResBlock(ResBlockWithResampling):
@@ -651,6 +621,7 @@ class MergeLayer(nn.Module):
                  dropout=None,
                  res_block_type=None,
                  res_block_kernel=None,
+                 conv2d_bias=True,
                  res_block_skip_padding=False):
         super().__init__()
         try:
@@ -664,10 +635,10 @@ class MergeLayer(nn.Module):
         # assert len(channels) == 3
 
         if merge_type == 'linear':
-            self.layer = nn.Conv2d(sum(channels[:-1]), channels[-1], 1)
+            self.layer = nn.Conv2d(sum(channels[:-1]), channels[-1], 1, bias=conv2d_bias)
         elif merge_type == 'residual':
             self.layer = nn.Sequential(
-                nn.Conv2d(sum(channels[:-1]), channels[-1], 1, padding=0),
+                nn.Conv2d(sum(channels[:-1]), channels[-1], 1, padding=0, bias=conv2d_bias),
                 ResidualGatedBlock(
                     channels[-1],
                     nonlin,
@@ -675,6 +646,21 @@ class MergeLayer(nn.Module):
                     dropout=dropout,
                     block_type=res_block_type,
                     kernel=res_block_kernel,
+                    conv2d_bias=conv2d_bias,
+                    skip_padding=res_block_skip_padding,
+                ),
+            )
+        elif merge_type == 'residual_ungated':
+            self.layer = nn.Sequential(
+                nn.Conv2d(sum(channels[:-1]), channels[-1], 1, padding=0, bias=conv2d_bias),
+                ResidualBlock(
+                    channels[-1],
+                    nonlin,
+                    batchnorm=batchnorm,
+                    dropout=dropout,
+                    block_type=res_block_type,
+                    kernel=res_block_kernel,
+                    conv2d_bias=conv2d_bias,
                     skip_padding=res_block_skip_padding,
                 ),
             )
@@ -713,21 +699,22 @@ class SkipConnectionMerger(MergeLayer):
     By default for now simply a merge layer.
     """
 
-    merge_type = 'residual'
-
     def __init__(self,
                  channels,
                  nonlin,
                  batchnorm,
                  dropout,
                  res_block_type,
+                 merge_type='residual',
+                 conv2d_bias: bool = True,
                  res_block_kernel=None,
                  res_block_skip_padding=False):
         super().__init__(channels,
-                         self.merge_type,
+                         merge_type,
                          nonlin,
                          batchnorm,
                          dropout=dropout,
                          res_block_type=res_block_type,
                          res_block_kernel=res_block_kernel,
+                         conv2d_bias=conv2d_bias,
                          res_block_skip_padding=res_block_skip_padding)

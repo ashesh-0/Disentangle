@@ -41,7 +41,10 @@ class GridIndexManager:
         if self._align == GridAlignement.LeftTop:
             extra_pixels = (self.patch_size - grid_size)
         elif self._align == GridAlignement.Center:
-            extra_pixels = (self.patch_size - grid_size) // 2
+            # Center is exclusively used during evaluation. In this case, we use the padding to handle edge cases.
+            # So, here, we will ideally like to cover all pixels and so extra_pixels is set to 0.
+            # If there was no padding, then it should be set to (self.patch_size - grid_size) // 2
+            extra_pixels = 0
 
         return ((self._data_shape[-3] - extra_pixels) // grid_size)
 
@@ -49,7 +52,7 @@ class GridIndexManager:
         if self._align == GridAlignement.LeftTop:
             extra_pixels = (self.patch_size - grid_size)
         elif self._align == GridAlignement.Center:
-            extra_pixels = (self.patch_size - grid_size) // 2
+            extra_pixels = 0
 
         return ((self._data_shape[-2] - extra_pixels) // grid_size)
 
