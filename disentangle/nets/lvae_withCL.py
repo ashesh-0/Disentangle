@@ -96,21 +96,7 @@ class LadderVAEwithCL(LadderVAE):
         cl_loss = cl_loss / len(cl_loss_dict)
         return cl_loss
 
-    def training_step(self, batch, batch_idx, enable_logging=True):
-        inp, alpha_class_idx, ch1_idx, ch2_idx = batch
-        x_normalized = self.normalize_input(inp)
-
-        out, td_data = self.forward(x_normalized)
-        if self.encoder_no_padding_mode and out.shape[-2:] != inp.shape[-2:]:
-            inp = F.center_crop(inp, out.shape[-2:])
-
-        recons_loss_dict, _ = self.get_reconstruction_loss(out, inp, return_predicted_img=True)
-
-        if self.skip_nboundary_pixels_from_loss:
-            pad = self.skip_nboundary_pixels_from_loss
-            target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
-
-        recons_loss = recons_loss_dict['loss']
+    def compute_all_CL_losses(self, td_data, alpha_class_idx, ch1_idx, ch2_idx):
         alpha_ch_start, alpha_ch_end = self._cl_latent_start_end_alpha
         q_mu = [z.get() for z in td_data['q_mu']]
 
@@ -136,6 +122,25 @@ class LadderVAEwithCL(LadderVAE):
                                                          ch2_idx,
                                                          ch_start=to_mu_dic(ch2_start),
                                                          ch_end=to_mu_dic(ch2_end))
+        return cl_loss_alpha, cl_loss_ch1, cl_loss_ch2
+
+    def training_step(self, batch, batch_idx, enable_logging=True):
+        inp, alpha_class_idx, ch1_idx, ch2_idx = batch
+        x_normalized = self.normalize_input(inp)
+
+        out, td_data = self.forward(x_normalized)
+        if self.encoder_no_padding_mode and out.shape[-2:] != inp.shape[-2:]:
+            inp = F.center_crop(inp, out.shape[-2:])
+
+        recons_loss_dict, _ = self.get_reconstruction_loss(out, inp, return_predicted_img=True)
+
+        if self.skip_nboundary_pixels_from_loss:
+            pad = self.skip_nboundary_pixels_from_loss
+            target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
+
+        recons_loss = recons_loss_dict['loss']
+
+        cl_loss_alpha, cl_loss_ch1, cl_loss_ch2 = self.compute_all_CL_losses(td_data, alpha_class_idx, ch1_idx, ch2_idx)
 
         self.log('cl_loss_alpha', cl_loss_alpha, on_epoch=True)
         self.log('cl_loss_ch1', cl_loss_ch1, on_epoch=True)

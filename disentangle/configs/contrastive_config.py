@@ -56,7 +56,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.skip_cl_on_alpha = True
+    loss.skip_cl_on_alpha = False
 
     model = config.model
     model.model_type = ModelType.LadderVaeCL
@@ -104,15 +104,15 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 30
-    training.max_epochs = 400
+    training.lr_scheduler_patience = 90
+    training.max_epochs = 1200
     training.batch_size = 64
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 200
+    training.earlystop_patience = 600
     training.precision = 16
 
     return config
