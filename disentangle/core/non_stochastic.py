@@ -6,13 +6,13 @@ from typing import Union
 
 import numpy as np
 import torch
+import torchvision.transforms.functional as F
 from torch import nn
 from torch.distributions import kl_divergence
 from torch.distributions.normal import Normal
-import torchvision.transforms.functional as F
 
-from disentangle.core.stable_exp import log_prob
 from disentangle.core.stable_dist_params import StableLogVar, StableMean
+from disentangle.core.stable_exp import log_prob
 
 
 class NonStochasticBlock2d(nn.Module):
@@ -20,7 +20,14 @@ class NonStochasticBlock2d(nn.Module):
     Non-stochastic version of the NormalStochasticBlock2d
     """
 
-    def __init__(self, c_in: int, c_vars: int, c_out, kernel: int = 3, transform_p_params: bool = True):
+    def __init__(self,
+                 c_in: int,
+                 c_vars: int,
+                 c_out,
+                 kernel: int = 3,
+                 groups=1,
+                 conv2d_bias: bool = True,
+                 transform_p_params: bool = True):
         """
         Args:
             c_in:   This is the channel count of the tensor input to this module.
@@ -38,9 +45,9 @@ class NonStochasticBlock2d(nn.Module):
         self.c_vars = c_vars
 
         if transform_p_params:
-            self.conv_in_p = nn.Conv2d(c_in, 2 * c_vars, kernel, padding=pad)
-        self.conv_in_q = nn.Conv2d(c_in, 2 * c_vars, kernel, padding=pad)
-        self.conv_out = nn.Conv2d(c_vars, c_out, kernel, padding=pad)
+            self.conv_in_p = nn.Conv2d(c_in, 2 * c_vars, kernel, padding=pad, bias=conv2d_bias, groups=groups)
+        self.conv_in_q = nn.Conv2d(c_in, 2 * c_vars, kernel, padding=pad, bias=conv2d_bias, groups=groups)
+        self.conv_out = nn.Conv2d(c_vars, c_out, kernel, padding=pad, bias=conv2d_bias, groups=groups)
 
     def compute_kl_metrics(self, p, p_params, q, q_params, mode_pred, analytical_kl, z):
         """
@@ -59,7 +66,8 @@ class NonStochasticBlock2d(nn.Module):
         if self.transform_p_params:
             p_params = self.conv_in_p(p_params)
         else:
-            assert p_params.size(1) == 2 * self.c_vars
+
+            assert p_params.size(1) == 2 * self.c_vars, f'{p_params.shape} {self.c_vars}'
 
         # Define p(z)
         p_mu, p_lv = p_params.chunk(2, dim=1)
