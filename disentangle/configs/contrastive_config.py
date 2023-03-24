@@ -42,6 +42,9 @@ def get_config():
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
+    data.return_individual_channels = True
+    data.return_alpha = True
+    data.use_alpha_invariant_mean = True
 
     loss = config.loss
     loss.loss_type = LossType.Elbo

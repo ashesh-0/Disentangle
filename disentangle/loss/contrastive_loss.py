@@ -156,6 +156,95 @@ class DisentanglementModule(nn.Module):
         return self.get_loss(activations, pred_image, noise_levels)
 
 
+class ContrastiveLearningLossBatchHandler:
+
+    def __init__(self, config) -> None:
+        # Contrastive learning loss.
+        # TODO: Figure out the logic for CL. This will be different.
+        tau_pos = config.loss.cl_tau_pos
+        tau_neg = config.loss.cl_tau_neg
+        self._cl_latent_start_end_alpha = config.model.cl_latent_start_end_alpha
+        self._cl_latent_start_end_ch1 = config.model.cl_latent_start_end_ch1
+        self._cl_latent_start_end_ch2 = config.model.cl_latent_start_end_ch2
+        self.cl_channels = config.model.z_dims
+        self.cl_weight = config.loss.cl_weight
+        self._skip_cl_on_alpha = config.loss.skip_cl_on_alpha
+
+        self._cl_loss = ContrastiveLearninglossOnLatent(
+            {config.data.image_size // 2**(i + 1): self.cl_channels[i]
+             for i in range(len(self.cl_channels))},
+            tau_pos,
+            tau_neg,
+        )
+
+    def contrastive_learning_loss(self,
+                                  latent_activations,
+                                  class_idx,
+                                  ch_start=None,
+                                  ch_end=None,
+                                  tau_pos=None,
+                                  tau_neg=None):
+
+        loss_dict = self._cl_loss.forward(
+            latent_activations,
+            class_idx,
+            ch_start=ch_start,
+            ch_end=ch_end,
+            tau_pos=tau_pos,
+            tau_neg=tau_neg,
+        )
+        return loss_dict
+
+    def get_contrastive_learning_loss(self,
+                                      latent_activations,
+                                      class_idx,
+                                      ch_start=None,
+                                      ch_end=None,
+                                      tau_pos=None,
+                                      tau_neg=None):
+        cl_loss = 0
+        cl_loss_dict = self.contrastive_learning_loss(
+            latent_activations,
+            class_idx,
+            ch_start=ch_start,
+            ch_end=ch_end,
+            tau_pos=tau_pos,
+            tau_neg=tau_neg,
+        )
+        for _, v in cl_loss_dict.items():
+            cl_loss += v
+        cl_loss = cl_loss / len(cl_loss_dict)
+        return cl_loss
+
+    def compute_all_CL_losses(self, td_data, alpha_class_idx, ch1_idx, ch2_idx):
+        alpha_ch_start, alpha_ch_end = self._cl_latent_start_end_alpha
+        q_mu = [z.get() for z in td_data['q_mu']]
+
+        def to_mu_dic(val):
+            return {z.shape[-1]: val for z in q_mu}
+
+        if self._skip_cl_on_alpha:
+            cl_loss_alpha = 0.0
+        else:
+            cl_loss_alpha = self.get_contrastive_learning_loss(q_mu,
+                                                               alpha_class_idx,
+                                                               ch_start=to_mu_dic(alpha_ch_start),
+                                                               ch_end=to_mu_dic(alpha_ch_end))
+
+        ch1_start, ch1_end = self._cl_latent_start_end_ch1
+        cl_loss_ch1 = self.get_contrastive_learning_loss(q_mu,
+                                                         ch1_idx,
+                                                         ch_start=to_mu_dic(ch1_start),
+                                                         ch_end=to_mu_dic(ch1_end))
+
+        ch2_start, ch2_end = self._cl_latent_start_end_ch2
+        cl_loss_ch2 = self.get_contrastive_learning_loss(q_mu,
+                                                         ch2_idx,
+                                                         ch_start=to_mu_dic(ch2_start),
+                                                         ch_end=to_mu_dic(ch2_end))
+        return cl_loss_alpha, cl_loss_ch1, cl_loss_ch2
+
+
 if __name__ == '__main__':
     rep = torch.Tensor(np.arange(40).reshape(8, 5))
     noise_level_list = torch.Tensor([10, 20, 10, 40, 30, 40, 20, 30])

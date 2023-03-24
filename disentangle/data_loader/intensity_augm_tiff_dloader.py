@@ -101,12 +101,16 @@ class IntensityAugTiffDloader(MultiChDeterministicTiffDloader):
         std = std[0] * alpha + std[1] * (1 - alpha)
         return mean, std
 
-    def _compute_input_with_alpha(self, img_tuples, alpha):
+    def _compute_input_with_alpha(self, img_tuples, alpha, use_alpha_invariant_mean=False):
         assert len(img_tuples) == 2
         assert self._normalized_input is True, "normalization should happen here"
 
         inp = img_tuples[0] * alpha + img_tuples[1] * (1 - alpha)
-        mean, std = self._compute_mean_std_with_alpha(alpha)
+        if use_alpha_invariant_mean:
+            mean, std = self._compute_mean_std_with_alpha(0.5)
+        else:
+            mean, std = self._compute_mean_std_with_alpha(alpha)
+
         inp = (inp - mean) / std
         return inp.astype(np.float32)
 
@@ -132,7 +136,16 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
                  enable_random_cropping: bool = False,
                  use_one_mu_std=None,
                  allow_generation=False,
+                 return_individual_channels: bool = False,
+                 return_alpha: bool = False,
+                 use_alpha_invariant_mean=False,
                  max_val=None):
+        """
+        Args:
+            return_alpha: IF True, return the actual alpha value instead of the alpha class. Otherwise, it returns alpha_class
+            use_alpha_invariant_mean: If True, then mean and stdev corresponding to alpha=0.5 is used to normalize all inputs. If False
+                                  , input is normalized with a mean,stdev computing using the alpha.
+        """
         super().__init__(data_config,
                          fpath,
                          datasplit_type=datasplit_type,
@@ -147,6 +160,12 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
         assert self._enable_random_cropping is False, "We need id for each image and so this must be false. \
             Our custom sampler will provide index with single grid_size"
 
+        self._return_individual_channels = return_individual_channels
+        self._return_alpha = return_alpha
+        self._use_alpha_invariant_mean = use_alpha_invariant_mean
+        print(f'[{self.__class__.__name__}] RetChannels', self._return_individual_channels, 'RetAlpha',
+              self._return_alpha, 'AlphaInvMean', use_alpha_invariant_mean)
+
     def _compute_input(self, img_tuples, alpha_class_idx):
         if alpha_class_idx == -1:
             # alpha=0.5 is the solution.
@@ -155,7 +174,8 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
             alpha, alpha_class_idx = self._sample_alpha(alpha_class_idx=alpha_class_idx)
 
         assert alpha is not None
-        return self._compute_input_with_alpha(img_tuples, alpha), alpha_class_idx
+        return self._compute_input_with_alpha(
+            img_tuples, alpha, use_alpha_invariant_mean=self._use_alpha_invariant_mean), alpha, alpha_class_idx
 
     def __getitem__(self, index: Union[int, Tuple[int, int, int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         ch1_idx, ch2_idx, grid_size, alpha_class_idx = index
@@ -166,6 +186,13 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
 
         assert self._enable_rotation is False
         img_tuples = (img1_tuples[0], img2_tuples[1])
-        inp, _ = self._compute_input(img_tuples, alpha_class_idx=alpha_class_idx)
+        inp, alpha, _ = self._compute_input(img_tuples, alpha_class_idx=alpha_class_idx)
 
-        return inp, alpha_class_idx, ch1_idx, ch2_idx
+        alpha_val = alpha_class_idx
+        if self._return_alpha:
+            alpha_val = alpha
+
+        if self._return_individual_channels:
+            return (inp, *img_tuples, alpha_val, ch1_idx, ch2_idx)
+
+        return inp, alpha_val, ch1_idx, ch2_idx

@@ -9,6 +9,7 @@ from torch import nn
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
 from disentangle.core.loss_type import LossType
+from disentangle.loss.contrastive_loss import ContrastiveLearningLossBatchHandler
 from disentangle.losses import free_bits_kl
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
@@ -48,26 +49,26 @@ class LadderVAETwinDecoder(LadderVAE):
                     res_block_type=self.res_block_type,
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
+                    conv2d_bias=self.topdown_conv2d_bias,
                 ))
 
             self.top_down_layers_l2.append(
-                TopDownLayer(
-                    z_dim=self.z_dims[i],
-                    n_res_blocks=self.decoder_blocks_per_layer,
-                    n_filters=self.decoder_n_filters // 2,
-                    is_top_layer=is_top,
-                    downsampling_steps=self.downsample[i],
-                    nonlin=nonlin,
-                    merge_type=self.merge_type,
-                    batchnorm=self.topdown_batchnorm,
-                    dropout=self.decoder_dropout,
-                    stochastic_skip=self.stochastic_skip,
-                    learn_top_prior=self.learn_top_prior,
-                    top_prior_param_shape=self.get_top_prior_param_shape(),
-                    res_block_type=self.res_block_type,
-                    gated=self.gated,
-                    analytical_kl=self.analytical_kl,
-                ))
+                TopDownLayer(z_dim=self.z_dims[i],
+                             n_res_blocks=self.decoder_blocks_per_layer,
+                             n_filters=self.decoder_n_filters // 2,
+                             is_top_layer=is_top,
+                             downsampling_steps=self.downsample[i],
+                             nonlin=nonlin,
+                             merge_type=self.merge_type,
+                             batchnorm=self.topdown_batchnorm,
+                             dropout=self.decoder_dropout,
+                             stochastic_skip=self.stochastic_skip,
+                             learn_top_prior=self.learn_top_prior,
+                             top_prior_param_shape=self.get_top_prior_param_shape(),
+                             res_block_type=self.res_block_type,
+                             gated=self.gated,
+                             analytical_kl=self.analytical_kl,
+                             conv2d_bias=self.topdown_conv2d_bias))
 
         # Final top-down layer
         self.final_top_down_l1 = self.get_final_top_down()
@@ -78,10 +79,18 @@ class LadderVAETwinDecoder(LadderVAE):
         self.likelihood = None
         self.likelihood_l1 = GaussianLikelihood(self.decoder_n_filters // 2,
                                                 self.target_ch,
-                                                predict_logvar=self.predict_logvar)
+                                                predict_logvar=self.predict_logvar,
+                                                conv2d_bias=self.topdown_conv2d_bias)
         self.likelihood_l2 = GaussianLikelihood(self.decoder_n_filters // 2,
                                                 self.target_ch,
-                                                predict_logvar=self.predict_logvar)
+                                                predict_logvar=self.predict_logvar,
+                                                conv2d_bias=self.topdown_conv2d_bias)
+
+        # contrastive learning.
+        self.cl_handler = None
+        if self.loss_type == LossType.ElboCL:
+            self.cl_handler = ContrastiveLearningLossBatchHandler(config)
+
         print(f'[{self.__class__.__name__}]')
 
     def get_final_top_down(self):
@@ -99,6 +108,7 @@ class LadderVAETwinDecoder(LadderVAE):
                     dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
                     gated=self.gated,
+                    conv2d_bias=self.topdown_conv2d_bias,
                 ))
 
         return nn.Sequential(*modules)
@@ -191,7 +201,8 @@ class LadderVAETwinDecoder(LadderVAE):
         return grad_norm_bottom_up, grad_norm_top_down
 
     def training_step(self, batch, batch_idx):
-        x, target = batch
+        x, target = batch[:2]
+
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
 
@@ -200,7 +211,20 @@ class LadderVAETwinDecoder(LadderVAE):
         recons_loss = self.get_reconstruction_loss(out_l1, out_l2, target_normalized)
         kl_loss = self.get_kl_divergence_loss(td_data)
 
-        net_loss = recons_loss + self.get_kl_weight() * kl_loss
+        # contrastive learning.
+        cl_loss = 0
+        if self.cl_handler is not None:
+            alpha_class_idx, ch1_idx, ch2_idx = batch[2:]
+
+            _, cl_loss_ch1, cl_loss_ch2 = self.cl_helper.compute_all_CL_losses(td_data, alpha_class_idx, ch1_idx,
+                                                                               ch2_idx)
+            self.log('cl_loss_ch1', cl_loss_ch1, on_epoch=True)
+            self.log('cl_loss_ch2', cl_loss_ch2, on_epoch=True)
+            cl_loss = cl_loss_ch1 + cl_loss_ch2
+            cl_loss = self.cl_weight * cl_loss
+
+        net_loss = recons_loss + self.get_kl_weight() * kl_loss + cl_loss
+
         self.log('reconstruction_loss', recons_loss, on_epoch=True)
         self.log('kl_loss', kl_loss, on_epoch=True)
         self.log('training_loss', net_loss, on_epoch=True)
@@ -215,7 +239,7 @@ class LadderVAETwinDecoder(LadderVAE):
         return output
 
     def validation_step(self, batch, batch_idx):
-        x, target = batch
+        x, target = batch[:2]
         self.set_params_to_same_device_as(target)
 
         x_normalized = self.normalize_input(x)
