@@ -4,10 +4,12 @@ from typing import Union
 import numpy as np
 import torch
 from torch import nn
+
 from disentangle.core.stable_dist_params import StableLogVar
 
 
 class LikelihoodModule(nn.Module):
+
     def distr_params(self, x):
         return None
 
@@ -54,6 +56,7 @@ class LikelihoodModule(nn.Module):
 
 
 class NoiseModelLikelihood(LikelihoodModule):
+
     def __init__(self, ch_in, color_channels, data_mean, data_std, noiseModel):
         super().__init__()
         self.parameter_net = nn.Conv2d(ch_in, color_channels, kernel_size=3, padding=1)
@@ -111,14 +114,26 @@ class NoiseModelLikelihood(LikelihoodModule):
 
 
 class GaussianLikelihood(LikelihoodModule):
-    def __init__(self, ch_in, color_channels, predict_logvar: Union[None, str] = None, logvar_lowerbound=None):
+
+    def __init__(self,
+                 ch_in,
+                 color_channels,
+                 predict_logvar: Union[None, str] = None,
+                 logvar_lowerbound=None,
+                 conv2d_bias=True):
         super().__init__()
         # If True, then we also predict pixelwise logvar.
         self.predict_logvar = predict_logvar
         self.logvar_lowerbound = logvar_lowerbound
+        self.conv2d_bias = conv2d_bias
         assert self.predict_logvar in [None, 'global', 'pixelwise', 'channelwise']
         logvar_ch_needed = self.predict_logvar is not None
-        self.parameter_net = nn.Conv2d(ch_in, color_channels * (1 + logvar_ch_needed), kernel_size=3, padding=1)
+        self.parameter_net = nn.Conv2d(ch_in,
+                                       color_channels * (1 + logvar_ch_needed),
+                                       kernel_size=3,
+                                       padding=1,
+                                       bias=self.conv2d_bias)
+
         print(f'[{self.__class__.__name__}] PredLVar:{self.predict_logvar} LowBLVar:{self.logvar_lowerbound}')
 
     def get_mean_lv(self, x):
@@ -199,6 +214,7 @@ def log_normal(x, mean, logvar):
 
 
 class GaussianLikelihoodWithStitching(GaussianLikelihood):
+
     def forward(self, input_, x, offset):
         distr_params = self.distr_params(input_)
         distr_params['mean'] = distr_params['mean'] + offset

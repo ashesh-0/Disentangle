@@ -12,6 +12,7 @@ def get_default_config():
     config.model.use_vampprior = False
     config.model.encoder = ml_collections.ConfigDict()
     config.model.decoder = ml_collections.ConfigDict()
+    config.model.decoder.conv2d_bias = True
 
     config.loss = ml_collections.ConfigDict()
 
