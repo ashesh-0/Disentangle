@@ -193,6 +193,7 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
             alpha_val = alpha
 
         if self._return_individual_channels:
-            return (inp, *img_tuples, alpha_val, ch1_idx, ch2_idx)
+            target = np.concatenate(img_tuples, axis=0)
+            return (inp, target, alpha_val, ch1_idx, ch2_idx)
 
         return inp, alpha_val, ch1_idx, ch2_idx
