@@ -62,33 +62,34 @@ def get_config():
     loss.skip_cl_on_alpha = False
 
     model = config.model
-    model.model_type = ModelType.LadderVaeCL
+    model.model_type = ModelType.LadderVaeTwinDecoder
     model.z_dims = [128, 128, 128, 128]
 
-    model.encoder.blocks_per_layer = 1
+    model.encoder.batchnorm = False
+    model.encoder.blocks_per_layer = 3
     model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
+    model.decoder.batchnorm = False
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
-    model.decoder.dropout = 0.1
+    model.decoder.dropout = 0.0
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
     model.decoder.multiscale_retain_spatial_dims = True
     model.decoder.skip_bottom_k_bu_values = 2
+    model.decoder.conv2d_bias = False
 
     model.skip_nboundary_pixels_from_loss = None
-    model.nonlin = 'elu'
-    model.merge_type = 'residual'
-    model.batchnorm = True
+    model.nonlin = 'leakyrelu'
+    model.merge_type = 'residual_ungated'
     model.stochastic_skip = True
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
-
-    model.gated = True
+    model.gated = False
     model.no_initial_downscaling = True
     model.analytical_kl = False
     model.mode_pred = False
@@ -99,8 +100,8 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = False
-    model.cl_latent_start_end_alpha = (0, 2)
+    model.non_stochastic_version = True
+    model.cl_latent_start_end_alpha = (0, 0)
     diff = model.z_dims[0] - model.cl_latent_start_end_alpha[1]
     model.cl_latent_start_end_ch1 = (model.cl_latent_start_end_alpha[1], model.cl_latent_start_end_alpha[1] + diff // 2)
     model.cl_latent_start_end_ch2 = (model.cl_latent_start_end_ch1[1], model.z_dims[0])

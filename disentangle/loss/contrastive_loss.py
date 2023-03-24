@@ -156,7 +156,7 @@ class DisentanglementModule(nn.Module):
         return self.get_loss(activations, pred_image, noise_levels)
 
 
-class ContrastiveLearningLossBatchHandler:
+class CLLossBatchHandler:
 
     def __init__(self, config) -> None:
         # Contrastive learning loss.
@@ -243,6 +243,30 @@ class ContrastiveLearningLossBatchHandler:
                                                          ch_start=to_mu_dic(ch2_start),
                                                          ch_end=to_mu_dic(ch2_end))
         return cl_loss_alpha, cl_loss_ch1, cl_loss_ch2
+
+
+class IntensityEquivCLLossBatchHandler(CLLossBatchHandler):
+
+    def compute_all_CL_losses(self, td_data, alpha, ch1_idx, ch2_idx):
+        q_mu = [z.get() for z in td_data['q_mu']]
+
+        def to_mu_dic(val):
+            return {z.shape[-1]: val for z in q_mu}
+
+        assert self._skip_cl_on_alpha == True
+
+        ch1_start, ch1_end = self._cl_latent_start_end_ch1
+        cl_loss_ch1 = self.get_contrastive_learning_loss(q_mu / alpha,
+                                                         ch1_idx,
+                                                         ch_start=to_mu_dic(ch1_start),
+                                                         ch_end=to_mu_dic(ch1_end))
+
+        ch2_start, ch2_end = self._cl_latent_start_end_ch2
+        cl_loss_ch2 = self.get_contrastive_learning_loss(q_mu / (1 - alpha),
+                                                         ch2_idx,
+                                                         ch_start=to_mu_dic(ch2_start),
+                                                         ch_end=to_mu_dic(ch2_end))
+        return 0.0, cl_loss_ch1, cl_loss_ch2
 
 
 if __name__ == '__main__':

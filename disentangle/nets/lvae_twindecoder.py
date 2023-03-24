@@ -9,7 +9,7 @@ from torch import nn
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
 from disentangle.core.loss_type import LossType
-from disentangle.loss.contrastive_loss import ContrastiveLearningLossBatchHandler
+from disentangle.loss.contrastive_loss import IntensityEquivCLLossBatchHandler
 from disentangle.losses import free_bits_kl
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
@@ -49,6 +49,7 @@ class LadderVAETwinDecoder(LadderVAE):
                     res_block_type=self.res_block_type,
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
+                    non_stochastic_version=self.non_stochastic_version,
                     conv2d_bias=self.topdown_conv2d_bias,
                 ))
 
@@ -68,6 +69,7 @@ class LadderVAETwinDecoder(LadderVAE):
                              res_block_type=self.res_block_type,
                              gated=self.gated,
                              analytical_kl=self.analytical_kl,
+                             non_stochastic_version=self.non_stochastic_version,
                              conv2d_bias=self.topdown_conv2d_bias))
 
         # Final top-down layer
@@ -87,9 +89,9 @@ class LadderVAETwinDecoder(LadderVAE):
                                                 conv2d_bias=self.topdown_conv2d_bias)
 
         # contrastive learning.
-        self.cl_handler = None
+        self.cl_helper = None
         if self.loss_type == LossType.ElboCL:
-            self.cl_handler = ContrastiveLearningLossBatchHandler(config)
+            self.cl_helper = IntensityEquivCLLossBatchHandler(config)
 
         print(f'[{self.__class__.__name__}]')
 
@@ -213,11 +215,10 @@ class LadderVAETwinDecoder(LadderVAE):
 
         # contrastive learning.
         cl_loss = 0
-        if self.cl_handler is not None:
-            alpha_class_idx, ch1_idx, ch2_idx = batch[2:]
+        if self.cl_helper is not None:
+            alpha, ch1_idx, ch2_idx = batch[2:]
 
-            _, cl_loss_ch1, cl_loss_ch2 = self.cl_helper.compute_all_CL_losses(td_data, alpha_class_idx, ch1_idx,
-                                                                               ch2_idx)
+            _, cl_loss_ch1, cl_loss_ch2 = self.cl_helper.compute_all_CL_losses(td_data, alpha, ch1_idx, ch2_idx)
             self.log('cl_loss_ch1', cl_loss_ch1, on_epoch=True)
             self.log('cl_loss_ch2', cl_loss_ch2, on_epoch=True)
             cl_loss = cl_loss_ch1 + cl_loss_ch2

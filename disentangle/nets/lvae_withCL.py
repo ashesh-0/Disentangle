@@ -5,7 +5,7 @@ import torch
 
 from disentangle.core.loss_type import LossType
 from disentangle.core.psnr import RangeInvariantPsnr
-from disentangle.loss.contrastive_loss import ContrastiveLearningLossBatchHandler
+from disentangle.loss.contrastive_loss import CLLossBatchHandler
 from disentangle.nets.lvae import LadderVAE, compute_batch_mean, torch_nanmean
 
 
@@ -13,7 +13,7 @@ class LadderVAEwithCL(LadderVAE):
 
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=1):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
-        self.cl_helper = ContrastiveLearningLossBatchHandler(config)
+        self.cl_helper = CLLossBatchHandler(config)
 
     def _get_reconstruction_loss_vector(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
         """
