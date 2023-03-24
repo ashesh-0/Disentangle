@@ -62,6 +62,9 @@ class LadderVAE(pl.LightningModule):
         self.encoder_dropout = config.model.encoder.dropout
         self.decoder_dropout = config.model.decoder.dropout
 
+        # whether or not to have bias with Conv2D layer.
+        self.topdown_conv2d_bias = config.model.decoder.conv2d_bias
+
         self.learn_top_prior = config.model.learn_top_prior
         self.img_shape = (config.data.image_size, config.data.image_size)
         self.res_block_type = config.model.res_block_type
@@ -234,7 +237,8 @@ class LadderVAE(pl.LightningModule):
                     retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
                     non_stochastic_version=self.non_stochastic_version,
                     input_image_shape=self.img_shape,
-                    normalize_latent_factor=normalize_latent_factor))
+                    normalize_latent_factor=normalize_latent_factor,
+                    conv2d_bias=self.topdown_conv2d_bias))
 
         # Final top-down layer
         self.final_top_down = self.create_final_topdown_layer(not self.no_initial_downscaling)
@@ -277,6 +281,7 @@ class LadderVAE(pl.LightningModule):
                     res_block_kernel=self.decoder_res_block_kernel,
                     skip_padding=self.decoder_res_block_skip_padding,
                     gated=self.gated,
+                    conv_2d_bias=self.topdown_conv2d_bias,
                 ))
         return nn.Sequential(*modules)
 
@@ -286,7 +291,8 @@ class LadderVAE(pl.LightningModule):
             likelihood = GaussianLikelihood(self.decoder_n_filters,
                                             self.target_ch,
                                             predict_logvar=self.predict_logvar,
-                                            logvar_lowerbound=self.logvar_lowerbound)
+                                            logvar_lowerbound=self.logvar_lowerbound,
+                                            conv2d_bias=self.topdown_conv2d_bias)
         elif self.likelihood_form == 'noise_model':
             likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std,
                                               self.noiseModel)

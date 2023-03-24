@@ -62,6 +62,7 @@ def get_config():
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
+
     model.decoder.multiscale_retain_spatial_dims = True
 
     model.skip_nboundary_pixels_from_loss = None
