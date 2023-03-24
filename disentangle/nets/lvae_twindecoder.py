@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -12,10 +14,9 @@ from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
 
-from typing import List, Tuple
-
 
 class LadderVAETwinDecoder(LadderVAE):
+
     def __init__(self, data_mean, data_std, config):
         super().__init__(data_mean, data_std, config, target_ch=1)
 
@@ -39,7 +40,7 @@ class LadderVAETwinDecoder(LadderVAE):
                     downsampling_steps=self.downsample[i],
                     nonlin=nonlin,
                     merge_type=self.merge_type,
-                    batchnorm=self.batchnorm,
+                    batchnorm=self.topdown_batchnorm,
                     dropout=self.decoder_dropout,
                     stochastic_skip=self.stochastic_skip,
                     learn_top_prior=self.learn_top_prior,
@@ -58,7 +59,7 @@ class LadderVAETwinDecoder(LadderVAE):
                     downsampling_steps=self.downsample[i],
                     nonlin=nonlin,
                     merge_type=self.merge_type,
-                    batchnorm=self.batchnorm,
+                    batchnorm=self.topdown_batchnorm,
                     dropout=self.decoder_dropout,
                     stochastic_skip=self.stochastic_skip,
                     learn_top_prior=self.learn_top_prior,
@@ -94,7 +95,7 @@ class LadderVAETwinDecoder(LadderVAE):
                     c_in=self.decoder_n_filters // 2,
                     c_out=self.decoder_n_filters // 2,
                     nonlin=nonlin,
-                    batchnorm=self.batchnorm,
+                    batchnorm=self.topdown_batchnorm,
                     dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
                     gated=self.gated,
