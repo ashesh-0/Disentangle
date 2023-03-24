@@ -53,7 +53,9 @@ class LadderVAE(pl.LightningModule):
 
         self.n_layers = len(self.z_dims)
         self.stochastic_skip = config.model.stochastic_skip
-        self.batchnorm = config.model.batchnorm
+        self.bottomup_batchnorm = config.model.encoder.batchnorm
+        self.topdown_batchnorm = config.model.decoder.batchnorm
+
         self.encoder_n_filters = config.model.encoder.n_filters
         self.decoder_n_filters = config.model.decoder.n_filters
 
@@ -181,7 +183,7 @@ class LadderVAE(pl.LightningModule):
                               n_filters=self.encoder_n_filters,
                               downsampling_steps=self.downsample[i],
                               nonlin=nonlin,
-                              batchnorm=self.batchnorm,
+                              batchnorm=self.bottomup_batchnorm,
                               dropout=self.encoder_dropout,
                               res_block_type=self.res_block_type,
                               res_block_kernel=self.encoder_res_block_kernel,
@@ -216,7 +218,7 @@ class LadderVAE(pl.LightningModule):
                     downsampling_steps=self.downsample[i],
                     nonlin=nonlin,
                     merge_type=self.merge_type,
-                    batchnorm=self.batchnorm,
+                    batchnorm=self.topdown_batchnorm,
                     dropout=self.decoder_dropout,
                     stochastic_skip=self.stochastic_skip,
                     learn_top_prior=self.learn_top_prior,
@@ -269,7 +271,7 @@ class LadderVAE(pl.LightningModule):
                     c_in=self.decoder_n_filters,
                     c_out=self.decoder_n_filters,
                     nonlin=self.get_nonlin(),
-                    batchnorm=self.batchnorm,
+                    batchnorm=self.topdown_batchnorm,
                     dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
                     res_block_kernel=self.decoder_res_block_kernel,
@@ -309,7 +311,7 @@ class LadderVAE(pl.LightningModule):
                     c_in=self.encoder_n_filters,
                     c_out=self.encoder_n_filters,
                     nonlin=nonlin,
-                    batchnorm=self.batchnorm,
+                    batchnorm=self.bottomup_batchnorm,
                     dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
                     skip_padding=self.encoder_res_block_skip_padding,
@@ -341,7 +343,7 @@ class LadderVAE(pl.LightningModule):
                     c_in=self.encoder_n_filters,
                     c_out=self.encoder_n_filters,
                     nonlin=nonlin,
-                    batchnorm=self.batchnorm,
+                    batchnorm=self.bottomup_batchnorm,
                     dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
                     skip_padding=self.encoder_res_block_skip_padding,
