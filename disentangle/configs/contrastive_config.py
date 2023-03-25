@@ -67,7 +67,7 @@ def get_config():
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = False
-    model.encoder.blocks_per_layer = 3
+    model.encoder.blocks_per_layer = 5
     model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
