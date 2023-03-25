@@ -63,7 +63,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVaeTwinDecoder
-    model.z_dims = [128, 128, 128]
+    model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = False
     model.encoder.blocks_per_layer = 3
