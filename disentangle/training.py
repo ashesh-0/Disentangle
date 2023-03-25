@@ -32,20 +32,35 @@ from disentangle.training_utils import ValEveryNSteps
 
 
 def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False):
-    if config.model.model_type == ModelType.LadderVaeCL:
+    if config.model.model_type == ModelType.LadderVaeCL or (config.model.model_type == ModelType.LadderVaeTwinDecoder
+                                                            and config.loss.loss_type == LossType.ElboCL):
         normalized_input = config.data.normalized_input
         use_one_mu_std = config.data.use_one_mu_std
         train_aug_rotate = config.data.train_aug_rotate
         enable_random_cropping = config.data.deterministic_grid is False
         lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
+        return_individual_channels = config.data.return_individual_channels
+        return_alpha = config.data.return_alpha
+        use_alpha_invariant_mean = config.data.use_alpha_invariant_mean
+
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
 
         if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
             raise NotImplementedError("LC needs to be integrated with contrastive learning")
         else:
-            train_data_kwargs = {'allow_generation': True}
-            val_data_kwargs = {'allow_generation': False}
+            train_data_kwargs = {
+                'allow_generation': True,
+                'return_individual_channels': return_individual_channels,
+                'return_alpha': return_alpha,
+                'use_alpha_invariant_mean': use_alpha_invariant_mean
+            }
+            val_data_kwargs = {
+                'allow_generation': False,
+                'return_individual_channels': return_individual_channels,
+                'return_alpha': return_alpha,
+                'use_alpha_invariant_mean': use_alpha_invariant_mean
+            }
 
             train_data_kwargs['enable_random_cropping'] = enable_random_cropping
             val_data_kwargs['enable_random_cropping'] = False

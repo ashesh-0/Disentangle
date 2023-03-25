@@ -167,7 +167,6 @@ class CLLossBatchHandler:
         self._cl_latent_start_end_ch1 = config.model.cl_latent_start_end_ch1
         self._cl_latent_start_end_ch2 = config.model.cl_latent_start_end_ch2
         self.cl_channels = config.model.z_dims
-        self.cl_weight = config.loss.cl_weight
         self._skip_cl_on_alpha = config.loss.skip_cl_on_alpha
 
         self._cl_loss = ContrastiveLearninglossOnLatent(
@@ -216,9 +215,10 @@ class CLLossBatchHandler:
         cl_loss = cl_loss / len(cl_loss_dict)
         return cl_loss
 
-    def compute_all_CL_losses(self, td_data, alpha_class_idx, ch1_idx, ch2_idx):
+    def compute_all_CL_losses(self, q_mu, alpha_class_idx, ch1_idx, ch2_idx):
         alpha_ch_start, alpha_ch_end = self._cl_latent_start_end_alpha
-        q_mu = [z.get() for z in td_data['q_mu']]
+
+        # q_mu = [z.get() for z in td_data['q_mu']]
 
         def to_mu_dic(val):
             return {z.shape[-1]: val for z in q_mu}
@@ -247,22 +247,24 @@ class CLLossBatchHandler:
 
 class IntensityEquivCLLossBatchHandler(CLLossBatchHandler):
 
-    def compute_all_CL_losses(self, td_data, alpha, ch1_idx, ch2_idx):
-        q_mu = [z.get() for z in td_data['q_mu']]
+    def compute_all_CL_losses(self, q_mu, alpha, ch1_idx, ch2_idx):
+        assert len(alpha.shape) == 1
+        alpha = alpha[..., None, None, None]
 
+        # q_mu = [z.get() for z in td_data[latent_key]]
         def to_mu_dic(val):
             return {z.shape[-1]: val for z in q_mu}
 
         assert self._skip_cl_on_alpha == True
 
         ch1_start, ch1_end = self._cl_latent_start_end_ch1
-        cl_loss_ch1 = self.get_contrastive_learning_loss(q_mu / alpha,
+        cl_loss_ch1 = self.get_contrastive_learning_loss([x / alpha for x in q_mu],
                                                          ch1_idx,
                                                          ch_start=to_mu_dic(ch1_start),
                                                          ch_end=to_mu_dic(ch1_end))
 
         ch2_start, ch2_end = self._cl_latent_start_end_ch2
-        cl_loss_ch2 = self.get_contrastive_learning_loss(q_mu / (1 - alpha),
+        cl_loss_ch2 = self.get_contrastive_learning_loss([x / (1 - alpha) for x in q_mu],
                                                          ch2_idx,
                                                          ch_start=to_mu_dic(ch2_start),
                                                          ch_end=to_mu_dic(ch2_end))
@@ -270,7 +272,46 @@ class IntensityEquivCLLossBatchHandler(CLLossBatchHandler):
 
 
 if __name__ == '__main__':
+    import ml_collections
     rep = torch.Tensor(np.arange(40).reshape(8, 5))
     noise_level_list = torch.Tensor([10, 20, 10, 40, 30, 40, 20, 30])
     loss = get_contrastive_loss_vectorized(rep, noise_level_list, tau_pos=.1, tau_neg=0.1).item()
     assert abs(loss - 262.4) < 1e-4, f'{loss - 262.4}'
+
+    rep = torch.Tensor(np.arange(320).reshape(5, 16, 2, 2))
+    ch1_idx = torch.Tensor([1, 2, 3, 4, 2])
+    alpha1 = torch.Tensor([0.1, 0.2, 0.3, 0.4, 0.5])
+    alpha2 = torch.Tensor([0.1, 0.1, 0.3, 0.4, 0.5])
+
+    # tau_pos = config.loss.cl_tau_pos
+    # tau_neg = config.loss.cl_tau_neg
+    # self._cl_latent_start_end_alpha = config.model.cl_latent_start_end_alpha
+    # self._cl_latent_start_end_ch1 = config.model.cl_latent_start_end_ch1
+    # self._cl_latent_start_end_ch2 = config.model.cl_latent_start_end_ch2
+    # self.cl_channels = config.model.z_dims
+    # self._skip_cl_on_alpha = config.loss.skip_cl_on_alpha
+
+    config = ml_collections.ConfigDict()
+    config.model = ml_collections.ConfigDict()
+    config.loss = ml_collections.ConfigDict()
+    config.data = ml_collections.ConfigDict()
+    config.data.image_size = 4
+    config.loss.cl_tau_pos = 0
+    config.loss.cl_tau_neg = 100
+    config.loss.cl_weight = 0.1
+    config.loss.skip_cl_on_alpha = True
+    config.model.cl_latent_start_end_alpha = (0, 0)
+    config.model.cl_latent_start_end_ch1 = (0, 8)
+    config.model.cl_latent_start_end_ch2 = (8, 16)
+    config.model.z_dims = [16]
+    # class Dum:
+    #     def __init__(self,x) -> None:
+    #         self.x = x
+    #     def get(self):
+    #         return self.x
+
+    handler = IntensityEquivCLLossBatchHandler(config)
+    loss1 = handler.compute_all_CL_losses([rep], alpha1, ch1_idx, ch1_idx)
+    loss2 = handler.compute_all_CL_losses([rep], alpha2, ch1_idx, ch1_idx)
+    print(loss1)
+    print(loss2)

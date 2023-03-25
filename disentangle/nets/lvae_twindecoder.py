@@ -95,6 +95,14 @@ class LadderVAETwinDecoder(LadderVAE):
 
         print(f'[{self.__class__.__name__}]')
 
+    def set_params_to_same_device_as(self, correct_device_tensor):
+        if isinstance(self.data_mean, torch.Tensor):
+            if self.data_mean.device != correct_device_tensor.device:
+                self.data_mean = self.data_mean.to(correct_device_tensor.device)
+                self.data_std = self.data_std.to(correct_device_tensor.device)
+                self.likelihood_l1.set_params_to_same_device_as(correct_device_tensor)
+                self.likelihood_l2.set_params_to_same_device_as(correct_device_tensor)
+
     def get_final_top_down(self):
         modules = list()
         nonlin = self.get_nonlin()
@@ -159,6 +167,11 @@ class LadderVAETwinDecoder(LadderVAE):
         bu_values = self.bottomup_pass(x_pad)
         bu_values_l1, bu_values_l2 = self.get_separate_bu_values(bu_values)
 
+        if self.decoder_skip_bottom_k_bu_values is not None:
+            for hierarchy_level_idx in range(self.decoder_skip_bottom_k_bu_values):
+                bu_values_l1[hierarchy_level_idx] = None
+                bu_values_l2[hierarchy_level_idx] = None
+
         # Top-down inference/generation
         out_l1, td_data_l1 = self.topdown_pass(
             bu_values_l1,
@@ -180,9 +193,10 @@ class LadderVAETwinDecoder(LadderVAE):
         }
         if td_data_l2['kl'][0] is not None:
             td_data['kl'] = [(td_data_l1['kl'][i] + td_data_l2['kl'][i]) / 2 for i in range(len(td_data_l1['kl']))]
-        return out_l1, out_l2, td_data
+        return (out_l1, out_l2), td_data
 
-    def get_reconstruction_loss(self, reconstruction_l1, reconstruction_l2, target, return_predicted_img=False):
+    def get_reconstruction_loss(self, reconstruction_tuple, target, return_predicted_img=False):
+        reconstruction_l1, reconstruction_l2 = reconstruction_tuple
         # Log likelihood
         ll, like1_dict = self.likelihood_l1(reconstruction_l1, target[:, 0:1])
         recons_loss_l1 = -ll.mean()
@@ -191,10 +205,10 @@ class LadderVAETwinDecoder(LadderVAE):
         recons_loss_l2 = -ll.mean()
         recon_loss = (recons_loss_l1 + recons_loss_l2) / 2
         if return_predicted_img:
-            rec_imgs = [like1_dict['params']['mean'], like2_dict['params']['mean']]
-            return recon_loss, rec_imgs
+            rec_imgs = torch.cat([like1_dict['params']['mean'], like2_dict['params']['mean']], dim=1)
+            return {'loss': recon_loss}, rec_imgs
 
-        return recon_loss
+        return {'loss': recon_loss}
 
     def compute_gradient_norm(self):
         grad_norm_bottom_up = self._compute_gradient_norm(self.bottom_up_layers)
@@ -208,26 +222,32 @@ class LadderVAETwinDecoder(LadderVAE):
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
 
-        out_l1, out_l2, td_data = self.forward(x_normalized)
-
-        recons_loss = self.get_reconstruction_loss(out_l1, out_l2, target_normalized)
-        kl_loss = self.get_kl_divergence_loss(td_data)
+        out, td_data = self.forward(x_normalized)
+        recons_loss = self.get_reconstruction_loss(out, target_normalized)['loss']
 
         # contrastive learning.
         cl_loss = 0
         if self.cl_helper is not None:
             alpha, ch1_idx, ch2_idx = batch[2:]
+            if self.non_stochastic_version:
+                latent = td_data['z']
+            else:
+                latent = [x.get() for x in td_data['q_mu']]
 
-            _, cl_loss_ch1, cl_loss_ch2 = self.cl_helper.compute_all_CL_losses(td_data, alpha, ch1_idx, ch2_idx)
+            _, cl_loss_ch1, cl_loss_ch2 = self.cl_helper.compute_all_CL_losses(latent, alpha, ch1_idx, ch2_idx)
             self.log('cl_loss_ch1', cl_loss_ch1, on_epoch=True)
             self.log('cl_loss_ch2', cl_loss_ch2, on_epoch=True)
             cl_loss = cl_loss_ch1 + cl_loss_ch2
-            cl_loss = self.cl_weight * cl_loss
 
-        net_loss = recons_loss + self.get_kl_weight() * kl_loss + cl_loss
+        if self.non_stochastic_version:
+            kl_loss = torch.Tensor([0.0]).cuda()
+            net_loss = recons_loss + self.cl_weight * cl_loss
+        else:
+            kl_loss = self.get_kl_divergence_loss(td_data)
+            net_loss = recons_loss + self.get_kl_weight() * kl_loss + self.cl_weight * cl_loss
+            self.log('kl_loss', kl_loss, on_epoch=True)
 
         self.log('reconstruction_loss', recons_loss, on_epoch=True)
-        self.log('kl_loss', kl_loss, on_epoch=True)
         self.log('training_loss', net_loss, on_epoch=True)
         self.log('lr', self.lr, on_epoch=True)
         self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
@@ -246,26 +266,19 @@ class LadderVAETwinDecoder(LadderVAE):
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
 
-        out_l1, out_l2, td_data = self.forward(x_normalized)
+        out, _ = self.forward(x_normalized)
+        recons_loss, recons_img_list = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        self.label1_psnr.update(recons_img_list[:, 0], target_normalized[:, 0])
+        self.label2_psnr.update(recons_img_list[:, 1], target_normalized[:, 1])
 
-        recons_loss, recons_img_list = self.get_reconstruction_loss(out_l1,
-                                                                    out_l2,
-                                                                    target_normalized,
-                                                                    return_predicted_img=True)
-        self.label1_psnr.update(recons_img_list[0][:, 0], target_normalized[:, 0])
-        self.label2_psnr.update(recons_img_list[1][:, 0], target_normalized[:, 1])
-
-        kl_loss = self.get_kl_divergence_loss(td_data)
-
-        net_loss = recons_loss + self.get_kl_weight() * kl_loss
         self.log('val_loss', recons_loss, on_epoch=True)
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples_l1 = []
             all_samples_l2 = []
             for i in range(20):
-                sample_l1, sample_l2, _ = self(x_normalized[0:1, ...])
-                sample_l1 = self.likelihood_l1.parameter_net(sample_l1)
-                sample_l2 = self.likelihood_l2.parameter_net(sample_l2)
+                sample, _ = self(x_normalized[0:1, ...])
+                sample_l1 = self.likelihood_l1.parameter_net(sample[0])
+                sample_l2 = self.likelihood_l2.parameter_net(sample[1])
                 all_samples_l1.append(sample_l1[None])
                 all_samples_l2.append(sample_l2[None])
 
@@ -281,5 +294,3 @@ class LadderVAETwinDecoder(LadderVAE):
 
             self.log_images_for_tensorboard(all_samples_l1[:, 0, 0, ...], target[0, 0, ...], img_mmse_l1[0], 'label1')
             self.log_images_for_tensorboard(all_samples_l2[:, 0, 0, ...], target[0, 1, ...], img_mmse_l2[0], 'label2')
-
-        return net_loss

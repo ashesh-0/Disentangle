@@ -47,7 +47,7 @@ def get_config():
     data.use_alpha_invariant_mean = True
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.ElboCL
     loss.cl_tau_pos = 0.0
     loss.cl_tau_neg = 0.5
     loss.cl_weight = 10
@@ -59,11 +59,11 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.skip_cl_on_alpha = False
+    loss.skip_cl_on_alpha = True
 
     model = config.model
     model.model_type = ModelType.LadderVaeTwinDecoder
-    model.z_dims = [128, 128, 128, 128]
+    model.z_dims = [128, 128, 128]
 
     model.encoder.batchnorm = False
     model.encoder.blocks_per_layer = 3

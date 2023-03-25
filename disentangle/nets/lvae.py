@@ -128,7 +128,8 @@ class LadderVAE(pl.LightningModule):
                 self._grid_sz,
                 nbr_set_count=config.data.get('nbr_set_count', None),
                 focus_on_opposite_gradients=config.model.offset_prediction_focus_on_opposite_gradients)
-
+        elif self.loss_type == LossType.ElboCL:
+            self.cl_weight = config.loss.cl_weight
         self._global_step = 0
 
         # normalized_input: If input is normalized, then we don't normalize the input.

@@ -1,9 +1,12 @@
 from typing import Tuple
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+
 from disentangle.core.model_type import ModelType
+
 
 def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, prediction_size: int, batch_size=16,
                         track_progress: bool = True) -> \
@@ -135,11 +138,14 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                                                                        return_predicted_img=True)
 
                     if mmse_idx == 0:
-                        q_dic = model.likelihood.distr_params(recon_normalized)
-                        if q_dic['logvar'] is not None:
-                            logvar_arr.append(q_dic['logvar'].cpu().numpy())
-                        else:
+                        if model.likelihood is None:
                             logvar_arr.append(np.array([-1]))
+                        else:
+                            q_dic = model.likelihood.distr_params(recon_normalized)
+                            if q_dic['logvar'] is not None:
+                                logvar_arr.append(q_dic['logvar'].cpu().numpy())
+                            else:
+                                logvar_arr.append(np.array([-1]))
                         losses.append(rec_loss['loss'].cpu().numpy())
 
                 recon_img_list.append(imgs.cpu()[None])
