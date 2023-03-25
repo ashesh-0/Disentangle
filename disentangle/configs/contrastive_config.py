@@ -22,7 +22,8 @@ def get_config():
     data.ch1_max_alpha = 0.96
     data.ch1_alpha_interval_count = 20
 
-    # reduce the spatial dimensions of the data. This will make the problem a bit easier.
+    # reduce the spatial dimensions of the data. This will
+    # make the problem a bit easier.
     # data.downsample_data_factor = 4
     # data.channel_2_downscale_factor = 1
 
@@ -33,7 +34,7 @@ def get_config():
     data.clip_percentile = 0.995
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
-    data.use_one_mu_std = False
+    data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
     data.multiscale_lowres_count = None
@@ -41,7 +42,7 @@ def get_config():
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
-    data.target_separate_normalization = True
+    data.target_separate_normalization = False
     data.return_individual_channels = True
     data.return_alpha = True
     data.use_alpha_invariant_mean = True
@@ -105,6 +106,7 @@ def get_config():
     diff = model.z_dims[0] - model.cl_latent_start_end_alpha[1]
     model.cl_latent_start_end_ch1 = (model.cl_latent_start_end_alpha[1], model.cl_latent_start_end_alpha[1] + diff // 2)
     model.cl_latent_start_end_ch2 = (model.cl_latent_start_end_ch1[1], model.z_dims[0])
+    model.cl_enable_summed_target_equality = True
 
     training = config.training
     training.lr = 0.001

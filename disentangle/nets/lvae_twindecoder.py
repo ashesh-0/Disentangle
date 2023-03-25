@@ -92,8 +92,13 @@ class LadderVAETwinDecoder(LadderVAE):
         self.cl_helper = None
         if self.loss_type == LossType.ElboCL:
             self.cl_helper = IntensityEquivCLLossBatchHandler(config)
-
-        print(f'[{self.__class__.__name__}]')
+            self.cl_enable_summed_target_equality = config.model.get('cl_enable_summed_target_equality', False)
+            if self.cl_enable_summed_target_equality:
+                print(f'[{self.__class__.__name__}] inp=t1+t2')
+            else:
+                print(f'[{self.__class__.__name__}]')
+        else:
+            print(f'[{self.__class__.__name__}]')
 
     def set_params_to_same_device_as(self, correct_device_tensor):
         if isinstance(self.data_mean, torch.Tensor):
@@ -235,6 +240,14 @@ class LadderVAETwinDecoder(LadderVAE):
 
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
+        if self.loss_type == LossType.ElboCL and self.cl_enable_summed_target_equality:
+            # adjust the targets for the alpha
+            alpha = batch[2][:, None, None, None]
+            tar1 = target_normalized[:, :1] * alpha
+            tar2 = target_normalized[:, 1:] * (1 - alpha)
+            target_normalized = torch.cat([tar1, tar2], dim=1)
+            if batch_idx == 0:
+                assert torch.abs(torch.sum(target_normalized, dim=1, keepdim=True) - x_normalized).max().item() < 1e-5
 
         out, td_data = self.forward(x_normalized)
         recons_loss = self.get_reconstruction_loss(out, target_normalized)['loss']
