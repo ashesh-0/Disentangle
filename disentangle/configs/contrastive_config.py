@@ -23,7 +23,7 @@ def get_config():
     data.ch1_alpha_interval_count = 20
 
     # reduce the spatial dimensions of the data. This will make the problem a bit easier.
-    data.downsample_data_factor = 4
+    # data.downsample_data_factor = 4
     # data.channel_2_downscale_factor = 1
 
     data.sampler_type = SamplerType.ContrastiveSampler
@@ -75,7 +75,7 @@ def get_config():
     model.decoder.batchnorm = False
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
-    model.decoder.dropout = 0.0
+    model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
     model.decoder.multiscale_retain_spatial_dims = True

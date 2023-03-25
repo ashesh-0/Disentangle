@@ -144,6 +144,20 @@ class LadderVAETwinDecoder(LadderVAE):
                                       masks=masks)
         return sample1, sample2
 
+    def decode(self, z: List[torch.Tensor]):
+        # Top-down inference/generation
+        out_l1, td_data_l1 = self.topdown_pass(
+            z,
+            top_down_layers=self.top_down_layers_l1,
+            final_top_down_layer=self.final_top_down_l1,
+        )
+        out_l2, td_data_l2 = self.topdown_pass(
+            z,
+            top_down_layers=self.top_down_layers_l2,
+            final_top_down_layer=self.final_top_down_l2,
+        )
+        return out_l1, out_l2
+
     @staticmethod
     def get_separate_bu_values(bu_values):
         """
