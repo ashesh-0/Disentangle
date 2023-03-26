@@ -51,7 +51,7 @@ def get_config():
     loss.loss_type = LossType.ElboCL
     loss.cl_tau_pos = 0.0
     loss.cl_tau_neg = 0.5
-    loss.cl_weight = 0.1
+    loss.cl_weight = 0.0
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -66,14 +66,14 @@ def get_config():
     model.model_type = ModelType.LadderVaeTwinDecoder
     model.z_dims = [128, 128, 128, 128]
 
-    model.encoder.batchnorm = False
+    model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 5
     model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
-    model.decoder.batchnorm = False
+    model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
     model.decoder.dropout = 0.1
@@ -85,12 +85,12 @@ def get_config():
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'leakyrelu'
-    model.merge_type = 'residual_ungated'
+    model.merge_type = 'residual'
     model.stochastic_skip = True
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
-    model.gated = False
+    model.gated = True
     model.no_initial_downscaling = True
     model.analytical_kl = False
     model.mode_pred = False
