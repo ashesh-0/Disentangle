@@ -292,6 +292,14 @@ class LadderVAETwinDecoder(LadderVAE):
 
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
+        if self.loss_type == LossType.ElboCL and self.cl_enable_summed_target_equality:
+            # adjust the targets for the alpha
+            alpha = batch[2][:, None, None, None]
+            tar1 = target_normalized[:, :1] * alpha
+            tar2 = target_normalized[:, 1:] * (1 - alpha)
+            target_normalized = torch.cat([tar1, tar2], dim=1)
+            if batch_idx == 0:
+                assert torch.abs(torch.sum(target_normalized, dim=1, keepdim=True) - x_normalized).max().item() < 1e-5
 
         out, _ = self.forward(x_normalized)
         recons_loss, recons_img_list = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
