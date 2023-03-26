@@ -273,7 +273,7 @@ class LadderVAE(pl.LightningModule):
                     res_block_kernel=self.decoder_res_block_kernel,
                     skip_padding=self.decoder_res_block_skip_padding,
                     gated=self.gated,
-                    conv_2d_bias=self.topdown_conv2d_bias,
+                    conv2d_bias=self.topdown_conv2d_bias,
                 ))
         return nn.Sequential(*modules)
 
