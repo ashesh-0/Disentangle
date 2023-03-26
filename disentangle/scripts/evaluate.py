@@ -116,6 +116,7 @@ def main(
         CODE_ROOT = '/home/ashesh.ashesh/'
 
     dtype = int(ckpt_dir.split('/')[-2].split('-')[0][1:])
+
     if DEBUG:
         if dtype == DataType.CustomSinosoid:
             data_dir = f'{DATA_ROOT}/sinosoid/'
@@ -150,6 +151,14 @@ def main(
     old_image_size = None
     with config.unlocked():
         try:
+            if 'batchnorm' not in config.model.encoder:
+                config.model.encoder.batchnorm = config.model.batchnorm
+                assert 'batchnorm' not in config.model.decoder
+                config.model.decoder.batchnorm = config.model.batchnorm
+
+            if 'conv2d_bias' not in config.model.decoder:
+                config.model.decoder.conv2d_bias = True
+
             if config.model.model_type == ModelType.LadderVaeSepEncoder:
                 if 'use_random_for_missing_inp' not in config.model:
                     config.model.use_random_for_missing_inp = False
@@ -445,10 +454,10 @@ def main(
 
 def save_multiple_evaluations_to_file():
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2301/D3-M12-S3-L4/23',
-        '/home/ashesh.ashesh/training/disentangle/2301/D3-M12-S3-L4/24',
-        '/home/ashesh.ashesh/training/disentangle/2301/D3-M12-S3-L4/26',
-        '/home/ashesh.ashesh/training/disentangle/2301/D3-M12-S3-L4/27',
+        '/home/ashesh.ashesh/training/disentangle/2303/D3-M3-S0-L0/31',
+        '/home/ashesh.ashesh/training/disentangle/2303/D3-M3-S0-L0/30',
+        '/home/ashesh.ashesh/training/disentangle/2303/D3-M3-S0-L0/28',
+        '/home/ashesh.ashesh/training/disentangle/2303/D3-M3-S0-L0/29',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -460,74 +469,78 @@ def save_multiple_evaluations_to_file():
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    for custom_image_size in [64]:
+    patchsz_gridsz_tuples = [(192, 64)]
+    for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
-                for image_size_for_grid_centers in [16]:
-                    ignored_last_pixels = 32 if os.path.basename(
-                        os.path.dirname(ckpt_dir)).split('-')[0][1:] == '3' else 0
-                    handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
-                                                  image_size_for_grid_centers, mmse_count, ignored_last_pixels)
-                    data = main(
-                        ckpt_dir,
-                        DEBUG,
-                        image_size_for_grid_centers=image_size_for_grid_centers,
-                        mmse_count=mmse_count,
-                        custom_image_size=custom_image_size,
-                        batch_size=32,
-                        num_workers=4,
-                        COMPUTE_LOSS=False,
-                        use_deterministic_grid=None,
-                        threshold=None,  # 0.02,
-                        compute_kl_loss=False,
-                        evaluate_train=False,
-                        eval_datasplit_type=eval_datasplit_type,
-                        val_repeat_factor=None,
-                        psnr_type='range_invariant',
-                        ignored_last_pixels=ignored_last_pixels,
-                        ignore_first_pixels=0)
-                    fpath = handler.save(ckpt_dir, data)
-                    # except:
-                    #     print('FAILED for ', handler.get_output_fpath(ckpt_dir))
-                    #     continue
-                    print(handler.load(fpath))
-                    print('')
-                    print('')
-                    print('')
+                ignored_last_pixels = 32 if os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:] == '3' else 0
+                handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
+                                              image_size_for_grid_centers, mmse_count, ignored_last_pixels)
+                data = main(
+                    ckpt_dir,
+                    DEBUG,
+                    image_size_for_grid_centers=image_size_for_grid_centers,
+                    mmse_count=mmse_count,
+                    custom_image_size=custom_image_size,
+                    batch_size=8,
+                    num_workers=4,
+                    COMPUTE_LOSS=False,
+                    use_deterministic_grid=None,
+                    threshold=None,  # 0.02,
+                    compute_kl_loss=False,
+                    evaluate_train=False,
+                    eval_datasplit_type=eval_datasplit_type,
+                    val_repeat_factor=None,
+                    psnr_type='range_invariant',
+                    ignored_last_pixels=ignored_last_pixels,
+                    ignore_first_pixels=0)
+                fpath = handler.save(ckpt_dir, data)
+                # except:
+                #     print('FAILED for ', handler.get_output_fpath(ckpt_dir))
+                #     continue
+                print(handler.load(fpath))
+                print('')
+                print('')
+                print('')
 
 
 if __name__ == '__main__':
     DEBUG = False
     parser = argparse.ArgumentParser()
-    parser.add_argument('ckpt_dir', type=str)
-    parser.add_argument('patch_size', type=int, default=64)
-    parser.add_argument('grid_size', type=int, default=16)
+    parser.add_argument('--ckpt_dir', type=str)
+    parser.add_argument('--patch_size', type=int, default=64)
+    parser.add_argument('--grid_size', type=int, default=16)
+    parser.add_argument('--save_multiple_evaluations', action='store_true')
     args = parser.parse_args()
-    mmse_count = 1
-    ignored_last_pixels = 32 if os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:] == '3' else 0
-    OUTPUT_DIR = ''
-    eval_datasplit_type = DataSplitType.Test
+    if args.save_multiple_evaluations:
+        print('Ignoring ckpt_dir,patch_size and grid_size')
+        save_multiple_evaluations_to_file()
+    else:
+        mmse_count = 1
+        ignored_last_pixels = 32 if os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:] == '3' else 0
+        OUTPUT_DIR = ''
+        eval_datasplit_type = DataSplitType.Test
 
-    data = main(
-        args.ckpt_dir,
-        DEBUG,
-        image_size_for_grid_centers=args.grid_size,
-        mmse_count=mmse_count,
-        custom_image_size=args.patch_size,
-        batch_size=32,
-        num_workers=4,
-        COMPUTE_LOSS=False,
-        use_deterministic_grid=None,
-        threshold=None,  # 0.02,
-        compute_kl_loss=False,
-        evaluate_train=False,
-        eval_datasplit_type=eval_datasplit_type,
-        val_repeat_factor=None,
-        psnr_type='range_invariant',
-        ignored_last_pixels=ignored_last_pixels,
-        ignore_first_pixels=0)
+        data = main(
+            args.ckpt_dir,
+            DEBUG,
+            image_size_for_grid_centers=args.grid_size,
+            mmse_count=mmse_count,
+            custom_image_size=args.patch_size,
+            batch_size=32,
+            num_workers=4,
+            COMPUTE_LOSS=False,
+            use_deterministic_grid=None,
+            threshold=None,  # 0.02,
+            compute_kl_loss=False,
+            evaluate_train=False,
+            eval_datasplit_type=eval_datasplit_type,
+            val_repeat_factor=None,
+            psnr_type='range_invariant',
+            ignored_last_pixels=ignored_last_pixels,
+            ignore_first_pixels=0)
 
-    print('')
-    print('Paper Related Stats')
-    print('PSNR', np.mean(data['rangeinvpsnr']))
-    print('SSIM', np.mean(data['ssim'][:2]))
+        print('')
+        print('Paper Related Stats')
+        print('PSNR', np.mean(data['rangeinvpsnr']))
+        print('SSIM', np.mean(data['ssim'][:2]))
