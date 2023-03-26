@@ -61,6 +61,7 @@ def get_config():
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
     loss.skip_cl_on_alpha = True
+    loss.enable_alpha_weighted_loss = True
 
     model = config.model
     model.model_type = ModelType.LadderVaeTwinDecoder

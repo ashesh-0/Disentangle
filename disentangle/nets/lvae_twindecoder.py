@@ -90,13 +90,16 @@ class LadderVAETwinDecoder(LadderVAE):
 
         # contrastive learning.
         self.cl_helper = None
+        self.enable_alpha_weighted_loss = False
         if self.loss_type == LossType.ElboCL:
             self.cl_helper = IntensityEquivCLLossBatchHandler(config)
             self.cl_enable_summed_target_equality = config.model.get('cl_enable_summed_target_equality', False)
+            self.enable_alpha_weighted_loss = config.loss.get('enable_alpha_weighted_loss', False)
+
             if self.cl_enable_summed_target_equality:
-                print(f'[{self.__class__.__name__}] inp=t1+t2')
+                print(f'[{self.__class__.__name__}] Alpha-weighted-loss:{self.enable_alpha_weighted_loss} inp=t1+t2')
             else:
-                print(f'[{self.__class__.__name__}]')
+                print(f'[{self.__class__.__name__}] Alpha-weighted-loss:{self.enable_alpha_weighted_loss}')
         else:
             print(f'[{self.__class__.__name__}]')
 
@@ -214,15 +217,25 @@ class LadderVAETwinDecoder(LadderVAE):
             td_data['kl'] = [(td_data_l1['kl'][i] + td_data_l2['kl'][i]) / 2 for i in range(len(td_data_l1['kl']))]
         return (out_l1, out_l2), td_data
 
-    def get_reconstruction_loss(self, reconstruction_tuple, target, return_predicted_img=False):
+    def get_reconstruction_loss(self, reconstruction_tuple, target, return_predicted_img=False, alpha=None):
+        assert alpha.shape[1:] == (1, 1, 1)
+        alpha = alpha[:, 0, 0, 0]
+
         reconstruction_l1, reconstruction_l2 = reconstruction_tuple
         # Log likelihood
         ll, like1_dict = self.likelihood_l1(reconstruction_l1, target[:, 0:1])
-        recons_loss_l1 = -ll.mean()
+        ll = ll.view((len(ll), -1))
+        recons_loss_l1 = -ll.mean(dim=1)
 
         ll, like2_dict = self.likelihood_l2(reconstruction_l2, target[:, 1:])
-        recons_loss_l2 = -ll.mean()
-        recon_loss = (recons_loss_l1 + recons_loss_l2) / 2
+        ll = ll.view((len(ll), -1))
+        recons_loss_l2 = -ll.mean(dim=1)
+
+        if self.enable_alpha_weighted_loss:
+            recons_loss_l1 = recons_loss_l1 / alpha
+            recons_loss_l2 = recons_loss_l2 / (1 - alpha)
+
+        recon_loss = torch.mean((recons_loss_l1 + recons_loss_l2) / 2)
         if return_predicted_img:
             rec_imgs = torch.cat([like1_dict['params']['mean'], like2_dict['params']['mean']], dim=1)
             return {'loss': recon_loss}, rec_imgs
@@ -240,6 +253,7 @@ class LadderVAETwinDecoder(LadderVAE):
 
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
+        alpha = None
         if self.loss_type == LossType.ElboCL and self.cl_enable_summed_target_equality:
             # adjust the targets for the alpha
             alpha = batch[2][:, None, None, None]
@@ -250,7 +264,7 @@ class LadderVAETwinDecoder(LadderVAE):
                 assert torch.abs(torch.sum(target_normalized, dim=1, keepdim=True) - x_normalized).max().item() < 1e-5
 
         out, td_data = self.forward(x_normalized)
-        recons_loss = self.get_reconstruction_loss(out, target_normalized)['loss']
+        recons_loss = self.get_reconstruction_loss(out, target_normalized, alpha=alpha)['loss']
 
         # contrastive learning.
         cl_loss = 0
@@ -292,6 +306,7 @@ class LadderVAETwinDecoder(LadderVAE):
 
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
+        alpha = None
         if self.loss_type == LossType.ElboCL and self.cl_enable_summed_target_equality:
             # adjust the targets for the alpha
             alpha = batch[2][:, None, None, None]
@@ -302,7 +317,10 @@ class LadderVAETwinDecoder(LadderVAE):
                 assert torch.abs(torch.sum(target_normalized, dim=1, keepdim=True) - x_normalized).max().item() < 1e-5
 
         out, _ = self.forward(x_normalized)
-        recons_loss, recons_img_list = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        recons_loss, recons_img_list = self.get_reconstruction_loss(out,
+                                                                    target_normalized,
+                                                                    alpha=alpha,
+                                                                    return_predicted_img=True)
         self.label1_psnr.update(recons_img_list[:, 0], target_normalized[:, 0])
         self.label2_psnr.update(recons_img_list[:, 1], target_normalized[:, 1])
 
