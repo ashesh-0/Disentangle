@@ -45,6 +45,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
 
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
+        elif config.data.data_type == DataType.Pavia2VanillaSplitting:
+            datapath = datadir
 
         if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
             raise NotImplementedError("LC needs to be integrated with contrastive learning")
