@@ -13,7 +13,7 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.data_type = DataType.SchroffMitoEr
+    data.data_type = DataType.shroffMitoEr
     data.enable_max_projection = True
 
     data.sampler_type = SamplerType.DefaultSampler

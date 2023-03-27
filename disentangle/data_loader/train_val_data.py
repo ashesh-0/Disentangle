@@ -82,7 +82,7 @@ def get_train_val_data(data_config,
                                   val_fraction=val_fraction,
                                   test_fraction=test_fraction)
 
-    elif data_config.data_type == DataType.SchroffMitoEr:
+    elif data_config.data_type == DataType.ShroffMitoEr:
         return _loadschroff_mito_er(fpath,
                                     data_config,
                                     datasplit_type,
