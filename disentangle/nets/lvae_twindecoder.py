@@ -218,8 +218,6 @@ class LadderVAETwinDecoder(LadderVAE):
         return (out_l1, out_l2), td_data
 
     def get_reconstruction_loss(self, reconstruction_tuple, target, return_predicted_img=False, alpha=None):
-        assert alpha.shape[1:] == (1, 1, 1)
-        alpha = alpha[:, 0, 0, 0]
 
         reconstruction_l1, reconstruction_l2 = reconstruction_tuple
         # Log likelihood
@@ -232,6 +230,8 @@ class LadderVAETwinDecoder(LadderVAE):
         recons_loss_l2 = -ll.mean(dim=1)
 
         if self.enable_alpha_weighted_loss:
+            assert alpha.shape[1:] == (1, 1, 1)
+            alpha = alpha[:, 0, 0, 0]
             recons_loss_l1 = recons_loss_l1 / alpha
             recons_loss_l2 = recons_loss_l2 / (1 - alpha)
 
