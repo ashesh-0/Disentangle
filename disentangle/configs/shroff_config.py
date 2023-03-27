@@ -45,7 +45,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128]
+    model.z_dims = [128, 128, 128, 128, 128, 128, 128, 128]
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
