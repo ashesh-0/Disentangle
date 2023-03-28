@@ -48,7 +48,7 @@ def get_config():
     loss.free_bits = 0.0
     loss.enable_receptive_field_priorloss = True
     loss.receptive_field_prior_losstype = ConvolutionPriorLossType.FactorBased
-    loss.receptive_field_prior_w = 200
+    loss.receptive_field_prior_w = 400
     loss.receptive_field_prior_loss_factor = 0.07
 
     # Old version needed these.
