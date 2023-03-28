@@ -2,7 +2,8 @@
 Get overlapping patches from the dataset
 """
 import numpy as np
-from disentangle.data_loader.patch_index_manager import GridIndexManager, GridAlignement
+
+from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 
 
 def get_overlapping_dset(dset_class):
@@ -42,7 +43,6 @@ def get_overlapping_dset(dset_class):
 
         def get_begin_end_padding(self, start_pos, max_len):
             """
-            This assumes for simplicity that image is square shaped.
             The effect is that the image with size self._grid_sz is in the center of the patch with sufficient
             padding on all four sides so that the final patch size is self._img_sz.
             """
@@ -81,7 +81,7 @@ def get_overlapping_dset(dset_class):
             # max() is needed since h_start could be negative.
             new_img = img[..., max(0, h_start):h_start + self._img_sz, max(0, w_start):w_start + self._img_sz]
             padding = np.array([[0, 0], [0, 0], [0, 0]])
-            
+
             if h_on_boundary:
                 pad = self.get_begin_end_padding(h_start, H)
                 padding[1] = pad
