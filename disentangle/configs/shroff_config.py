@@ -7,19 +7,16 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
-from disentangle.loss.conv_prior_loss import ConvolutionPriorLossType
 
 
 def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.data_type = DataType.OptiMEM100_014
-    data.channel_1 = 2
-    data.channel_2 = 3
+    data.data_type = DataType.ShroffMitoEr
+    data.enable_max_projection = True
 
     data.sampler_type = SamplerType.DefaultSampler
-    data.threshold = 0.02
     data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
@@ -28,10 +25,9 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = 4
     data.padding_mode = 'reflect'
     data.padding_value = None
-    # data.ch2_multiplier = 8
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
@@ -46,18 +42,10 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.enable_receptive_field_priorloss = True
-    loss.receptive_field_prior_losstype = ConvolutionPriorLossType.FactorBased
-    loss.receptive_field_prior_w = 100
-    loss.receptive_field_prior_loss_factor = 0.05
-
-    # Old version needed these.
-    # loss.receptive_field_prior_loss_minclip = -0.3
-    # loss.skip_receptive_field_loss_tokens = ['final_top_down', 'likelihood', 'top_prior_params']
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128]
+    model.z_dims = [128, 128, 128, 128, 128, 128, 128, 128]
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
@@ -104,8 +92,8 @@ def get_config():
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
-    training.val_fraction = 0.1
-    training.test_fraction = 0.1
+    training.val_fraction = 0.2
+    training.test_fraction = 0.2
     training.earlystop_patience = 100
     training.precision = 16
 

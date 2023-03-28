@@ -12,9 +12,9 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from torch.utils.data import DataLoader
 
+from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
-from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.model_type import ModelType
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
@@ -22,12 +22,12 @@ from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import
 from disentangle.data_loader.multi_channel_tiff_dloader import MultiChTiffDloader
 from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
+from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
 from disentangle.data_loader.places_dloader import PlacesLoader
+from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
+from disentangle.data_loader.single_channel.multi_dataset_dloader import SingleChannelMultiDatasetDloader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
-from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
-from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
-from disentangle.data_loader.single_channel.multi_dataset_dloader import SingleChannelMultiDatasetDloader
 
 
 def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False):
@@ -133,7 +133,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
 
     elif config.data.data_type in [
             DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.Prevedel_EMBL,
-            DataType.AllenCellMito, DataType.SeparateTiffData, DataType.Pavia2VanillaSplitting
+            DataType.AllenCellMito, DataType.SeparateTiffData, DataType.Pavia2VanillaSplitting, DataType.ShroffMitoEr
     ]:
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
@@ -141,7 +141,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             datapath = os.path.join(datadir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
         elif config.data.data_type in [
                 DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.AllenCellMito,
-                DataType.SeparateTiffData, DataType.Pavia2VanillaSplitting
+                DataType.SeparateTiffData, DataType.Pavia2VanillaSplitting, DataType.ShroffMitoEr
         ]:
             # we create different filenames for different data configs.
             datapath = datadir
