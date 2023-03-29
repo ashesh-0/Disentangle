@@ -128,19 +128,24 @@ def _get_smoothing_mask(cropped_pred_shape, smoothening_pixelcount, loc, frame_s
     return mask
 
 
-def remove_pad(pred, loc, extra_padding, smoothening_pixelcount, frame_size):
+def remove_pad(pred, loc, extra_padding, smoothening_pixelcount, frame_shape):
     assert smoothening_pixelcount == 0
     if extra_padding - smoothening_pixelcount > 0:
         h_s = extra_padding - smoothening_pixelcount
 
-        if loc.h_end > frame_size:
-            assert loc.h_end - extra_padding + smoothening_pixelcount <= frame_size
+        # rows
+        h_N = frame_shape[0]
+        if loc.h_end > h_N:
+            assert loc.h_end - extra_padding + smoothening_pixelcount <= h_N
         h_e = extra_padding - smoothening_pixelcount
 
         w_s = extra_padding - smoothening_pixelcount
 
-        if loc.w_end > frame_size:
-            assert loc.w_end - extra_padding + smoothening_pixelcount <= frame_size
+        # columns
+        w_N = frame_shape[1]
+        if loc.w_end > w_N:
+            assert loc.w_end - extra_padding + smoothening_pixelcount <= w_N
+
         w_e = extra_padding - smoothening_pixelcount
 
         return pred[h_s:-h_e, w_s:-w_e]
@@ -148,7 +153,7 @@ def remove_pad(pred, loc, extra_padding, smoothening_pixelcount, frame_size):
     return pred
 
 
-def update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount, frame_size):
+def update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount):
     extra_padding = extra_padding - smoothening_pixelcount
     loc.h_start += extra_padding
     loc.w_start += extra_padding
@@ -170,42 +175,69 @@ def stitch_predictions(predictions, dset, smoothening_pixelcount=0):
     shape[-1] = max(shape[-1], predictions.shape[1])
 
     output = np.zeros(shape, dtype=predictions.dtype)
-    frame_size = dset.get_data_shape()[1]
+    frame_shape = dset.get_data_shape()[1:3]
     for dset_input_idx in range(predictions.shape[0]):
         loc = get_location_from_idx(dset, dset_input_idx, predictions.shape[-2], predictions.shape[-1])
+
         mask = None
         cropped_pred_list = []
         for ch_idx in range(predictions.shape[1]):
             # class i
             cropped_pred_i = remove_pad(predictions[dset_input_idx, ch_idx], loc, extra_padding, smoothening_pixelcount,
-                                        frame_size)
+                                        frame_shape)
 
             if mask is None:
                 # NOTE: don't need to compute it for every patch.
-                mask = _get_smoothing_mask(cropped_pred_i.shape, smoothening_pixelcount, loc, frame_size)
+                assert smoothening_pixelcount == 0, "For smoothing,enable the get_smoothing_mask. It is disabled since I don't use it and it needs modification to work with non-square images"
+                mask = 1
+                # mask = _get_smoothing_mask(cropped_pred_i.shape, smoothening_pixelcount, loc, frame_size)
 
             cropped_pred_list.append(cropped_pred_i)
 
-        loc = update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount, frame_size)
+        loc = update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount)
         for ch_idx in range(predictions.shape[1]):
-            # print(loc, cropped_pred0.shape)
             output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, ch_idx] += cropped_pred_list[ch_idx] * mask
 
     return output
 
 
 if __name__ == '__main__':
-    loc = PatchLocation((0, 32), (0, 32), 5)
-    # frame_size = 256
-    # out = _get_smoothing_mask((16, 16), 2, loc, frame_size)
-    extra_padding = 16
-    smoothening_pixelcount = 4
-    frame_size = 2720
-    out = remove_pad(np.ones((64, 64)), loc, extra_padding, smoothening_pixelcount, frame_size)
-    mask = _get_smoothing_mask(out.shape, smoothening_pixelcount, loc, frame_size)
-    print(loc)
-    loc = update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount, frame_size)
-    print(loc, mask.shape, out.shape)
+    from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+    grid_size = 32
+    patch_size = 64
+    data_shape = (1, 1550, 1920, 2)
+    N = data_shape[0] * (data_shape[1] // grid_size) * (data_shape[2] // grid_size)
+    predictions = np.zeros((N, 2, patch_size, patch_size))
+    # data_shape, grid_size, patch_size, grid_alignement
+    idx_manager = GridIndexManager(data_shape, grid_size, patch_size, GridAlignement.Center)
+
+    class TestDataSet:
+
+        def __init__(self) -> None:
+            self.idx_manager = idx_manager
+
+        def per_side_overlap_pixelcount(self):
+            return (patch_size - grid_size) // 2
+
+        def get_data_shape(self):
+            return data_shape
+
+        def get_grid_size(self):
+            return grid_size
+
+    dset = TestDataSet()
+    # import pdb;pdb.set_trace()
+    stitch_predictions = stitch_predictions(predictions, dset, smoothening_pixelcount=0)
+    # loc = PatchLocation((0, 32), (0, 32), 5)
+    # extra_padding = 16
+    # smoothening_pixelcount = 4
+    # frame_size = 2720
+    # out = remove_pad(np.ones((64, 64)), loc, extra_padding, smoothening_pixelcount, frame_size)
+    # mask = _get_smoothing_mask(out.shape, smoothening_pixelcount, loc, frame_size)
+    # print(loc)
+    # loc = update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount, frame_size)
+    # print(loc, mask.shape, out.shape)
+
     # import matplotlib.pyplot as plt
     # plt.imshow(mask, cmap='hot')
     # plt.show()
