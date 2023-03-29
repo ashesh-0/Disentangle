@@ -1,6 +1,9 @@
-from disentangle.analysis.stitch_prediction import set_skip_boundary_pixels_mask, set_skip_central_pixels_mask, \
-    _get_location, stitch_predictions, stitched_prediction_mask
 import numpy as np
+
+from disentangle.analysis.stitch_prediction import (_get_location, set_skip_boundary_pixels_mask,
+                                                    set_skip_central_pixels_mask, stitch_predictions,
+                                                    stitched_prediction_mask)
+from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 
 
 def test_skipping_boundaries():
@@ -51,74 +54,62 @@ def test_picking_boundaries():
 
 
 class DummyDset:
-    def __init__(self):
-        self._data = np.zeros((100, 64, 64, 2))
-        self.N = len(self._data)
-        self._img_sz = 10
-        self._img_sz_for_hw = 8
 
-    def get_img_sz(self):
-        return self._img_sz
-
-    def set_img_sz(self, img_sz):
-        self._img_sz = img_sz
-
-    def get_t(self, index):
-        return index % self.N
+    def __init__(self, grid_size, patch_size, data_shape) -> None:
+        self.patch_size = patch_size
+        self.grid_size = grid_size
+        self.data_shape = data_shape
+        idx_manager = GridIndexManager(data_shape, grid_size, patch_size, GridAlignement.Center)
+        self.idx_manager = idx_manager
 
     def per_side_overlap_pixelcount(self):
-        return (self._img_sz - self._img_sz_for_hw) // 2
+        return (self.patch_size - self.grid_size) // 2
 
-    def hwt_from_idx(self, index):
-        _, H, W, _ = self._data.shape
-        t = self.get_t(index)
-        return (*self._get_deterministic_hw(index), t)
+    def get_data_shape(self):
+        return self.data_shape
 
-    def _get_deterministic_hw(self, index: intt):
-        """
-        Fixed starting position for the crop for the img with index `index`.
-        """
-        img_sz = self._img_sz_for_hw
-        _, h, w, _ = self._data.shape
-
-        assert h == w
-        factor = index // self.N
-        nrows = h // img_sz
-
-        ith_row = factor // nrows
-        jth_col = factor % nrows
-        h_start = ith_row * img_sz
-        w_start = jth_col * img_sz
-        pad = self.per_side_overlap_pixelcount()
-        return h_start - pad, w_start - pad
-
-    def __len__(self):
-        return self.N * ((self._data.shape[-2] // self._img_sz_for_hw)**2)
+    def get_grid_size(self):
+        return self.grid_size
 
 
-def test_stitch_predictions():
-    dset = DummyDset()
-    h = w = dset._img_sz
-    predictions = np.random.rand(len(dset), 2, h, w)
+def test_stitch_predictions_square_frames():
+    grid_size = 32
+    patch_size = 64
+    data_shape = (30, 1550, 1550, 2)
+    N = data_shape[0] * (data_shape[1] // grid_size) * (data_shape[2] // grid_size)
+    predictions = np.zeros((N, 2, patch_size, patch_size))
+    dset = DummyDset(grid_size, patch_size, data_shape)
     output = stitch_predictions(predictions, dset)
-    skip_boundary_pixel_count = 0
-    skip_central_pixel_count = 0
-    mask1 = stitched_prediction_mask(dset, (h, w), skip_boundary_pixel_count, skip_central_pixel_count)
-    assert (mask1 == 1).all()
 
-    skip_boundary_pixel_count = 2
-    skip_central_pixel_count = 0
-    mask2 = stitched_prediction_mask(dset, (h, w), skip_boundary_pixel_count, skip_central_pixel_count)
 
-    skip_boundary_pixel_count = 0
-    skip_central_pixel_count = 4
-    mask3 = stitched_prediction_mask(dset, (h, w), skip_boundary_pixel_count, skip_central_pixel_count)
+def test_stitch_predictions_non_square_frames():
+    grid_size = 32
+    patch_size = 64
+    data_shape = (30, 1550, 1920, 2)
+    N = data_shape[0] * (data_shape[1] // grid_size) * (data_shape[2] // grid_size)
+    predictions = np.zeros((N, 2, patch_size, patch_size))
+    dset = DummyDset(grid_size, patch_size, data_shape)
+    output = stitch_predictions(predictions, dset)
 
-    assert ((mask2 + mask3) == 1).all()
+    # NOTE: masking is disabled. so are its tests
+    # skip_boundary_pixel_count = 0
+    # skip_central_pixel_count = 0
+    # mask1 = stitched_prediction_mask(dset, (h, w), skip_boundary_pixel_count, skip_central_pixel_count)
+    # assert (mask1 == 1).all()
 
-    skip_boundary_pixel_count = 1
-    skip_central_pixel_count = 2
-    mask4 = stitched_prediction_mask(dset, (h, w), skip_boundary_pixel_count, skip_central_pixel_count)
+    # skip_boundary_pixel_count = 2
+    # skip_central_pixel_count = 0
+    # mask2 = stitched_prediction_mask(dset, (h, w), skip_boundary_pixel_count, skip_central_pixel_count)
+
+    # skip_boundary_pixel_count = 0
+    # skip_central_pixel_count = 4
+    # mask3 = stitched_prediction_mask(dset, (h, w), skip_boundary_pixel_count, skip_central_pixel_count)
+
+    # assert ((mask2 + mask3) == 1).all()
+
+    # skip_boundary_pixel_count = 1
+    # skip_central_pixel_count = 2
+    # mask4 = stitched_prediction_mask(dset, (h, w), skip_boundary_pixel_count, skip_central_pixel_count)
 
     # import matplotlib.pyplot as plt;
     # plt.imshow(mask4[0, :, :, 0]);
