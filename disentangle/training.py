@@ -345,8 +345,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
     return train_data, val_data
 
 
-def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callback, train_loader, val_loader,
-                           weights_summary):
+def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callback, train_loader, val_loader):
     # tensorboard previous files.
     for filename in glob.glob(config.workdir + "/events*"):
         os.remove(filename)
@@ -384,7 +383,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
     if torch.cuda.is_available():
         # profiler = pl.profiler.AdvancedProfiler(output_filename=os.path.join(config.workdir, 'advance_profile.txt'))
         trainer = pl.Trainer(
-            gpus=1,
+            # gpus=1,
             max_epochs=config.training.max_epochs,
             gradient_clip_val=config.training.grad_clip_norm_value,
             # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
@@ -393,7 +392,6 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             #  profiler=profiler,
             # overfit_batches=20,
             callbacks=callbacks,
-            weights_summary=weights_summary,
             precision=config.training.precision)
     else:
         trainer = pl.Trainer(
@@ -404,7 +402,6 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             callbacks=callbacks,
             # fast_dev_run=10,
             # overfit_batches=10,
-            weights_summary=weights_summary,
             precision=config.training.precision)
     trainer.fit(model, train_loader, val_loader)
 
@@ -425,19 +422,13 @@ def train_network(train_loader, val_loader, data_mean, data_std, config, model_n
                          save_dir=logdir,
                          project="Disentanglement")
     # logger = TensorBoardLogger(config.workdir, name="", version="", default_hp_metric=False)
-    weights_summary = None
-    pl.utilities.distributed.log.setLevel(logging.ERROR)
+
+    # pl.utilities.distributed.log.setLevel(logging.ERROR)
     posterior_collapse_count = 0
     collapse_flag = True
     while collapse_flag and posterior_collapse_count < 20:
-        collapse_flag = create_model_and_train(config,
-                                               data_mean,
-                                               data_std,
-                                               logger,
-                                               checkpoint_callback,
-                                               train_loader,
-                                               val_loader,
-                                               weights_summary=weights_summary)
+        collapse_flag = create_model_and_train(config, data_mean, data_std, logger, checkpoint_callback, train_loader,
+                                               val_loader)
         if collapse_flag is None:
             print('CTRL+C inturrupt. Ending')
             return
@@ -449,14 +440,8 @@ def train_network(train_loader, val_loader, data_mean, data_std, config, model_n
         print("Posterior collapse limit reached, attempting training with KL annealing turned on!")
         while collapse_flag:
             config.loss.kl_annealing = True
-            collapse_flag = create_model_and_train(config,
-                                                   data_mean,
-                                                   data_std,
-                                                   logger,
-                                                   checkpoint_callback,
-                                                   train_loader,
-                                                   val_loader,
-                                                   weights_summary=weights_summary)
+            collapse_flag = create_model_and_train(config, data_mean, data_std, logger, checkpoint_callback,
+                                                   train_loader, val_loader)
             if collapse_flag is None:
                 print('CTRL+C inturrupt. Ending')
                 return
