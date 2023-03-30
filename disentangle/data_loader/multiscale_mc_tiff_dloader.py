@@ -5,11 +5,12 @@ from typing import List, Tuple, Union
 
 import numpy as np
 from skimage.transform import resize
-from disentangle.core.data_split_type import DataSplitType
 
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
+from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
+from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.patch_index_manager import GridAlignement
+
 
 class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
 
@@ -29,8 +30,8 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         allow_generation: bool = False,
         lowres_supervision=None,
         max_val=None,
-        grid_alignment = GridAlignement.LeftTop,
-        overlapping_padding_kwargs = None,
+        grid_alignment=GridAlignement.LeftTop,
+        overlapping_padding_kwargs=None,
     ):
         """
         Args:
