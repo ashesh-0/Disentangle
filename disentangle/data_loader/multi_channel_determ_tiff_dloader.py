@@ -22,7 +22,9 @@ class MultiChDeterministicTiffDloader:
                  enable_random_cropping: bool = False,
                  use_one_mu_std=None,
                  allow_generation=False,
-                 max_val=None):
+                 max_val=None,
+                 grid_alignment = GridAlignement.LeftTop,
+                 overlapping_padding_kwargs = None):
         """
         Here, an image is split into grids of size img_sz.
         Args:
@@ -45,6 +47,13 @@ class MultiChDeterministicTiffDloader:
         self._normalized_input = normalized_input
         self._quantile = data_config.get('clip_percentile', 0.995)
         self._channelwise_quantile = data_config.get('channelwise_quantile', False)
+        self._grid_alignment = grid_alignment
+        self._overlapping_padding_kwargs = overlapping_padding_kwargs
+        if self._grid_alignment == GridAlignement.LeftTop:
+            assert self._overlapping_padding_kwargs is None, "Padding is not used with this alignement style"
+        elif self._grid_alignment == GridAlignement.Center:
+            assert self._overlapping_padding_kwargs is not None, 'With Center grid alignment, padding is needed.'
+
 
         self.set_max_val_and_upperclip_data(max_val, datasplit_type)
 
@@ -55,7 +64,9 @@ class MultiChDeterministicTiffDloader:
             self.set_img_sz(data_config.image_size,
                             data_config.grid_size if 'grid_size' in data_config else data_config.image_size)
         else:
-            self.set_img_sz(data_config.image_size, data_config.image_size)
+            self.set_img_sz(data_config.image_size,
+                            data_config.val_grid_size if 'val_grid_size' in data_config else data_config.image_size)
+
         # For overlapping dloader, image_size and repeat_factors are not related. hence a different function.
 
         self._mean = None
@@ -126,16 +137,17 @@ class MultiChDeterministicTiffDloader:
     def get_img_sz(self):
         return self._img_sz
 
-    def set_img_sz(self, image_size, grid_size, alignment=GridAlignement.LeftTop):
+    def set_img_sz(self, image_size, grid_size):
         """
         If one wants to change the image size on the go, then this can be used.
         Args:
             image_size: size of one patch
             grid_size: frame is divided into square grids of this size. A patch centered on a grid having size `image_size` is returned.
         """
+        
         self._img_sz = image_size
         self._grid_sz = grid_size
-        self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz, alignment)
+        self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz, self._grid_alignment)
         self.set_repeat_factor()
 
     def set_repeat_factor(self):
@@ -174,7 +186,54 @@ class MultiChDeterministicTiffDloader:
         })
 
     def _crop_img(self, img: np.ndarray, h_start: int, w_start: int):
-        new_img = img[..., h_start:h_start + self._img_sz, w_start:w_start + self._img_sz]
+        if self._grid_alignment == GridAlignement.LeftTop:
+            # In training, this is used.
+            new_img = img[..., h_start:h_start + self._img_sz, w_start:w_start + self._img_sz]
+            return new_img
+        elif self._grid_alignment == GridAlignement.Center:
+            # During evaluation, this is used. In this situation, we can have negative h_start, w_start. Or h_start +self._img_sz can be larger than frame
+            # In these situations, we need some sort of padding. This is not needed  in the LeftTop alignement.
+            return self._crop_img_with_padding(img, h_start, w_start)
+        
+
+    def get_begin_end_padding(self, start_pos, max_len):
+        """
+        The effect is that the image with size self._grid_sz is in the center of the patch with sufficient
+        padding on all four sides so that the final patch size is self._img_sz.
+        """
+        pad_start = 0
+        pad_end = 0
+        if start_pos < 0:
+            pad_start = -1 * start_pos
+
+        pad_end = max(0, start_pos + self._img_sz - max_len)
+
+        return pad_start, pad_end
+
+    def _crop_img_with_padding(self, img: np.ndarray, h_start: int, w_start: int):
+        _, H, W = img.shape
+        h_on_boundary = self.on_boundary(h_start, H)
+        w_on_boundary = self.on_boundary(w_start, W)
+
+        assert h_start < H
+        assert w_start < W
+
+        assert h_start + self._img_sz <= H or h_on_boundary
+        assert w_start + self._img_sz <= W or w_on_boundary
+        # max() is needed since h_start could be negative.
+        new_img = img[..., max(0, h_start):h_start + self._img_sz, max(0, w_start):w_start + self._img_sz]
+        padding = np.array([[0, 0], [0, 0], [0, 0]])
+
+        if h_on_boundary:
+            pad = self.get_begin_end_padding(h_start, H)
+            padding[1] = pad
+        if w_on_boundary:
+            pad = self.get_begin_end_padding(w_start, W)
+            padding[2] = pad
+
+        if not np.all(padding == 0):
+            new_img = np.pad(new_img, padding, **self._overlapping_padding_kwargs)
+
         return new_img
 
     def _crop_flip_img(self, img: np.ndarray, h_start: int, w_start: int, h_flip: bool, w_flip: bool):
@@ -216,6 +275,17 @@ class MultiChDeterministicTiffDloader:
             normalized_imgs.append(img)
         return tuple(normalized_imgs)
 
+
+    def get_grid_size(self):
+        return self._grid_sz
+
+    def per_side_overlap_pixelcount(self):
+        return (self._img_sz - self._grid_sz) // 2
+
+    def on_boundary(self, cur_loc, frame_size):
+        return cur_loc + self._img_sz > frame_size or cur_loc < 0
+
+
     def _get_deterministic_hw(self, index: Union[int, Tuple[int, int]]):
         if isinstance(index, int):
             idx = index
@@ -223,7 +293,13 @@ class MultiChDeterministicTiffDloader:
         else:
             idx, grid_size = index
 
-        return self.idx_manager.get_deterministic_hw(idx, grid_size=grid_size)
+        h_start, w_start =  self.idx_manager.get_deterministic_hw(idx, grid_size=grid_size)
+        if self._grid_alignment == GridAlignement.LeftTop:
+            return h_start, w_start
+        elif self._grid_alignment == GridAlignement.Center:
+            pad = self.per_side_overlap_pixelcount()
+            return h_start - pad, w_start - pad
+
 
     def compute_individual_mean_std(self):
         # numpy 1.19.2 has issues in computing for large arrays. https://github.com/numpy/numpy/issues/8869
