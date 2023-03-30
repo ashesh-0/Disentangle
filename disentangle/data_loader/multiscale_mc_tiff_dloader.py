@@ -5,10 +5,11 @@ from typing import List, Tuple, Union
 
 import numpy as np
 from skimage.transform import resize
-from disentangle.core.data_split_type import DataSplitType
 
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
+from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
+from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
+from disentangle.data_loader.patch_index_manager import GridAlignement
 
 
 class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
@@ -29,6 +30,8 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         allow_generation: bool = False,
         lowres_supervision=None,
         max_val=None,
+        grid_alignment=GridAlignement.LeftTop,
+        overlapping_padding_kwargs=None,
     ):
         """
         Args:
@@ -46,7 +49,9 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
                          enable_random_cropping=enable_random_cropping,
                          use_one_mu_std=use_one_mu_std,
                          allow_generation=allow_generation,
-                         max_val=max_val)
+                         max_val=max_val,
+                         grid_alignment=grid_alignment,
+                         overlapping_padding_kwargs=overlapping_padding_kwargs)
         self.num_scales = num_scales
         assert self.num_scales is not None
         self._scaled_data = [self._data]
