@@ -180,6 +180,8 @@ class MultiChDeterministicTiffDloader:
     def _crop_img(self, img: np.ndarray, h_start: int, w_start: int):
         if self._grid_alignment == GridAlignement.LeftTop:
             # In training, this is used.
+            # NOTE: It is my opinion that if I just use self._crop_img_with_padding, it will work perfectly fine.
+            # The only benefit this if else loop provides is that it makes it easier to see what happens during training.
             new_img = img[..., h_start:h_start + self._img_sz, w_start:w_start + self._img_sz]
             return new_img
         elif self._grid_alignment == GridAlignement.Center:
