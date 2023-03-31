@@ -23,8 +23,8 @@ class MultiChDeterministicTiffDloader:
                  use_one_mu_std=None,
                  allow_generation=False,
                  max_val=None,
-                 grid_alignment = GridAlignement.LeftTop,
-                 overlapping_padding_kwargs = None):
+                 grid_alignment=GridAlignement.LeftTop,
+                 overlapping_padding_kwargs=None):
         """
         Here, an image is split into grids of size img_sz.
         Args:
@@ -53,7 +53,6 @@ class MultiChDeterministicTiffDloader:
             assert self._overlapping_padding_kwargs is None, "Padding is not used with this alignement style"
         elif self._grid_alignment == GridAlignement.Center:
             assert self._overlapping_padding_kwargs is not None, 'With Center grid alignment, padding is needed.'
-
 
         self.set_max_val_and_upperclip_data(max_val, datasplit_type)
 
@@ -144,7 +143,7 @@ class MultiChDeterministicTiffDloader:
             image_size: size of one patch
             grid_size: frame is divided into square grids of this size. A patch centered on a grid having size `image_size` is returned.
         """
-        
+
         self._img_sz = image_size
         self._grid_sz = grid_size
         self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz, self._grid_alignment)
@@ -188,13 +187,14 @@ class MultiChDeterministicTiffDloader:
     def _crop_img(self, img: np.ndarray, h_start: int, w_start: int):
         if self._grid_alignment == GridAlignement.LeftTop:
             # In training, this is used.
+            # NOTE: It is my opinion that if I just use self._crop_img_with_padding, it will work perfectly fine.
+            # The only benefit this if else loop provides is that it makes it easier to see what happens during training.
             new_img = img[..., h_start:h_start + self._img_sz, w_start:w_start + self._img_sz]
             return new_img
         elif self._grid_alignment == GridAlignement.Center:
             # During evaluation, this is used. In this situation, we can have negative h_start, w_start. Or h_start +self._img_sz can be larger than frame
             # In these situations, we need some sort of padding. This is not needed  in the LeftTop alignement.
             return self._crop_img_with_padding(img, h_start, w_start)
-        
 
     def get_begin_end_padding(self, start_pos, max_len):
         """
@@ -275,7 +275,6 @@ class MultiChDeterministicTiffDloader:
             normalized_imgs.append(img)
         return tuple(normalized_imgs)
 
-
     def get_grid_size(self):
         return self._grid_sz
 
@@ -285,21 +284,22 @@ class MultiChDeterministicTiffDloader:
     def on_boundary(self, cur_loc, frame_size):
         return cur_loc + self._img_sz > frame_size or cur_loc < 0
 
-
     def _get_deterministic_hw(self, index: Union[int, Tuple[int, int]]):
+        """
+        It returns the top-left corner of the patch corresponding to index.
+        """
         if isinstance(index, int):
             idx = index
             grid_size = self._grid_sz
         else:
             idx, grid_size = index
 
-        h_start, w_start =  self.idx_manager.get_deterministic_hw(idx, grid_size=grid_size)
+        h_start, w_start = self.idx_manager.get_deterministic_hw(idx, grid_size=grid_size)
         if self._grid_alignment == GridAlignement.LeftTop:
             return h_start, w_start
         elif self._grid_alignment == GridAlignement.Center:
             pad = self.per_side_overlap_pixelcount()
             return h_start - pad, w_start - pad
-
 
     def compute_individual_mean_std(self):
         # numpy 1.19.2 has issues in computing for large arrays. https://github.com/numpy/numpy/issues/8869
