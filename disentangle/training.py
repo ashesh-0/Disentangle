@@ -12,9 +12,9 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from torch.utils.data import DataLoader
 
+from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
-from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.model_type import ModelType
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
@@ -22,12 +22,12 @@ from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import
 from disentangle.data_loader.multi_channel_tiff_dloader import MultiChTiffDloader
 from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
+from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
 from disentangle.data_loader.places_dloader import PlacesLoader
+from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
+from disentangle.data_loader.single_channel.multi_dataset_dloader import SingleChannelMultiDatasetDloader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
-from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
-from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
-from disentangle.data_loader.single_channel.multi_dataset_dloader import SingleChannelMultiDatasetDloader
 
 
 def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False):
@@ -316,7 +316,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
     if torch.cuda.is_available():
         # profiler = pl.profiler.AdvancedProfiler(output_filename=os.path.join(config.workdir, 'advance_profile.txt'))
         trainer = pl.Trainer(
-            gpus=1,
+            # gpus=1,
             max_epochs=config.training.max_epochs,
             gradient_clip_val=config.training.grad_clip_norm_value,
             # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
@@ -358,7 +358,7 @@ def train_network(train_loader, val_loader, data_mean, data_std, config, model_n
                          project="Disentanglement")
     # logger = TensorBoardLogger(config.workdir, name="", version="", default_hp_metric=False)
     weights_summary = None
-    pl.utilities.distributed.log.setLevel(logging.ERROR)
+    # pl.utilities.distributed.log.setLevel(logging.ERROR)
     posterior_collapse_count = 0
     collapse_flag = True
     while collapse_flag and posterior_collapse_count < 20:
