@@ -325,7 +325,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             #  profiler=profiler,
             # overfit_batches=20,
             callbacks=callbacks,
-            weights_summary=weights_summary,
+            # weights_summary=weights_summary,
             precision=config.training.precision)
     else:
         trainer = pl.Trainer(
