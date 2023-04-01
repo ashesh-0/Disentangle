@@ -17,4 +17,9 @@ python -m pip install pre-commit
 conda install -c conda-forge czifile -y
 conda install seaborn -c conda-forge -y
 conda install nbconvert -y
+<<<<<<< HEAD
 conda install -c anaconda ipykernel -y
+=======
+conda install -c anaconda ipykernel -y
+conda install -c conda-forge czifile -y
+>>>>>>> master

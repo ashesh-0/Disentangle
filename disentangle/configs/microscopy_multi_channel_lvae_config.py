@@ -19,7 +19,6 @@ def get_config():
     data.channel_2 = 3
 
     data.sampler_type = SamplerType.DefaultSampler
-    data.threshold = 0.02
     data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
@@ -73,7 +72,7 @@ def get_config():
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
 
-    model.decoder.multiscale_retain_spatial_dims = True
+    model.decoder.multiscale_retain_spatial_dims = False
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
