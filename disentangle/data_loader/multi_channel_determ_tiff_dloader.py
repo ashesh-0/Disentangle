@@ -51,7 +51,7 @@ class MultiChDeterministicTiffDloader:
         self._grid_alignment = grid_alignment
         self._overlapping_padding_kwargs = overlapping_padding_kwargs
         if self._grid_alignment == GridAlignement.LeftTop:
-            assert self._overlapping_padding_kwargs is None, "Padding is not used with this alignement style"
+            assert self._overlapping_padding_kwargs is None or data_config.multiscale_lowres_count is not None, "Padding is not used with this alignement style"
         elif self._grid_alignment == GridAlignement.Center:
             assert self._overlapping_padding_kwargs is not None, 'With Center grid alignment, padding is needed.'
 

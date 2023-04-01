@@ -43,6 +43,9 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
             assert self._padding_kwargs == overlapping_padding_kwargs, 'During evaluation, overlapping_padding_kwargs should be same as padding_args. \
                 It should be so since we just use overlapping_padding_kwargs when it is not None'
 
+        else:
+            overlapping_padding_kwargs = padding_kwargs
+
         super().__init__(data_config,
                          fpath,
                          datasplit_type=datasplit_type,
