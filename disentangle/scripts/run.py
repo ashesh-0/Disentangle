@@ -17,7 +17,6 @@ from ml_collections.config_flags import config_flags
 from torch.utils.cpp_extension import CUDA_HOME
 from torch.utils.data import DataLoader
 
-import tensorboard
 from absl import app, flags
 from disentangle.config_utils import get_updated_config
 from disentangle.core.loss_type import LossType
@@ -34,7 +33,7 @@ FLAGS = flags.FLAGS
 config_flags.DEFINE_config_file("config", None, "Training configuration.", lock_config=True)
 flags.DEFINE_string("workdir", None, "Work directory.")
 flags.DEFINE_enum("mode", None, ["train", "eval"], "Running mode: train or eval")
-flags.DEFINE_string("logdir", '.', "The folder name for storing logging")
+flags.DEFINE_string("logdir", '/group/jug/ashesh/wandb_backup/', "The folder name for storing logging")
 flags.DEFINE_string("datadir", '/tmp2/ashesh/ashesh/VAE_based/data/MNIST/noisy/', "Data directory.")
 flags.DEFINE_boolean("use_max_version", False, "Overwrite the max version of the model")
 flags.DEFINE_string("load_ckptfpath", '', "The path to a previous ckpt from which the weights should be loaded")
