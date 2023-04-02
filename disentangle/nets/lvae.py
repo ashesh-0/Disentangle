@@ -544,13 +544,14 @@ class LadderVAE(pl.LightningModule):
         elif self.loss_type == LossType.ElboCL:
             cl_loss = self.get_contrastive_learning_loss(td_data['q_mu'], noise_levels)
             self.log('cl_loss', cl_loss, on_epoch=True)
+            cl_loss = self.cl_weight * cl_loss
 
         if self.non_stochastic_version:
             kl_loss = torch.Tensor([0.0]).cuda()
-            net_loss = recons_loss + self.cl_weight * cl_loss
+            net_loss = recons_loss + cl_loss
         else:
             kl_loss = self.get_kl_divergence_loss(td_data)
-            net_loss = recons_loss + self.get_kl_weight() * kl_loss + self.cl_weight * cl_loss
+            net_loss = recons_loss + self.get_kl_weight() * kl_loss + cl_loss
 
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):
