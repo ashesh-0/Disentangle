@@ -324,7 +324,7 @@ class LadderVAETwinDecoder(LadderVAE):
         self.label1_psnr.update(recons_img_list[:, 0], target_normalized[:, 0])
         self.label2_psnr.update(recons_img_list[:, 1], target_normalized[:, 1])
 
-        self.log('val_loss', recons_loss, on_epoch=True)
+        self.log('val_loss', recons_loss['loss'].item(), on_epoch=True)
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples_l1 = []
             all_samples_l2 = []
