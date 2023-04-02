@@ -62,7 +62,6 @@ class IntensityAugTiffDloader(MultiChDeterministicTiffDloader):
                  enable_random_cropping: bool = False,
                  use_one_mu_std=None,
                  allow_generation=False,
-                 intensity_scaling_augmentation_list: Union[List[int], None] = None,
                  max_val=None):
         super().__init__(data_config,
                          fpath,
@@ -80,6 +79,8 @@ class IntensityAugTiffDloader(MultiChDeterministicTiffDloader):
         self._ch1_max_alpha = data_config.ch1_max_alpha
         self._ch1_alpha_interval_count = data_config.get('ch1_alpha_interval_count', 1)
         self._alpha_sampler = None
+        self._cl_std_filter = data_config.get('cl_std_filter', None)
+
         if self._ch1_max_alpha is not None and self._ch1_min_alpha is not None:
             self._alpha_sampler = AlphaClasses(self._ch1_min_alpha,
                                                self._ch1_max_alpha,
@@ -191,6 +192,14 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
         alpha_val = alpha_class_idx
         if self._return_alpha:
             alpha_val = alpha
+
+        # Filter needed in contrastive learning to ensure that zero content has its own class.
+        if self._cl_std_filter is not None:
+            assert len(img_tuples) == 2
+            if img_tuples[0].std() <= self._cl_std_filter[0]:
+                ch1_idx = -1
+            if img_tuples[1].std() <= self._cl_std_filter[1]:
+                ch2_idx = -1
 
         if self._return_individual_channels:
             target = np.concatenate(img_tuples, axis=0)

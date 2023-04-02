@@ -20,6 +20,7 @@ def get_config():
 
     data.ch1_min_alpha = 0.04
     data.ch1_max_alpha = 0.96
+    data.cl_std_filter = [30.0, 30.0]
     data.ch1_alpha_interval_count = 20
 
     # reduce the spatial dimensions of the data. This will
