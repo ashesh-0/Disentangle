@@ -14,8 +14,8 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
-    data.channel_1 = 2
-    data.channel_2 = 3
+    data.channel_1 = 0
+    data.channel_2 = 2
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
@@ -55,7 +55,7 @@ def get_config():
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
-    model.decoder.batchnorm = True
+    model.decoder.batchnorm = False
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
     model.decoder.dropout = 0.1
@@ -63,16 +63,17 @@ def get_config():
     model.decoder.res_block_skip_padding = False
 
     model.decoder.multiscale_retain_spatial_dims = False
+    model.decoder.conv2d_bias = False
 
     model.skip_nboundary_pixels_from_loss = None
-    model.nonlin = 'elu'
-    model.merge_type = 'residual'
+    model.nonlin = 'leakyrelu'
+    model.merge_type = 'residual_ungated'
     model.stochastic_skip = True
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
 
-    model.gated = True
+    model.gated = False
     model.no_initial_downscaling = True
     model.analytical_kl = False
     model.mode_pred = False
@@ -83,7 +84,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = False
+    model.non_stochastic_version = True
 
     training = config.training
     training.lr = 0.001
