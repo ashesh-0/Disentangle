@@ -86,6 +86,7 @@ class IntensityAugTiffDloader(MultiChDeterministicTiffDloader):
                                                self._ch1_max_alpha,
                                                nintervals=self._ch1_alpha_interval_count)
 
+        print(f'[{self.__class__.__name__}] CL_std_lowerb', self._cl_std_filter)
         # assert self._use_one_mu_std is False, "We need individual channels mean and std to be able to get correct mean for alpha alphas."
 
     def _sample_alpha(self, alpha_class_idx=None):
