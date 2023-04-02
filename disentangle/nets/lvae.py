@@ -101,7 +101,7 @@ class LadderVAE(pl.LightningModule):
             self.rf_prior_w = config.loss.receptive_field_prior_w
             self.rf_clip_val = config.loss.get('receptive_field_prior_loss_minclip', None)
             self.rf_factor = config.loss.get('receptive_field_prior_loss_factor', None)
-            # self.rf_loss_skip_tokens = config.loss.skip_receptive_field_loss_tokens
+            self.rf_loss_skip_tokens = config.loss.skip_receptive_field_loss_tokens
             self.rf_prior_loss = ConvolutionPriorLoss(config.loss.receptive_field_prior_losstype,
                                                       rf_clip_val=self.rf_clip_val,
                                                       rf_factor=self.rf_factor)
@@ -460,7 +460,8 @@ class LadderVAE(pl.LightningModule):
                         if 'pre_conv' in tokens:
                             continue
                         else:
-                            loss += self.rf_prior_loss.get(param)
+                            factor = self.rf_prior_loss.get_factor_from_name(name)
+                            loss += self.rf_prior_loss.get(param, factor=factor)
                             count += 1
                     else:
                         continue_flag = False
@@ -470,7 +471,8 @@ class LadderVAE(pl.LightningModule):
                         if continue_flag:
                             continue
 
-                        loss += self.rf_prior_loss.get(param)
+                        factor = self.rf_prior_loss.get_factor_from_name(name)
+                        loss += self.rf_prior_loss.get(param, factor=factor)
                         count += 1
 
         return loss / count if count > 0 else 0.0
@@ -608,7 +610,7 @@ class LadderVAE(pl.LightningModule):
 
         rf_prior_loss = 0.0
         if self.enable_rf_priorloss:
-            rf_prior_loss = self.get_receptive_field_prior_loss()
+            rf_prior_loss = self.get_receptive_field_prior_loss_old()
             self.log('rf_prior_loss', rf_prior_loss.item(), on_epoch=True)
 
         if self.non_stochastic_version:
