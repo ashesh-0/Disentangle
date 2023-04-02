@@ -314,17 +314,31 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
     # wandb.init(config=config)
     if torch.cuda.is_available():
         # profiler = pl.profiler.AdvancedProfiler(output_filename=os.path.join(config.workdir, 'advance_profile.txt'))
-        trainer = pl.Trainer(
-            # gpus=1,
-            max_epochs=config.training.max_epochs,
-            gradient_clip_val=config.training.grad_clip_norm_value,
-            # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
-            logger=logger,
-            # fast_dev_run=10,
-            #  profiler=profiler,
-            # overfit_batches=20,
-            callbacks=callbacks,
-            precision=config.training.precision)
+        # only difference is gpus=1. This is because of different conda environments which we are running.
+        try:
+            trainer = pl.Trainer(
+                gpus=1,
+                max_epochs=config.training.max_epochs,
+                gradient_clip_val=config.training.grad_clip_norm_value,
+                # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
+                logger=logger,
+                # fast_dev_run=10,
+                #  profiler=profiler,
+                # overfit_batches=20,
+                callbacks=callbacks,
+                precision=config.training.precision)
+        except:
+            trainer = pl.Trainer(
+                # gpus=1,
+                max_epochs=config.training.max_epochs,
+                gradient_clip_val=config.training.grad_clip_norm_value,
+                # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
+                logger=logger,
+                # fast_dev_run=10,
+                #  profiler=profiler,
+                # overfit_batches=20,
+                callbacks=callbacks,
+                precision=config.training.precision)
     else:
         trainer = pl.Trainer(
             max_epochs=config.training.max_epochs,
