@@ -270,12 +270,16 @@ class LadderVAETwinDecoder(LadderVAE):
         cl_loss = 0
         if self.cl_helper is not None:
             alpha, ch1_idx, ch2_idx = batch[2:]
-            if self.non_stochastic_version:
-                latent = td_data['z']
+            if (ch1_idx == -1).all() or (ch1_idx == -1).all():
+                cl_loss_ch1 = 0
+                cl_loss_ch2 = 0
             else:
-                latent = [x.get() for x in td_data['q_mu']]
+                if self.non_stochastic_version:
+                    latent = td_data['z']
+                else:
+                    latent = [x.get() for x in td_data['q_mu']]
 
-            _, cl_loss_ch1, cl_loss_ch2 = self.cl_helper.compute_all_CL_losses(latent, alpha, ch1_idx, ch2_idx)
+                _, cl_loss_ch1, cl_loss_ch2 = self.cl_helper.compute_all_CL_losses(latent, alpha, ch1_idx, ch2_idx)
             self.log('cl_loss_ch1', cl_loss_ch1, on_epoch=True)
             self.log('cl_loss_ch2', cl_loss_ch2, on_epoch=True)
             cl_loss = cl_loss_ch1 + cl_loss_ch2
