@@ -31,6 +31,7 @@ from disentangle.core.psnr import PSNR, RangeInvariantPsnr
 from disentangle.core.tiff_reader import load_tiff
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
+from disentangle.data_loader.patch_index_manager import GridAlignement
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.training import create_dataset, create_model
 
@@ -67,7 +68,10 @@ def compute_masked_psnr(mask, tar1, tar2, pred1, pred2):
 
 
 def avg_ssim(target, prediction):
-    ssim = [structural_similarity(target[i], prediction[i]) for i in range(len(target))]
+    ssim = [
+        structural_similarity(target[i], prediction[i], data_range=target[i].max() - target[i].min())
+        for i in range(len(target))
+    ]
     return np.mean(ssim), np.std(ssim)
 
 
@@ -245,8 +249,12 @@ def main(
     ## Disentanglement setup.
     ####
     ####
-    if image_size_for_grid_centers is None:
-        image_size_for_grid_centers = config.data.image_size
+    grid_alignment = GridAlignement.Center
+    if image_size_for_grid_centers is not None:
+        old_grid_size = config.data.get('grid_size', "grid_size not present")
+        with config.unlocked():
+            config.data.grid_size = image_size_for_grid_centers
+            config.data.val_grid_size = image_size_for_grid_centers
 
     padding_kwargs = {
         'mode': config.data.get('padding_mode', 'constant'),
@@ -255,16 +263,16 @@ def main(
     if padding_kwargs['mode'] == 'constant':
         padding_kwargs['constant_values'] = config.data.get('padding_value', 0)
 
-    dloader_kwargs = {'overlapping_padding_kwargs': padding_kwargs}
+    dloader_kwargs = {'overlapping_padding_kwargs': padding_kwargs, 'grid_alignment': grid_alignment}
 
     if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
-        data_class = get_overlapping_dset(MultiScaleTiffDloader)
+        data_class = MultiScaleTiffDloader
         dloader_kwargs['num_scales'] = config.data.multiscale_lowres_count
         dloader_kwargs['padding_kwargs'] = padding_kwargs
     elif config.data.data_type == DataType.SemiSupBloodVesselsEMBL:
-        data_class = get_overlapping_dset(SingleChannelDloader)
+        data_class = SingleChannelDloader
     else:
-        data_class = get_overlapping_dset(MultiChDeterministicTiffDloader)
+        data_class = MultiChDeterministicTiffDloader
     if config.data.data_type in [
             DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.AllenCellMito,
             DataType.SeparateTiffData, DataType.SemiSupBloodVesselsEMBL
@@ -289,7 +297,6 @@ def main(
                             use_one_mu_std=use_one_mu_std,
                             enable_rotation_aug=train_aug_rotate,
                             enable_random_cropping=enable_random_cropping,
-                            image_size_for_grid_centers=image_size_for_grid_centers,
                             **dloader_kwargs)
     import gc
     gc.collect()
@@ -305,7 +312,6 @@ def main(
         enable_rotation_aug=False,  # No rotation aug on validation
         enable_random_cropping=False,
         # No random cropping on validation. Validation is evaluated on determistic grids
-        image_size_for_grid_centers=image_size_for_grid_centers,
         max_val=max_val,
         **dloader_kwargs)
 
@@ -349,7 +355,7 @@ def main(
     if config.data.multiscale_lowres_count is not None and custom_image_size is not None:
         model.reset_for_different_output_size(custom_image_size)
 
-    pred_tiled, rec_loss, logvar = get_dset_predictions(
+    pred_tiled, rec_loss, *_ = get_dset_predictions(
         model,
         val_dset,
         batch_size,
@@ -453,10 +459,7 @@ def main(
 
 def save_multiple_evaluations_to_file():
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2303/D3-M3-S0-L0/31',
-        '/home/ashesh.ashesh/training/disentangle/2303/D3-M3-S0-L0/30',
-        '/home/ashesh.ashesh/training/disentangle/2303/D3-M3-S0-L0/28',
-        '/home/ashesh.ashesh/training/disentangle/2303/D3-M3-S0-L0/29',
+        '/home/ubuntu/ashesh/training/disentangle/2304/D3-M3-S0-L0/7',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -468,7 +471,7 @@ def save_multiple_evaluations_to_file():
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    patchsz_gridsz_tuples = [(192, 64)]
+    patchsz_gridsz_tuples = [(192, 64), (64, 32)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
