@@ -31,7 +31,6 @@ from disentangle.core.psnr import PSNR, RangeInvariantPsnr
 from disentangle.core.tiff_reader import load_tiff
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
-from disentangle.data_loader.overlapping_dloader import get_overlapping_dset
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.training import create_dataset, create_model
 
