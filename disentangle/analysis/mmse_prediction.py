@@ -6,6 +6,8 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 from disentangle.core.model_type import ModelType
+from disentangle.metrics.running_psnr import RunningPSNR
+
 
 
 def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, prediction_size: int, batch_size=16,
@@ -73,6 +75,8 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
     predictions = []
     losses = []
     logvar_arr = []
+    patch_psnr_ch1 = RunningPSNR()
+    patch_psnr_ch2 = RunningPSNR()
     with torch.no_grad():
         for batch in tqdm(dloader):
             inp, tar = batch[:2]
@@ -148,8 +152,13 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                                 logvar_arr.append(np.array([-1]))
                         losses.append(rec_loss['loss'].cpu().numpy())
 
+                patch_psnr_ch1.update(imgs[:, 0], tar_normalized[:, 0])
+                patch_psnr_ch2.update(imgs[:, 1], tar_normalized[:, 1])
                 recon_img_list.append(imgs.cpu()[None])
 
             mmse_imgs = torch.mean(torch.cat(recon_img_list, dim=0), dim=0)
             predictions.append(mmse_imgs.cpu().numpy())
-    return np.concatenate(predictions, axis=0), np.array(losses), np.concatenate(logvar_arr)
+
+    psnrl1 = patch_psnr_ch1.get()
+    psnrl2 = patch_psnr_ch2.get()
+    return np.concatenate(predictions, axis=0), np.array(losses), np.concatenate(logvar_arr), (psnrl1, psnrl2)
