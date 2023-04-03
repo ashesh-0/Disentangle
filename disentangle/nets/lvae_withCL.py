@@ -56,13 +56,23 @@ class LadderVAEwithCL(LadderVAE):
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         recons_loss = recons_loss_dict['loss']
+        if (ch1_idx == -1).all() or (ch1_idx == -1).all():
+            cl_loss_ch1 = 0
+            cl_loss_ch2 = 0
+            cl_loss_alpha = 0
+        else:
+            if self.non_stochastic_version:
+                latent = td_data['z']
+            else:
+                latent = [x.get() for x in td_data['q_mu']]
 
-        cl_loss_alpha, cl_loss_ch1, cl_loss_ch2 = self.cl_helper.compute_all_CL_losses(
-            td_data, alpha_class_idx, ch1_idx, ch2_idx)
+            cl_loss_alpha, cl_loss_ch1, cl_loss_ch2 = self.cl_helper.compute_all_CL_losses(
+                latent, alpha_class_idx, ch1_idx, ch2_idx)
 
         self.log('cl_loss_alpha', cl_loss_alpha, on_epoch=True)
         self.log('cl_loss_ch1', cl_loss_ch1, on_epoch=True)
         self.log('cl_loss_ch2', cl_loss_ch2, on_epoch=True)
+
         cl_loss = cl_loss_alpha + cl_loss_ch1 + cl_loss_ch2
 
         if self.non_stochastic_version:
