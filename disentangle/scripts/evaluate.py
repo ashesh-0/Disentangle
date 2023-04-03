@@ -459,7 +459,7 @@ def main(
 
 def save_multiple_evaluations_to_file():
     ckpt_dirs = [
-        '/home/ubuntu/ashesh/training/disentangle/2304/D3-M3-S0-L0/7',
+        '/home/ubuntu/ashesh/training/disentangle/2303/D3-M3-S0-L0/2',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
