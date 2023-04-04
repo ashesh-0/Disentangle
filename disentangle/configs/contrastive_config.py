@@ -28,7 +28,7 @@ def get_config():
     # data.downsample_data_factor = 4
     # data.channel_2_downscale_factor = 1
 
-    data.sampler_type = SamplerType.ContrastiveSampler
+    data.sampler_type = SamplerType.DefaultGridSampler
     data.threshold = 0.02
     data.deterministic_grid = True
     data.normalized_input = True

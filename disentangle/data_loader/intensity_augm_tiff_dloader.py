@@ -180,7 +180,13 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
             img_tuples, alpha, use_alpha_invariant_mean=self._use_alpha_invariant_mean), alpha, alpha_class_idx
 
     def __getitem__(self, index: Union[int, Tuple[int, int, int, int]]) -> Tuple[np.ndarray, np.ndarray]:
-        ch1_idx, ch2_idx, grid_size, alpha_class_idx = index
+        if isinstance(index, tuple):
+            if len(index) == 4:
+                ch1_idx, ch2_idx, grid_size, alpha_class_idx = index
+            elif len(index) == 3:
+                ch1_idx, ch2_idx, grid_size = index
+                alpha_class_idx = np.random.randint(0, high=self._ch1_alpha_interval_count) if self._is_train else -1
+
         index1 = (ch1_idx, grid_size)
         img1_tuples = self._get_img(index1)
         index2 = (ch2_idx, grid_size)
