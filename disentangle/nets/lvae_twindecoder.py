@@ -91,8 +91,9 @@ class LadderVAETwinDecoder(LadderVAE):
         # contrastive learning.
         self.cl_helper = None
         self.enable_alpha_weighted_loss = False
-        if self.loss_type == LossType.ElboCL and self.cl_weight != 0:
-            self.cl_helper = IntensityEquivCLLossBatchHandler(config)
+        if self.loss_type == LossType.ElboCL:
+            if self.cl_weight != 0:
+                self.cl_helper = IntensityEquivCLLossBatchHandler(config)
             self.cl_enable_summed_target_equality = config.model.get('cl_enable_summed_target_equality', False)
             self.enable_alpha_weighted_loss = config.loss.get('enable_alpha_weighted_loss', False)
 
@@ -100,8 +101,6 @@ class LadderVAETwinDecoder(LadderVAE):
                 print(f'[{self.__class__.__name__}] Alpha-weighted-loss:{self.enable_alpha_weighted_loss} inp=t1+t2')
             else:
                 print(f'[{self.__class__.__name__}] Alpha-weighted-loss:{self.enable_alpha_weighted_loss}')
-        else:
-            print(f'[{self.__class__.__name__}] CL weight:', self.cl_weight)
 
     def set_params_to_same_device_as(self, correct_device_tensor):
         if isinstance(self.data_mean, torch.Tensor):
@@ -254,6 +253,7 @@ class LadderVAETwinDecoder(LadderVAE):
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
         alpha = None
+
         if self.loss_type == LossType.ElboCL and self.cl_enable_summed_target_equality:
             # adjust the targets for the alpha
             alpha = batch[2][:, None, None, None]
