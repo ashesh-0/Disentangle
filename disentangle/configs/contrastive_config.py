@@ -18,8 +18,8 @@ def get_config():
     data.channel_1 = 0
     data.channel_2 = 2
 
-    data.ch1_min_alpha = 0.52
-    data.ch1_max_alpha = 0.48
+    data.ch1_min_alpha = 0.4
+    data.ch1_max_alpha = 0.6
     data.cl_std_filter = [30.0, 30.0]
     data.ch1_alpha_interval_count = 20
 
@@ -83,7 +83,7 @@ def get_config():
     model.decoder.res_block_skip_padding = False
     model.decoder.multiscale_retain_spatial_dims = True
     # model.decoder.skip_bottom_k_bu_values = 2
-    model.decoder.conv2d_bias = False
+    model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'leakyrelu'
@@ -92,7 +92,7 @@ def get_config():
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
-    model.gated = False
+    model.gated = True
     model.no_initial_downscaling = True
     model.analytical_kl = False
     model.mode_pred = False
