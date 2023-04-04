@@ -6,15 +6,17 @@ class BaseSampler(Sampler):
     """
     Base sampler for the class which yields wo indices
     """
-    def __init__(self, dataset, batch_size) -> None:
+
+    def __init__(self, dataset, batch_size, grid_size=1) -> None:
+        """
+        Grid size of 1 ensures that any random crop can be taken.
+        """
         super().__init__(dataset)
         self._dset = dataset
-        self.label_idx_dict = self._dset.get_label_idx_range()
-        self.l1_N = self.label_idx_dict['1'][1] - self.label_idx_dict['1'][0]
-        self.l2_N = self.label_idx_dict['2'][1] - self.label_idx_dict['2'][0]
+        self._grid_size = grid_size
+        self.idx_max = self._dset.idx_manager.grid_count(grid_size=self._grid_size)
 
         self._batch_size = batch_size
-        self.idx = None
         self.index_batches = None
         print(f'[{self.__class__.__name__}] ')
 

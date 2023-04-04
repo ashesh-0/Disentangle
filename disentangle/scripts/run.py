@@ -23,6 +23,7 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
 from disentangle.sampler.contrastive_sampler import ContrastiveSampler, ContrastiveSamplerValSet
+from disentangle.sampler.default_grid_sampler import DefaultGridSampler
 from disentangle.sampler.nbr_sampler import NeighborSampler
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.sampler.singleimg_sampler import SingleImgSampler
@@ -171,7 +172,7 @@ def main(argv):
 
             if config.data.sampler_type == SamplerType.RandomSampler:
                 train_sampler = RandomSampler(train_data, config.training.batch_size)
-                val_sampler = RandomSampler(val_data, config.training.batch_size)
+                val_sampler = DefaultGridSampler(val_data, config.training.batch_size, grid_size=config.data.image_size)
             elif config.data.sampler_type == SamplerType.SingleImgSampler:
                 train_sampler = SingleImgSampler(train_data, config.training.batch_size)
                 val_sampler = SingleImgSampler(val_data, config.training.batch_size)
@@ -187,6 +188,9 @@ def main(argv):
                 train_sampler = ContrastiveSampler(train_data, len(train_data), config.data.ch1_alpha_interval_count,
                                                    config.training.batch_size)
                 val_sampler = ContrastiveSamplerValSet(val_data, config.data.image_size, config.training.batch_size)
+            elif config.data.sampler_type == SamplerType.DefaultGridSampler:
+                train_sampler = DefaultGridSampler(train_data, config.training.batch_size)
+                val_sampler = DefaultGridSampler(val_data, config.training.batch_size, grid_size=config.data.image_size)
 
             train_dloader = DataLoader(train_data,
                                        pin_memory=False,
