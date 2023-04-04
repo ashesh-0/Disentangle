@@ -559,13 +559,16 @@ class LadderVAE(pl.LightningModule):
         kl_loss = free_bits_kl(kl, self.free_bits).mean()
         return kl_loss
 
-    def _compute_gradient_norm(self, network):
-        max_norm = 0
-        for p in network.parameters():
-            if p.grad is not None:
-                param_norm = p.grad.data.norm(2)
-                max_norm = max(max_norm, param_norm.item())
-        return max_norm
+    #   NOTE: Gradient logging has been removed because of a version issue. The issue is that
+    #   def backward() function arguments have changed. in one version, one needs to pass
+    #   optimizer_idx and optimizer as additional arguments. In other version, that is not neeeded.
+    #  def _compute_gradient_norm(self, network):
+    #     max_norm = 0
+    #     for p in network.parameters():
+    #         if p.grad is not None:
+    #             param_norm = p.grad.data.norm(2)
+    #             max_norm = max(max_norm, param_norm.item())
+    #     return max_norm
 
     # def compute_gradient_norm(self):
     #     grad_norm_bottom_up = self._compute_gradient_norm(self.bottom_up_layers)
