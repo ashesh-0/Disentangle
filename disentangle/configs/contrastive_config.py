@@ -18,8 +18,8 @@ def get_config():
     data.channel_1 = 0
     data.channel_2 = 2
 
-    data.ch1_min_alpha = 0.04
-    data.ch1_max_alpha = 0.96
+    data.ch1_min_alpha = 0.60
+    data.ch1_max_alpha = 0.40
     data.cl_std_filter = [30.0, 30.0]
     data.ch1_alpha_interval_count = 20
 
