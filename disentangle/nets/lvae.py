@@ -492,26 +492,29 @@ class LadderVAE(pl.LightningModule):
         kl_loss = free_bits_kl(kl, self.free_bits).mean()
         return kl_loss
 
-    def _compute_gradient_norm(self, network):
-        max_norm = 0
-        for p in network.parameters():
-            if p.grad is not None:
-                param_norm = p.grad.data.norm(2)
-                max_norm = max(max_norm, param_norm.item())
-        return max_norm
+    #   NOTE: Gradient logging has been removed because of a version issue. The issue is that
+    #   def backward() function arguments have changed. in one version, one needs to pass
+    #   optimizer_idx and optimizer as additional arguments. In other version, that is not neeeded.
+    #  def _compute_gradient_norm(self, network):
+    #     max_norm = 0
+    #     for p in network.parameters():
+    #         if p.grad is not None:
+    #             param_norm = p.grad.data.norm(2)
+    #             max_norm = max(max_norm, param_norm.item())
+    #     return max_norm
 
-    def compute_gradient_norm(self):
-        grad_norm_bottom_up = self._compute_gradient_norm(self.bottom_up_layers)
-        grad_norm_top_down = self._compute_gradient_norm(self.top_down_layers)
-        return grad_norm_bottom_up, grad_norm_top_down
+    # def compute_gradient_norm(self):
+    #     grad_norm_bottom_up = self._compute_gradient_norm(self.bottom_up_layers)
+    #     grad_norm_top_down = self._compute_gradient_norm(self.top_down_layers)
+    #     return grad_norm_bottom_up, grad_norm_top_down
 
-    def backward(self, loss):
-        """
-        Overwriding the default function just to compute the gradient norm. it gets logged in trainin_step().
-        Logging it here results in memory leak.
-        """
-        loss.backward(retain_graph=True)
-        self.grad_norm_bottom_up, self.grad_norm_top_down = self.compute_gradient_norm()
+    # def backward(self, loss):
+    #     """
+    #     Overwriding the default function just to compute the gradient norm. it gets logged in trainin_step().
+    #     Logging it here results in memory leak.
+    #     """
+    #     loss.backward(retain_graph=True)
+    #     self.grad_norm_bottom_up, self.grad_norm_top_down = self.compute_gradient_norm()
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         x, target = batch[:2]
@@ -561,8 +564,8 @@ class LadderVAE(pl.LightningModule):
             self.log('kl_loss', kl_loss, on_epoch=True)
             self.log('training_loss', net_loss, on_epoch=True)
             self.log('lr', self.lr, on_epoch=True)
-            self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
-            self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
+            # self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
+            # self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
 
         output = {
             'loss': net_loss,
