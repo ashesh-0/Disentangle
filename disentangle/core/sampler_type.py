@@ -7,3 +7,4 @@ class SamplerType(Enum):
     SingleImgSampler = 2
     NeighborSampler = 3
     ContrastiveSampler = 4
+    DefaultGridSampler = 5
