@@ -37,6 +37,7 @@ class AlphaClasses:
         self._intervals = []
         for minv_class in np.arange(self._minv, self._maxv + 1e-5, step):
             self._intervals.append(Interval(minv_class, minv_class + step))
+        print(f'[{self.__class__.__name__}] {self._minv}-{self._maxv} {nintervals}')
 
     def class_ids(self):
         return list(range(len(self._intervals)))
@@ -194,6 +195,7 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
 
         assert self._enable_rotation is False
         img_tuples = (img1_tuples[0], img2_tuples[1])
+
         inp, alpha, _ = self._compute_input(img_tuples, alpha_class_idx=alpha_class_idx)
 
         alpha_val = alpha_class_idx
