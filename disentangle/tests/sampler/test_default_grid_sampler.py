@@ -39,8 +39,10 @@ def test_default_sampler():
         for batch in sampler:
             sample_indices.append(batch)
             if min_idx_reached is None:
-                idx_values, grid_sizes = zip(*batch)
+                idx_values, same_idx_values, grid_sizes = zip(*batch)
                 assert set(grid_sizes) == {1}
+                assert np.all(same_idx_values == idx_values)
+
                 min_idx_reached = np.min(idx_values)
                 max_idx_reached = np.max(idx_values)
 
