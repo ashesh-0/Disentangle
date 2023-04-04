@@ -18,8 +18,8 @@ def get_config():
     data.channel_1 = 0
     data.channel_2 = 2
 
-    data.ch1_min_alpha = 0.4
-    data.ch1_max_alpha = 0.6
+    data.ch1_min_alpha = 0.04
+    data.ch1_max_alpha = 0.96
     data.cl_std_filter = [30.0, 30.0]
     data.ch1_alpha_interval_count = 20
 
@@ -83,7 +83,7 @@ def get_config():
     model.decoder.res_block_skip_padding = False
     model.decoder.multiscale_retain_spatial_dims = True
     # model.decoder.skip_bottom_k_bu_values = 2
-    model.decoder.conv2d_bias = True
+    model.decoder.conv2d_bias = False
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'leakyrelu'
@@ -92,13 +92,13 @@ def get_config():
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
-    model.gated = True
+    model.gated = False
     model.no_initial_downscaling = True
     model.analytical_kl = False
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'global'
+    model.predict_logvar = None  #'global'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
