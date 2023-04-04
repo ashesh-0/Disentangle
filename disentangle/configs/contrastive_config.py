@@ -62,7 +62,7 @@ def get_config():
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
     loss.skip_cl_on_alpha = True
-    loss.enable_alpha_weighted_loss = True
+    loss.enable_alpha_weighted_loss = False
 
     model = config.model
     model.model_type = ModelType.LadderVaeTwinDecoder
@@ -108,6 +108,7 @@ def get_config():
     diff = model.z_dims[0] - model.cl_latent_start_end_alpha[1]
     model.cl_latent_start_end_ch1 = (model.cl_latent_start_end_alpha[1], model.cl_latent_start_end_alpha[1] + diff // 2)
     model.cl_latent_start_end_ch2 = (model.cl_latent_start_end_ch1[1], model.z_dims[0])
+    # This is actually, a data normalization which is unfortunately happening inside the model.
     model.cl_enable_summed_target_equality = True
 
     training = config.training
