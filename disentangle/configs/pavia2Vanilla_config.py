@@ -21,7 +21,7 @@ def get_config():
     data.ch1_max_alpha = 0.96
     # data.cl_std_filter = [30.0, 30.0]
     data.ch1_alpha_interval_count = 20
-    # data.channel_2_downscale_factor = 1
+    data.channel_2_downscale_factor = 1
 
     data.sampler_type = SamplerType.DefaultGridSampler
     data.deterministic_grid = True
@@ -91,7 +91,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None 
+    model.predict_logvar = None
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
