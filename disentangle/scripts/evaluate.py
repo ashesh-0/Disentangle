@@ -101,6 +101,7 @@ def main(
     psnr_type='range_invariant',
     ignored_last_pixels=0,
     ignore_first_pixels=0,
+    print_token='',
 ):
     global DATA_ROOT, CODE_ROOT
 
@@ -415,6 +416,7 @@ def main(
     output_stats['rangeinvpsnr'] = [avg_range_inv_psnr(tar1, pred1), avg_range_inv_psnr(tar2, pred2)]
     output_stats['ssim'] = [ssim1_mean, ssim2_mean, ssim1_std, ssim2_std]
 
+    print(print_token)
     print('Rec Loss', np.round(output_stats['rec_loss'], 3))
     print('RMSE', output_stats['rmse'][0].round(3), output_stats['rmse'][1].round(3), output_stats['rmse'][2].round(3))
     print('PSNR', output_stats['psnr'][0], output_stats['psnr'][1])
@@ -459,7 +461,7 @@ def main(
 
 def save_multiple_evaluations_to_file():
     ckpt_dirs = [
-        '/home/ubuntu/ashesh/training/disentangle/2304/D3-M4-S5-L6/0',
+        '/home/ubuntu/ashesh/training/disentangle/2304/D3-M4-S5-L6/5',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -495,7 +497,8 @@ def save_multiple_evaluations_to_file():
                     val_repeat_factor=None,
                     psnr_type='range_invariant',
                     ignored_last_pixels=ignored_last_pixels,
-                    ignore_first_pixels=0)
+                    ignore_first_pixels=0,
+                    print_token=handler.dirpath())
                 fpath = handler.save(ckpt_dir, data)
                 # except:
                 #     print('FAILED for ', handler.get_output_fpath(ckpt_dir))
