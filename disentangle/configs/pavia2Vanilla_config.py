@@ -17,8 +17,8 @@ def get_config():
     data.data_type = DataType.Pavia2VanillaSplitting
     data.channel_1 = Pavia2DataSetChannels.NucRFP670
     data.channel_2 = Pavia2DataSetChannels.TUBULIN
-    data.ch1_min_alpha = 0.48
-    data.ch1_max_alpha = 0.52
+    data.ch1_min_alpha = 0.499
+    data.ch1_max_alpha = 0.501
     # data.cl_std_filter = [30.0, 30.0]
     data.ch1_alpha_interval_count = 20
     data.channel_2_downscale_factor = 1
