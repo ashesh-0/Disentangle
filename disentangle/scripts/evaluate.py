@@ -8,6 +8,7 @@ import sys
 from posixpath import basename
 
 import matplotlib.pyplot as plt
+import ml_collections
 import numpy as np
 import torch
 import torch.nn as nn
@@ -15,7 +16,6 @@ from skimage.metrics import structural_similarity
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-import ml_collections
 from disentangle.analysis.critic_notebook_utils import get_label_separated_loss, get_mmse_dict
 from disentangle.analysis.lvae_utils import get_img_from_forward_output
 from disentangle.analysis.mmse_prediction import get_dset_predictions
@@ -459,7 +459,7 @@ def main(
 
 def save_multiple_evaluations_to_file():
     ckpt_dirs = [
-        '/home/ubuntu/ashesh/training/disentangle/2304/D3-M3-S0-L0/7',
+        '/home/ubuntu/ashesh/training/disentangle/2304/D3-M4-S5-L6/5',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -471,7 +471,7 @@ def save_multiple_evaluations_to_file():
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    patchsz_gridsz_tuples = [(192, 64), (64, 32)]
+    patchsz_gridsz_tuples = [(64, 32)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
