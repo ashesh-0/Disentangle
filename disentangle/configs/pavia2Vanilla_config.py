@@ -23,7 +23,7 @@ def get_config():
     data.ch1_alpha_interval_count = 20
     data.channel_2_downscale_factor = 1
 
-    data.sampler_type = SamplerType.DefaultGridSampler
+    data.sampler_type = SamplerType.ContrastiveSampler
     data.deterministic_grid = True
     data.normalized_input = True
     data.clip_percentile = 0.995
@@ -46,7 +46,7 @@ def get_config():
     loss.loss_type = LossType.ElboCL
     loss.cl_tau_pos = 0.0
     loss.cl_tau_neg = 0.5
-    loss.cl_weight = 0.0
+    loss.cl_weight = 0.1
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -64,14 +64,14 @@ def get_config():
 
     model.encoder.batchnorm = False
     model.encoder.blocks_per_layer = 3
-    model.encoder.n_filters = 128
+    model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
     model.decoder.batchnorm = False
     model.decoder.blocks_per_layer = 1
-    model.decoder.n_filters = 128
+    model.decoder.n_filters = 64
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
@@ -91,12 +91,12 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None
+    model.predict_logvar = 'pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = True
+    model.non_stochastic_version = False
     model.cl_latent_start_end_alpha = (0, 0)
     diff = model.z_dims[0] - model.cl_latent_start_end_alpha[1]
     model.cl_latent_start_end_ch1 = (model.cl_latent_start_end_alpha[1], model.cl_latent_start_end_alpha[1] + diff // 2)
