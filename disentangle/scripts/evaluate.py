@@ -459,7 +459,7 @@ def main(
 
 def save_multiple_evaluations_to_file():
     ckpt_dirs = [
-        '/home/ubuntu/ashesh/training/disentangle/2304/D3-M4-S5-L6/5',
+        '/home/ubuntu/ashesh/training/disentangle/2304/D3-M4-S5-L6/0',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -473,7 +473,7 @@ def save_multiple_evaluations_to_file():
 
     patchsz_gridsz_tuples = [(64, 32)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Test]:
+        for eval_datasplit_type in [DataSplitType.Val]:
             for ckpt_dir in ckpt_dirs:
                 ignored_last_pixels = 32 if os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:] == '3' else 0
                 handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,

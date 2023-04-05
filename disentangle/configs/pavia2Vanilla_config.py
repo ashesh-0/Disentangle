@@ -17,13 +17,13 @@ def get_config():
     data.data_type = DataType.Pavia2VanillaSplitting
     data.channel_1 = Pavia2DataSetChannels.NucRFP670
     data.channel_2 = Pavia2DataSetChannels.TUBULIN
-    data.ch1_min_alpha = 0.3
-    data.ch1_max_alpha = 0.98
-    data.ch1_alpha_interval_count = 10
-    data.channel_2_downscale_factor = 1
+    data.ch1_min_alpha = 0.4
+    data.ch1_max_alpha = 0.96
+    # data.cl_std_filter = [30.0, 30.0]
+    data.ch1_alpha_interval_count = 20
+    # data.channel_2_downscale_factor = 1
 
-    data.sampler_type = SamplerType.ContrastiveSampler
-    data.threshold = 0.02
+    data.sampler_type = SamplerType.DefaultGridSampler
     data.deterministic_grid = True
     data.normalized_input = True
     data.clip_percentile = 0.995
@@ -46,7 +46,7 @@ def get_config():
     loss.loss_type = LossType.ElboCL
     loss.cl_tau_pos = 0.0
     loss.cl_tau_neg = 0.5
-    loss.cl_weight = 0.1
+    loss.cl_weight = 0.0
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -56,7 +56,7 @@ def get_config():
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
     loss.skip_cl_on_alpha = True
-    loss.enable_alpha_weighted_loss = True
+    loss.enable_alpha_weighted_loss = False
 
     model = config.model
     model.model_type = ModelType.LadderVaeTwinDecoder
@@ -76,7 +76,6 @@ def get_config():
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
     model.decoder.multiscale_retain_spatial_dims = True
-    # model.decoder.skip_bottom_k_bu_values = 2
     model.decoder.conv2d_bias = False
 
     model.skip_nboundary_pixels_from_loss = None
@@ -92,7 +91,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'global'
+    model.predict_logvar = None 
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
@@ -102,19 +101,20 @@ def get_config():
     diff = model.z_dims[0] - model.cl_latent_start_end_alpha[1]
     model.cl_latent_start_end_ch1 = (model.cl_latent_start_end_alpha[1], model.cl_latent_start_end_alpha[1] + diff // 2)
     model.cl_latent_start_end_ch2 = (model.cl_latent_start_end_ch1[1], model.z_dims[0])
+    # This is actually, a data normalization which is unfortunately happening inside the model.
     model.cl_enable_summed_target_equality = True
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 30
-    training.max_epochs = 400
-    training.batch_size = 32
+    training.lr_scheduler_patience = 15
+    training.max_epochs = 200
+    training.batch_size = 48
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 200
+    training.earlystop_patience = 100
     training.precision = 16
 
     return config
