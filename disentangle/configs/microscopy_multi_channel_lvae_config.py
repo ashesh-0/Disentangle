@@ -48,9 +48,9 @@ def get_config():
     loss.free_bits = 0.0
     loss.enable_receptive_field_priorloss = True
     loss.receptive_field_prior_losstype = ConvolutionPriorLossType.FactorBased
-    loss.receptive_field_prior_w = 200
+    loss.receptive_field_prior_w = 100
     # loss.receptive_field_prior_loss_minclip = -0.3
-    loss.receptive_field_prior_loss_factor = 0.05
+    loss.receptive_field_prior_loss_factor = 0.03
     loss.skip_receptive_field_loss_tokens = ['final_top_down', 'likelihood', 'top_prior_params']
 
     model = config.model
