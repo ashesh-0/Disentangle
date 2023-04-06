@@ -69,7 +69,7 @@ def get_config():
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
 
-    model.decoder.multiscale_retain_spatial_dims = False
+    model.decoder.multiscale_retain_spatial_dims = True
     model.decoder.conv2d_bias = False
 
     model.skip_nboundary_pixels_from_loss = None
