@@ -7,6 +7,7 @@ from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.data_loader.allencell_rawdata_loader import get_train_val_data as _loadallencellmito
 from disentangle.data_loader.embl_semisup_rawdata_loader import get_train_val_data as _loadembl2_semisup
+from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import get_train_val_data as _load_ht_iba1_ki67
 from disentangle.data_loader.multi_channel_train_val_data import train_val_data as _load_tiff_train_val
 from disentangle.data_loader.pavia2_rawdata_loader import get_train_val_data as _loadpavia2
 from disentangle.data_loader.pavia2_rawdata_loader import get_train_val_data_vanilla as _loadpavia2_vanilla
@@ -81,6 +82,12 @@ def get_train_val_data(data_config,
                                     datasplit_type,
                                     val_fraction=val_fraction,
                                     test_fraction=test_fraction)
+    elif data_config.data_type == DataType.HTIba1Ki67:
+        return _load_ht_iba1_ki67(fpath,
+                                  data_config,
+                                  datasplit_type,
+                                  val_fraction=val_fraction,
+                                  test_fraction=test_fraction)
 
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')
