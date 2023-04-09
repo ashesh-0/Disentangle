@@ -5,6 +5,7 @@ import numpy as np
 
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
+from disentangle.core.empty_patch_fetcher import EmptyPatchFetcher
 from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 from disentangle.data_loader.train_val_data import get_train_val_data
 
@@ -76,6 +77,15 @@ class MultiChDeterministicTiffDloader:
         self._rotation_transform = None
         if self._enable_rotation:
             self._rotation_transform = A.Compose([A.Flip(), A.RandomRotate90()])
+
+        self._empty_patch_replacement_enabled = data_config.get("empty_patch_replacement_enabled", False)
+        if self._empty_patch_replacement_enabled:
+            self._empty_patch_replacement_channel_idx = data_config.empty_patch_replacement_channel_idx
+            self._empty_patch_replacement_probab = data_config.empty_patch_replacement_probab
+            data_frames = self._data[..., self._empty_patch_replacement_channel_idx]
+            self._empty_patch_fetcher = EmptyPatchFetcher(self.idx_manager,
+                                                          data_frames,
+                                                          max_val_threshold=data_config.empty_patch_max_val_threshold)
 
         msg = self._init_msg()
         print(msg)
@@ -153,6 +163,10 @@ class MultiChDeterministicTiffDloader:
         msg += f' Rot:{self._enable_rotation}'
         msg += f' RandCrop:{self._enable_random_cropping}'
         msg += f' Q:{self._quantile}'
+        msg += f' ReplaceWithRandSample:{self._empty_patch_replacement_enabled}'
+        if self._empty_patch_replacement_enabled:
+            msg += f'-{self._empty_patch_replacement_channel_idx}-{self._empty_patch_replacement_probab}'
+
         return msg
 
     def _crop_imgs(self, index, *img_tuples: np.ndarray):
@@ -349,8 +363,23 @@ class MultiChDeterministicTiffDloader:
         cropped_img_tuples = self._crop_imgs(index, *img_tuples)[:-1]
         return cropped_img_tuples
 
+    def replace_with_empty_patch(self, img_tuples):
+        empty_index = self._empty_patch_fetcher.sample()
+        empty_img_tuples = self._get_img(empty_index)
+        final_img_tuples = []
+        for tuple_idx in range(img_tuples):
+            if self._empty_patch_replacement_channel_idx:
+                final_img_tuples.append(empty_img_tuples[tuple_idx])
+            else:
+                final_img_tuples.append(img_tuples[tuple_idx])
+        return tuple(final_img_tuples)
+
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         img_tuples = self._get_img(index)
+        if self._empty_patch_replacement_enabled:
+            if np.random.rand() < self._empty_patch_replacement_probab:
+                img_tuples = self.replace_with_empty_patch(img_tuples)
+
         if self._enable_rotation:
             # passing just the 2D input. 3rd dimension messes up things.
             assert len(img_tuples) == 2

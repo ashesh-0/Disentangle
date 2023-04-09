@@ -16,3 +16,4 @@ class DataType(Enum):
     Pavia2VanillaSplitting = 11
     ExpansionMicroscopyMitoTub = 12
     ShroffMitoEr = 13
+    HTIba1Ki67 = 14
