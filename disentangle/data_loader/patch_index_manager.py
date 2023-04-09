@@ -68,6 +68,19 @@ class GridIndexManager:
         t = self.get_t(index)
         return (*self.get_deterministic_hw(index, grid_size=grid_size), t)
 
+    def idx_from_hwt(self, h_start, w_start, t, grid_size=None):
+        """
+        Given h,w,t (where h,w constitutes the top left corner of the patch), it returns the corresponding index.
+        """
+        if grid_size is None:
+            grid_size = self._default_grid_size
+
+        nth_row = h_start // grid_size
+        nth_col = w_start // grid_size
+
+        index = self.grid_cols(grid_size) * nth_row + nth_col
+        return index * self._data_shape[0] + t
+
     def get_t(self, index):
         return index % self.N
 
