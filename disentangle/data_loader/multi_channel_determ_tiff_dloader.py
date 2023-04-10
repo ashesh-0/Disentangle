@@ -78,12 +78,16 @@ class MultiChDeterministicTiffDloader:
         if self._enable_rotation:
             self._rotation_transform = A.Compose([A.Flip(), A.RandomRotate90()])
 
-        self._empty_patch_replacement_enabled = data_config.get("empty_patch_replacement_enabled", False)
+        self._empty_patch_replacement_enabled = data_config.get("empty_patch_replacement_enabled",
+                                                                False) and self._is_train
         if self._empty_patch_replacement_enabled:
+            import pdb
+            pdb.set_trace()
             self._empty_patch_replacement_channel_idx = data_config.empty_patch_replacement_channel_idx
             self._empty_patch_replacement_probab = data_config.empty_patch_replacement_probab
             data_frames = self._data[..., self._empty_patch_replacement_channel_idx]
             self._empty_patch_fetcher = EmptyPatchFetcher(self.idx_manager,
+                                                          self._img_sz,
                                                           data_frames,
                                                           max_val_threshold=data_config.empty_patch_max_val_threshold)
 
