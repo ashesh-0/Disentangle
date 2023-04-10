@@ -16,8 +16,6 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.HTIba1Ki67
     data.subdset_type = SubDsetType.Iba1Ki64
-    # data.channel_1 = 2
-    # data.channel_2 = 3
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
