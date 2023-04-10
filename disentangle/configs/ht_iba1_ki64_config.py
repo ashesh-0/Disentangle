@@ -7,6 +7,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
+from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import SubDsetType
 
 
 def get_config():
@@ -14,6 +15,7 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.HTIba1Ki67
+    data.subsdet_type = SubDsetType.Iba1Ki64
     # data.channel_1 = 2
     # data.channel_2 = 3
 
