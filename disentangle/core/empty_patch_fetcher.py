@@ -1,4 +1,5 @@
 import numpy as np
+from tqdm import tqdm
 
 
 class EmptyPatchFetcher:
@@ -28,7 +29,7 @@ class EmptyPatchFetcher:
 
         for h in tqdm(range(H - window)):
             for w in range(W - window):
-                max_data[:, h, w] = self._frames[:, h:h + window, w:w + window].max()
+                max_data[:, h, w] = self._frames[:, h:h + window, w:w + window].max(axis=(1, 2))
 
         assert (max_data != 954321).any()
         return max_data

@@ -35,6 +35,12 @@ def get_config():
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
 
+    # Replacing one channel's content with empty patch.
+    data.empty_patch_replacement_enabled = True
+    data.empty_patch_replacement_channel_idx = 0
+    data.empty_patch_replacement_probab = 0.2
+    data.empty_patch_max_val_threshold = 130
+
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # loss.mixed_rec_weight = 1

@@ -371,8 +371,8 @@ class MultiChDeterministicTiffDloader:
         empty_index = self._empty_patch_fetcher.sample()
         empty_img_tuples = self._get_img(empty_index)
         final_img_tuples = []
-        for tuple_idx in range(img_tuples):
-            if self._empty_patch_replacement_channel_idx:
+        for tuple_idx in range(len(img_tuples)):
+            if tuple_idx == self._empty_patch_replacement_channel_idx:
                 final_img_tuples.append(empty_img_tuples[tuple_idx])
             else:
                 final_img_tuples.append(img_tuples[tuple_idx])

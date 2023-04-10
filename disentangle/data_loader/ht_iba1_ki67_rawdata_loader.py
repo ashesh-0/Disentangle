@@ -54,7 +54,7 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
 
     fpaths = [os.path.join(datadir, dset_subtype, x) for x in fnames]
     data = load_czi(fpaths)
-    print(data.shape)
+    print('Loaded from', datadir, data.shape)
 
     return data
 
