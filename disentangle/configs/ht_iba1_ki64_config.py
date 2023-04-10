@@ -15,7 +15,7 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.HTIba1Ki67
-    data.subsdet_type = SubDsetType.Iba1Ki64
+    data.subdset_type = SubDsetType.Iba1Ki64
     # data.channel_1 = 2
     # data.channel_2 = 3
 
