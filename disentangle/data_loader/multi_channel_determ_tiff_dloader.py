@@ -81,8 +81,6 @@ class MultiChDeterministicTiffDloader:
         self._empty_patch_replacement_enabled = data_config.get("empty_patch_replacement_enabled",
                                                                 False) and self._is_train
         if self._empty_patch_replacement_enabled:
-            import pdb
-            pdb.set_trace()
             self._empty_patch_replacement_channel_idx = data_config.empty_patch_replacement_channel_idx
             self._empty_patch_replacement_probab = data_config.empty_patch_replacement_probab
             data_frames = self._data[..., self._empty_patch_replacement_channel_idx]
