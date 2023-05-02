@@ -15,7 +15,7 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.HTIba1Ki67
-    data.subdset_type = SubDsetType.Iba1Ki64
+    data.subdset_type = SubDsetType.OnlyIba1
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
@@ -26,7 +26,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -34,10 +34,10 @@ def get_config():
     data.target_separate_normalization = True
 
     # Replacing one channel's content with empty patch.
-    data.empty_patch_replacement_enabled = False
+    data.empty_patch_replacement_enabled = True
     data.empty_patch_replacement_channel_idx = 0
     data.empty_patch_replacement_probab = 0.3
-    data.empty_patch_max_val_threshold = 130
+    data.empty_patch_max_val_threshold = 180
 
     loss = config.loss
     loss.loss_type = LossType.Elbo

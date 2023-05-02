@@ -16,7 +16,7 @@ def get_iba1_ki67_files():
 
 
 def get_iba1_only_files():
-    return [f'iba1only_{i}.czi' for i in range(1, 16)]
+    return [f'Iba1only_{i}.czi' for i in range(1, 16)]
 
 
 def load_czi(fpaths):
@@ -32,6 +32,7 @@ def load_czi(fpaths):
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     dset_subtype = data_config.subdset_type
+    
     if dset_subtype == SubDsetType.OnlyIba1:
         fnames = get_iba1_only_files()
     elif dset_subtype == SubDsetType.Iba1Ki64:
