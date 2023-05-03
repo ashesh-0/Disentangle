@@ -46,6 +46,8 @@ class MultiChDeterministicTiffDloader:
         self._normalized_input = normalized_input
         self._quantile = data_config.get('clip_percentile', 0.995)
         self._channelwise_quantile = data_config.get('channelwise_quantile', False)
+        self._background_quantile = data_config.get('background_quantile', 0.0)
+
         self._grid_alignment = grid_alignment
         self._overlapping_padding_kwargs = overlapping_padding_kwargs
         if self._grid_alignment == GridAlignement.LeftTop:
@@ -53,7 +55,7 @@ class MultiChDeterministicTiffDloader:
         elif self._grid_alignment == GridAlignement.Center:
             assert self._overlapping_padding_kwargs is not None, 'With Center grid alignment, padding is needed.'
 
-        self.set_max_val_and_upperclip_data(max_val, datasplit_type)
+        self.rm_bkground_set_max_val_and_upperclip_data(max_val, datasplit_type)
 
         self._is_train = datasplit_type == DataSplitType.Train
 
@@ -104,7 +106,18 @@ class MultiChDeterministicTiffDloader:
                                         allow_generation=allow_generation)
         self.N = len(self._data)
 
-    def set_max_val_and_upperclip_data(self, max_val, datasplit_type):
+    def remove_background(self):
+        if self._background_quantile == 0.0:
+            return
+
+        for ch in range(self._data.shape[-1]):
+            for idx in range(self._data.shape[0]):
+                qval = np.quantile(self._data[idx, ..., ch], self._background_quantile)
+                print(ch, qval)
+                self._data[idx, ..., ch] -= qval
+
+    def rm_bkground_set_max_val_and_upperclip_data(self, max_val, datasplit_type):
+        self.remove_background()
         self.set_max_val(max_val, datasplit_type)
         self.upperclip_data()
 
@@ -169,6 +182,7 @@ class MultiChDeterministicTiffDloader:
         if self._empty_patch_replacement_enabled:
             msg += f'-{self._empty_patch_replacement_channel_idx}-{self._empty_patch_replacement_probab}'
 
+        msg += f' BckQ:{self._background_quantile}'
         return msg
 
     def _crop_imgs(self, index, *img_tuples: np.ndarray):
