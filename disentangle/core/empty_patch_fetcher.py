@@ -45,7 +45,9 @@ class EmptyPatchFetcher:
             w_start = empty_loc[2][idx]
             # print(n_idx,h_start,w_start)
             self._idx_list.append(self._idx_manager.idx_from_hwt(h_start, w_start, n_idx, grid_size=self._grid_size))
-
+        
+        self._idx_list = np.array(self._idx_list)
+        
         assert len(self._idx_list) > 0
 
     def sample(self):
