@@ -109,11 +109,9 @@ class MultiChDeterministicTiffDloader:
     def remove_background(self):
         if self._background_quantile == 0.0:
             return
-
         for ch in range(self._data.shape[-1]):
             for idx in range(self._data.shape[0]):
                 qval = np.quantile(self._data[idx, ..., ch], self._background_quantile)
-                print(ch, qval)
                 self._data[idx, ..., ch] -= qval
 
     def rm_bkground_set_max_val_and_upperclip_data(self, max_val, datasplit_type):
