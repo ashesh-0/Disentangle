@@ -47,6 +47,7 @@ class MultiChDeterministicTiffDloader:
         self._quantile = data_config.get('clip_percentile', 0.995)
         self._channelwise_quantile = data_config.get('channelwise_quantile', False)
         self._background_quantile = data_config.get('background_quantile', 0.0)
+        self._background_values = None
 
         self._grid_alignment = grid_alignment
         self._overlapping_padding_kwargs = overlapping_padding_kwargs
@@ -54,8 +55,6 @@ class MultiChDeterministicTiffDloader:
             assert self._overlapping_padding_kwargs is None or data_config.multiscale_lowres_count is not None, "Padding is not used with this alignement style"
         elif self._grid_alignment == GridAlignement.Center:
             assert self._overlapping_padding_kwargs is not None, 'With Center grid alignment, padding is needed.'
-
-        self.rm_bkground_set_max_val_and_upperclip_data(max_val, datasplit_type)
 
         self._is_train = datasplit_type == DataSplitType.Train
 
@@ -66,6 +65,20 @@ class MultiChDeterministicTiffDloader:
         else:
             self.set_img_sz(data_config.image_size,
                             data_config.val_grid_size if 'val_grid_size' in data_config else data_config.image_size)
+
+        self._empty_patch_replacement_enabled = data_config.get("empty_patch_replacement_enabled",
+                                                                False) and self._is_train
+        if self._empty_patch_replacement_enabled:
+            self._empty_patch_replacement_channel_idx = data_config.empty_patch_replacement_channel_idx
+            self._empty_patch_replacement_probab = data_config.empty_patch_replacement_probab
+            data_frames = self._data[..., self._empty_patch_replacement_channel_idx]
+            # NOTE: This is on the raw data. So, it must be called before removing the background.
+            self._empty_patch_fetcher = EmptyPatchFetcher(self.idx_manager,
+                                                          self._img_sz,
+                                                          data_frames,
+                                                          max_val_threshold=data_config.empty_patch_max_val_threshold)
+
+        self.rm_bkground_set_max_val_and_upperclip_data(max_val, datasplit_type)
 
         # For overlapping dloader, image_size and repeat_factors are not related. hence a different function.
 
@@ -79,17 +92,6 @@ class MultiChDeterministicTiffDloader:
         self._rotation_transform = None
         if self._enable_rotation:
             self._rotation_transform = A.Compose([A.Flip(), A.RandomRotate90()])
-
-        self._empty_patch_replacement_enabled = data_config.get("empty_patch_replacement_enabled",
-                                                                False) and self._is_train
-        if self._empty_patch_replacement_enabled:
-            self._empty_patch_replacement_channel_idx = data_config.empty_patch_replacement_channel_idx
-            self._empty_patch_replacement_probab = data_config.empty_patch_replacement_probab
-            data_frames = self._data[..., self._empty_patch_replacement_channel_idx]
-            self._empty_patch_fetcher = EmptyPatchFetcher(self.idx_manager,
-                                                          self._img_sz,
-                                                          data_frames,
-                                                          max_val_threshold=data_config.empty_patch_max_val_threshold)
 
         msg = self._init_msg()
         print(msg)
@@ -106,7 +108,16 @@ class MultiChDeterministicTiffDloader:
                                         allow_generation=allow_generation)
         self.N = len(self._data)
 
+    def save_background(self, channel_idx, frame_idx, background_value):
+        self._background_values[frame_idx, channel_idx] = background_value
+
+    def get_background(self, channel_idx, frame_idx):
+        return self._background_values[frame_idx, channel_idx]
+
     def remove_background(self):
+
+        self._background_values = np.zeros((self._data.shape[0], self._data.shape[-1]))
+
         if self._background_quantile == 0.0:
             return
 
@@ -123,7 +134,9 @@ class MultiChDeterministicTiffDloader:
                     qval
                 ) > 20, "We are truncating the qval to an integer which will only make sense if it is large enough"
                 # NOTE: Here, there can be an issue if you work with normalized data
-                self._data[idx, ..., ch] -= int(qval)
+                qval = int(qval)
+                self.save_background(ch, idx, qval)
+                self._data[idx, ..., ch] -= qval
 
     def rm_bkground_set_max_val_and_upperclip_data(self, max_val, datasplit_type):
         self.remove_background()
