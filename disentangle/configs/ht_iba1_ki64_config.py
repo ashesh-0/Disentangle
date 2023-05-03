@@ -36,7 +36,7 @@ def get_config():
     data.target_separate_normalization = True
 
     # Replacing one channel's content with empty patch.
-    data.empty_patch_replacement_enabled = False
+    data.empty_patch_replacement_enabled = True
     data.empty_patch_replacement_channel_idx = 0
     data.empty_patch_replacement_probab = 0.3
     data.empty_patch_max_val_threshold = 180
