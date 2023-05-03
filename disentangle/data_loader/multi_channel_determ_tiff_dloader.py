@@ -109,6 +109,13 @@ class MultiChDeterministicTiffDloader:
     def remove_background(self):
         if self._background_quantile == 0.0:
             return
+
+        if self._data.dtype in [np.uint16]:
+            # unsigned integer creates havoc
+            self._data = self._data.astype(np.int32)
+        else:
+            raise Exception('Handle other datatypes')
+
         for ch in range(self._data.shape[-1]):
             for idx in range(self._data.shape[0]):
                 qval = np.quantile(self._data[idx, ..., ch], self._background_quantile)
