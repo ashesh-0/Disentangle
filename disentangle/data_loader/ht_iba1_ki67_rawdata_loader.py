@@ -13,6 +13,7 @@ class SubDsetType:
 
 def get_iba1_ki67_files():
     return [f'{i}.czi' for i in range(1, 31)]
+    # return [f'{i}.czi' for i in range(1, 11)]
 
 
 def get_iba1_only_files():
@@ -32,7 +33,7 @@ def load_czi(fpaths):
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     dset_subtype = data_config.subdset_type
-    
+
     if dset_subtype == SubDsetType.OnlyIba1:
         fnames = get_iba1_only_files()
     elif dset_subtype == SubDsetType.Iba1Ki64:
@@ -56,7 +57,14 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
     fpaths = [os.path.join(datadir, dset_subtype, x) for x in fnames]
     data = load_czi(fpaths)
     print('Loaded from', datadir, data.shape)
-
+    if dset_subtype == SubDsetType.Iba1Ki64:
+        # We just need the combined channel. we don't need the nuclear channel.
+        # in order for the whole setup to work well, I'm just copying the channel twice.
+        # when creating the input, the average of these channels will still be exactly this channel, which is what we want.
+        # we want this channel as input to the network.
+        # Note that mean and the stdev used to normalize this data will be different, but we can try to do that initially.
+        data = data[..., 1:]
+        data = np.tile(data, (1, 1, 1, 2))
     return data
 
 
