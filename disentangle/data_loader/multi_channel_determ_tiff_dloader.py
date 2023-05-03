@@ -101,8 +101,11 @@ class MultiChDeterministicTiffDloader:
         for ch in range(self._data.shape[-1]):
             for idx in range(self._data.shape[0]):
                 qval = np.quantile(self._data[idx, ..., ch], self._background_quantile)
-                print(ch, qval)
-                self._data[idx, ..., ch] -= qval
+                assert np.abs(
+                    qval
+                ) > 20, "We are truncating the qval to an integer which will only make sense if it is large enough"
+                # NOTE: Here, there can be an issue if you work with normalized data
+                self._data[idx, ..., ch] -= int(qval)
 
     def rm_bkground_set_max_val_and_upperclip_data(self, max_val, datasplit_type):
         self.remove_background()
