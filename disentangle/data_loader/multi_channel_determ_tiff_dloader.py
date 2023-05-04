@@ -37,6 +37,10 @@ class MultiChDeterministicTiffDloader:
         """
         self._fpath = fpath
         self._data = self.N = None
+
+        # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
+        self._input_is_sum = data_config.get('input_is_sum', False)
+
         self.load_data(data_config,
                        datasplit_type,
                        val_fraction=val_fraction,
@@ -340,8 +344,14 @@ class MultiChDeterministicTiffDloader:
         """
         assert self._is_train is True or allow_for_validation_data, 'This is just allowed for training data'
         if self._use_one_mu_std is True:
-            mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
-            std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
+            if self._input_is_sum:
+                mean = [np.mean(self._data[..., k:k + 1], keepdims=True) for k in range(self._data.shape[-1])]
+                mean = np.sum(mean)
+                std = np.linalg.norm(
+                    [np.std(self._data[..., k:k + 1], keepdims=True) for k in range(self._data.shape[-1])])
+            else:
+                mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
+                std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
             mean = np.repeat(mean, 2, axis=1)
             std = np.repeat(std, 2, axis=1)
             return mean, std
@@ -388,6 +398,9 @@ class MultiChDeterministicTiffDloader:
         inp = 0
         for img in img_tuples:
             inp += img / (len(img_tuples))
+
+        if self._input_is_sum:
+            inp = inp * len(img_tuples)
 
         inp = inp.astype(np.float32)
 
