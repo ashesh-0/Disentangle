@@ -375,9 +375,10 @@ class MultiChDeterministicTiffDloader:
         if self._use_one_mu_std is True:
             if self._input_is_sum:
                 mean = [np.mean(self._data[..., k:k + 1], keepdims=True) for k in range(self._data.shape[-1])]
-                mean = np.sum(mean)
+                mean = np.sum(mean, keepdims=True)[0]
                 std = np.linalg.norm(
-                    [np.std(self._data[..., k:k + 1], keepdims=True) for k in range(self._data.shape[-1])])
+                    [np.std(self._data[..., k:k + 1], keepdims=True) for k in range(self._data.shape[-1])],
+                    keepdims=True)[0]
             else:
                 mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
                 std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
