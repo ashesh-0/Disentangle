@@ -40,7 +40,7 @@ def get_config():
     data.target_separate_normalization = True
 
     # Replacing one channel's content with empty patch.
-    data.empty_patch_replacement_enabled_list = [False, False]
+    data.empty_patch_replacement_enabled_list = [True, False]
     data.empty_patch_replacement_enabled = False
     data.empty_patch_replacement_channel_idx = 0
     data.empty_patch_replacement_probab = 0.3
