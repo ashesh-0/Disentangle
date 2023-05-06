@@ -423,17 +423,21 @@ class LadderVAE(pl.LightningModule):
             self.bottom_up_layers[i].output_expected_shape = (sz, sz)
             self.top_down_layers[i].latent_shape = (output_size, output_size)
 
-    def _get_mixed_reconstruction_loss_vector(self, reconstruction, mixed_input):
-        """
-        Computes the reconstruction loss on the mixed input and mixed prediction
-        """
-        assert False, "This is incorrect implementation"
-        dist_params = self.likelihood.distr_params(reconstruction)
-        mixed_prediction = torch.mean(dist_params['mean'], dim=1, keepdim=True)
-        dist_params['mean'] = mixed_prediction
-        mixed_recons_ll = self.likelihood.log_likelihood(mixed_input, dist_params)
-        output = compute_batch_mean(-1 * mixed_recons_ll)
-        return output
+    @staticmethod
+    def get_mixed_prediction(prediction, prediction_logvar, data_mean, data_std):
+        pred_unorm = prediction * data_std['target'] + data_mean['target']
+        mixed_prediction = (torch.sum(pred_unorm, dim=1, keepdim=True) - data_mean['input']) / data_std['input']
+
+        var = torch.exp(prediction_logvar)
+        var = var * (data_std['target'] / data_std['input'])**2
+        # sum of variance.
+        mixed_var = 0
+        for i in range(var.shape[1]):
+            mixed_var += var[:, i:i + 1]
+
+        logvar = torch.log(mixed_var)
+
+        return mixed_prediction, logvar
 
     def _get_reconstruction_loss_vector(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
         """
@@ -461,9 +465,11 @@ class LadderVAE(pl.LightningModule):
                               self.channel_2_w * output['ch2_loss']) / (self.channel_1_w + self.channel_2_w)
 
         if self.enable_mixed_rec:
-            mixed_target = torch.mean(input, dim=1, keepdim=True)
-            mixed_prediction = torch.mean(like_dict['params']['mean'], dim=1, keepdim=True)
-            mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_prediction})
+            mixed_pred, mixed_logvar = self.get_mixed_prediction(like_dict['params']['mean'],
+                                                                 like_dict['params']['logvar'], self.data_mean,
+                                                                 self.data_std)
+            mixed_target = input
+            mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_pred, 'logvar': mixed_logvar})
             output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
         if return_predicted_img:

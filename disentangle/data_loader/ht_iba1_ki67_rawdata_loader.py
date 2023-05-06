@@ -3,10 +3,11 @@ import os
 import numpy as np
 
 from czifile import imread as imread_czi
+from disentangle.core.custom_enum import Enum
 from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
 
 
-class SubDsetType:
+class SubDsetType(Enum):
     OnlyIba1 = 'Iba1'
     Iba1Ki64 = 'Iba1_Ki67'
 
@@ -56,7 +57,7 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
 
     fpaths = [os.path.join(datadir, dset_subtype, x) for x in fnames]
     data = load_czi(fpaths)
-    print('Loaded from', datadir, data.shape)
+    print('Loaded from', SubDsetType.name(dset_subtype), datadir, data.shape)
     if dset_subtype == SubDsetType.Iba1Ki64:
         # We just need the combined channel. we don't need the nuclear channel.
         # in order for the whole setup to work well, I'm just copying the channel twice.

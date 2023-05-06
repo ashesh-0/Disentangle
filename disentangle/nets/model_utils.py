@@ -9,18 +9,19 @@ import torch.nn as nn
 from disentangle.config_utils import get_updated_config
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
+from disentangle.nets.brave_net import BraveNetPL
 from disentangle.nets.lvae import LadderVAE
+from disentangle.nets.lvae_bleedthrough import LadderVAEWithMixedRecons
+from disentangle.nets.lvae_multidset import LadderVaeMultiDataset
+from disentangle.nets.lvae_multiple_encoder_single_opt import LadderVAEMulEncoder1Optim
+from disentangle.nets.lvae_multiple_encoders import LadderVAEMultipleEncoders
+from disentangle.nets.lvae_multires_target import LadderVAEMultiTarget
+from disentangle.nets.lvae_semi_supervised import LadderVAESemiSupervised
 from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
 from disentangle.nets.lvae_with_critic import LadderVAECritic
-from disentangle.nets.lvae_multiple_encoders import LadderVAEMultipleEncoders
-from disentangle.nets.lvae_multiple_encoder_single_opt import LadderVAEMulEncoder1Optim
 from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
-from disentangle.nets.unet import UNet
-from disentangle.nets.brave_net import BraveNetPL
-from disentangle.nets.lvae_bleedthrough import LadderVAEWithMixedRecons
-from disentangle.nets.lvae_semi_supervised import LadderVAESemiSupervised
 from disentangle.nets.lvae_with_stitch_2stage import LadderVAEwithStitching2Stage
-from disentangle.nets.lvae_multires_target import LadderVAEMultiTarget
+from disentangle.nets.unet import UNet
 
 
 def create_model(config, data_mean, data_std):
@@ -48,6 +49,8 @@ def create_model(config, data_mean, data_std):
         model = LadderVAESemiSupervised(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVaeStitch2Stage:
         model = LadderVAEwithStitching2Stage(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVaeMultiDataSet:
+        model = LadderVaeMultiDataset(data_mean, data_std, config)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
     return model

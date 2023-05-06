@@ -20,6 +20,7 @@ from disentangle.core.model_type import ModelType
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
 from disentangle.data_loader.multi_channel_tiff_dloader import MultiChTiffDloader
+from disentangle.data_loader.multi_dset_dloader import IBA1Ki67DataLoader
 from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
 from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
@@ -131,6 +132,48 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
 
+    elif config.data.data_type == DataType.HTIba1Ki67 and config.model.model_type == ModelType.LadderVaeMultiDataSet:
+        # multi data setup.
+        datapath = datadir
+        normalized_input = config.data.normalized_input
+        use_one_mu_std = config.data.use_one_mu_std
+        train_aug_rotate = config.data.train_aug_rotate
+        enable_random_cropping = config.data.deterministic_grid is False
+        lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
+
+        train_data_kwargs = {'allow_generation': False}
+        val_data_kwargs = {'allow_generation': False}
+        train_data_kwargs['enable_random_cropping'] = enable_random_cropping
+        val_data_kwargs['enable_random_cropping'] = False
+
+        train_data = None if skip_train_dataset else IBA1Ki67DataLoader(config.data,
+                                                                        datapath,
+                                                                        datasplit_type=DataSplitType.Train,
+                                                                        val_fraction=config.training.val_fraction,
+                                                                        test_fraction=config.training.test_fraction,
+                                                                        normalized_input=normalized_input,
+                                                                        use_one_mu_std=use_one_mu_std,
+                                                                        enable_rotation_aug=train_aug_rotate,
+                                                                        **train_data_kwargs)
+
+        max_val = train_data.get_max_val()
+        val_data = IBA1Ki67DataLoader(
+            config.data,
+            datapath,
+            datasplit_type=DataSplitType.Val,
+            val_fraction=config.training.val_fraction,
+            test_fraction=config.training.test_fraction,
+            normalized_input=normalized_input,
+            use_one_mu_std=use_one_mu_std,
+            enable_rotation_aug=False,  # No rotation aug on validation
+            max_val=max_val,
+            **val_data_kwargs,
+        )
+
+        # For normalizing, we should be using the training data's mean and std.
+        mean_val, std_val = train_data.compute_mean_std()
+        train_data.set_mean_std(mean_val, std_val)
+        val_data.set_mean_std(mean_val, std_val)
     elif config.data.data_type in [
             DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.Prevedel_EMBL,
             DataType.AllenCellMito, DataType.SeparateTiffData, DataType.Pavia2VanillaSplitting, DataType.ShroffMitoEr,

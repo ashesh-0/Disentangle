@@ -27,8 +27,8 @@ def get_config():
     data.background_quantile = 0.01
     data.input_is_sum = True
 
-    # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
-    # meean and stdev are used.
+    # If this is set to true, then one mean and stdev is used for both channels while computing input.
+    # Otherwise, two different meean and stdev are used.
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
@@ -40,15 +40,15 @@ def get_config():
     data.target_separate_normalization = True
 
     # Replacing one channel's content with empty patch.
-    data.empty_patch_replacement_enabled_list = [True, False]
+    data.empty_patch_replacement_enabled_list = [False, False]
     data.empty_patch_replacement_enabled = False
     data.empty_patch_replacement_channel_idx = 0
     data.empty_patch_replacement_probab = 0.3
     data.empty_patch_max_val_threshold = 180
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
-    # loss.mixed_rec_weight = 1
+    loss.loss_type = LossType.ElboMixedReconstruction
+    loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
     loss.kl_annealing = False
@@ -58,7 +58,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVaeMultiDataSet
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
@@ -106,8 +106,8 @@ def get_config():
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
-    training.val_fraction = 0.1
-    training.test_fraction = 0.1
+    training.val_fraction = 0.5
+    training.test_fraction = 0.0
     training.earlystop_patience = 100
     training.precision = 16
 
