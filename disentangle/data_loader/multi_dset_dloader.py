@@ -63,8 +63,8 @@ class MultiDsetDloader:
             dconf.empty_patch_replacement_enabled = empty_patch_replacement_enabled[0]
             self._dloader_0 = data_class(dconf,
                                          fpath,
-                                         val_fraction=val_fraction,
-                                         test_fraction=test_fraction,
+                                         val_fraction=val_fraction[0],
+                                         test_fraction=test_fraction[0],
                                          enable_random_cropping=True,
                                          max_val=None,
                                          **kwargs)
@@ -73,12 +73,11 @@ class MultiDsetDloader:
             dconf.empty_patch_replacement_enabled = empty_patch_replacement_enabled[1]
             self._dloader_1 = data_class(dconf,
                                          fpath,
-                                         val_fraction=val_fraction,
-                                         test_fraction=test_fraction,
+                                         val_fraction=val_fraction[1],
+                                         test_fraction=test_fraction[1],
                                          enable_random_cropping=True,
                                          max_val=None,
                                          **kwargs)
-
         else:
             self._dloader_0 = self._dloader_1 = None
 
@@ -91,8 +90,8 @@ class MultiDsetDloader:
             # we want to evaluate on mixed samples.
             dloader = data_class(dconf,
                                  fpath,
-                                 val_fraction=val_fraction,
-                                 test_fraction=test_fraction,
+                                 val_fraction=val_fraction[dconf.validation_subdset_type_idx],
+                                 test_fraction=test_fraction[dconf.validation_subdset_type_idx],
                                  enable_random_cropping=enable_random_cropping,
                                  max_val=max_val,
                                  **kwargs)

@@ -16,8 +16,6 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.HTIba1Ki67
     data.subdset_type = None
-    data.subdset_types = [SubDsetType.OnlyIba1, SubDsetType.Iba1Ki64]
-    data.subdset_types_probab = [0.7, 0.3]
     data.validation_subdset_type_idx = 0
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -40,7 +38,6 @@ def get_config():
     data.target_separate_normalization = True
 
     # Replacing one channel's content with empty patch.
-    data.empty_patch_replacement_enabled_list = [True, False]
     data.empty_patch_replacement_enabled = False
     data.empty_patch_replacement_channel_idx = 0
     data.empty_patch_replacement_probab = 0.5
@@ -106,9 +103,15 @@ def get_config():
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
-    training.val_fraction = 0.5
-    training.test_fraction = 0.0
+    # training.val_fraction = 0.0
+    # training.test_fraction = 0.0
     training.earlystop_patience = 100
     training.precision = 16
+
+    data.subdset_types = [SubDsetType.OnlyIba1, SubDsetType.Iba1Ki64]
+    data.subdset_types_probab = [0.7, 0.3]
+    data.empty_patch_replacement_enabled_list = [True, False]
+    training.test_fraction = [0, 0.2]
+    training.val_fraction = [0.2, 0]
 
     return config
