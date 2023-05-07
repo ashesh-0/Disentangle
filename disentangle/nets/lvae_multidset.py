@@ -49,6 +49,8 @@ class LadderVaeMultiDataset(LadderVAE):
 
         if torch.sum(mixed_reconstruction_mask) > 0:
             loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'][mixed_reconstruction_mask])
+        else:
+            loss_dict['mixed_loss'] = 0.0
 
         if return_predicted_img:
             assert len(output) == 2
@@ -151,6 +153,7 @@ class LadderVaeMultiDataset(LadderVAE):
         recons_loss = recons_loss_dict['loss']
         if self.loss_type == LossType.ElboMixedReconstruction:
             recons_loss += self.mixed_rec_w * recons_loss_dict['mixed_loss']
+
             if enable_logging:
                 self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
 
