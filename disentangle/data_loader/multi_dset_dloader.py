@@ -67,6 +67,7 @@ class MultiDsetDloader(BaseDataLoader):
             # take channels mean from this.
             dconf.subdset_type = self._subdset_types[0]
             dconf.empty_patch_replacement_enabled = empty_patch_replacement_enabled[0]
+            dconf.input_is_sum = dconf.input_is_sum_list[0]
             self._dloader_0 = data_class(dconf,
                                          fpath,
                                          val_fraction=val_fraction[0],
@@ -77,6 +78,7 @@ class MultiDsetDloader(BaseDataLoader):
 
             dconf.subdset_type = self._subdset_types[1]
             dconf.empty_patch_replacement_enabled = empty_patch_replacement_enabled[1]
+            dconf.input_is_sum = dconf.input_is_sum_list[1]
             self._dloader_1 = data_class(dconf,
                                          fpath,
                                          val_fraction=val_fraction[1],
@@ -90,6 +92,7 @@ class MultiDsetDloader(BaseDataLoader):
             assert enable_random_cropping is False
             dconf = ml_collections.ConfigDict(data_config)
             dconf.subdset_type = self._subdset_types[dconf.validation_subdset_type_idx]
+            dconf.input_is_sum = dconf.input_is_sum_list[dconf.validation_subdset_type_idx]
             self._subdset_types_prob = [0] * len(dconf.subdset_types_probab)
             self._subdset_types_prob[dconf.validation_subdset_type_idx] = 1
             max_val = max_val[dconf.validation_subdset_type_idx]
@@ -279,7 +282,7 @@ class MultiDsetDloader(BaseDataLoader):
         idx = np.random.randint(len(dset))
         inp, tar = dset[idx]
 
-        assert dset._input_is_sum is True
+        # assert dset._input_is_sum is True
         return (inp, tar, dset_idx, loss_idx)
 
     def get_max_val(self):

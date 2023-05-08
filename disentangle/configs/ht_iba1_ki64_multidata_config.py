@@ -23,7 +23,6 @@ def get_config():
     data.normalized_input = True
     data.clip_percentile = 0.995
     data.background_quantile = 0.01
-    data.input_is_sum = True
 
     # If this is set to true, then one mean and stdev is used for both channels while computing input.
     # Otherwise, two different meean and stdev are used.
@@ -113,5 +112,6 @@ def get_config():
     data.empty_patch_replacement_enabled_list = [True, False]
     training.test_fraction = [0, 0.2]
     training.val_fraction = [0.2, 0]
-
+    data.input_is_sum_list = [True, False]
+    data.input_is_sum = False
     return config

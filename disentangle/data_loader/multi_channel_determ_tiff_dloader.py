@@ -204,6 +204,7 @@ class MultiChDeterministicTiffDloader:
         msg += f' Rot:{self._enable_rotation}'
         msg += f' RandCrop:{self._enable_random_cropping}'
         msg += f' Q:{self._quantile}'
+        msg += f' SummedInput:{self._input_is_sum}'
         msg += f' ReplaceWithRandSample:{self._empty_patch_replacement_enabled}'
         if self._empty_patch_replacement_enabled:
             msg += f'-{self._empty_patch_replacement_channel_idx}-{self._empty_patch_replacement_probab}'
