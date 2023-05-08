@@ -37,7 +37,6 @@ class LadderVaeMultiDataset(LadderVAE):
         loss_dict = output[0] if return_predicted_img else output
         individual_ch_loss_mask = loss_type_idx == LossType.Elbo
         mixed_reconstruction_mask = loss_type_idx == LossType.ElboMixedReconstruction
-        print(torch.sum(individual_ch_loss_mask), torch.sum(mixed_reconstruction_mask))
         
         if torch.sum(individual_ch_loss_mask) > 0:
             loss_dict['loss'] = torch.mean(loss_dict['loss'][individual_ch_loss_mask])
