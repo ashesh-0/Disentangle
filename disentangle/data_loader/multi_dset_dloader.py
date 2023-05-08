@@ -4,27 +4,31 @@ import torch
 import ml_collections
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.loss_type import LossType
+from disentangle.data_loader.base_data_loader import BaseDataLoader
 from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import SubDsetType
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
-from disentangle.data_loader.patch_index_manager import GridIndexManager
+from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 from disentangle.data_loader.pavia2_enums import Pavia2BleedthroughType
 
 
-class MultiDsetDloader:
+class MultiDsetDloader(BaseDataLoader):
 
-    def __init__(self,
-                 data_config,
-                 fpath: str,
-                 datasplit_type: DataSplitType = None,
-                 val_fraction=None,
-                 test_fraction=None,
-                 normalized_input=None,
-                 enable_rotation_aug: bool = False,
-                 enable_random_cropping: bool = False,
-                 use_one_mu_std=None,
-                 allow_generation=False,
-                 max_val=None) -> None:
+    def __init__(
+            self,
+            data_config,
+            fpath: str,
+            datasplit_type: DataSplitType = None,
+            val_fraction=None,
+            test_fraction=None,
+            normalized_input=None,
+            enable_rotation_aug: bool = False,
+            enable_random_cropping: bool = False,
+            use_one_mu_std=None,
+            allow_generation=False,
+            grid_alignment=GridAlignement.LeftTop,  # Used during evaluation.
+            overlapping_padding_kwargs=None,  # Used during evaluation.
+            max_val=None) -> None:
 
         self._datasplit_type = datasplit_type
         self._enable_random_cropping = enable_random_cropping
@@ -42,7 +46,9 @@ class MultiDsetDloader:
             'enable_rotation_aug': enable_rotation_aug,
             'use_one_mu_std': use_one_mu_std,
             'allow_generation': allow_generation,
-            'datasplit_type': datasplit_type
+            'datasplit_type': datasplit_type,
+            'grid_alignment': grid_alignment,
+            'overlapping_padding_kwargs': overlapping_padding_kwargs,
         }
         if use_LC:
             padding_kwargs = {'mode': data_config.padding_mode}
@@ -199,32 +205,58 @@ class MultiDsetDloader:
             std_dict['subdset_1'] = {'target': std_, 'input': std_for_input}
         return mean_dict, std_dict
 
-    def _compute_mean_std(self):
+    def _compute_mean_std(self, allow_for_validation_data=False):
         mean_dict = {'subdset_0': {}, 'subdset_1': {}}
         std_dict = {'subdset_0': {}, 'subdset_1': {}}
 
         if self._dloader_0 is not None:
-            mean_, std_ = self._dloader_0.compute_mean_std()
+            mean_, std_ = self._dloader_0.compute_mean_std(allow_for_validation_data=allow_for_validation_data)
             mean_dict['subdset_0'] = {'target': mean_}
             std_dict['subdset_0'] = {'target': std_}
 
         if self._dloader_1 is not None:
-            mean_, std_ = self._dloader_1.compute_mean_std()
+            mean_, std_ = self._dloader_1.compute_mean_std(allow_for_validation_data=allow_for_validation_data)
             mean_dict['subdset_1'] = {'target': mean_}
             std_dict['subdset_1'] = {'target': std_}
         return mean_dict, std_dict
 
-    def compute_mean_std(self):
+    def compute_mean_std(self, allow_for_validation_data=False):
         if self._use_one_mu_std is False:
             return self.compute_individual_mean_std()
         else:
-            return self._compute_mean_std()
+            return self._compute_mean_std(allow_for_validation_data=allow_for_validation_data)
 
     def set_mean_std(self, mean_val, std_val):
         if self._dloader_0 is not None:
             self._dloader_0.set_mean_std(mean_val['subdset_0']['target'], std_val['subdset_0']['target'])
         if self._dloader_1 is not None:
-            self._dloader_1.set_mean_std(mean_val['subdset_0']['target'], std_val['subdset_0']['target'])
+            self._dloader_1.set_mean_std(mean_val['subdset_1']['target'], std_val['subdset_1']['target'])
+
+    def per_side_overlap_pixelcount(self):
+        if self._dloader_0 is not None:
+            return self._dloader_0.per_side_overlap_pixelcount()
+        if self._dloader_1 is not None:
+            return self._dloader_1.per_side_overlap_pixelcount()
+
+    def get_idx_manager(self):
+        d0_active = self._dloader_0 is not None
+        d1_active = self._dloader_1 is not None
+        assert d0_active or d1_active
+        assert not (d0_active and d1_active)
+        if d0_active:
+            return self._dloader_0.idx_manager
+        else:
+            return self._dloader_1.idx_manager
+
+    def get_grid_size(self):
+        d0_active = self._dloader_0 is not None
+        d1_active = self._dloader_1 is not None
+        assert d0_active or d1_active
+        assert not (d0_active and d1_active)
+        if d0_active:
+            return self._dloader_0.get_grid_size()
+        else:
+            return self._dloader_1.get_grid_size()
 
     def get_loss_idx(self, dset_idx):
         raise NotImplementedError("Not implemented")

@@ -130,6 +130,19 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                                                                        x_normalized,
                                                                        tar_normalized,
                                                                        return_predicted_img=True)
+                    elif model_type == ModelType.LadderVaeMultiDataSet:
+                        dset_idx, loss_idx = batch[2:]
+                        dset_idx = dset_idx.cuda()
+                        loss_idx = loss_idx.cuda()
+
+                        x_normalized = model.normalize_input(inp)
+                        tar_normalized = model.normalize_target(tar, dset_idx)
+                        recon_normalized, _ = model(x_normalized)
+                        rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
+                                                                       tar_normalized,
+                                                                       dset_idx,
+                                                                       loss_idx,
+                                                                       return_predicted_img=True)
 
                     else:
                         x_normalized = model.normalize_input(inp)

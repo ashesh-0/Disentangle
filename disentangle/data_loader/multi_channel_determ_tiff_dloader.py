@@ -327,6 +327,9 @@ class MultiChDeterministicTiffDloader:
     def get_grid_size(self):
         return self._grid_sz
 
+    def get_idx_manager(self):
+        return self.idx_manager
+
     def per_side_overlap_pixelcount(self):
         return (self._img_sz - self._grid_sz) // 2
 
