@@ -139,10 +139,10 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                         tar_normalized = model.normalize_target(tar, dset_idx)
                         recon_normalized, _ = model(x_normalized)
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
-                                                                       tar_normalized,
-                                                                       dset_idx,
-                                                                       loss_idx,
-                                                                       return_predicted_img=True)
+                                                                        tar_normalized,
+                                                                        dset_idx,
+                                                                        loss_idx,
+                                                                        return_predicted_img=True)
 
                     else:
                         x_normalized = model.normalize_input(inp)
@@ -159,7 +159,11 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                             logvar_arr.append(q_dic['logvar'].cpu().numpy())
                         else:
                             logvar_arr.append(np.array([-1]))
-                        losses.append(rec_loss['loss'].cpu().numpy())
+                        
+                        try:
+                            losses.append(rec_loss['loss'].cpu().numpy())
+                        except:
+                            losses.append(rec_loss['loss'])
 
                 patch_psnr_ch1.update(imgs[:, 0], tar_normalized[:, 0])
                 patch_psnr_ch2.update(imgs[:, 1], tar_normalized[:, 1])
