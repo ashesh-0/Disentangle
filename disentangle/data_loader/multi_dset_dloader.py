@@ -269,21 +269,31 @@ class MultiDsetDloader(BaseDataLoader):
         Returns:
             (inp,tar,dset_label)
         """
-        coin_flip = np.random.rand()
-        prob_list = np.cumsum(self._subdset_types_prob)
-        if coin_flip <= prob_list[0]:
-            dset_idx = 0
-        elif coin_flip > prob_list[0] and coin_flip <= prob_list[1]:
-            dset_idx = 1
 
-        loss_idx = self.get_loss_idx(dset_idx)
+        if prob_list[0] == 0 or prob_list[1] == 0:
+            # This is typically only true when we are handling validation.``
+            if prob_list[0] == 0:
+                return self._dloader_1[index]
+            elif prob_list[1] == 0:
+                return self._dloader_0[index]
+            else:
+                raise ValueError("This is invalid state.")
+        else:
+            coin_flip = np.random.rand()
+            prob_list = np.cumsum(self._subdset_types_prob)
+            if coin_flip <= prob_list[0]:
+                dset_idx = 0
+            elif coin_flip > prob_list[0] and coin_flip <= prob_list[1]:
+                dset_idx = 1
 
-        dset = getattr(self, f'_dloader_{dset_idx}')
-        idx = np.random.randint(len(dset))
-        inp, tar = dset[idx]
+            loss_idx = self.get_loss_idx(dset_idx)
 
-        # assert dset._input_is_sum is True
-        return (inp, tar, dset_idx, loss_idx)
+            dset = getattr(self, f'_dloader_{dset_idx}')
+            idx = np.random.randint(len(dset))
+            inp, tar = dset[idx]
+
+            # assert dset._input_is_sum is True
+            return (inp, tar, dset_idx, loss_idx)
 
     def get_max_val(self):
         max_val0 = self._dloader_0.get_max_val()
