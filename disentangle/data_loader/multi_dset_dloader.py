@@ -270,17 +270,19 @@ class MultiDsetDloader(BaseDataLoader):
             (inp,tar,dset_label)
         """
 
+        prob_list = np.cumsum(self._subdset_types_prob)
         if prob_list[0] == 0 or prob_list[1] == 0:
             # This is typically only true when we are handling validation.``
             if prob_list[0] == 0:
-                return self._dloader_1[index]
+                dset_idx = 1
+                return (*self._dloader_1[index], dset_idx, self.get_loss_idx(dset_idx))
             elif prob_list[1] == 0:
-                return self._dloader_0[index]
+                dset_idx = 0
+                return (*self._dloader_0[index], dset_idx, self.get_loss_idx(dset_idx))
             else:
                 raise ValueError("This is invalid state.")
         else:
             coin_flip = np.random.rand()
-            prob_list = np.cumsum(self._subdset_types_prob)
             if coin_flip <= prob_list[0]:
                 dset_idx = 0
             elif coin_flip > prob_list[0] and coin_flip <= prob_list[1]:
