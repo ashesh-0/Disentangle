@@ -206,6 +206,16 @@ class MultiDsetDloader(BaseDataLoader):
             mean_for_input, std_for_input = self.compute_mean_std_for_input(self._dloader_1)
             mean_dict['subdset_1'] = {'target': mean_, 'input': mean_for_input}
             std_dict['subdset_1'] = {'target': std_, 'input': std_for_input}
+        
+        assert LossType.ElboMixedReconstruction in [self.get_loss_idx(0), self.get_loss_idx(1)]
+        if self.get_loss_idx(0) == LossType.ElboMixedReconstruction:
+            # we are doing this for the model, not for the validation dadtaloader.
+            mean_dict['subdset_0']['target'] = mean_dict['subdset_1']['target']
+            mean_dict['subdset_0']['input'] = mean_dict['subdset_1']['input']
+        else:
+            mean_dict['subdset_1']['target'] = mean_dict['subdset_0']['target']
+            mean_dict['subdset_1']['input'] = mean_dict['subdset_0']['input']
+     
         return mean_dict, std_dict
 
     def _compute_mean_std(self, allow_for_validation_data=False):

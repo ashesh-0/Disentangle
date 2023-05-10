@@ -12,6 +12,7 @@ class LadderVaeMultiDataset(LadderVAE):
 
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
+        
         for dloader_key in self.data_mean.keys():
             assert dloader_key in ['subdset_0', 'subdset_1']
             for data_key in self.data_mean[dloader_key].keys():
