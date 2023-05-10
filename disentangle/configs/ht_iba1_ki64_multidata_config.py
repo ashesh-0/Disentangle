@@ -108,7 +108,7 @@ def get_config():
     training.precision = 16
 
     data.subdset_types = [SubDsetType.OnlyIba1, SubDsetType.Iba1Ki64]
-    data.subdset_types_probab = [0.7, 0.3]
+    data.subdset_types_probab = [1.0, 0]
     data.empty_patch_replacement_enabled_list = [True, False]
     training.test_fraction = [0, 0.2]
     training.val_fraction = [0.2, 0]
