@@ -206,7 +206,7 @@ class MultiDsetDloader(BaseDataLoader):
             mean_for_input, std_for_input = self.compute_mean_std_for_input(self._dloader_1)
             mean_dict['subdset_1'] = {'target': mean_, 'input': mean_for_input}
             std_dict['subdset_1'] = {'target': std_, 'input': std_for_input}
-        
+
         assert LossType.ElboMixedReconstruction in [self.get_loss_idx(0), self.get_loss_idx(1)]
         if self.get_loss_idx(0) == LossType.ElboMixedReconstruction:
             # we are doing this for the model, not for the validation dadtaloader.
@@ -215,7 +215,7 @@ class MultiDsetDloader(BaseDataLoader):
         else:
             mean_dict['subdset_1']['target'] = mean_dict['subdset_0']['target']
             mean_dict['subdset_1']['input'] = mean_dict['subdset_0']['input']
-     
+
         return mean_dict, std_dict
 
     def _compute_mean_std(self, allow_for_validation_data=False):
@@ -280,18 +280,18 @@ class MultiDsetDloader(BaseDataLoader):
             (inp,tar,dset_label)
         """
 
-        prob_list = np.cumsum(self._subdset_types_prob)
-        if prob_list[0] == 0 or prob_list[1] == 0:
+        if self._subdset_types_prob[0] == 0 or self._subdset_types_prob[1] == 0:
             # This is typically only true when we are handling validation.``
-            if prob_list[0] == 0:
+            if self._subdset_types_prob[0] == 0:
                 dset_idx = 1
                 return (*self._dloader_1[index], dset_idx, self.get_loss_idx(dset_idx))
-            elif prob_list[1] == 0:
+            elif self._subdset_types_prob[1] == 0:
                 dset_idx = 0
                 return (*self._dloader_0[index], dset_idx, self.get_loss_idx(dset_idx))
             else:
                 raise ValueError("This is invalid state.")
         else:
+            prob_list = np.cumsum(self._subdset_types_prob)
             coin_flip = np.random.rand()
             if coin_flip <= prob_list[0]:
                 dset_idx = 0
