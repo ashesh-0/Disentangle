@@ -184,6 +184,10 @@ class LadderVaeMultiDataset(LadderVAE):
             self.log('kl_loss', kl_loss, on_epoch=True)
             self.log('training_loss', net_loss, on_epoch=True)
             self.log('lr', self.lr, on_epoch=True)
+            if self._interchannel_weights is not None:
+                self.log('interchannel_w0', self._interchannel_weights.squeeze()[0].item(), on_epoch=True)
+                self.log('interchannel_w1', self._interchannel_weights.squeeze()[0].item(), on_epoch=True)
+
             # self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
             # self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
 
