@@ -98,15 +98,15 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 30
-    training.max_epochs = 400
+    training.lr_scheduler_patience = 15
+    training.max_epochs = 200
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     # training.val_fraction = 0.0
     # training.test_fraction = 0.0
-    training.earlystop_patience = 200
+    training.earlystop_patience = 100
     training.precision = 16
 
     # when working with multi datasets, it might make sense to predict the mixing constants. This will be applied to
