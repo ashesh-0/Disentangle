@@ -2,6 +2,7 @@
 Multi dataset based setup.
 """
 import torch
+import torch.nn as nn
 
 from disentangle.core.loss_type import LossType
 from disentangle.core.psnr import RangeInvariantPsnr
@@ -12,7 +13,10 @@ class LadderVaeMultiDataset(LadderVAE):
 
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
-        
+        self._interchannel_weights = None
+        if config.model.get('enable_learnable_interchannel_weights', False):
+            self._interchannel_weights = nn.Parameter(torch.ones((1, target_ch, 1, 1)), requires_grad=True)
+
         for dloader_key in self.data_mean.keys():
             assert dloader_key in ['subdset_0', 'subdset_1']
             for data_key in self.data_mean[dloader_key].keys():
@@ -22,6 +26,8 @@ class LadderVaeMultiDataset(LadderVAE):
 
             self.data_mean[dloader_key]['input'] = self.data_mean[dloader_key]['input'].reshape(1, 1, 1, 1)
             self.data_std[dloader_key]['input'] = self.data_std[dloader_key]['input'].reshape(1, 1, 1, 1)
+
+        print(f'[{self.__class__.__name__}] Learnable Ch weights:', self._interchannel_weights is not None)
 
     def get_reconstruction_loss(self,
                                 reconstruction,
@@ -38,7 +44,7 @@ class LadderVaeMultiDataset(LadderVAE):
         loss_dict = output[0] if return_predicted_img else output
         individual_ch_loss_mask = loss_type_idx == LossType.Elbo
         mixed_reconstruction_mask = loss_type_idx == LossType.ElboMixedReconstruction
-        
+
         if torch.sum(individual_ch_loss_mask) > 0:
             loss_dict['loss'] = torch.mean(loss_dict['loss'][individual_ch_loss_mask])
             loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'][individual_ch_loss_mask])
@@ -99,8 +105,13 @@ class LadderVaeMultiDataset(LadderVAE):
 
         if self.enable_mixed_rec:
             data_mean, data_std = self.get_mean_std_for_one_batch(dset_idx, self.data_mean, self.data_std)
+            # NOTE: here, we are using the same interchannel weights for both dataset types. However,
+            # we filter the loss on entries in get_reconstruction_loss()
             mixed_pred, mixed_logvar = self.get_mixed_prediction(like_dict['params']['mean'],
-                                                                 like_dict['params']['logvar'], data_mean, data_std)
+                                                                 like_dict['params']['logvar'],
+                                                                 data_mean,
+                                                                 data_std,
+                                                                 channel_weights=self._interchannel_weights)
             mixed_target = input
             mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_pred, 'logvar': mixed_logvar})
             output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
@@ -188,6 +199,10 @@ class LadderVaeMultiDataset(LadderVAE):
         return output
 
     def set_params_to_same_device_as(self, correct_device_tensor):
+        if isinstance(self._interchannel_weights, torch.Tensor):
+            if self._interchannel_weights.device != correct_device_tensor.device:
+                self._interchannel_weights = self._interchannel_weights.to(correct_device_tensor.device)
+
         for dataset_index in [0, 1]:
             str_idx = f'subdset_{dataset_index}'
             if str_idx in self.data_mean and isinstance(self.data_mean[str_idx]['target'], torch.Tensor):

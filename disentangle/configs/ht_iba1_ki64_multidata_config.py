@@ -94,6 +94,8 @@ def get_config():
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     model.non_stochastic_version = False
 
+    model.enable_learnable_interchannel_weights = True
+
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 15
@@ -107,8 +109,10 @@ def get_config():
     training.earlystop_patience = 100
     training.precision = 16
 
+    # when working with multi datasets, it might make sense to predict the mixing constants. This will be applied to
+    # dataset which will have mixed reconstruction as loss
     data.subdset_types = [SubDsetType.OnlyIba1, SubDsetType.Iba1Ki64]
-    data.subdset_types_probab = [1.0, 0]
+    data.subdset_types_probab = [0.7, 0.3]
     data.empty_patch_replacement_enabled_list = [True, False]
     training.test_fraction = [0, 0.2]
     training.val_fraction = [0.2, 0]

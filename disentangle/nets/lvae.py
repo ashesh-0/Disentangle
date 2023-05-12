@@ -424,12 +424,19 @@ class LadderVAE(pl.LightningModule):
             self.top_down_layers[i].latent_shape = (output_size, output_size)
 
     @staticmethod
-    def get_mixed_prediction(prediction, prediction_logvar, data_mean, data_std):
+    def get_mixed_prediction(prediction, prediction_logvar, data_mean, data_std, channel_weights=None):
         pred_unorm = prediction * data_std['target'] + data_mean['target']
-        mixed_prediction = (torch.sum(pred_unorm, dim=1, keepdim=True) - data_mean['input']) / data_std['input']
+        if channel_weights is None:
+            channel_weights = 1
+
+        mixed_prediction = (torch.sum(pred_unorm * channel_weights, dim=1, keepdim=True) -
+                            data_mean['input']) / data_std['input']
 
         var = torch.exp(prediction_logvar)
         var = var * (data_std['target'] / data_std['input'])**2
+
+        var = var * torch.square(channel_weights)
+
         # sum of variance.
         mixed_var = 0
         for i in range(var.shape[1]):
