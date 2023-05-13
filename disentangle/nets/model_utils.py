@@ -13,6 +13,7 @@ from disentangle.nets.brave_net import BraveNetPL
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_bleedthrough import LadderVAEWithMixedRecons
 from disentangle.nets.lvae_multidset import LadderVaeMultiDataset
+from disentangle.nets.lvae_multidset_multi_input_branches import LadderVaeMultiDatasetMultiBranch
 from disentangle.nets.lvae_multiple_encoder_single_opt import LadderVAEMulEncoder1Optim
 from disentangle.nets.lvae_multiple_encoders import LadderVAEMultipleEncoders
 from disentangle.nets.lvae_multires_target import LadderVAEMultiTarget
@@ -51,6 +52,8 @@ def create_model(config, data_mean, data_std):
         model = LadderVAEwithStitching2Stage(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVaeMultiDataSet:
         model = LadderVaeMultiDataset(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVaeMultiDatasetMultiBranch:
+        model = LadderVaeMultiDatasetMultiBranch(data_mean, data_std, config)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
     return model

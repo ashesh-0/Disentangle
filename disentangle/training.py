@@ -132,7 +132,9 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
 
-    elif config.data.data_type == DataType.HTIba1Ki67 and config.model.model_type == ModelType.LadderVaeMultiDataSet:
+    elif config.data.data_type == DataType.HTIba1Ki67 and config.model.model_type in [
+            ModelType.LadderVaeMultiDataSet, ModelType.LadderVaeMultiDatasetMultiBranch
+    ]:
         # multi data setup.
         datapath = datadir
         normalized_input = config.data.normalized_input

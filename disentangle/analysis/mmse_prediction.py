@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.metrics.running_psnr import RunningPSNR
 
@@ -130,19 +131,28 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                                                                        x_normalized,
                                                                        tar_normalized,
                                                                        return_predicted_img=True)
-                    elif model_type == ModelType.LadderVaeMultiDataSet:
+                    elif model_type in [ModelType.LadderVaeMultiDataSet, ModelType.LadderVaeMultiDatasetMultiBranch]:
                         dset_idx, loss_idx = batch[2:]
                         dset_idx = dset_idx.cuda()
                         loss_idx = loss_idx.cuda()
 
                         x_normalized = model.normalize_input(inp)
                         tar_normalized = model.normalize_target(tar, dset_idx)
-                        recon_normalized, _ = model(x_normalized)
+                        if model_type == ModelType.LadderVaeMultiDatasetMultiBranch:
+                            mask_mixrecons = loss_idx == LossType.ElboMixedReconstruction
+                            mask_2ch = loss_idx == LossType.Elbo
+                            assert mask_2ch.sum() in [0, len(x_normalized)]
+                            assert mask_mixrecons.sum() in [0, len(x_normalized)]
+                            loss_idx_type = LossType.Elbo if mask_2ch.sum() == len(
+                                x_normalized) else LossType.ElboMixedReconstruction
+                            recon_normalized, _ = model(x_normalized, loss_idx_type)
+                        else:
+                            recon_normalized, _ = model(x_normalized)
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
-                                                                        tar_normalized,
-                                                                        dset_idx,
-                                                                        loss_idx,
-                                                                        return_predicted_img=True)
+                                                                       tar_normalized,
+                                                                       dset_idx,
+                                                                       loss_idx,
+                                                                       return_predicted_img=True)
 
                     else:
                         x_normalized = model.normalize_input(inp)
@@ -159,7 +169,7 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                             logvar_arr.append(q_dic['logvar'].cpu().numpy())
                         else:
                             logvar_arr.append(np.array([-1]))
-                        
+
                         try:
                             losses.append(rec_loss['loss'].cpu().numpy())
                         except:

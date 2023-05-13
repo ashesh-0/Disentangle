@@ -20,4 +20,5 @@ class ModelType(Enum):
     # since earlier, LadderVaeStitch2Stage = 13, LadderVaeSemiSupervised = 14
     LadderVaeMixedRecons = 15
     LadderVaeCL = 16
-    LadderVaeMultiDataSet = 17  #on one, apply disentanglement, on other apply reconstruction
+    LadderVaeMultiDataSet = 17  #on one subdset, apply disentanglement, on other apply reconstruction
+    LadderVaeMultiDatasetMultiBranch = 18
