@@ -131,14 +131,19 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                                                                        x_normalized,
                                                                        tar_normalized,
                                                                        return_predicted_img=True)
-                    elif model_type in [ModelType.LadderVaeMultiDataSet, ModelType.LadderVaeMultiDatasetMultiBranch]:
+                    elif model_type in [
+                            ModelType.LadderVaeMultiDataSet, ModelType.LadderVaeMultiDatasetMultiBranch,
+                            ModelType.LadderVaeMultiDatasetMultiOptim
+                    ]:
                         dset_idx, loss_idx = batch[2:]
                         dset_idx = dset_idx.cuda()
                         loss_idx = loss_idx.cuda()
 
                         x_normalized = model.normalize_input(inp)
                         tar_normalized = model.normalize_target(tar, dset_idx)
-                        if model_type == ModelType.LadderVaeMultiDatasetMultiBranch:
+                        if model_type in [
+                                ModelType.LadderVaeMultiDatasetMultiBranch, ModelType.LadderVaeMultiDatasetMultiOptim
+                        ]:
                             mask_mixrecons = loss_idx == LossType.ElboMixedReconstruction
                             mask_2ch = loss_idx == LossType.Elbo
                             assert mask_2ch.sum() in [0, len(x_normalized)]

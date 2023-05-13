@@ -1,15 +1,17 @@
 import copy
 
 import torch
-from disentangle.nets.lvae import LadderVAE
 import torch.nn as nn
-from disentangle.nets.lvae_layers import BottomUpLayer, MergeLayer
-from disentangle.core.data_utils import crop_img_tensor
 import torch.optim as optim
+
+from disentangle.core.data_utils import crop_img_tensor
 from disentangle.core.mixed_input_type import MixedInputType
+from disentangle.nets.lvae import LadderVAE
+from disentangle.nets.lvae_layers import BottomUpLayer, MergeLayer
 
 
 class LadderVAEMultipleEncoders(LadderVAE):
+
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
         self.bottom_up_layers_ch1 = nn.ModuleList([])
@@ -250,7 +252,6 @@ class LadderVAEMultipleEncoders(LadderVAE):
     #             recons_loss = recons_loss_dict['ch2_loss'].mean()
     #
     def training_step(self, batch, batch_idx, optimizer_idx, enable_logging=True):
-
         x, target, _ = batch
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)

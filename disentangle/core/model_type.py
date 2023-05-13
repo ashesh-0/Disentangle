@@ -22,3 +22,4 @@ class ModelType(Enum):
     LadderVaeCL = 16
     LadderVaeMultiDataSet = 17  #on one subdset, apply disentanglement, on other apply reconstruction
     LadderVaeMultiDatasetMultiBranch = 18
+    LadderVaeMultiDatasetMultiOptim = 19
