@@ -54,7 +54,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVaeMultiDataSet
+    model.model_type = ModelType.LadderVaeMultiDatasetMultiBranch
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
@@ -99,7 +99,7 @@ def get_config():
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 30
-    training.max_epochs = 9
+    training.max_epochs = 400
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None

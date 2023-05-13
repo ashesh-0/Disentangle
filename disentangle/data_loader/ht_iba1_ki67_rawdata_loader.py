@@ -14,7 +14,6 @@ class SubDsetType(Enum):
 
 def get_iba1_ki67_files():
     return [f'{i}.czi' for i in range(1, 31)]
-    # return [f'{i}.czi' for i in range(1, 11)]
 
 
 def get_iba1_only_files():
