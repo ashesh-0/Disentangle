@@ -95,6 +95,7 @@ def get_config():
     model.non_stochastic_version = False
 
     model.enable_learnable_interchannel_weights = True
+    model.only_optimize_interchannel_weights = True
 
     training = config.training
     training.lr = 0.001

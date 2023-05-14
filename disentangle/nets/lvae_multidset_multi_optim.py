@@ -8,6 +8,11 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
         self.automatic_optimization=False
+        self._only_optimize_interchannel_weights = config.model.get('only_optimize_interchannel_weights', False)
+        if self._only_optimize_interchannel_weights is True:
+            del self._first_bottom_up_subdset0
+            self._first_bottom_up_subdset0 = self._first_bottom_up_subdset1
+        print(f'[{self.__class__.__name__}] OnlyOptimizeInterchannelWeights:{self._only_optimize_interchannel_weights}')
 
     def get_encoder_params(self):
         encoder_params = list(self._first_bottom_up_subdset1.parameters()) + list(self.bottom_up_layers.parameters())
@@ -21,7 +26,12 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
         return decoder_params
 
     def get_mixrecons_extra_params(self):
-        params = list(self._first_bottom_up_subdset0.parameters())
+        if self._only_optimize_interchannel_weights:
+            params = []
+            assert self._interchannel_weights is not None , "There would be nothing to optimize for the second optimizer."
+        else:
+            params = list(self._first_bottom_up_subdset0.parameters())
+        
         if self._interchannel_weights is not None:
             params = params + [self._interchannel_weights]
         return params
