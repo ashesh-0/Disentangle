@@ -15,16 +15,25 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.HTIba1Ki67
-    data.subdset_type = None
-    data.subdset_types = [SubDsetType.OnlyIba1, SubDsetType.Iba1Ki64]
-    data.subdset_types_probab = [0.7, 0.3]
-    data.validation_subdset_type_idx = 0
+    data.subdset_type = SubDsetType.OnlyIba1
+    # data.subdset_types = [SubDsetType.OnlyIba1, SubDsetType.Iba1Ki64]
+    # data.subdset_types_probab = [1.0, 0.0]
+    # data.validation_subdset_type_idx = 0
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
     data.background_quantile = 0.01
+    # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
+    # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
+    # the background noise is also a distribution. So, some amount of background noise will remain.
+    data.clip_background_noise_to_zero = True
+
+    # we will not subtract the mean of the dataset from every patch. We just want to subtract the background and normalize using std. This way, background will be very close to 0.
+    # this will help in the all scaling related approaches where we want to multiply the frame with some factor and then add them. we will then effectively just do these scaling on the
+    # foreground pixels and the background will anyways will remain very close to 0.
+    data.skip_normalization_using_mean = True
     data.input_is_sum = True
 
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
@@ -40,10 +49,10 @@ def get_config():
     data.target_separate_normalization = True
 
     # Replacing one channel's content with empty patch.
-    data.empty_patch_replacement_enabled_list = [True, False]
-    data.empty_patch_replacement_enabled = False
+    # data.empty_patch_replacement_enabled_list = [True, False]
     data.empty_patch_replacement_channel_idx = 0
-    data.empty_patch_replacement_probab = 0.3
+    data.empty_patch_replacement_enabled = True
+    data.empty_patch_replacement_probab = 0.8
     data.empty_patch_max_val_threshold = 180
 
     loss = config.loss
