@@ -63,7 +63,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVaeMultiDatasetMultiOptim
+    model.model_type = ModelType.LadderVaeMultiDataSet
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
@@ -104,7 +104,7 @@ def get_config():
     model.non_stochastic_version = False
 
     model.enable_learnable_interchannel_weights = True
-    model.only_optimize_interchannel_weights = True
+    # model.only_optimize_interchannel_weights = True
 
     training = config.training
     training.lr = 0.001
