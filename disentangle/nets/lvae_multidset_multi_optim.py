@@ -5,9 +5,11 @@ from disentangle.nets.lvae_multidset_multi_input_branches import LadderVaeMultiD
 
 
 class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
+
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
-        self.automatic_optimization=False
+
+        self.automatic_optimization = False
         self._only_optimize_interchannel_weights = config.model.get('only_optimize_interchannel_weights', False)
         if self._only_optimize_interchannel_weights is True:
             del self._first_bottom_up_subdset0
@@ -28,10 +30,10 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
     def get_mixrecons_extra_params(self):
         if self._only_optimize_interchannel_weights:
             params = []
-            assert self._interchannel_weights is not None , "There would be nothing to optimize for the second optimizer."
+            assert self._interchannel_weights is not None, "There would be nothing to optimize for the second optimizer."
         else:
             params = list(self._first_bottom_up_subdset0.parameters())
-        
+
         if self._interchannel_weights is not None:
             params = params + [self._interchannel_weights]
         return params
@@ -69,7 +71,6 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
         mask_mix = loss_idx == LossType.ElboMixedReconstruction
         assert mask_ch2.sum() + mask_mix.sum() == len(x)
         loss_dict = None
-        
         if mask_ch2.sum() > 0:
             batch = (x[mask_ch2], target[mask_ch2], dset_idx[mask_ch2], loss_idx[mask_ch2])
             loss_dict = super().training_step(batch, batch_idx, enable_logging=enable_logging)
@@ -77,7 +78,7 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
                 ch2_opt.zero_grad()
                 self.manual_backward(loss_dict['loss'])
                 ch2_opt.step()
-        
+
         if mask_mix.sum() > 0:
             batch = (x[mask_mix], target[mask_mix], dset_idx[mask_mix], loss_idx[mask_mix])
             mix_loss_dict = super().training_step(batch, batch_idx, enable_logging=enable_logging)
@@ -85,6 +86,6 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
                 mix_opt.zero_grad()
                 self.manual_backward(mix_loss_dict['loss'])
                 mix_opt.step()
-        
+
         if loss_dict is not None:
             self.log_dict({"loss": loss_dict['loss'].item()}, prog_bar=True)

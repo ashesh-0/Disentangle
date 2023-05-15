@@ -28,6 +28,11 @@ def get_config():
     # the background noise is also a distribution. So, some amount of background noise will remain.
     data.clip_background_noise_to_zero = True
 
+    # we will not subtract the mean of the dataset from every patch. We just want to subtract the background and normalize using std. This way, background will be very close to 0.
+    # this will help in the all scaling related approaches where we want to multiply the frame with some factor and then add them. we will then effectively just do these scaling on the
+    # foreground pixels and the background will anyways will remain very close to 0.
+    data.skip_normalization_using_mean = True
+
     # If this is set to true, then one mean and stdev is used for both channels while computing input.
     # Otherwise, two different meean and stdev are used.
     data.use_one_mu_std = True

@@ -52,6 +52,7 @@ class MultiChDeterministicTiffDloader:
         self._channelwise_quantile = data_config.get('channelwise_quantile', False)
         self._background_quantile = data_config.get('background_quantile', 0.0)
         self._clip_background_noise_to_zero = data_config.get('clip_background_noise_to_zero', False)
+        self._skip_normalization_using_mean = data_config.get('skip_normalization_using_mean', False)
 
         self._background_values = None
 
@@ -367,7 +368,7 @@ class MultiChDeterministicTiffDloader:
         mean_arr = []
         std_arr = []
         for ch_idx in range(self._data.shape[-1]):
-            mean_ = self._data[..., ch_idx].mean()
+            mean_ = 0.0 if self._skip_normalization_using_mean else self._data[..., ch_idx].mean()
             std_ = self._data[..., ch_idx].std()
             mean_arr.append(mean_)
             std_arr.append(std_)
@@ -394,7 +395,12 @@ class MultiChDeterministicTiffDloader:
                 std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
             mean = np.repeat(mean, 2, axis=1)
             std = np.repeat(std, 2, axis=1)
+
+            if self._skip_normalization_using_mean:
+                mean = np.zeros_like(mean)
+
             return mean, std
+
         elif self._use_one_mu_std is False:
             return self.compute_individual_mean_std()
 
