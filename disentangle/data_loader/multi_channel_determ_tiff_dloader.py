@@ -51,6 +51,8 @@ class MultiChDeterministicTiffDloader:
         self._quantile = data_config.get('clip_percentile', 0.995)
         self._channelwise_quantile = data_config.get('channelwise_quantile', False)
         self._background_quantile = data_config.get('background_quantile', 0.0)
+        self._clip_background_noise_to_zero = data_config.get('clip_background_noise_to_zero', False)
+
         self._background_values = None
 
         self._grid_alignment = grid_alignment
@@ -123,6 +125,7 @@ class MultiChDeterministicTiffDloader:
         self._background_values = np.zeros((self._data.shape[0], self._data.shape[-1]))
 
         if self._background_quantile == 0.0:
+            assert self._clip_background_noise_to_zero is False, 'This operation currently happens later in this function.'
             return
 
         if self._data.dtype in [np.uint16]:
@@ -141,6 +144,9 @@ class MultiChDeterministicTiffDloader:
                 qval = int(qval)
                 self.save_background(ch, idx, qval)
                 self._data[idx, ..., ch] -= qval
+
+        if self._clip_background_noise_to_zero:
+            self._data[self._data < 0] = 0
 
     def rm_bkground_set_max_val_and_upperclip_data(self, max_val, datasplit_type):
         self.remove_background()

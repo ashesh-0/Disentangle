@@ -22,6 +22,11 @@ def get_config():
     data.normalized_input = True
     data.clip_percentile = 0.995
     data.background_quantile = 0.0
+    # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
+    # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
+    # the background noise is also a distribution. So, some amount of background noise will remain.
+    data.clip_background_noise_to_zero = True
+
     data.input_is_sum = True
 
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
