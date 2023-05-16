@@ -1,7 +1,26 @@
+import torch.nn as nn
 import torch.optim as optim
 
 from disentangle.core.loss_type import LossType
 from disentangle.nets.lvae_multidset_multi_input_branches import LadderVaeMultiDatasetMultiBranch
+
+
+class IntensityMap(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+        self._net = nn.Sequential([
+            nn.Conv2d(1, 64, 1),
+            nn.LeakyReLU(),
+            nn.Conv2d(64, 64, 1),
+            nn.LeakyReLU(),
+            nn.Conv2d(64, 64, 1),
+            nn.LeakyReLU(),
+            nn.Conv2d(64, 1, 1),
+        ])
+
+    def forward(self, x):
+        return x + self._net(x)
 
 
 class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
@@ -10,11 +29,19 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
 
         self.automatic_optimization = False
-        self._only_optimize_interchannel_weights = config.model.get('only_optimize_interchannel_weights', False)
-        if self._only_optimize_interchannel_weights is True:
+        self._donot_keep_separate_firstbottomup = config.model.get('only_optimize_interchannel_weights', False)
+        if self._donot_keep_separate_firstbottomup is True:
             del self._first_bottom_up_subdset0
             self._first_bottom_up_subdset0 = self._first_bottom_up_subdset1
-        print(f'[{self.__class__.__name__}] OnlyOptimizeInterchannelWeights:{self._only_optimize_interchannel_weights}')
+
+        learn_imap = config.model.get('learn_intensity_map', False)
+        if learn_imap:
+            intensity_map_net = IntensityMap()
+            self._first_bottom_up_subdset0 = nn.Sequential(intensity_map_net, self._first_bottom_up_subdset0)
+
+        print(
+            f'[{self.__class__.__name__}] OnlyOptimizeInterchannelWeights:{self._donot_keep_separate_firstbottomup} IMap:{learn_imap}'
+        )
 
     def get_encoder_params(self):
         encoder_params = list(self._first_bottom_up_subdset1.parameters()) + list(self.bottom_up_layers.parameters())
@@ -28,7 +55,7 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
         return decoder_params
 
     def get_mixrecons_extra_params(self):
-        if self._only_optimize_interchannel_weights:
+        if self._donot_keep_separate_firstbottomup:
             params = []
             assert self._interchannel_weights is not None, "There would be nothing to optimize for the second optimizer."
         else:
@@ -36,6 +63,7 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
 
         if self._interchannel_weights is not None:
             params = params + [self._interchannel_weights]
+
         return params
 
     def get_scheduler(self, optimizer):
@@ -89,3 +117,43 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
 
         if loss_dict is not None:
             self.log_dict({"loss": loss_dict['loss'].item()}, prog_bar=True)
+
+
+if __name__ == '__main__':
+    import torch
+
+    from disentangle.configs.ht_iba1_ki64_multidata_config import get_config
+
+    data_mean = {
+        'subdset_0': {
+            'target': torch.Tensor([1.1, 3.2]).reshape((1, 2, 1, 1)),
+            'input': torch.Tensor([1366]).reshape((1, 1, 1, 1))
+        },
+        'subdset_1': {
+            'target': torch.Tensor([15, 30]).reshape((1, 2, 1, 1)),
+            'input': torch.Tensor([10]).reshape((1, 1, 1, 1))
+        }
+    }
+
+    data_std = {
+        'subdset_0': {
+            'target': torch.Tensor([21, 45]).reshape((1, 2, 1, 1)),
+            'input': torch.Tensor([955]).reshape((1, 1, 1, 1))
+        },
+        'subdset_1': {
+            'target': torch.Tensor([90, 2]).reshape((1, 2, 1, 1)),
+            'input': torch.Tensor([121]).reshape((1, 1, 1, 1))
+        }
+    }
+
+    config = get_config()
+    model = LadderVaeMultiDatasetMultiBranch(data_mean, data_std, config)
+
+    dset_idx = torch.Tensor([0, 1, 0, 1])
+    loss_idx = torch.Tensor(
+        [LossType.Elbo, LossType.ElboMixedReconstruction, LossType.Elbo, LossType.ElboMixedReconstruction])
+    x = torch.rand((4, 1, 64, 64))
+    target = torch.rand((4, 2, 64, 64))
+    batch = (x, target, dset_idx, loss_idx)
+    model.training_step(batch, 0, enable_logging=True)
+    model.validation_step(batch, 0)

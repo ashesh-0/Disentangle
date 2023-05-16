@@ -103,6 +103,7 @@ def get_config():
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     model.non_stochastic_version = False
 
+    model.learn_intensity_map = True
     model.enable_learnable_interchannel_weights = True
     # model.only_optimize_interchannel_weights = True
 
