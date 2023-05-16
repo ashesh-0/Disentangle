@@ -13,7 +13,7 @@ from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import SubDsetType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 64
     data.data_type = DataType.HTIba1Ki67
     data.subdset_type = None
     data.validation_subdset_type_idx = 0
@@ -63,7 +63,7 @@ def get_config():
     loss.free_bits = 0.0
 
     model = config.model
-    model.model_type = ModelType.LadderVaeMultiDataSet
+    model.model_type = ModelType.LadderVaeMultiDatasetMultiOptim
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
@@ -105,7 +105,7 @@ def get_config():
 
     model.learn_intensity_map = True
     model.enable_learnable_interchannel_weights = True
-    # model.only_optimize_interchannel_weights = True
+    model.only_optimize_interchannel_weights = True
 
     training = config.training
     training.lr = 0.001

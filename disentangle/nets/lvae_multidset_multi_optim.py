@@ -9,7 +9,7 @@ class IntensityMap(nn.Module):
 
     def __init__(self):
         super().__init__()
-        self._net = nn.Sequential([
+        self._net = nn.Sequential(
             nn.Conv2d(1, 64, 1),
             nn.LeakyReLU(),
             nn.Conv2d(64, 64, 1),
@@ -17,7 +17,7 @@ class IntensityMap(nn.Module):
             nn.Conv2d(64, 64, 1),
             nn.LeakyReLU(),
             nn.Conv2d(64, 1, 1),
-        ])
+        )
 
     def forward(self, x):
         return x + self._net(x)
@@ -147,13 +147,13 @@ if __name__ == '__main__':
     }
 
     config = get_config()
-    model = LadderVaeMultiDatasetMultiBranch(data_mean, data_std, config)
-
+    model = LadderVaeMultiDatasetMultiOptim(data_mean, data_std, config)
     dset_idx = torch.Tensor([0, 1, 0, 1])
     loss_idx = torch.Tensor(
         [LossType.Elbo, LossType.ElboMixedReconstruction, LossType.Elbo, LossType.ElboMixedReconstruction])
     x = torch.rand((4, 1, 64, 64))
     target = torch.rand((4, 2, 64, 64))
     batch = (x, target, dset_idx, loss_idx)
+    _ = model.forward(x,2)
     model.training_step(batch, 0, enable_logging=True)
     model.validation_step(batch, 0)

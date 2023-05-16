@@ -57,7 +57,7 @@ class LadderVaeMultiDatasetMultiBranch(LadderVaeMultiDataset):
         for key in ['z', 'kl']:
             output_td_data[key] = []
             for i in range(len(td_data1[key])):
-                concat_value = torch.concatenate([td_data1[key][i], td_data2[key][i]], dim=0)
+                concat_value = torch.cat([td_data1[key][i], td_data2[key][i]], dim=0)
                 output_td_data[key].append(concat_value)
         
         for key in ['debug_qvar_max']:
@@ -76,7 +76,7 @@ class LadderVaeMultiDatasetMultiBranch(LadderVaeMultiDataset):
             elif vector_tuple2[i] is None or torch.numel(vector_tuple2[i]) ==0:
                 out_vectors.append(vector_tuple1[i])
             else:
-                out_vectors.append(torch.concatenate([vector_tuple1[i], vector_tuple2[i]],dim=0))
+                out_vectors.append(torch.cat([vector_tuple1[i], vector_tuple2[i]],dim=0))
         return out_vectors
     
 
