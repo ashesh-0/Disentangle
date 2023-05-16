@@ -35,9 +35,10 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
             self._first_bottom_up_subdset0 = self._first_bottom_up_subdset1
 
         learn_imap = config.model.get('learn_intensity_map', False)
+        self._intensity_map_net = None
         if learn_imap:
-            intensity_map_net = IntensityMap()
-            self._first_bottom_up_subdset0 = nn.Sequential(intensity_map_net, self._first_bottom_up_subdset0)
+            self._intensity_map_net = IntensityMap()
+            self._first_bottom_up_subdset0 = nn.Sequential(self._intensity_map_net, self._first_bottom_up_subdset0)
 
         print(
             f'[{self.__class__.__name__}] OnlyOptimizeInterchannelWeights:{self._donot_keep_separate_firstbottomup} IMap:{learn_imap}'
@@ -60,6 +61,9 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
             assert self._interchannel_weights is not None, "There would be nothing to optimize for the second optimizer."
         else:
             params = list(self._first_bottom_up_subdset0.parameters())
+
+        if self._intensity_map_net is not None:
+            params += [self._intensity_map_net.parameters()]
 
         if self._interchannel_weights is not None:
             params = params + [self._interchannel_weights]
@@ -154,6 +158,6 @@ if __name__ == '__main__':
     x = torch.rand((4, 1, 64, 64))
     target = torch.rand((4, 2, 64, 64))
     batch = (x, target, dset_idx, loss_idx)
-    _ = model.forward(x,2)
+    _ = model.forward(x, 2)
     model.training_step(batch, 0, enable_logging=True)
     model.validation_step(batch, 0)
