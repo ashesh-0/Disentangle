@@ -48,7 +48,7 @@ def get_config():
     # Replacing one channel's content with empty patch.
     data.empty_patch_replacement_enabled = False
     data.empty_patch_replacement_channel_idx = 0
-    data.empty_patch_replacement_probab = 0.5
+    data.empty_patch_replacement_probab = 0.8
     data.empty_patch_max_val_threshold = 180
 
     loss = config.loss
