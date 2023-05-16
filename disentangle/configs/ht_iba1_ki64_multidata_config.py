@@ -48,7 +48,7 @@ def get_config():
     # Replacing one channel's content with empty patch.
     data.empty_patch_replacement_enabled = False
     data.empty_patch_replacement_channel_idx = 0
-    data.empty_patch_replacement_probab = 0.1
+    data.empty_patch_replacement_probab = 0.8
     data.empty_patch_max_val_threshold = 180
 
     loss = config.loss
@@ -96,7 +96,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'pixelwise'
+    model.predict_logvar = 'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
