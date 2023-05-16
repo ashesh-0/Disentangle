@@ -13,7 +13,7 @@ from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import SubDsetType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 128
     data.data_type = DataType.HTIba1Ki67
     data.subdset_type = None
     data.validation_subdset_type_idx = 0
