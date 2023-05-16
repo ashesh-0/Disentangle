@@ -63,7 +63,7 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
             params = list(self._first_bottom_up_subdset0.parameters())
 
         if self._intensity_map_net is not None:
-            params += [self._intensity_map_net.parameters()]
+            params += list(self._intensity_map_net.parameters())
 
         if self._interchannel_weights is not None:
             params = params + [self._interchannel_weights]
@@ -103,6 +103,7 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
         mask_mix = loss_idx == LossType.ElboMixedReconstruction
         assert mask_ch2.sum() + mask_mix.sum() == len(x)
         loss_dict = None
+
         if mask_ch2.sum() > 0:
             batch = (x[mask_ch2], target[mask_ch2], dset_idx[mask_ch2], loss_idx[mask_ch2])
             loss_dict = super().training_step(batch, batch_idx, enable_logging=enable_logging)
