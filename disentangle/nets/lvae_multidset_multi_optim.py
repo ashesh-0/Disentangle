@@ -109,7 +109,8 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
             loss_dict = super().training_step(batch, batch_idx, enable_logging=enable_logging)
             if loss_dict is not None:
                 ch2_opt.zero_grad()
-                self.manual_backward(loss_dict['loss'])
+                loss = loss_dict['kl_loss'] + loss_dict['reconstruction_loss']
+                self.manual_backward(loss)
                 ch2_opt.step()
 
         if mask_mix.sum() > 0:
@@ -117,11 +118,12 @@ class LadderVaeMultiDatasetMultiOptim(LadderVaeMultiDatasetMultiBranch):
             mix_loss_dict = super().training_step(batch, batch_idx, enable_logging=enable_logging)
             if loss_dict is not None:
                 mix_opt.zero_grad()
-                self.manual_backward(mix_loss_dict['loss'])
+                loss = mix_loss_dict['kl_loss'] + mix_loss_dict['mixed_loss']
+                self.manual_backward(loss)
                 mix_opt.step()
 
         if loss_dict is not None:
-            self.log_dict({"loss": loss_dict['loss'].item()}, prog_bar=True)
+            self.log_dict({"loss": loss}, prog_bar=True)
 
 
 if __name__ == '__main__':

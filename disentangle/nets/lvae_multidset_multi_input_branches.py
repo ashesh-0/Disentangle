@@ -1,11 +1,12 @@
-import torch
 from typing import List
+
+import torch
 
 from disentangle.core.data_utils import crop_img_tensor
 from disentangle.core.loss_type import LossType
-from disentangle.nets.lvae_multidset import LadderVaeMultiDataset
 from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.nets.lvae import torch_nanmean
+from disentangle.nets.lvae_multidset import LadderVaeMultiDataset
 
 
 class LadderVaeMultiDatasetMultiBranch(LadderVaeMultiDataset):
@@ -52,14 +53,14 @@ class LadderVaeMultiDatasetMultiBranch(LadderVaeMultiDataset):
             return td_data2
         if td_data2 is None:
             return td_data1
-        
+
         output_td_data = {}
         for key in ['z', 'kl']:
             output_td_data[key] = []
             for i in range(len(td_data1[key])):
                 concat_value = torch.cat([td_data1[key][i], td_data2[key][i]], dim=0)
                 output_td_data[key].append(concat_value)
-        
+
         for key in ['debug_qvar_max']:
             output_td_data[key] = []
             for i in range(len(td_data1[key])):
@@ -67,18 +68,17 @@ class LadderVaeMultiDatasetMultiBranch(LadderVaeMultiDataset):
                 output_td_data[key].append(merged_value)
 
         return output_td_data
-    
-    def merge_vectors(self, vector_tuple1:List[torch.Tensor], vector_tuple2:List[torch.Tensor]):
+
+    def merge_vectors(self, vector_tuple1: List[torch.Tensor], vector_tuple2: List[torch.Tensor]):
         out_vectors = []
         for i in range(len(vector_tuple1)):
-            if vector_tuple1[i] is None or torch.numel(vector_tuple1[i]) ==0:
+            if vector_tuple1[i] is None or torch.numel(vector_tuple1[i]) == 0:
                 out_vectors.append(vector_tuple2[i])
-            elif vector_tuple2[i] is None or torch.numel(vector_tuple2[i]) ==0:
+            elif vector_tuple2[i] is None or torch.numel(vector_tuple2[i]) == 0:
                 out_vectors.append(vector_tuple1[i])
             else:
-                out_vectors.append(torch.cat([vector_tuple1[i], vector_tuple2[i]],dim=0))
+                out_vectors.append(torch.cat([vector_tuple1[i], vector_tuple2[i]], dim=0))
         return out_vectors
-    
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         x, target, dset_idx, loss_idx = batch
@@ -90,7 +90,8 @@ class LadderVaeMultiDatasetMultiBranch(LadderVaeMultiDataset):
         mask_2ch = loss_idx == LossType.Elbo
         assert torch.sum(mask_2ch) + torch.sum(mask_mixrecons) == len(target)
         if mask_mixrecons.sum() > 0:
-            out_mixrecons, td_data_mixrecons = self.forward(x_normalized[mask_mixrecons], LossType.ElboMixedReconstruction)
+            out_mixrecons, td_data_mixrecons = self.forward(x_normalized[mask_mixrecons],
+                                                            LossType.ElboMixedReconstruction)
         else:
             out_mixrecons = None
             td_data_mixrecons = None
@@ -98,22 +99,17 @@ class LadderVaeMultiDatasetMultiBranch(LadderVaeMultiDataset):
         if mask_2ch.sum() > 0:
             out_2ch, td_data_2ch = self.forward(x_normalized[mask_2ch], LossType.Elbo)
         else:
-            out_2ch =None 
+            out_2ch = None
             td_data_2ch = None
 
         td_data = self.merge_td_data(td_data_mixrecons, mask_mixrecons.sum(), td_data_2ch, mask_2ch.sum())
 
         assert self.encoder_no_padding_mode is False
 
-        out, target_normalized, dset_idx, loss_idx = self.merge_vectors((out_mixrecons,
-                            target_normalized[mask_mixrecons],
-                            dset_idx[mask_mixrecons],
-                            loss_idx[mask_mixrecons]),
-                            (out_2ch,
-                            target_normalized[mask_2ch],
-                            dset_idx[mask_2ch],
-                            loss_idx[mask_2ch]),
-                            )
+        out, target_normalized, dset_idx, loss_idx = self.merge_vectors(
+            (out_mixrecons, target_normalized[mask_mixrecons], dset_idx[mask_mixrecons], loss_idx[mask_mixrecons]),
+            (out_2ch, target_normalized[mask_2ch], dset_idx[mask_2ch], loss_idx[mask_2ch]),
+        )
 
         recons_loss_dict = self.get_reconstruction_loss(out,
                                                         target_normalized,
@@ -156,9 +152,13 @@ class LadderVaeMultiDatasetMultiBranch(LadderVaeMultiDataset):
 
         output = {
             'loss': net_loss,
-            'reconstruction_loss': recons_loss.detach(),
-            'kl_loss': kl_loss.detach(),
+            'reconstruction_loss': recons_loss,
+            'kl_loss': self.get_kl_weight() * kl_loss,
         }
+
+        if self.loss_type == LossType.ElboMixedReconstruction:
+            output['mixed_loss'] = self.mixed_rec_w * recons_loss_dict['mixed_loss']
+
         # https://github.com/openai/vdvae/blob/main/train.py#L26
         if torch.isnan(net_loss).any():
             return None
@@ -208,7 +208,7 @@ class LadderVaeMultiDatasetMultiBranch(LadderVaeMultiDataset):
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples = []
             for i in range(20):
-                sample, _ = self(x_normalized[0:1, ...],LossType.Elbo)
+                sample, _ = self(x_normalized[0:1, ...], LossType.Elbo)
                 sample = self.likelihood.get_mean_lv(sample)[0]
                 all_samples.append(sample[None])
 
@@ -250,7 +250,8 @@ if __name__ == '__main__':
     model = LadderVaeMultiDatasetMultiBranch(data_mean, data_std, config)
 
     dset_idx = torch.Tensor([0, 1, 0, 1])
-    loss_idx = torch.Tensor([LossType.Elbo, LossType.ElboMixedReconstruction, LossType.Elbo, LossType.ElboMixedReconstruction])
+    loss_idx = torch.Tensor(
+        [LossType.Elbo, LossType.ElboMixedReconstruction, LossType.Elbo, LossType.ElboMixedReconstruction])
     x = torch.rand((4, 1, 64, 64))
     target = torch.rand((4, 2, 64, 64))
     batch = (x, target, dset_idx, loss_idx)
