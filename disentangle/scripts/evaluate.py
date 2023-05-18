@@ -392,6 +392,9 @@ def main(
     sep_mean = sep_mean.squeeze()[None, None, None]
     sep_std = sep_std.squeeze()[None, None, None]
 
+    ch1_pred_unnorm = 2 * pred[..., 0] * sep_std[..., 0].cpu().numpy() + sep_mean[..., 0].cpu().numpy()
+    ch2_pred_unnorm = 2 * pred[..., 1] * sep_std[..., 1].cpu().numpy() + sep_mean[..., 1].cpu().numpy()
+
     # pred is already normalized. no need to do it.
     pred1, pred2 = pred[..., 0].astype(np.float32), pred[..., 1].astype(np.float32)
     # tar1, tar2 = val_dset.normalize_img(tar[...,0], tar[...,1])
@@ -405,8 +408,8 @@ def main(
     rmse = (rmse1 + rmse2) / 2
     rmse = np.round(rmse, 3)
 
-    ssim1_mean, ssim1_std = avg_ssim(tar1, pred1)
-    ssim2_mean, ssim2_std = avg_ssim(tar2, pred2)
+    ssim1_mean, ssim1_std = avg_ssim(tar[..., 0], ch1_pred_unnorm)
+    ssim2_mean, ssim2_std = avg_ssim(tar[..., 1], ch2_pred_unnorm)
 
     # Computing the output statistics.
     output_stats = {}
