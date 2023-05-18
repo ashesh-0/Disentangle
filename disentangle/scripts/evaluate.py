@@ -462,10 +462,17 @@ def main(
     return output_stats
 
 
-def save_multiple_evaluations_to_file():
+def save_hardcoded_ckpt_evaluations_to_file():
     ckpt_dirs = [
-        '/home/ubuntu/ashesh/training/disentangle/2211/D3-M3-S0-L0/0',
-        '/home/ubuntu/ashesh/training/disentangle/2211/D3-M3-S0-L0/1'
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/24',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/25',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/26',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/27',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/28',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/29',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/30',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/31',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/32',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -477,7 +484,7 @@ def save_multiple_evaluations_to_file():
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    patchsz_gridsz_tuples = [(64, 16)]
+    patchsz_gridsz_tuples = [(64, 16), (64, 32)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
@@ -519,11 +526,11 @@ if __name__ == '__main__':
     parser.add_argument('--ckpt_dir', type=str)
     parser.add_argument('--patch_size', type=int, default=64)
     parser.add_argument('--grid_size', type=int, default=16)
-    parser.add_argument('--save_multiple_evaluations', action='store_true')
+    parser.add_argument('--save_hardcoded_ckpt_evaluations', action='store_true')
     args = parser.parse_args()
-    if args.save_multiple_evaluations:
+    if args.save_hardcoded_ckpt_evaluations:
         print('Ignoring ckpt_dir,patch_size and grid_size')
-        save_multiple_evaluations_to_file()
+        save_hardcoded_ckpt_evaluations_to_file()
     else:
         mmse_count = 1
         ignored_last_pixels = 32 if os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:] == '3' else 0
