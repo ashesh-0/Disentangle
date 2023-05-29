@@ -128,16 +128,24 @@ def add_pixel_kde(ax,
     Adds KDE (density plot) of data1(eg: target) and data2(ex: predicted) image pixel values as an inset
     """
     inset_ax = add_subplot_axes(ax, rect, facecolor="None", min_labelsize=min_labelsize)
-    
+
     inset_ax.tick_params(axis='x', colors=color_xtick)
 
-    sns.kdeplot(data=data1.reshape(-1, ), ax=inset_ax, color=color1, label=label1)
+    sns.kdeplot(data=data1.reshape(-1, ), ax=inset_ax, color=color1, label=label1, clip=(0, None))
     if data2 is not None:
-        sns.kdeplot(data=data2.reshape(-1, ), ax=inset_ax, color=color2, label=label2)
-    
+        sns.kdeplot(data=data2.reshape(-1, ), ax=inset_ax, color=color2, label=label2, clip=(0, None))
+
+    xmin, xmax = inset_ax.get_xlim()
+    xmax_data = data1.max()
+    if data2 is not None:
+        xmax_data = max(xmax_data, data2.max())
+
+    inset_ax.set_xlim(0, xmax_data)
+
     xticks = inset_ax.get_xticks()
     inset_ax.set_xticks([xticks[0], xticks[-1]])
     clean_for_xaxis_plot(inset_ax)
+    return inset_ax
 
 
 def plot_imgs_from_idx(idx_list,
@@ -291,3 +299,42 @@ def plot_regionwise_metric(model,
         min_val = metric_dict[sample_count][img_idx]['RMSE'].min()
         sns.heatmap(metric_dict[sample_count][img_idx]['RMSE'][0], ax=ax[i, 1], vmax=max_val, vmin=min_val)
         sns.heatmap(metric_dict[sample_count][img_idx]['RMSE'][1], ax=ax[i, 3], vmax=max_val, vmin=min_val)
+
+
+# Adding arrows.
+def add_left_arrow(ax, xy_location, arrow_length=20, color='red', arrowstyle='->'):
+    xy_start = (xy_location[0] + arrow_length, xy_location[1])
+    return add_arrow(ax, xy_start, xy_location, color='red', arrowstyle=arrowstyle)
+
+
+def add_right_arrow(ax, xy_location, arrow_length=20, color='red', arrowstyle='->'):
+    xy_start = (xy_location[0] - arrow_length, xy_location[1])
+    return add_arrow(ax, xy_start, xy_location, color='red', arrowstyle=arrowstyle)
+
+
+def add_top_arrow(ax, xy_location, arrow_length=20, color='red', arrowstyle='->'):
+    xy_start = (xy_location[0], xy_location[1] + arrow_length)
+    return add_arrow(ax, xy_start, xy_location, color='red', arrowstyle=arrowstyle)
+
+
+def add_bottom_arrow(ax, xy_location, arrow_length=20, color='red', arrowstyle='->'):
+    xy_start = (xy_location[0], xy_location[1] - arrow_length)
+    return add_arrow(ax, xy_start, xy_location, color='red', arrowstyle=arrowstyle)
+
+
+def get_start_vector(xy_start, xy_end, arrow_length):
+    """
+    Given an arrow_length, return a xy_start such that xy_start => xy_end vector has  this length.
+    """
+    direction = (xy_end[0] - xy_start[0], xy_end[1] - xy_start[1])
+    norm = np.linalg.norm(direction)
+    direction = (direction[0] / norm, direction[1] / norm)
+    direction = (direction[0] * arrow_length, direction[1] * arrow_length)
+    xy_start = (xy_end[0] - direction[0], xy_end[1] - direction[1])
+    return xy_start
+
+
+def add_arrow(ax, xy_start, xy_end, arrow_length=None, color='red', arrowstyle="->"):
+    if arrow_length is not None:
+        xy_start = get_start_vector(xy_start, xy_end, arrow_length)
+    ax.annotate("", xy=xy_end, xytext=xy_start, arrowprops=dict(arrowstyle=arrowstyle, color=color, linewidth=1))
