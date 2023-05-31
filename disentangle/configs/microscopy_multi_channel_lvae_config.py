@@ -5,6 +5,7 @@ import numpy as np
 from disentangle.configs.default_config import get_default_config
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
+from disentangle.core.lowres_merge_type import LowresMergeType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
 
@@ -67,6 +68,7 @@ def get_config():
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
+    model.encoder.lowres_merge_type = LowresMergeType.CropAndFit
 
     model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1

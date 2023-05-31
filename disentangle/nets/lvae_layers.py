@@ -9,9 +9,11 @@ import torchvision.transforms.functional as F
 from torch import nn
 
 from disentangle.core.data_utils import crop_img_tensor, pad_img_tensor
+from disentangle.core.lowres_merge_type import LowresMergeType
 from disentangle.core.nn_submodules import ResidualBlock, ResidualGatedBlock
 from disentangle.core.non_stochastic import NonStochasticBlock2d
 from disentangle.core.stochastic import NormalStochasticBlock2d
+from disentangle.nets.replace_layer import ReplaceLayer
 
 
 class TopDownLayer(nn.Module):
@@ -377,6 +379,7 @@ class BottomUpLayer(nn.Module):
                  multiscale_lowres_size_factor: int = None,
                  enable_multiscale: bool = False,
                  lowres_separate_branch=False,
+                 lowres_merge_type: LowresMergeType = None,
                  multiscale_retain_spatial_dims: bool = False,
                  decoder_retain_spatial_dims: bool = False,
                  output_expected_shape=None):
@@ -433,6 +436,7 @@ class BottomUpLayer(nn.Module):
         self.net_downsized = nn.Sequential(*bu_blocks_downsized)
         self.net = nn.Sequential(*bu_blocks_samesize)
         # using the same net for the lowresolution (and larger sized image)
+        self._lowres_merge_type = lowres_merge_type
         self.lowres_net = self.lowres_merge = self.multiscale_lowres_size_factor = None
         if self.enable_multiscale:
             self._init_multiscale(
@@ -463,16 +467,19 @@ class BottomUpLayer(nn.Module):
         if self.lowres_separate_branch:
             self.lowres_net = deepcopy(self.net)
 
-        self.lowres_merge = MergeLowRes(
-            channels=n_filters,
-            merge_type='residual',
-            nonlin=nonlin,
-            batchnorm=batchnorm,
-            dropout=dropout,
-            res_block_type=res_block_type,
-            multiscale_retain_spatial_dims=multiscale_retain_spatial_dims,
-            multiscale_lowres_size_factor=self.multiscale_lowres_size_factor,
-        )
+        if self._lowres_merge_type == LowresMergeType.ConcatAndMix:
+            self.lowres_merge = MergeLowRes(
+                channels=n_filters,
+                merge_type='residual',
+                nonlin=nonlin,
+                batchnorm=batchnorm,
+                dropout=dropout,
+                res_block_type=res_block_type,
+                multiscale_retain_spatial_dims=multiscale_retain_spatial_dims,
+                multiscale_lowres_size_factor=self.multiscale_lowres_size_factor,
+            )
+        elif self._lowres_merge_type == LowresMergeType.CropAndFit:
+            self.lowres_merge = ReplaceLayer((64, 64), (32, 32), (16, 16), n_filters)
 
     def forward(self, x, lowres_x=None):
         primary_flow = self.net_downsized(x)
@@ -484,6 +491,7 @@ class BottomUpLayer(nn.Module):
 
         if lowres_x is not None:
             lowres_flow = self.lowres_net(lowres_x)
+            # Add the merge code.
             merged = self.lowres_merge(primary_flow, lowres_flow)
         else:
             merged = primary_flow

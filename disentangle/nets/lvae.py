@@ -90,6 +90,8 @@ class LadderVAE(pl.LightningModule):
         self.logvar_lowerbound = config.model.logvar_lowerbound
         self.non_stochastic_version = config.model.get('non_stochastic_version', False)
         self._var_clip_max = config.model.var_clip_max
+        self._lowres_merge_type = config.model.encoder.lowres_merge_type
+
         # loss related
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
@@ -189,6 +191,7 @@ class LadderVAE(pl.LightningModule):
                               res_block_skip_padding=self.encoder_res_block_skip_padding,
                               gated=self.gated,
                               lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
+                              lowres_merge_type=self._lowres_merge_type,
                               enable_multiscale=enable_multiscale,
                               multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
                               multiscale_lowres_size_factor=multiscale_lowres_size_factor,
