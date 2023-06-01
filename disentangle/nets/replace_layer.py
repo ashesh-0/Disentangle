@@ -24,3 +24,10 @@ class ReplaceLayer(nn.Module):
         assert small_tensor.shape[-3:] == (self._c, *self._small_sz)
         small_tensor = pad_img_tensor(small_tensor, large_tensor.shape[-2:])
         return large_tensor * self._mask + small_tensor
+
+
+if __name__ == '__main__':
+    layer = ReplaceLayer((64,64), (32,32),(16,16),12)
+    inp = torch.rand(5,12,64,64)
+    small_inp = torch.ones(5,12,32,32)
+    out = layer(inp, small_inp)
