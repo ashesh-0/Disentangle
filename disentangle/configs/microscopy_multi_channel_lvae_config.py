@@ -22,7 +22,7 @@ def get_config():
     data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
-    data.background_quantile = 0.0
+    data.background_quantile = 0.01
     # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
     # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
     # the background noise is also a distribution. So, some amount of background noise will remain.
@@ -31,7 +31,7 @@ def get_config():
     # we will not subtract the mean of the dataset from every patch. We just want to subtract the background and normalize using std. This way, background will be very close to 0.
     # this will help in the all scaling related approaches where we want to multiply the frame with some factor and then add them. we will then effectively just do these scaling on the
     # foreground pixels and the background will anyways will remain very close to 0.
-    data.skip_normalization_using_mean = True
+    data.skip_normalization_using_mean = False
 
     data.input_is_sum = True
 
@@ -67,7 +67,7 @@ def get_config():
     model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
-    model.encoder.res_block_skip_padding = False
+    model.encoder.res_block_skip_padding = True
     model.encoder.lowres_merge_type = LowresMergeType.CropAndFit
 
     model.decoder.batchnorm = True
@@ -75,7 +75,7 @@ def get_config():
     model.decoder.n_filters = 64
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
-    model.decoder.res_block_skip_padding = False
+    model.decoder.res_block_skip_padding = True
 
     model.decoder.multiscale_retain_spatial_dims = True
 
