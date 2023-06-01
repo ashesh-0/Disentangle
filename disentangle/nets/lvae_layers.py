@@ -479,7 +479,7 @@ class BottomUpLayer(nn.Module):
                 multiscale_lowres_size_factor=self.multiscale_lowres_size_factor,
             )
         elif self._lowres_merge_type == LowresMergeType.CropAndFit:
-            self.lowres_merge = ReplaceLayer((64, 64), (32, 32), (16, 16), n_filters)
+            self.lowres_merge = ReplaceLayer(None, None, None, n_filters)
 
     def forward(self, x, lowres_x=None):
         primary_flow = self.net_downsized(x)

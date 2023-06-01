@@ -304,6 +304,12 @@ class LadderVAE(pl.LightningModule):
                       self.encoder_res_block_kernel,
                       padding=0 if self.encoder_res_block_skip_padding else self.encoder_res_block_kernel // 2,
                       stride=init_stride),
+            nonlin(),
+            nn.Conv2d(self.encoder_n_filters,
+                      self.encoder_n_filters,
+                      self.encoder_res_block_kernel,
+                      padding=0 if self.encoder_res_block_skip_padding else self.encoder_res_block_kernel // 2,
+                      stride=init_stride),
             nonlin()
         ]
         for _ in range(num_blocks):
@@ -546,7 +552,6 @@ class LadderVAE(pl.LightningModule):
             assert len(batch) == 3
             grid_sizes = batch[2]
             nbr_cons_loss = self.nbr_consistency_w * self.nbr_consistency_loss.get(imgs, grid_sizes=grid_sizes)
-            # print(recons_loss, nbr_cons_loss)
             self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
             recons_loss += nbr_cons_loss
 
@@ -936,3 +941,16 @@ class LadderVAE(pl.LightningModule):
 
         img = wandb.Image(clamped_mmse[None].cpu().numpy())
         self.trainer.logger.experiment.log({f'{label}/mmse (100 samples)': img})
+
+
+if __name__ == '__main__':
+    import torch
+
+    from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+
+    cnf = get_config()
+    model = LadderVAE(torch.zeros((1, 2, 1, 1)), torch.ones((1, 2, 1, 1)), cnf)
+    inp = torch.rand((4, 5, 64, 64))
+    out = model.forward(inp)
+    import pdb
+    pdb.set_trace()
