@@ -952,5 +952,3 @@ if __name__ == '__main__':
     model = LadderVAE(torch.zeros((1, 2, 1, 1)), torch.ones((1, 2, 1, 1)), cnf)
     inp = torch.rand((4, 5, 64, 64))
     out = model.forward(inp)
-    import pdb
-    pdb.set_trace()
