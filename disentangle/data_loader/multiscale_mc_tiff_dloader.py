@@ -145,6 +145,9 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         for img in img_tuples:
             inp += img / (len(img_tuples))
 
+        if self._input_is_sum:
+            inp = inp * len(img_tuples)
+
         inp = inp.astype(np.float32)
 
         if isinstance(index, int):

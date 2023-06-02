@@ -361,7 +361,7 @@ class MultiChDeterministicTiffDloader:
             pad = self.per_side_overlap_pixelcount()
             return h_start - pad, w_start - pad
 
-    def compute_individual_mean_std(self):
+    def _compute_individual_mean_std(self):
         # numpy 1.19.2 has issues in computing for large arrays. https://github.com/numpy/numpy/issues/8869
         # mean = np.mean(self._data, axis=(0, 1, 2))
         # std = np.std(self._data, axis=(0, 1, 2))
@@ -377,6 +377,15 @@ class MultiChDeterministicTiffDloader:
         std = np.array(std_arr)
 
         return mean[None, :, None, None], std[None, :, None, None]
+
+    def compute_individual_mean_std(self):
+        mean_dict = {}
+        std_dict = {}
+        mean_, std_ = self._compute_individual_mean_std()
+        mean_for_input, std_for_input = self.compute_mean_std()
+        mean_dict = {'target': mean_, 'input': mean_for_input}
+        std_dict = {'target': std_, 'input': std_for_input}
+        return mean_dict, std_dict
 
     def compute_mean_std(self, allow_for_validation_data=False):
         """

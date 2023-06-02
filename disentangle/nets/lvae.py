@@ -35,7 +35,7 @@ def compute_batch_mean(x):
 
 class LadderVAE(pl.LightningModule):
 
-    def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
+    def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=1):
         super().__init__()
         self.lr = config.training.lr
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
@@ -73,8 +73,18 @@ class LadderVAE(pl.LightningModule):
         self.decoder_res_block_skip_padding = config.model.decoder.res_block_skip_padding
 
         self.gated = config.model.gated
+        self.input_is_sum = config.data.input_is_sum
+
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
+
+        for data_key in self.data_mean.keys():
+            assert data_key in ['target', 'input']
+            self.data_mean[data_key] = torch.Tensor(data_mean[data_key])
+            self.data_std[data_key] = torch.Tensor(data_std[data_key])
+
+        self.data_mean['input'] = self.data_mean['input'].reshape(1, 1, 1, 1)
+        self.data_std['input'] = self.data_std['input'].reshape(1, 1, 1, 1)
 
         self.noiseModel = get_noise_model(config.datadir, config.model)
         self.merge_type = config.model.merge_type
@@ -400,8 +410,9 @@ class LadderVAE(pl.LightningModule):
             kl_weight = 1.0
         return kl_weight
 
-    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
+    def get_reconstruction_loss(self, reconstruction, target, input, return_predicted_img=False, likelihood_obj=None):
         output = self._get_reconstruction_loss_vector(reconstruction,
+                                                      target,
                                                       input,
                                                       return_predicted_img=return_predicted_img,
                                                       likelihood_obj=likelihood_obj)
@@ -446,7 +457,40 @@ class LadderVAE(pl.LightningModule):
 
         return mixed_prediction, logvar
 
-    def _get_reconstruction_loss_vector(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
+    def unnormalize_ch1(self, ch1_pred):
+        return ch1_pred * self.data_std['target'][:, :1] + self.data_mean['target'][:, :1]
+
+    def unnormalize_input(self, input):
+        return input * self.data_std['input'] + self.data_mean['input']
+
+    def normalize_ch2(self, ch2_pred):
+        return (ch2_pred - self.data_mean['target'][:, 1:]) / self.data_std['target'][:, 1:]
+
+    def get_channel2_prediction(self, channel1_prediction, input):
+        ch1_pred_unnormalized = self.unnormalize_ch1(channel1_prediction)
+        input_unnormalized = self.unnormalize_input(input)
+        ch2_pred_unnormalized = input_unnormalized - ch1_pred_unnormalized
+        assert self.input_is_sum == True
+        ch2_pred = self.normalize_ch2(ch2_pred_unnormalized)
+        return ch2_pred
+
+    def _get_likelihood(self, reconstruction, target, input, likelihood_obj):
+        # Log likelihood
+        # we predict channel 1 and get channel 2
+        ch1_distr_params = likelihood_obj.distr_params(reconstruction)
+        ch1_pred = ch1_distr_params['mean']
+        ch2_pred = self.get_channel2_prediction(ch1_pred, input)
+        distr_params = {'mean': torch.cat([ch1_pred, ch2_pred], dim=1), 'logvar': ch1_distr_params['logvar']}
+        ll = likelihood_obj.log_likelihood(target, distr_params)
+        like_dict = {'mean': distr_params['mean'], 'logvar': distr_params['logvar'], 'params': distr_params}
+        return ll, like_dict
+
+    def _get_reconstruction_loss_vector(self,
+                                        reconstruction,
+                                        target,
+                                        input,
+                                        return_predicted_img=False,
+                                        likelihood_obj=None):
         """
         Args:
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
@@ -454,8 +498,9 @@ class LadderVAE(pl.LightningModule):
 
         if likelihood_obj is None:
             likelihood_obj = self.likelihood
-        # Log likelihood
-        ll, like_dict = likelihood_obj(reconstruction, input)
+
+        ll, like_dict = self._get_likelihood(reconstruction, target, input[:, :1], likelihood_obj)
+
         if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
             pad = self.skip_nboundary_pixels_from_loss
             ll = ll[:, :, pad:-pad, pad:-pad]
@@ -475,7 +520,7 @@ class LadderVAE(pl.LightningModule):
             mixed_pred, mixed_logvar = self.get_mixed_prediction(like_dict['params']['mean'],
                                                                  like_dict['params']['logvar'], self.data_mean,
                                                                  self.data_std)
-            mixed_target = input
+            mixed_target = target
             mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_pred, 'logvar': mixed_logvar})
             output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
@@ -528,7 +573,10 @@ class LadderVAE(pl.LightningModule):
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict, imgs = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        recons_loss_dict, imgs = self.get_reconstruction_loss(out,
+                                                              target_normalized,
+                                                              x_normalized,
+                                                              return_predicted_img=True)
 
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
@@ -582,7 +630,7 @@ class LadderVAE(pl.LightningModule):
         return (x - self.data_mean.mean()) / self.data_std.mean()
 
     def normalize_target(self, target):
-        return (target - self.data_mean) / self.data_std
+        return (target - self.data_mean['target']) / self.data_std['target']
 
     def power_of_2(self, x):
         assert isinstance(x, int)
@@ -612,7 +660,10 @@ class LadderVAE(pl.LightningModule):
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        recons_loss_dict, recons_img = self.get_reconstruction_loss(out,
+                                                                    target_normalized,
+                                                                    x_normalized,
+                                                                    return_predicted_img=True)
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
@@ -635,12 +686,14 @@ class LadderVAE(pl.LightningModule):
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples = []
             for i in range(20):
-                sample, _ = self(x_normalized[0:1, ...])
-                sample = self.likelihood.get_mean_lv(sample)[0]
+                out, _ = self(x_normalized[0:1, ...])
+                sample_ch1 = self.likelihood.get_mean_lv(out)[0]
+                sample_ch2 = self.get_channel2_prediction(sample_ch1, x_normalized[0:1, :1])
+                sample = torch.cat([sample_ch1, sample_ch2], dim=1)
                 all_samples.append(sample[None])
 
             all_samples = torch.cat(all_samples, dim=0)
-            all_samples = all_samples * self.data_std + self.data_mean
+            all_samples = all_samples * self.data_std['target'] + self.data_mean['target']
             all_samples = all_samples.cpu()
             img_mmse = torch.mean(all_samples, dim=0)[0]
             self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
@@ -933,3 +986,22 @@ class LadderVAE(pl.LightningModule):
 
         img = wandb.Image(clamped_mmse[None].cpu().numpy())
         self.trainer.logger.experiment.log({f'{label}/mmse (100 samples)': img})
+
+
+if __name__ == '__main__':
+    import torch
+
+    from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+
+    cnf = get_config()
+    mean_dict = {'target': torch.rand((1, 2, 1, 1)), 'input': 5 * torch.rand((1, 1, 1, 1))}
+    std_dict = {'target': torch.ones((1, 2, 1, 1)), 'input': torch.ones((1, 1, 1, 1))}
+    mean_dict['target'][:, 0] = 10 * mean_dict['target'][:, 0]
+    std_dict['target'][:, 0] = 10 * std_dict['target'][:, 0]
+
+    model = LadderVAE(mean_dict, std_dict, cnf)
+    inp = torch.rand((4, 5, 64, 64))
+    # out = model.forward(inp)
+
+    model.training_step((inp, inp[:, :2]), 0)
+    model.validation_step((inp, inp[:, :2]), 0)
