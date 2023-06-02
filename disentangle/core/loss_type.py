@@ -9,3 +9,4 @@ class LossType:
     ElboWithNbrConsistency = 4
     ElboSemiSupMixedReconstruction = 5
     ElboCL = 6
+    ElboIRFC = 7  # Inter-resolution feature consistency

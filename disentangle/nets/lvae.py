@@ -172,7 +172,7 @@ class LadderVAE(pl.LightningModule):
             # Whether this is the top layer
             is_top = i == self.n_layers - 1
             layer_enable_multiscale = enable_multiscale and self._multiscale_count > i + 1
-            # if multiscale is enabled, this is the factor by which the lowres tensor will be larger than
+            # if multiscale is enabled, this is the factor by which the lowres tensor will be larger than:
             multiscale_lowres_size_factor *= (1 + int(layer_enable_multiscale))
             # Add bottom-up deterministic layer at level i.
             # It's a sequence of residual blocks (BottomUpDeterministicResBlock)
@@ -196,6 +196,7 @@ class LadderVAE(pl.LightningModule):
                               multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
                               multiscale_lowres_size_factor=multiscale_lowres_size_factor,
                               decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
+                              enable_inter_resolution_feature_consistency_loss=self.loss_type == LossType.ElboIRFC,
                               output_expected_shape=output_expected_shape))
             # Add top-down stochastic layer at level i.
             # The architecture when doing inference is roughly as follows:
@@ -534,7 +535,7 @@ class LadderVAE(pl.LightningModule):
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
-        
+
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
@@ -555,6 +556,13 @@ class LadderVAE(pl.LightningModule):
             nbr_cons_loss = self.nbr_consistency_w * self.nbr_consistency_loss.get(imgs, grid_sizes=grid_sizes)
             self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
             recons_loss += nbr_cons_loss
+        elif self.loss_type == LossType.ElboIRFC:
+            irfc_loss_arr = td_data['irfc_loss']
+            irfc_loss = 0
+            for single_irfc_loss in irfc_loss_arr:
+                irfc_loss += single_irfc_loss / len(irfc_loss_arr)
+            self.log('irfc_loss', irfc_loss)
+            recons_loss += irfc_loss
 
         if self.non_stochastic_version:
             kl_loss = torch.Tensor([0.0]).cuda()
@@ -671,8 +679,12 @@ class LadderVAE(pl.LightningModule):
         # Pad input to make everything easier with conv strides
         x_pad = self.pad_input(x)
 
+        inter_resolution_feature_consistency_loss = None
         # Bottom-up inference: return list of length n_layers (bottom to top)
-        bu_values = self.bottomup_pass(x_pad)
+        if self.loss_type == LossType.ElboIRFC:
+            bu_values, inter_resolution_feature_consistency_loss = self.bottomup_pass(x_pad)
+        else:
+            bu_values = self.bottomup_pass(x_pad)
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values, mode_layers=mode_layers)
@@ -680,6 +692,9 @@ class LadderVAE(pl.LightningModule):
         if out.shape[-1] > img_size[-1]:
             # Restore original image size
             out = crop_img_tensor(out, img_size)
+
+        if inter_resolution_feature_consistency_loss is not None:
+            td_data['irfc_loss'] = inter_resolution_feature_consistency_loss
 
         return out, td_data
 
@@ -698,13 +713,21 @@ class LadderVAE(pl.LightningModule):
         # Loop from bottom to top layer, store all deterministic nodes we
         # need in the top-down pass
         bu_values = []
+        inter_resolution_feature_consistency_loss = []
         for i in range(self.n_layers):
             lowres_x = None
             if self._multiscale_count > 1 and i + 1 < inp.shape[1]:
                 lowres_x = lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
 
-            x, bu_value = bottom_up_layers[i](x, lowres_x=lowres_x)
+            if self.loss_type == LossType.ElboIRFC:
+                x, bu_value, irfc_loss = bottom_up_layers[i](x, lowres_x=lowres_x)
+                inter_resolution_feature_consistency_loss.append(irfc_loss)
+            else:
+                x, bu_value = bottom_up_layers[i](x, lowres_x=lowres_x)
             bu_values.append(bu_value)
+
+        if self.loss_type == LossType.ElboIRFC:
+            return bu_values, inter_resolution_feature_consistency_loss
 
         return bu_values
 
@@ -952,4 +975,6 @@ if __name__ == '__main__':
     cnf = get_config()
     model = LadderVAE(torch.zeros((1, 2, 1, 1)), torch.ones((1, 2, 1, 1)), cnf)
     inp = torch.rand((4, 5, 64, 64))
-    out = model.forward(inp)
+    # out = model.forward(inp)
+
+    model.training_step((inp, inp[:, :2]), 0)

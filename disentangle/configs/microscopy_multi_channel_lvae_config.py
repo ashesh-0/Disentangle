@@ -48,7 +48,7 @@ def get_config():
     data.target_separate_normalization = True
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.ElboIRFC
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -68,7 +68,7 @@ def get_config():
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = True
-    model.encoder.lowres_merge_type = LowresMergeType.ConcatAndMix
+    model.encoder.lowres_merge_type = LowresMergeType.CropAndFit
 
     model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1

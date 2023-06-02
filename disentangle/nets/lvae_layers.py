@@ -382,6 +382,7 @@ class BottomUpLayer(nn.Module):
                  lowres_merge_type: LowresMergeType = None,
                  multiscale_retain_spatial_dims: bool = False,
                  decoder_retain_spatial_dims: bool = False,
+                 enable_inter_resolution_feature_consistency_loss: bool = False,
                  output_expected_shape=None):
         """
         Args:
@@ -407,6 +408,10 @@ class BottomUpLayer(nn.Module):
         self.multiscale_retain_spatial_dims = multiscale_retain_spatial_dims
         self.output_expected_shape = output_expected_shape
         self.decoder_retain_spatial_dims = decoder_retain_spatial_dims
+        self.enable_irfc_loss = enable_inter_resolution_feature_consistency_loss
+        self._lowres_merge_type = lowres_merge_type
+
+        assert self._lowres_merge_type == LowresMergeType.CropAndFit or self.enable_irfc_loss is False, "IRFC loss only implemented for CropAndFit mode !"
         assert self.output_expected_shape is None or self.enable_multiscale is True
 
         bu_blocks_downsized = []
@@ -436,7 +441,6 @@ class BottomUpLayer(nn.Module):
         self.net_downsized = nn.Sequential(*bu_blocks_downsized)
         self.net = nn.Sequential(*bu_blocks_samesize)
         # using the same net for the lowresolution (and larger sized image)
-        self._lowres_merge_type = lowres_merge_type
         self.lowres_net = self.lowres_merge = self.multiscale_lowres_size_factor = None
         if self.enable_multiscale:
             self._init_multiscale(
@@ -479,7 +483,11 @@ class BottomUpLayer(nn.Module):
                 multiscale_lowres_size_factor=self.multiscale_lowres_size_factor,
             )
         elif self._lowres_merge_type == LowresMergeType.CropAndFit:
-            self.lowres_merge = ReplaceLayer(None, None, None, n_filters)
+            self.lowres_merge = ReplaceLayer(None,
+                                             None,
+                                             None,
+                                             n_filters,
+                                             return_inter_resolution_feature_consistency_loss=self.enable_irfc_loss)
 
     def forward(self, x, lowres_x=None):
         primary_flow = self.net_downsized(x)
@@ -489,14 +497,21 @@ class BottomUpLayer(nn.Module):
             assert lowres_x is None
             return primary_flow, primary_flow
 
+        irfc_loss = None
         if lowres_x is not None:
             lowres_flow = self.lowres_net(lowres_x)
             # Add the merge code.
-            merged = self.lowres_merge(primary_flow, lowres_flow)
+            if self.enable_irfc_loss:
+                merged, irfc_loss = self.lowres_merge(primary_flow, lowres_flow)
+            else:
+                merged = self.lowres_merge(primary_flow, lowres_flow)
         else:
             merged = primary_flow
 
         if self.multiscale_retain_spatial_dims is False or self.decoder_retain_spatial_dims is True:
+            if self.enable_irfc_loss:
+                return merged, merged, irfc_loss
+
             return merged, merged
 
         if self.output_expected_shape is not None:
@@ -507,6 +522,9 @@ class BottomUpLayer(nn.Module):
             assert merged.shape[-2:] != expected_shape
 
         value_to_use_in_topdown = crop_img_tensor(merged, expected_shape)
+
+        assert self.enable_irfc_loss is False
+
         return merged, value_to_use_in_topdown
 
 

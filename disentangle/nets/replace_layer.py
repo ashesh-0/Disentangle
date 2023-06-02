@@ -9,12 +9,19 @@ class ReplaceLayer(nn.Module):
     Replaces the central portion of large_tensor with small_tensor. 
     """
 
-    def __init__(self, large_tensor_size, small_tensor_size, small_tensor_location, channel_count) -> None:
+    def __init__(self,
+                 large_tensor_size,
+                 small_tensor_size,
+                 small_tensor_location,
+                 channel_count,
+                 return_inter_resolution_feature_consistency_loss=False) -> None:
         super().__init__()
         self._large_sz = large_tensor_size
         self._small_sz = small_tensor_size
         self._loc = small_tensor_location
         self._c = channel_count
+        self._return_irfc_loss = return_inter_resolution_feature_consistency_loss
+
         self._mask = None
         if self._large_sz is not None and self._small_sz is not None:
             self.create_mask()
@@ -39,7 +46,12 @@ class ReplaceLayer(nn.Module):
         assert small_tensor.shape[-3:] == (self._c, *self._small_sz)
         self.set_params_to_same_device_as(large_tensor)
         small_tensor = pad_img_tensor(small_tensor, large_tensor.shape[-2:])
-        return large_tensor * self._mask + small_tensor
+        output = large_tensor * self._mask + small_tensor
+        if self._return_irfc_loss:
+            central_patch_mask = (torch.zeros_like(large_tensor) + self._mask) == 0
+            return output, nn.MSELoss()(small_tensor[central_patch_mask], large_tensor[central_patch_mask])
+        else:
+            return output
 
 
 if __name__ == '__main__':
