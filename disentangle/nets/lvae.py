@@ -355,6 +355,24 @@ class LadderVAE(pl.LightningModule):
                     dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
                     skip_padding=self.encoder_res_block_skip_padding,
+                ),
+                BottomUpDeterministicResBlock(
+                    c_in=self.encoder_n_filters,
+                    c_out=self.encoder_n_filters,
+                    nonlin=nonlin,
+                    batchnorm=self.bottomup_batchnorm,
+                    dropout=self.encoder_dropout,
+                    res_block_type=self.res_block_type,
+                    skip_padding=self.encoder_res_block_skip_padding,
+                ),
+                BottomUpDeterministicResBlock(
+                    c_in=self.encoder_n_filters,
+                    c_out=self.encoder_n_filters,
+                    nonlin=nonlin,
+                    batchnorm=self.bottomup_batchnorm,
+                    dropout=self.encoder_dropout,
+                    res_block_type=self.res_block_type,
+                    skip_padding=self.encoder_res_block_skip_padding,
                 ))
             lowres_first_bottom_ups.append(first_bottom_up)
 
