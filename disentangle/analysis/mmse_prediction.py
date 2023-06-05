@@ -2,6 +2,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
+import torchvision.transforms.functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -164,6 +165,9 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                         tar_normalized = model.normalize_target(tar)
 
                         recon_normalized, _ = model(x_normalized)
+                        if model.encoder_no_padding_mode and recon_normalized.shape[-2:] != tar_normalized.shape[-2:]:
+                            tar_normalized = F.center_crop(tar_normalized, recon_normalized.shape[-2:])
+
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
                                                                        tar_normalized,
                                                                        return_predicted_img=True)
