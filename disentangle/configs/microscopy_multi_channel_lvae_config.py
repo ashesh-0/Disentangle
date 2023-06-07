@@ -67,15 +67,15 @@ def get_config():
     model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
-    model.encoder.res_block_skip_padding = True
-    model.encoder.lowres_merge_type = LowresMergeType.CropAndFit
+    model.encoder.res_block_skip_padding = False
+    model.encoder.lowres_merge_type = LowresMergeType.ConcatAndMix
 
     model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
-    model.decoder.res_block_skip_padding = True
+    model.decoder.res_block_skip_padding = False
 
     model.decoder.multiscale_retain_spatial_dims = True
 
