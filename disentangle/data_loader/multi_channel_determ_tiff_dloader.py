@@ -326,9 +326,14 @@ class MultiChDeterministicTiffDloader:
         mean, std = self.get_mean_std()
         mean = mean.squeeze()
         std = std.squeeze()
+        assert mean[0] == mean[1]
+        nchan = len(img_tuples)
+        mean_ = mean[0] / nchan
+        assert std[0] == std[1]
+
         normalized_imgs = []
         for i, img in enumerate(img_tuples):
-            img = (img - mean[i]) / std[i]
+            img = (img - mean_) / std[i]
             normalized_imgs.append(img)
         return tuple(normalized_imgs)
 
