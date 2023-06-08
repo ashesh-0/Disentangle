@@ -62,6 +62,7 @@ def get_config():
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
 
+    model.encoder.first_bottom_up_num_blocks = 3
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64

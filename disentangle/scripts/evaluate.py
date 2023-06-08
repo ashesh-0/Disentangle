@@ -364,6 +364,10 @@ def main(
         mmse_count=mmse_count,
         model_type=config.model.model_type,
     )
+    if pred_tiled.shape[-1] != val_dset.get_img_sz():
+        pad = (val_dset.get_img_sz() - pred_tiled.shape[-1]) // 2
+        pred_tiled = np.pad(pred_tiled, ((0, 0), (0, 0), (pad, pad), (pad, pad)))
+
     pred = stitch_predictions(pred_tiled, val_dset)
     print('Stitched predictions shape', pred.shape)
 
@@ -464,14 +468,8 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file():
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/77',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/78',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/79',
-        '/home/ashesh.ashesh/training/disentangle/2211/D7-M3-S0-L0/1',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/91',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/89',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/90',
-        '/home/ashesh.ashesh/training/disentangle/2211/D7-M3-S0-L0/2',
+        '/home/ashesh.ashesh/training/disentangle/2306/D3-M3-S0-L0/0',
+        '/home/ashesh.ashesh/training/disentangle/2306/D3-M3-S0-L0/3'
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -483,7 +481,7 @@ def save_hardcoded_ckpt_evaluations_to_file():
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    patchsz_gridsz_tuples = [(64, 16), (64, 32)]
+    patchsz_gridsz_tuples = [(64, 32), (192, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:

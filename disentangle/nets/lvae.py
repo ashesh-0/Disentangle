@@ -156,7 +156,9 @@ class LadderVAE(pl.LightningModule):
         # First bottom-up layer: change num channels + downsample by factor 2
         # unless we want to prevent this
         stride = 1 if config.model.no_initial_downscaling else 2
-        self.first_bottom_up = self.create_first_bottom_up(stride)
+        self.first_bottom_up = self.create_first_bottom_up(stride,
+                                                           num_blocks=config.model.encoder.get(
+                                                               'first_bottom_up_num_blocks', 1))
         self.multiscale_retain_spatial_dims = config.model.multiscale_retain_spatial_dims
         self.lowres_first_bottom_ups = self._multiscale_count = None
         self._init_multires(config)
