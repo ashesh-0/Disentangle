@@ -25,12 +25,12 @@ def get_config():
     # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
     # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
     # the background noise is also a distribution. So, some amount of background noise will remain.
-    data.clip_background_noise_to_zero = True
+    data.clip_background_noise_to_zero = False
 
     # we will not subtract the mean of the dataset from every patch. We just want to subtract the background and normalize using std. This way, background will be very close to 0.
     # this will help in the all scaling related approaches where we want to multiply the frame with some factor and then add them. we will then effectively just do these scaling on the
     # foreground pixels and the background will anyways will remain very close to 0.
-    data.skip_normalization_using_mean = True
+    data.skip_normalization_using_mean = False
 
     data.input_is_sum = True
 

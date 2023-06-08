@@ -466,8 +466,8 @@ class LadderVAE(pl.LightningModule):
     def normalize_ch2(self, ch2_pred):
         return (ch2_pred - self.data_mean['target'][:, 1:]) / self.data_std['target'][:, 1:]
 
-    def get_channel2_prediction(self, channel1_prediction, input):
-        ch1_pred_unnormalized = self.unnormalize_ch1(channel1_prediction)
+    def get_channel2_prediction(self, ch1_pred, input):
+        ch1_pred_unnormalized = self.unnormalize_ch1(ch1_pred)
         input_unnormalized = self.unnormalize_input(input)
         ch2_pred_unnormalized = input_unnormalized - ch1_pred_unnormalized
         assert self.input_is_sum == True
