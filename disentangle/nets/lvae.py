@@ -83,8 +83,11 @@ class LadderVAE(pl.LightningModule):
             self.data_mean[data_key] = torch.Tensor(data_mean[data_key])
             self.data_std[data_key] = torch.Tensor(data_std[data_key])
 
-        self.data_mean['input'] = self.data_mean['input'].reshape(1, 1, 1, 1)
-        self.data_std['input'] = self.data_std['input'].reshape(1, 1, 1, 1)
+        assert self.data_mean['input'].squeeze()[0] == self.data_mean['input'].squeeze()[1]
+        assert self.data_std['input'].squeeze()[0] == self.data_std['input'].squeeze()[1]
+
+        self.data_mean['input'] = self.data_mean['input'][0, 0].reshape(1, 1, 1, 1)
+        self.data_std['input'] = self.data_std['input'][0, 0].reshape(1, 1, 1, 1)
 
         self.noiseModel = get_noise_model(config.datadir, config.model)
         self.merge_type = config.model.merge_type
@@ -649,6 +652,11 @@ class LadderVAE(pl.LightningModule):
                 self.data_mean = self.data_mean.to(correct_device_tensor.device)
                 self.data_std = self.data_std.to(correct_device_tensor.device)
                 self.likelihood.set_params_to_same_device_as(correct_device_tensor)
+        elif isinstance(self.data_mean, dict):
+            for key in self.data_mean.keys():
+                if self.data_mean[key].device != correct_device_tensor.device:
+                    self.data_mean[key] = self.data_mean[key].to(correct_device_tensor.device)
+                    self.data_std[key] = self.data_std[key].to(correct_device_tensor.device)
 
     def validation_step(self, batch, batch_idx):
         x, target = batch[:2]
