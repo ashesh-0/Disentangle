@@ -72,6 +72,8 @@ class LadderVAE(pl.LightningModule):
         self.encoder_res_block_skip_padding = config.model.encoder.res_block_skip_padding
         self.decoder_res_block_skip_padding = config.model.decoder.res_block_skip_padding
 
+        self._add_noise_to_input_sigma = config.model.get('add_noise_to_input_sigma', None)
+
         self.gated = config.model.gated
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
@@ -521,6 +523,9 @@ class LadderVAE(pl.LightningModule):
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         x, target = batch[:2]
+        if self._add_noise_to_input_sigma is not None:
+            x += torch.randn_like(x) * self._add_noise_to_input_sigma
+
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
 
@@ -933,3 +938,16 @@ class LadderVAE(pl.LightningModule):
 
         img = wandb.Image(clamped_mmse[None].cpu().numpy())
         self.trainer.logger.experiment.log({f'{label}/mmse (100 samples)': img})
+
+
+if __name__ == '__main__':
+    import torch
+
+    from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+
+    cnf = get_config()
+    model = LadderVAE(torch.zeros((1, 2, 1, 1)), torch.ones((1, 2, 1, 1)), cnf)
+    inp = torch.rand((4, 1, 64, 64))
+    # out = model.forward(inp)
+
+    model.training_step((inp, inp[:, :2]), 0)
