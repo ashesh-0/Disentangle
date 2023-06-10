@@ -97,7 +97,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     model.non_stochastic_version = False
-    model.add_noise_to_input_sigma = 5
+    model.add_noise_to_input_sigma = 0.3
 
     training = config.training
     training.lr = 0.001
