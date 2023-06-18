@@ -8,3 +8,4 @@ class SamplerType(Enum):
     NeighborSampler = 3
     ContrastiveSampler = 4
     DefaultGridSampler = 5
+    IntensityAugSampler = 6

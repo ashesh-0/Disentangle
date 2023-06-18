@@ -17,6 +17,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.model_type import ModelType
+from disentangle.data_loader.intensity_augm_tiff_dloader import IntensityAugCLTiffDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
 from disentangle.data_loader.multi_channel_tiff_dloader import MultiChTiffDloader
@@ -44,6 +45,45 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         label2 = config.data.label2
         train_data = None if skip_train_dataset else NotMNISTNoisyLoader(datapath, train_img_files_pkl, label1, label2)
         val_data = NotMNISTNoisyLoader(datapath, val_img_files_pkl, label1, label2)
+    elif config.model.model_type == ModelType.LVaeDeepEncoderIntensityAug:
+        train_data_kwargs = {'allow_generation': True}
+        val_data_kwargs = {'allow_generation': False}
+        train_data_kwargs['enable_random_cropping'] = enable_random_cropping
+        val_data_kwargs['enable_random_cropping'] = False
+        data_class = IntensityAugCLTiffDloader
+        train_data = None if skip_train_dataset else data_class(
+            config.data,
+            datapath,
+            datasplit_type=DataSplitType.Train,
+            val_fraction=config.training.val_fraction,
+            test_fraction=config.training.test_fraction,
+            normalized_input=normalized_input,
+            use_one_mu_std=use_one_mu_std,
+            enable_rotation_aug=train_aug_rotate,
+            return_alpha=config.data.return_alpha,
+            use_alpha_invariant_mean=config.data.use_alpha_invariant_mean,
+            **train_data_kwargs)
+
+        max_val = train_data.get_max_val()
+        val_data = data_class(
+            config.data,
+            datapath,
+            datasplit_type=DataSplitType.Val,
+            val_fraction=config.training.val_fraction,
+            test_fraction=config.training.test_fraction,
+            normalized_input=normalized_input,
+            use_one_mu_std=use_one_mu_std,
+            enable_rotation_aug=False,  # No rotation aug on validation
+            return_alpha=config.data.return_alpha,
+            use_alpha_invariant_mean=config.data.use_alpha_invariant_mean,
+            max_val=max_val,
+            **val_data_kwargs,
+        )
+
+        # For normalizing, we should be using the training data's mean and std.
+        mean_val, std_val = train_data.compute_mean_std()
+        train_data.set_mean_std(mean_val, std_val)
+        val_data.set_mean_std(mean_val, std_val)
     elif config.data.data_type == DataType.Places365:
         train_datapath = os.path.join(datadir, 'Noise-1', 'train')
         val_datapath = os.path.join(datadir, 'Noise-1', 'val')
@@ -362,7 +402,8 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             trainer = pl.Trainer(
                 gpus=1,
                 max_epochs=config.training.max_epochs,
-                gradient_clip_val=None if model.automatic_optimization == False else config.training.grad_clip_norm_value,
+                gradient_clip_val=None
+                if model.automatic_optimization == False else config.training.grad_clip_norm_value,
                 # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
                 logger=logger,
                 # fast_dev_run=10,
@@ -374,7 +415,8 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             trainer = pl.Trainer(
                 # gpus=1,
                 max_epochs=config.training.max_epochs,
-                gradient_clip_val=None if model.automatic_optimization == False else config.training.grad_clip_norm_value,
+                gradient_clip_val=None
+                if model.automatic_optimization == False else config.training.grad_clip_norm_value,
                 # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
                 logger=logger,
                 # fast_dev_run=10,

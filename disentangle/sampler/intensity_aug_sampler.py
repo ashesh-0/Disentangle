@@ -19,13 +19,13 @@ class LevelIndexIterator:
         return [self.next() for _ in range(N)]
 
 
-class ContrastiveSamplerValSet(Sampler):
+class IntensityAugValSampler(Sampler):
     INVALID = -955
 
-    def __init__(self, dataset, grid_size, batch_size, fixed_alpha=-1) -> None:
+    def __init__(self, dataset, grid_size, batch_size, fixed_alpha_idx=-1) -> None:
         super().__init__(dataset)
         # In validation, we just look at the cases which we'll find in the test case. alpha=0.5 is that case. This corresponds to the -1 class.
-        self._alpha = fixed_alpha
+        self._alpha_idx = fixed_alpha_idx
         self._N = len(dataset)
         self._batch_N = batch_size
         self._grid_size = grid_size
@@ -40,7 +40,7 @@ class ContrastiveSamplerValSet(Sampler):
             batch_data_idx[:, 0] = np.arange(start_idx, end_idx)
             batch_data_idx[:, 1] = batch_data_idx[:, 0]
             batch_data_idx[:, 2] = self._grid_size
-            batch_data_idx[:, 3] = self._alpha
+            batch_data_idx[:, 3] = self._alpha_idx
             yield batch_data_idx
 
 
@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
     ch1_alpha_interval_count = 30
     data_size = 1000
-    num_intensity_variations = 4
+    num_intensity_variations = 2
     batch_size = 32
     sampler = IntensityAugSampler(DummyDset(), data_size, ch1_alpha_interval_count, num_intensity_variations,
                                   batch_size)
