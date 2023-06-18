@@ -78,33 +78,15 @@ class IntensityAugSampler(Sampler):
         """
         self.init()
         for one_batch_idx in self.batches_idx_list:
-            alpha_idx_list, ch1_idx_list, ch2_idx_list = one_batch_idx
+            alpha_idx_list, idx_list = one_batch_idx
 
             # 4 channels: ch1_idx, ch2_idx, grid_size, alpha_idx
             batch_data_idx = np.ones((self._batch_N, 4), dtype=np.int32) * self.INVALID
             # grid size will always be 1.
+            batch_data_idx[:, 0] = idx_list
+            batch_data_idx[:, 1] = idx_list
             batch_data_idx[:, 2] = self._grid_size
-
-            # Set alpha indices appropriately.
-            for idx in range(0, self._batch_N // 2):
-                batch_data_idx[2 * idx, 3] = alpha_idx_list[idx]
-                batch_data_idx[2 * idx + 1, 3] = alpha_idx_list[idx]
-
-            # Set ch1 indices
-            for idx in range(0, self._batch_N // 2 - 1):
-                batch_data_idx[2 * idx + 1, 0] = ch1_idx_list[idx]
-                batch_data_idx[2 * idx + 2, 0] = ch1_idx_list[idx]
-
-            batch_data_idx[0, 0] = ch1_idx_list[-1]
-            batch_data_idx[-1, 0] = ch1_idx_list[-1]
-
-            # Set ch2 indices
-            for idx in range(0, self._batch_N // 2 - 1):
-                batch_data_idx[2 * idx, 1] = ch2_idx_list[idx]
-                batch_data_idx[2 * idx + 3, 1] = ch2_idx_list[idx]
-
-            batch_data_idx[1, 1] = ch2_idx_list[-1]
-            batch_data_idx[-2, 1] = ch2_idx_list[-1]
+            batch_data_idx[:, 3] = alpha_idx_list
 
             assert (batch_data_idx == self.INVALID).any() == False
             yield batch_data_idx
