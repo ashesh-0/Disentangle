@@ -48,6 +48,8 @@ class LadderVAETwinDecoder(LadderVAE):
                     res_block_type=self.res_block_type,
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
+                    conv2d_bias=self.topdown_conv2d_bias,
+                    non_stochastic_version=self.non_stochastic_version,
                 ))
 
             self.top_down_layers_l2.append(
@@ -67,6 +69,8 @@ class LadderVAETwinDecoder(LadderVAE):
                     res_block_type=self.res_block_type,
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
+                    conv2d_bias=self.topdown_conv2d_bias,
+                    non_stochastic_version=self.non_stochastic_version,
                 ))
 
         # Final top-down layer
@@ -99,6 +103,7 @@ class LadderVAETwinDecoder(LadderVAE):
                     dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
                     gated=self.gated,
+                    conv2d_bias=self.topdown_conv2d_bias,
                 ))
 
         return nn.Sequential(*modules)
