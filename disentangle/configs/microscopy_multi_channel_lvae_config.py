@@ -68,7 +68,7 @@ def get_config():
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
-    model.decoder.batchnorm = True
+    model.decoder.batchnorm = False
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
     model.decoder.dropout = 0.1
@@ -76,6 +76,7 @@ def get_config():
     model.decoder.res_block_skip_padding = False
 
     model.decoder.multiscale_retain_spatial_dims = False
+    config.model.decoder.conv2d_bias = False
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -96,7 +97,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = False
+    model.non_stochastic_version = True
 
     training = config.training
     training.lr = 0.001

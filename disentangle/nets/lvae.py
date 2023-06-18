@@ -40,7 +40,7 @@ class LadderVAE(pl.LightningModule):
         self.lr = config.training.lr
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
         # grayscale input
-        self.color_ch = 1
+        self.color_ch = config.data.get('color_ch', 1)
 
         # disentangling two grayscale images.
         self.target_ch = target_ch
