@@ -439,6 +439,20 @@ class MultiChDeterministicTiffDloader:
                 final_img_tuples.append(img_tuples[tuple_idx])
         return tuple(final_img_tuples)
 
+    def _compute_input(self, img_tuples):
+        if self._normalized_input:
+            img_tuples = self.normalize_img(*img_tuples)
+
+        inp = 0
+        for img in img_tuples:
+            inp += img / (len(img_tuples))
+
+        if self._input_is_sum:
+            inp = inp * len(img_tuples)
+
+        inp = inp.astype(np.float32)
+        return inp
+
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         img_tuples = self._get_img(index)
         if self._empty_patch_replacement_enabled:
@@ -453,17 +467,7 @@ class MultiChDeterministicTiffDloader:
             img2 = rot_dic['mask'][None]
 
         target = np.concatenate(img_tuples, axis=0)
-        if self._normalized_input:
-            img_tuples = self.normalize_img(*img_tuples)
-
-        inp = 0
-        for img in img_tuples:
-            inp += img / (len(img_tuples))
-
-        if self._input_is_sum:
-            inp = inp * len(img_tuples)
-
-        inp = inp.astype(np.float32)
+        inp = self._compute_input(self, img_tuples)
 
         if isinstance(index, int):
             return inp, target
