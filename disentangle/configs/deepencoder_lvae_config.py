@@ -12,7 +12,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
+    data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
@@ -21,6 +21,7 @@ def get_config():
     data.ch1_max_alpha = 0.7
     data.ch1_alpha_interval_count = 20
     data.num_intensity_variations = 4
+    data.return_individual_channels = True
 
     data.sampler_type = SamplerType.IntensityAugSampler
 
@@ -30,6 +31,7 @@ def get_config():
     data.use_alpha_invariant_mean = True
     data.return_alpha = True
     data.background_quantile = 0.0
+
     # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
     # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
     # the background noise is also a distribution. So, some amount of background noise will remain.
@@ -47,7 +49,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.

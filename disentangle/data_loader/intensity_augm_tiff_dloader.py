@@ -181,7 +181,7 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
             img_tuples, alpha, use_alpha_invariant_mean=self._use_alpha_invariant_mean), alpha, alpha_class_idx
 
     def __getitem__(self, index: Union[int, Tuple[int, int, int, int]]) -> Tuple[np.ndarray, np.ndarray]:
-        if isinstance(index, tuple):
+        if isinstance(index, tuple) or isinstance(index, np.ndarray):
             if len(index) == 4:
                 ch1_idx, ch2_idx, grid_size, alpha_class_idx = index
             elif len(index) == 3:

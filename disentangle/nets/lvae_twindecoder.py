@@ -196,7 +196,7 @@ class LadderVAETwinDecoder(LadderVAE):
         return grad_norm_bottom_up, grad_norm_top_down
 
     def training_step(self, batch, batch_idx):
-        x, target = batch
+        x, target = batch[:2]
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
 
@@ -220,7 +220,7 @@ class LadderVAETwinDecoder(LadderVAE):
         return output
 
     def validation_step(self, batch, batch_idx):
-        x, target = batch
+        x, target = batch[:2]
         self.set_params_to_same_device_as(target)
 
         x_normalized = self.normalize_input(x)
