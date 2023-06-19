@@ -12,13 +12,13 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 256
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
 
-    data.ch1_min_alpha = 0.3
-    data.ch1_max_alpha = 0.7
+    data.ch1_min_alpha = 0.2
+    data.ch1_max_alpha = 0.6
     data.ch1_alpha_interval_count = 20
     data.num_intensity_variations = 4
     data.return_individual_channels = True
