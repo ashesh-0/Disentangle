@@ -23,6 +23,7 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
 
         self.num_intensity_variations = config.data.num_intensity_variations
         self.enable_decoder_equivariance = config.loss.enable_decoder_equivariance
+
         if self.enable_decoder_equivariance:
             self.decoder_equivariance_loss_w = config.loss.decoder_equivariance_loss_weight
         self.enable_input_alphasum_of_channels = config.data.target_separate_normalization == False
@@ -55,7 +56,7 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
         for elem in mse_l1:
             net_mse += elem / (len(mse_l1))
 
-        mse_l2 = self.compute_decoder_equivariance_loss(bu_values_l2, alphas)
+        mse_l2 = self.compute_decoder_equivariance_loss(bu_values_l2, 1 - alphas)
         for elem in mse_l2:
             net_mse += elem / (len(mse_l2))
         return net_mse

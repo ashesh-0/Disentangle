@@ -20,6 +20,9 @@ class LadderVAETwinDecoder(LadderVAE):
     def __init__(self, data_mean, data_std, config):
         super().__init__(data_mean, data_std, config, target_ch=1)
 
+        self.ch1_recons_w = config.loss.get('ch1_recons_w', 1)
+        self.ch2_recons_w = config.loss.get('ch2_recons_w', 1)
+
         del self.top_down_layers
         self.top_down_layers = None
         self.top_down_layers_l1 = nn.ModuleList([])
@@ -193,7 +196,7 @@ class LadderVAETwinDecoder(LadderVAE):
 
         ll, like2_dict = self.likelihood_l2(reconstruction_l2, target[:, 1:])
         recons_loss_l2 = -ll.mean()
-        recon_loss = (recons_loss_l1 + recons_loss_l2) / 2
+        recon_loss = (self.ch1_recons_w * recons_loss_l1 + self.ch2_recons_w * recons_loss_l2) / 2
         if return_predicted_img:
             rec_imgs = [like1_dict['params']['mean'], like2_dict['params']['mean']]
             return recon_loss, rec_imgs
