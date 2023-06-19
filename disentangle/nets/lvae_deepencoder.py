@@ -1,5 +1,7 @@
 from copy import deepcopy
 
+import torch
+
 import ml_collections
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
