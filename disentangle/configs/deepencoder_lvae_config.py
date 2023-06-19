@@ -66,6 +66,8 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
+    loss.enable_decoder_equivariance = True
+    loss.decoder_equivariance_loss_weight = 0.1
 
     model = config.model
     model.model_type = ModelType.LVaeDeepEncoderIntensityAug

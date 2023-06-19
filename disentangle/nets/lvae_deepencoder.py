@@ -8,6 +8,12 @@ from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
 class LVAEWithDeepEncoder(LadderVAETwinDecoder):
 
     def __init__(self, data_mean, data_std, config):
+
+        self.num_intensity_variations = config.data.num_intensity_variations
+        self.enable_decoder_equivariance = config.loss.enable_decoder_equivariance
+        if self.enable_decoder_equivariance:
+            self.decoder_equivariance_loss_w = config.loss.decoder_equivariance_loss_weight
+
         config = ml_collections.ConfigDict(config)
         new_config = deepcopy(config)
         with new_config.unlocked():
@@ -29,23 +35,91 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
         encoded, _ = self.extra_encoder(x)
         return super().forward(encoded)
 
+    def compute_decoder_equivariance_loss(self, bu_values, alphas):
+        mse_losses = []
+        for bu_value in bu_values:
+            new_shape = (len(bu_value) // self.num_intensity_variations, self.num_intensity_variations,
+                         *bu_value.shape[1:])
+            bu_value = bu_value / alphas
+            bu_value = bu_value.view(new_shape)
+            mse = torch.nn.MSELoss()(bu_value[:, :1], bu_value)
+            mse_losses.append(mse)
+        return mse_losses
+
+    def get_decoder_equivariance_loss(self, bu_values_l1, bu_values_l2, alphas):
+        net_mse = 0
+        mse_l1 = self.compute_decoder_equivariance_loss(bu_values_l1, alphas)
+        for elem in mse_l1:
+            net_mse += elem / (len(mse_l1))
+
+        mse_l2 = self.compute_decoder_equivariance_loss(bu_values_l2, alphas)
+        for elem in mse_l2:
+            net_mse += elem / (len(mse_l2))
+        return net_mse
+
+    def training_step(self, batch, batch_idx):
+        x, target = batch[:2]
+        x_normalized = self.normalize_input(x)
+        target_normalized = self.normalize_target(target)
+
+        if self.enable_input_alphasum_of_channels:
+            # adjust the targets for the alpha
+            alpha = batch[2][:, None, None, None]
+            tar1 = target_normalized[:, :1] * alpha
+            tar2 = target_normalized[:, 1:] * (1 - alpha)
+            target_normalized = torch.cat([tar1, tar2], dim=1)
+            if batch_idx == 0:
+                assert torch.abs(torch.sum(target_normalized, dim=1, keepdim=True) - x_normalized).max().item() < 1e-5
+
+        out_l1, out_l2, td_data = self.forward(x_normalized)
+
+        recons_loss = self.get_reconstruction_loss(out_l1, out_l2, target_normalized)
+        if self.non_stochastic_version:
+            kl_loss = torch.Tensor([0.0]).cuda()
+            net_loss = recons_loss
+        else:
+            kl_loss = self.get_kl_divergence_loss(td_data)
+            net_loss = recons_loss + self.get_kl_weight() * kl_loss
+
+        if self.enable_decoder_equivariance:
+            alpha_val = batch[2]
+            dec_eqiv_loss = self.get_decoder_equivariance_loss(td_data['bu_values_l1'], td_data['bu_values_l2'],
+                                                               alpha_val)
+            self.log('decoder_eqiv_loss', dec_eqiv_loss, on_epoch=True)
+            net_loss += dec_eqiv_loss * self.decoder_equivariance_loss_w
+
+        self.log('reconstruction_loss', recons_loss, on_epoch=True)
+        self.log('kl_loss', kl_loss, on_epoch=True)
+        self.log('training_loss', net_loss, on_epoch=True)
+        self.log('lr', self.lr, on_epoch=True)
+        self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
+        self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
+        output = {
+            'loss': net_loss,
+            'reconstruction_loss': recons_loss.detach(),
+            'kl_loss': kl_loss.detach(),
+        }
+        return output
+
 
 if __name__ == '__main__':
+    import numpy as np
     import torch
 
     from disentangle.configs.deepencoder_lvae_config import get_config
+
     config = get_config()
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
     data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
     model = LVAEWithDeepEncoder(data_mean, data_std, config)
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count + 1
-    inp = torch.rand((2, mc, 64, 64))
+    inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
     out1, out2, td_data = model(inp)
     print(out1.shape, out2.shape)
     print(td_data)
     # decoder invariance.
     bu_values_l1 = []
-    for i in range(1, config.data.multiscale_lowres_count + 1):
+    for i in range(1, len(config.model.z_dims)):
         isz = config.data.image_size
         z = config.model.encoder.n_filters
         pow = 2**(i)
@@ -67,3 +141,7 @@ if __name__ == '__main__':
 
     max_diff = torch.abs(out_l1_1x * 10 - out_l1_10x).max().item()
     assert max_diff < 1e-5
+    # inp, target, alpha_val, ch1_idx, ch2_idx
+    batch = (torch.rand((16, mc, 64, 64)), torch.rand(
+        (16, 2, 64, 64)), np.random.randint(20, size=16), np.random.randint(1000), np.random.randint(1000))
+    model.training_step(batch, 0)

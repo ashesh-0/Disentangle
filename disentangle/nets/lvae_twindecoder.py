@@ -24,7 +24,7 @@ class LadderVAETwinDecoder(LadderVAE):
         self.top_down_layers = None
         self.top_down_layers_l1 = nn.ModuleList([])
         self.top_down_layers_l2 = nn.ModuleList([])
-
+        self.enable_input_alphasum_of_channels = config.get('enable_input_alphasum_of_channels', False)
         nonlin = self.get_nonlin()
 
         for i in range(self.n_layers):
@@ -178,7 +178,10 @@ class LadderVAETwinDecoder(LadderVAE):
 
         td_data = {
             'z': [torch.cat([td_data_l1['z'][i], td_data_l2['z'][i]], dim=1) for i in range(len(td_data_l1['z']))],
+            'bu_values_l1': bu_values_l1,
+            'bu_values_l2': bu_values_l2,
         }
+
         if td_data_l2['kl'][0] is not None:
             td_data['kl'] = [(td_data_l1['kl'][i] + td_data_l2['kl'][i]) / 2 for i in range(len(td_data_l1['kl']))]
         return out_l1, out_l2, td_data
@@ -207,6 +210,15 @@ class LadderVAETwinDecoder(LadderVAE):
         x, target = batch[:2]
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
+
+        if self.enable_input_alphasum_of_channels:
+            # adjust the targets for the alpha
+            alpha = batch[2][:, None, None, None]
+            tar1 = target_normalized[:, :1] * alpha
+            tar2 = target_normalized[:, 1:] * (1 - alpha)
+            target_normalized = torch.cat([tar1, tar2], dim=1)
+            if batch_idx == 0:
+                assert torch.abs(torch.sum(target_normalized, dim=1, keepdim=True) - x_normalized).max().item() < 1e-5
 
         out_l1, out_l2, td_data = self.forward(x_normalized)
 
