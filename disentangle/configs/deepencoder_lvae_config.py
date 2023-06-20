@@ -54,7 +54,7 @@ def get_config():
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
-    data.target_separate_normalization = True
+    data.target_separate_normalization = False
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -69,7 +69,7 @@ def get_config():
     loss.enable_decoder_equivariance = True
     loss.decoder_equivariance_loss_weight = 0.1
     loss.ch1_recons_w = 1
-    loss.ch2_recons_w = 5
+    loss.ch2_recons_w = 10
 
     model = config.model
     model.model_type = ModelType.LVaeDeepEncoderIntensityAug
