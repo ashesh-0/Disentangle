@@ -85,10 +85,13 @@ class LadderVAETwinDecoder(LadderVAE):
         self.likelihood = None
         self.likelihood_l1 = GaussianLikelihood(self.decoder_n_filters // 2,
                                                 self.target_ch,
-                                                predict_logvar=self.predict_logvar)
+                                                predict_logvar=self.predict_logvar,
+                                                conv2d_bias=self.topdown_conv2d_bias)
+
         self.likelihood_l2 = GaussianLikelihood(self.decoder_n_filters // 2,
                                                 self.target_ch,
-                                                predict_logvar=self.predict_logvar)
+                                                predict_logvar=self.predict_logvar,
+                                                conv2d_bias=self.topdown_conv2d_bias)
         print(f'[{self.__class__.__name__}]')
 
     def set_params_to_same_device_as(self, correct_device_tensor):

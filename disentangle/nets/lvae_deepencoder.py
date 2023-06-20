@@ -140,11 +140,16 @@ if __name__ == '__main__':
         top_down_layers=model.top_down_layers_l1,
         final_top_down_layer=model.final_top_down_l1,
     )
-    # out_l1_1x = model.top_down_layers_l1[0](None, bu_value=bu_values_l1[0], inference_mode=True,use_mode=True)
-    # out_l1_10x = model.top_down_layers_l1[0](None, bu_value=10*bu_values_l1[0], inference_mode=True,use_mode=True)
 
     max_diff = torch.abs(out_l1_1x * 10 - out_l1_10x).max().item()
     assert max_diff < 1e-5
+    out_l1_1x, _ = model.likelihood_l1.get_mean_lv(out_l1_1x)
+    out_l1_10x, _ = model.likelihood_l1.get_mean_lv(out_l1_10x)
+    max_diff = torch.abs(out_l1_1x * 10 - out_l1_10x).max().item()
+    assert max_diff < 1e-5
+    # out_l1_1x = model.top_down_layers_l1[0](None, bu_value=bu_values_l1[0], inference_mode=True,use_mode=True)
+    # out_l1_10x = model.top_down_layers_l1[0](None, bu_value=10*bu_values_l1[0], inference_mode=True,use_mode=True)
+
     # inp, target, alpha_val, ch1_idx, ch2_idx
     batch = (torch.rand((16, mc, config.data.image_size, config.data.image_size)),
              torch.rand((16, 2, config.data.image_size, config.data.image_size)),
