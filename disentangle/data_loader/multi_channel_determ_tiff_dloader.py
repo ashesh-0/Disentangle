@@ -467,7 +467,7 @@ class MultiChDeterministicTiffDloader:
             img2 = rot_dic['mask'][None]
 
         target = np.concatenate(img_tuples, axis=0)
-        inp = self._compute_input(self, img_tuples)
+        inp = self._compute_input(img_tuples)
 
         if isinstance(index, int):
             return inp, target
