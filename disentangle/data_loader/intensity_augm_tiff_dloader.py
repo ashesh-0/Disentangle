@@ -187,6 +187,11 @@ class IntensityAugCLTiffDloader(IntensityAugTiffDloader):
             elif len(index) == 3:
                 ch1_idx, ch2_idx, grid_size = index
                 alpha_class_idx = np.random.randint(0, high=self._ch1_alpha_interval_count) if self._is_train else -1
+        else:
+            ch1_idx = index
+            ch2_idx = index
+            grid_size = self._img_sz
+            alpha_class_idx = -1
 
         index1 = (ch1_idx, grid_size)
         img1_tuples = self._get_img(index1)
