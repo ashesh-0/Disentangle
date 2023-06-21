@@ -17,7 +17,7 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
             new_config.data.color_ch = config.model.encoder.n_filters
             new_config.data.multiscale_lowres_count = None  # multiscaleing is inside the extra encoder.
             new_config.model.gated = False
-            new_config.model.decoder.dropout = 0.
+            new_config.model.decoder.dropout = 0.1
             new_config.model.merge_type = 'residual_ungated'
         super().__init__(data_mean, data_std, new_config)
 
