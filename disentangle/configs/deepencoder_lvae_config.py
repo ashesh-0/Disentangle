@@ -17,10 +17,10 @@ def get_config():
     data.channel_1 = 2
     data.channel_2 = 3
 
-    data.ch1_min_alpha = 0.3
-    data.ch1_max_alpha = 0.5
+    data.ch1_min_alpha = 0.2
+    data.ch1_max_alpha = 0.6
     data.ch1_alpha_interval_count = 20
-    data.num_intensity_variations = 4
+    data.num_intensity_variations = 8
     data.return_individual_channels = True
 
     data.sampler_type = SamplerType.DefaultSampler
