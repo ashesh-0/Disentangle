@@ -20,10 +20,10 @@ def get_config():
     data.ch1_min_alpha = 0.3
     data.ch1_max_alpha = 0.5
     data.ch1_alpha_interval_count = 20
-    data.num_intensity_variations = 2
+    data.num_intensity_variations = 4
     data.return_individual_channels = True
 
-    data.sampler_type = SamplerType.DefaultSampler
+    data.sampler_type = SamplerType.IntensityAugSampler
 
     data.deterministic_grid = False
     data.normalized_input = True
