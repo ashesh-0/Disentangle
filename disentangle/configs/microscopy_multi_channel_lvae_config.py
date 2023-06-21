@@ -32,7 +32,7 @@ def get_config():
     # foreground pixels and the background will anyways will remain very close to 0.
     data.skip_normalization_using_mean = False
 
-    data.input_is_sum = True
+    data.input_is_sum = False
 
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
@@ -44,7 +44,7 @@ def get_config():
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
-    data.target_separate_normalization = True
+    data.target_separate_normalization = False
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
