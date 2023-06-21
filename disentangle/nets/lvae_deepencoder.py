@@ -62,13 +62,14 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
         return net_mse
 
     def normalize_target(self, target, batch=None):
-        target = super().normalize_target(target)
+        target_normalized = super().normalize_target(target)
         if self.enable_input_alphasum_of_channels:
             # adjust the targets for the alpha
             alpha = batch[2][:, None, None, None]
             tar1 = target_normalized[:, :1] * alpha
             tar2 = target_normalized[:, 1:] * (1 - alpha)
             target_normalized = torch.cat([tar1, tar2], dim=1)
+        return target_normalized
 
     def training_step(self, batch, batch_idx):
         x, target = batch[:2]
@@ -122,6 +123,14 @@ if __name__ == '__main__':
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
     out1, out2, td_data = model(inp)
     print(out1.shape, out2.shape)
+    # inp, target, alpha_val, ch1_idx, ch2_idx
+    batch = (torch.rand((16, mc, config.data.image_size, config.data.image_size)),
+             torch.rand((16, 2, config.data.image_size, config.data.image_size)),
+             torch.Tensor(np.random.randint(20, size=16)), torch.Tensor(np.random.randint(1000),
+                                                                        np.random.randint(1000)))
+    model.training_step(batch, 0)
+    model.validation_step(batch, 0)
+
     # print(td_data)
     # decoder invariance.
     bu_values_l1 = []
@@ -152,10 +161,4 @@ if __name__ == '__main__':
     # out_l1_1x = model.top_down_layers_l1[0](None, bu_value=bu_values_l1[0], inference_mode=True,use_mode=True)
     # out_l1_10x = model.top_down_layers_l1[0](None, bu_value=10*bu_values_l1[0], inference_mode=True,use_mode=True)
 
-    # inp, target, alpha_val, ch1_idx, ch2_idx
-    batch = (torch.rand((16, mc, config.data.image_size, config.data.image_size)),
-             torch.rand((16, 2, config.data.image_size, config.data.image_size)),
-             torch.Tensor(np.random.randint(20, size=16)), torch.Tensor(np.random.randint(1000),
-                                                                        np.random.randint(1000)))
-    model.training_step(batch, 0)
     print('mar')
