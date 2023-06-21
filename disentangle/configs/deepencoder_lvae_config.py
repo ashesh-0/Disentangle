@@ -23,7 +23,7 @@ def get_config():
     data.num_intensity_variations = 2
     data.return_individual_channels = True
 
-    data.sampler_type = SamplerType.IntensityAugSampler
+    data.sampler_type = SamplerType.DefaultSampler
 
     data.deterministic_grid = False
     data.normalized_input = True
@@ -66,7 +66,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.enable_decoder_equivariance = True
+    loss.enable_decoder_equivariance = False
     loss.decoder_equivariance_loss_weight = 0.1
     loss.ch1_recons_w = 1
     loss.ch2_recons_w = 5
