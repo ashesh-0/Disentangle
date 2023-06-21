@@ -581,7 +581,7 @@ class LadderVAE(pl.LightningModule):
             return x
         return (x - self.data_mean.mean()) / self.data_std.mean()
 
-    def normalize_target(self, target):
+    def normalize_target(self, target, batch=None):
         return (target - self.data_mean) / self.data_std
 
     def power_of_2(self, x):
@@ -607,7 +607,7 @@ class LadderVAE(pl.LightningModule):
         self.set_params_to_same_device_as(target)
 
         x_normalized = self.normalize_input(x)
-        target_normalized = self.normalize_target(target)
+        target_normalized = self.normalize_target(target, batch=batch)
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
