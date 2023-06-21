@@ -506,9 +506,12 @@ if __name__ == '__main__':
     train_data, val_data = create_dataset(config, '/group/jug/ashesh/data/microscopy/')
 
     dset = val_data
-    idx = np.random.randint(len(dset))
+    idx = 0
     _, ax = plt.subplots(figsize=(9, 3), ncols=3)
     inp, target, alpha_val, ch1_idx, ch2_idx = dset[(idx, idx, 64, 19)]
     ax[0].imshow(inp[0])
     ax[1].imshow(target[0])
     ax[2].imshow(target[1])
+
+    print(len(train_data), len(val_data))
+    print(inp.mean(), target.mean())

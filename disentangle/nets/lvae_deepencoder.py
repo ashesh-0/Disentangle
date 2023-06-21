@@ -61,19 +61,21 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
             net_mse += elem / (len(mse_l2))
         return net_mse
 
-    def training_step(self, batch, batch_idx):
-        x, target = batch[:2]
-        x_normalized = self.normalize_input(x)
-        target_normalized = self.normalize_target(target)
-
+    def normalize_target(self, target, alpha=None):
+        target = super().normalize_target(target)
         if self.enable_input_alphasum_of_channels:
             # adjust the targets for the alpha
-            alpha = batch[2][:, None, None, None]
+            alpha = alpha[:, None, None, None]
             tar1 = target_normalized[:, :1] * alpha
             tar2 = target_normalized[:, 1:] * (1 - alpha)
             target_normalized = torch.cat([tar1, tar2], dim=1)
-            if batch_idx == 0:
-                assert torch.abs(torch.sum(target_normalized, dim=1, keepdim=True) - x_normalized).max().item() < 1e-5
+
+    def training_step(self, batch, batch_idx):
+        x, target, alpha = batch[:3]
+        x_normalized = self.normalize_input(x)
+        target_normalized = self.normalize_target(target, alpha=alpha)
+        if batch_idx == 0 and self.enable_input_alphasum_of_channels:
+            assert torch.abs(torch.sum(target_normalized, dim=1, keepdim=True) - x_normalized).max().item() < 1e-5
 
         out_l1, out_l2, td_data = self.forward(x_normalized)
 
