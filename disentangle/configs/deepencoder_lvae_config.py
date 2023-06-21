@@ -23,7 +23,7 @@ def get_config():
     data.num_intensity_variations = 8
     data.return_individual_channels = True
 
-    data.sampler_type = SamplerType.DefaultSampler
+    data.sampler_type = SamplerType.IntensityAugSampler
 
     data.deterministic_grid = False
     data.normalized_input = True
