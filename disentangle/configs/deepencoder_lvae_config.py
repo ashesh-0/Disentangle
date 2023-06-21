@@ -20,7 +20,7 @@ def get_config():
     data.ch1_min_alpha = 0.2
     data.ch1_max_alpha = 0.6
     data.ch1_alpha_interval_count = 20
-    data.num_intensity_variations = 4
+    data.num_intensity_variations = 2
     data.return_individual_channels = True
 
     data.sampler_type = SamplerType.IntensityAugSampler
@@ -66,7 +66,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.enable_decoder_equivariance = False
+    loss.enable_decoder_equivariance = True
     loss.decoder_equivariance_loss_weight = 0.1
     loss.ch1_recons_w = 1
     loss.ch2_recons_w = 5
