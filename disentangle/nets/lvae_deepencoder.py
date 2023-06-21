@@ -16,9 +16,9 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
         with new_config.unlocked():
             new_config.data.color_ch = config.model.encoder.n_filters
             new_config.data.multiscale_lowres_count = None  # multiscaleing is inside the extra encoder.
-            new_config.model.gated = True
-            new_config.model.decoder.dropout = 0.1
-            new_config.model.merge_type = 'residual'
+            new_config.model.gated = False
+            new_config.model.decoder.dropout = 0.
+            new_config.model.merge_type = 'residual_ungated'
         super().__init__(data_mean, data_std, new_config)
 
         self.num_intensity_variations = config.data.num_intensity_variations
@@ -123,13 +123,6 @@ if __name__ == '__main__':
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
     out1, out2, td_data = model(inp)
     print(out1.shape, out2.shape)
-    # inp, target, alpha_val, ch1_idx, ch2_idx
-    batch = (torch.rand((16, mc, config.data.image_size, config.data.image_size)),
-             torch.rand((16, 2, config.data.image_size, config.data.image_size)),
-             torch.Tensor(np.random.randint(20, size=16)), torch.Tensor(np.random.randint(1000),
-                                                                        np.random.randint(1000)))
-    model.training_step(batch, 0)
-    model.validation_step(batch, 0)
 
     # print(td_data)
     # decoder invariance.
@@ -160,5 +153,12 @@ if __name__ == '__main__':
     assert max_diff < 1e-5
     # out_l1_1x = model.top_down_layers_l1[0](None, bu_value=bu_values_l1[0], inference_mode=True,use_mode=True)
     # out_l1_10x = model.top_down_layers_l1[0](None, bu_value=10*bu_values_l1[0], inference_mode=True,use_mode=True)
+    # inp, target, alpha_val, ch1_idx, ch2_idx
+    batch = (torch.rand((16, mc, config.data.image_size, config.data.image_size)),
+             torch.rand((16, 2, config.data.image_size, config.data.image_size)),
+             torch.Tensor(np.random.randint(20, size=16)), torch.Tensor(np.random.randint(1000),
+                                                                        np.random.randint(1000)))
+    model.training_step(batch, 0)
+    model.validation_step(batch, 0)
 
     print('mar')

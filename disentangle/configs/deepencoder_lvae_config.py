@@ -90,7 +90,7 @@ def get_config():
     model.decoder.res_block_skip_padding = False
 
     model.decoder.multiscale_retain_spatial_dims = False
-    config.model.decoder.conv2d_bias = True
+    config.model.decoder.conv2d_bias = False
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'leakyrelu'
