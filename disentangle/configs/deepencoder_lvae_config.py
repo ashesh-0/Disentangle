@@ -66,7 +66,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.enable_decoder_equivariance = True
+    loss.enable_decoder_equivariance = False
     loss.decoder_equivariance_loss_weight = 0.1
     loss.ch1_recons_w = 1
     loss.ch2_recons_w = 5
@@ -114,7 +114,7 @@ def get_config():
     model.non_stochastic_version = True
 
     training = config.training
-    training.lr = 0.001
+    training.lr = 0.001 / 2
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
     training.batch_size = 32
