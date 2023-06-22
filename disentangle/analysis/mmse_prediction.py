@@ -161,7 +161,8 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
 
                     elif model_type == ModelType.LVaeDeepEncoderIntensityAug:
                         x_normalized = model.normalize_input(inp)
-                        tar_normalized = model.normalize_target(tar)
+                        alpha = torch.Tensor([0.5] * len(x_normalized)).to(x_normalized.device)
+                        tar_normalized = model.normalize_target(tar, batch=(None, None, alpha))
                         out_l1, out_l2, td_data = model(x_normalized)
 
                         rec_loss, imgs = model.get_reconstruction_loss(out_l1,
