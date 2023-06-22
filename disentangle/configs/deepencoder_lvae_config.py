@@ -114,7 +114,7 @@ def get_config():
     model.non_stochastic_version = True
 
     training = config.training
-    training.lr = 0.001 / 2
+    training.lr = 0.001 / 4
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
     training.batch_size = 32
