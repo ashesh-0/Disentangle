@@ -12,7 +12,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
+    data.image_size = 128
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
@@ -114,16 +114,16 @@ def get_config():
     model.non_stochastic_version = True
 
     training = config.training
-    training.lr = 0.001 / 4
-    training.lr_scheduler_patience = 60
-    training.max_epochs = 800
-    training.batch_size = 32
+    training.lr = 0.001 / 2
+    training.lr_scheduler_patience = 30
+    training.max_epochs = 400
+    training.batch_size = 128
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 400
+    training.earlystop_patience = 200
     training.precision = 16
 
     return config
