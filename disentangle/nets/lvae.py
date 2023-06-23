@@ -39,6 +39,9 @@ class LadderVAE(pl.LightningModule):
         super().__init__()
         self.lr = config.training.lr
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
+        self.ch1_recons_w = config.loss.get('ch1_recons_w', 1)
+        self.ch2_recons_w = config.loss.get('ch2_recons_w', 1)
+
         # grayscale input
         self.color_ch = config.data.get('color_ch', 1)
 
@@ -446,6 +449,19 @@ class LadderVAE(pl.LightningModule):
 
         return mixed_prediction, logvar
 
+    def _get_weighted_likelihood(self, ll):
+        """
+        each of the channels gets multiplied with a different weight.
+        """
+        if self.ch1_recons_w == 1 and self.ch2_recons_w == 1:
+            return ll
+        mask1 = torch.zeros((len(ll), ll.shape[1], 1, 1), device=ll.device)
+        mask1[:, 0] = 1
+
+        mask2 = torch.zeros((len(ll), ll.shape[1], 1, 1), device=ll.device)
+        mask2[:, 1] = 1
+        return ll * mask1 * self.ch1_recons_w + ll * mask2 * self.ch2_recons_w
+
     def _get_reconstruction_loss_vector(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
         """
         Args:
@@ -456,6 +472,7 @@ class LadderVAE(pl.LightningModule):
             likelihood_obj = self.likelihood
         # Log likelihood
         ll, like_dict = likelihood_obj(reconstruction, input)
+        ll = self._get_weighted_likelihood(ll)
         if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
             pad = self.skip_nboundary_pixels_from_loss
             ll = ll[:, :, pad:-pad, pad:-pad]
@@ -933,3 +950,31 @@ class LadderVAE(pl.LightningModule):
 
         img = wandb.Image(clamped_mmse[None].cpu().numpy())
         self.trainer.logger.experiment.log({f'{label}/mmse (100 samples)': img})
+
+
+if __name__ == '__main__':
+    import numpy as np
+    import torch
+
+    from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+
+    config = get_config()
+    data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
+    data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
+    model = LadderVAE(data_mean, data_std, config)
+    mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count + 1
+    inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
+    out, td_data = model(inp)
+    print(out.shape)
+    batch = (
+        torch.rand((16, mc, config.data.image_size, config.data.image_size)),
+        torch.rand((16, 2, config.data.image_size, config.data.image_size)),
+    )
+    model.training_step(batch, 0)
+    model.validation_step(batch, 0)
+
+    ll = torch.ones((12, 2, 32, 32))
+    ll_new = model._get_weighted_likelihood(ll)
+    print(ll_new[:, 0].mean(), ll_new[:, 0].std())
+    print(ll_new[:, 1].mean(), ll_new[:, 1].std())
+    print('mar')

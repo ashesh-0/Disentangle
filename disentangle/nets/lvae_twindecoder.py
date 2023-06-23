@@ -20,9 +20,6 @@ class LadderVAETwinDecoder(LadderVAE):
     def __init__(self, data_mean, data_std, config):
         super().__init__(data_mean, data_std, config, target_ch=1)
 
-        self.ch1_recons_w = config.loss.get('ch1_recons_w', 1)
-        self.ch2_recons_w = config.loss.get('ch2_recons_w', 1)
-
         del self.top_down_layers
         self.top_down_layers = None
         self.top_down_layers_l1 = nn.ModuleList([])
