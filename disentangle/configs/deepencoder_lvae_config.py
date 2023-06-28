@@ -66,7 +66,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.enable_decoder_equivariance = True
+    loss.enable_decoder_equivariance = False
     loss.decoder_equivariance_loss_weight = 0.1
     loss.ch1_recons_w = 1
     loss.ch2_recons_w = 5
@@ -82,7 +82,7 @@ def get_config():
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
-    model.decoder.batchnorm = False
+    model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
     model.decoder.dropout = 0.1
@@ -90,7 +90,7 @@ def get_config():
     model.decoder.res_block_skip_padding = False
 
     model.decoder.multiscale_retain_spatial_dims = False
-    config.model.decoder.conv2d_bias = False
+    config.model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'leakyrelu'
