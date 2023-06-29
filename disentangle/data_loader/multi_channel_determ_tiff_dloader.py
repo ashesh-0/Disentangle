@@ -65,11 +65,19 @@ class MultiChDeterministicTiffDloader:
 
         self._is_train = datasplit_type == DataSplitType.Train
 
+        # input = alpha * ch1 + (1-alpha)*ch2.
+        # alpha is sampled randomly between these two extremes
+        self._ch1_max_alpha = self._ch1_min_alpha = self._return_alpha = None
+
         self._img_sz = self._grid_sz = self._repeat_factor = self.idx_manager = None
         if self._is_train:
+            self._ch1_min_alpha = data_config.get('ch1_min_alpha', None)
+            self._ch1_max_alpha = data_config.get('ch1_max_alpha', None)
+            self._return_alpha = self._ch1_max_alpha is not None
             self.set_img_sz(data_config.image_size,
                             data_config.grid_size if 'grid_size' in data_config else data_config.image_size)
         else:
+
             self.set_img_sz(data_config.image_size,
                             data_config.val_grid_size if 'val_grid_size' in data_config else data_config.image_size)
 
@@ -217,6 +225,8 @@ class MultiChDeterministicTiffDloader:
             msg += f'-{self._empty_patch_replacement_channel_idx}-{self._empty_patch_replacement_probab}'
 
         msg += f' BckQ:{self._background_quantile}'
+        if self._ch1_min_alpha is not None:
+            msg += f' Alpha:[{self._ch1_min_alpha},{self._ch1_max_alpha}]'
         return msg
 
     def _crop_imgs(self, index, *img_tuples: np.ndarray):
@@ -439,19 +449,34 @@ class MultiChDeterministicTiffDloader:
                 final_img_tuples.append(img_tuples[tuple_idx])
         return tuple(final_img_tuples)
 
+    def _compute_input_with_alpha(self, img_tuples, alpha):
+        assert len(img_tuples) == 2
+        assert self._normalized_input is True, "normalization should happen here"
+
+        inp = img_tuples[0] * alpha + img_tuples[1] * (1 - alpha)
+        mean, std = self.get_mean_std()
+        mean = mean.squeeze()
+        std = std.squeeze()
+        assert mean[0] == mean[1] and len(mean) == 2
+        assert std[0] == std[1] and len(std) == 2
+
+        inp = (inp - mean[0]) / std[0]
+        return inp.astype(np.float32)
+
+    def _sample_alpha(self):
+        alpha_width = self._ch1_max_alpha - self._ch1_min_alpha
+        alpha = np.random.rand() * (alpha_width) + self._ch1_min_alpha
+        return alpha
+
     def _compute_input(self, img_tuples):
-        if self._normalized_input:
-            img_tuples = self.normalize_img(*img_tuples)
+        alpha = 0.5
+        if self._ch1_min_alpha is not None:
+            alpha = self._sample_alpha()
 
-        inp = 0
-        for img in img_tuples:
-            inp += img / (len(img_tuples))
-
+        inp = self._compute_input_with_alpha(img_tuples, alpha)
         if self._input_is_sum:
-            inp = inp * len(img_tuples)
-
-        inp = inp.astype(np.float32)
-        return inp
+            inp = 2 * inp
+        return inp, alpha
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         img_tuples = self._get_img(index)
@@ -467,10 +492,39 @@ class MultiChDeterministicTiffDloader:
             img2 = rot_dic['mask'][None]
 
         target = np.concatenate(img_tuples, axis=0)
-        inp = self._compute_input(img_tuples)
+        inp, alpha = self._compute_input(img_tuples)
+
+        output = [inp, target]
+
+        if self._return_alpha:
+            output.append(alpha)
 
         if isinstance(index, int):
-            return inp, target
+            return tuple(output)
 
         _, grid_size = index
-        return inp, target, grid_size
+        output.append(grid_size)
+        return tuple(output)
+
+
+if __name__ == '__main__':
+    from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+    config = get_config()
+    dset = MultiChDeterministicTiffDloader(config.data,
+                                           '/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif',
+                                           DataSplitType.Train,
+                                           val_fraction=config.training.val_fraction,
+                                           test_fraction=config.training.test_fraction,
+                                           normalized_input=config.data.normalized_input,
+                                           enable_rotation_aug=config.data.normalized_input,
+                                           enable_random_cropping=config.data.deterministic_grid is False,
+                                           use_one_mu_std=config.data.use_one_mu_std,
+                                           allow_generation=False,
+                                           max_val=None,
+                                           grid_alignment=GridAlignement.LeftTop,
+                                           overlapping_padding_kwargs=None)
+
+    mean, std = dset.compute_mean_std()
+    dset.set_mean_std(mean, std)
+
+    inp, target, alpha = dset[0]

@@ -464,9 +464,7 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file():
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2306/D3-M3-S0-L0/42',
-        '/home/ashesh.ashesh/training/disentangle/2306/D3-M3-S0-L0/41',
-        '/home/ashesh.ashesh/training/disentangle/2306/D3-M20-S6-L0/59',
+        '/home/ashesh.ashesh/training/disentangle/2306/D3-M20-S6-L0/68',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')

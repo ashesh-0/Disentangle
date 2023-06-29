@@ -557,8 +557,8 @@ class LadderVAE(pl.LightningModule):
             if enable_logging:
                 self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
         elif self.loss_type == LossType.ElboWithNbrConsistency:
-            assert len(batch) == 3
-            grid_sizes = batch[2]
+            assert len(batch) == 4
+            grid_sizes = batch[-1]
             nbr_cons_loss = self.nbr_consistency_w * self.nbr_consistency_loss.get(imgs, grid_sizes=grid_sizes)
             # print(recons_loss, nbr_cons_loss)
             self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)

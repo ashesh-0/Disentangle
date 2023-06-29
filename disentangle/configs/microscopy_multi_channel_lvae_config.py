@@ -46,6 +46,10 @@ def get_config():
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
 
+    # This is for intensity augmentation
+    data.ch1_min_alpha = 0.4
+    data.ch1_max_alpha = 0.55
+
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # loss.mixed_rec_weight = 1
@@ -56,8 +60,8 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.ch1_recons_w = 1
-    loss.ch2_recons_w = 5
+    # loss.ch1_recons_w = 1
+    # loss.ch2_recons_w = 5
 
     model = config.model
     model.model_type = ModelType.LadderVae
