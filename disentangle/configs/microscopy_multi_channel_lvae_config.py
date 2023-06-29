@@ -49,6 +49,7 @@ def get_config():
     # This is for intensity augmentation
     data.ch1_min_alpha = 0.4
     data.ch1_max_alpha = 0.55
+    data.return_alpha = True
 
     loss = config.loss
     loss.loss_type = LossType.Elbo

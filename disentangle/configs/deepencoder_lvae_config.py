@@ -12,15 +12,14 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
 
-    data.ch1_min_alpha = 0.4
-    data.ch1_max_alpha = 0.55
-    data.ch1_alpha_interval_count = 10
-    data.num_intensity_variations = 4
+    data.ch1_min_alpha = None
+    data.ch1_max_alpha = None
+    data.return_alpha = True
     data.return_individual_channels = True
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -28,8 +27,6 @@ def get_config():
     data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
-    data.use_alpha_invariant_mean = True
-    data.return_alpha = True
     data.background_quantile = 0.0
 
     # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.

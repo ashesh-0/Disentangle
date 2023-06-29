@@ -73,13 +73,14 @@ class MultiChDeterministicTiffDloader:
         if self._is_train:
             self._ch1_min_alpha = data_config.get('ch1_min_alpha', None)
             self._ch1_max_alpha = data_config.get('ch1_max_alpha', None)
-            self._return_alpha = self._ch1_max_alpha is not None
             self.set_img_sz(data_config.image_size,
                             data_config.grid_size if 'grid_size' in data_config else data_config.image_size)
         else:
 
             self.set_img_sz(data_config.image_size,
                             data_config.val_grid_size if 'val_grid_size' in data_config else data_config.image_size)
+
+        self._return_alpha = data_config.get('return_alpha', False)
 
         self._empty_patch_replacement_enabled = data_config.get("empty_patch_replacement_enabled",
                                                                 False) and self._is_train

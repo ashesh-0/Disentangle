@@ -21,8 +21,6 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
             new_config.model.merge_type = 'residual_ungated'
         super().__init__(data_mean, data_std, new_config)
 
-        self.num_intensity_variations = config.data.num_intensity_variations
-
         self.enable_input_alphasum_of_channels = config.data.target_separate_normalization == False
         with config.unlocked():
             config.model.non_stochastic_version = True
@@ -47,7 +45,8 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target, batch)
         if batch_idx == 0 and self.enable_input_alphasum_of_channels:
-            assert torch.abs(torch.sum(target_normalized, dim=1, keepdim=True) - x_normalized).max().item() < 1e-5
+            assert torch.abs(torch.sum(target_normalized, dim=1, keepdim=True) -
+                             x_normalized[:, :1]).max().item() < 1e-5
 
         out_l1, out_l2, td_data = self.forward(x_normalized)
 
