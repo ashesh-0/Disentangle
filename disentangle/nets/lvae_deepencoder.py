@@ -22,44 +22,15 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
         super().__init__(data_mean, data_std, new_config)
 
         self.num_intensity_variations = config.data.num_intensity_variations
-        self.enable_decoder_equivariance = config.loss.enable_decoder_equivariance
 
-        if self.enable_decoder_equivariance:
-            self.decoder_equivariance_loss_w = config.loss.decoder_equivariance_loss_weight
         self.enable_input_alphasum_of_channels = config.data.target_separate_normalization == False
         with config.unlocked():
-            config.model.decoder.batchnorm = True
-            config.model.encoder.batchnorm = True
-            config.model.decoder.conv2d_bias = True
             config.model.non_stochastic_version = True
         self.extra_encoder = LadderVAE(data_mean, data_std, config, target_ch=config.model.encoder.n_filters)
 
     def forward(self, x):
         encoded, _ = self.extra_encoder(x)
         return super().forward(encoded)
-
-    def compute_decoder_equivariance_loss(self, bu_values, alphas):
-        mse_losses = []
-        for bu_value in bu_values:
-            new_shape = (len(bu_value) // self.num_intensity_variations, self.num_intensity_variations,
-                         *bu_value.shape[1:])
-            bu_value = bu_value / alphas
-            bu_value = bu_value.view(new_shape)
-            mse = torch.nn.MSELoss()(bu_value[:, :1], bu_value)
-            mse_losses.append(mse)
-        return mse_losses
-
-    def get_decoder_equivariance_loss(self, bu_values_l1, bu_values_l2, alphas):
-        alphas = alphas.view((len(alphas), 1, 1, 1))
-        net_mse = 0
-        mse_l1 = self.compute_decoder_equivariance_loss(bu_values_l1, alphas)
-        for elem in mse_l1:
-            net_mse += elem / (len(mse_l1))
-
-        mse_l2 = self.compute_decoder_equivariance_loss(bu_values_l2, 1 - alphas)
-        for elem in mse_l2:
-            net_mse += elem / (len(mse_l2))
-        return net_mse
 
     def normalize_target(self, target, batch=None):
         target_normalized = super().normalize_target(target)
@@ -87,13 +58,6 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
         else:
             kl_loss = self.get_kl_divergence_loss(td_data)
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
-
-        if self.enable_decoder_equivariance:
-            alpha_val = batch[2]
-            dec_eqiv_loss = self.get_decoder_equivariance_loss(td_data['bu_values_l1'], td_data['bu_values_l2'],
-                                                               alpha_val)
-            self.log('decoder_eqiv_loss', dec_eqiv_loss, on_epoch=True)
-            net_loss += dec_eqiv_loss * self.decoder_equivariance_loss_w
 
         self.log('reconstruction_loss', recons_loss, on_epoch=True)
         self.log('kl_loss', kl_loss, on_epoch=True)

@@ -138,14 +138,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         else:
             target = np.concatenate([img[:1] for img in img_tuples], axis=0)
 
-        if self._normalized_input:
-            img_tuples = self.normalize_img(*img_tuples)
-
-        inp = 0
-        for img in img_tuples:
-            inp += img / (len(img_tuples))
-
-        inp = inp.astype(np.float32)
+        inp = self._compute_input(img_tuples)
 
         if isinstance(index, int):
             return inp, target
