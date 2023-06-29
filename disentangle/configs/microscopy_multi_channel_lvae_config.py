@@ -32,14 +32,14 @@ def get_config():
     # foreground pixels and the background will anyways will remain very close to 0.
     data.skip_normalization_using_mean = False
 
-    data.input_is_sum = True
+    data.input_is_sum = False
 
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -47,9 +47,9 @@ def get_config():
     data.target_separate_normalization = True
 
     # This is for intensity augmentation
-    data.ch1_min_alpha = 0.4
-    data.ch1_max_alpha = 0.55
-    data.return_alpha = True
+    # data.ch1_min_alpha = 0.4
+    # data.ch1_max_alpha = 0.55
+    # data.return_alpha = True
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -75,7 +75,7 @@ def get_config():
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
-    model.decoder.batchnorm = False
+    model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
     model.decoder.dropout = 0.1
@@ -83,7 +83,7 @@ def get_config():
     model.decoder.res_block_skip_padding = False
 
     model.decoder.multiscale_retain_spatial_dims = False
-    config.model.decoder.conv2d_bias = False
+    config.model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -110,7 +110,7 @@ def get_config():
     training.lr = 0.001 / 2
     training.lr_scheduler_patience = 30
     training.max_epochs = 400
-    training.batch_size = 32
+    training.batch_size = 128
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
