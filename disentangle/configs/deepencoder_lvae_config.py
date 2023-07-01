@@ -76,7 +76,7 @@ def get_config():
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
-    model.encoder.extra_encoder_output_channel_count = 32
+    model.encoder.extra_encoder_output_channel_count = 16
 
     model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1
