@@ -36,8 +36,8 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
         self.enable_input_alphasum_of_channels = config.data.target_separate_normalization == False
         with config.unlocked():
             config.model.non_stochastic_version = True
-            config.model.encoder.n_filters = config.model.encoder.n_filters // 2
-            config.model.decoder.n_filters = config.model.decoder.n_filters // 2
+            # config.model.encoder.n_filters = config.model.encoder.n_filters // 2
+            # config.model.decoder.n_filters = config.model.decoder.n_filters // 2
 
         self.extra_encoder = ExtraEncoder(data_mean, data_std, config)
         if 'extra_encoder_output_channel_count' in config.model.encoder:

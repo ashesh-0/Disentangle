@@ -76,7 +76,7 @@ def get_config():
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
-    model.encoder.extra_encoder_output_channel_count = 32
+    # model.encoder.extra_encoder_output_channel_count = 32
 
     model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1
@@ -107,7 +107,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = True
+    model.non_stochastic_version = False
 
     training = config.training
     training.lr = 0.001 / 2
