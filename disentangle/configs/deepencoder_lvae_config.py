@@ -107,7 +107,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = False
+    model.non_stochastic_version = True
 
     training = config.training
     training.lr = 0.001 / 2
