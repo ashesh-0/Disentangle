@@ -23,6 +23,7 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
 from disentangle.sampler.default_grid_sampler import DefaultGridSampler
+from disentangle.sampler.intensity_aug_sampler import IntensityAugSampler, IntensityAugValSampler
 from disentangle.sampler.nbr_sampler import NeighborSampler
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.sampler.singleimg_sampler import SingleImgSampler
@@ -187,7 +188,13 @@ def main(argv):
             elif config.data.sampler_type == SamplerType.DefaultGridSampler:
                 train_sampler = DefaultGridSampler(train_data, config.training.batch_size)
                 val_sampler = DefaultGridSampler(val_data, config.training.batch_size, grid_size=config.data.image_size)
-
+            elif config.data.sampler_type == SamplerType.IntensityAugSampler:
+                val_sampler = IntensityAugValSampler(val_data, config.data.image_size, config.training.batch_size)
+                train_sampler = IntensityAugSampler(train_data,
+                                                    len(train_data),
+                                                    config.data.ch1_alpha_interval_count,
+                                                    config.data.num_intensity_variations,
+                                                    batch_size=config.training.batch_size)
             train_dloader = DataLoader(train_data,
                                        pin_memory=False,
                                        batch_sampler=train_sampler,

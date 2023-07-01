@@ -159,6 +159,18 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                                                                        loss_idx,
                                                                        return_predicted_img=True)
 
+                    elif model_type == ModelType.LVaeDeepEncoderIntensityAug:
+                        x_normalized = model.normalize_input(inp)
+                        alpha = torch.Tensor([0.5] * len(x_normalized)).to(x_normalized.device)
+                        tar_normalized = model.normalize_target(tar, batch=(None, None, alpha))
+                        out_l1, out_l2, td_data = model(x_normalized)
+
+                        rec_loss, imgs = model.get_reconstruction_loss(out_l1,
+                                                                       out_l2,
+                                                                       tar_normalized,
+                                                                       return_predicted_img=True)
+                        imgs = torch.cat(imgs, dim=1)
+                        rec_loss = {'loss': rec_loss}
                     else:
                         x_normalized = model.normalize_input(inp)
                         tar_normalized = model.normalize_target(tar)
@@ -169,7 +181,9 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                                                                        return_predicted_img=True)
 
                     if mmse_idx == 0:
-                        q_dic = model.likelihood.distr_params(recon_normalized)
+                        q_dic = model.likelihood.distr_params(recon_normalized) if model.likelihood is not None else {
+                            'logvar': None
+                        }
                         if q_dic['logvar'] is not None:
                             logvar_arr.append(q_dic['logvar'].cpu().numpy())
                         else:

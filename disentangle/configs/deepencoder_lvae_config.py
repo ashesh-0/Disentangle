@@ -12,16 +12,23 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
+    data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
 
+    data.ch1_min_alpha = None
+    data.ch1_max_alpha = None
+    data.return_alpha = True
+    data.return_individual_channels = True
+
     data.sampler_type = SamplerType.DefaultSampler
+
     data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
     data.background_quantile = 0.0
+
     # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
     # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
     # the background noise is also a distribution. So, some amount of background noise will remain.
@@ -32,7 +39,7 @@ def get_config():
     # foreground pixels and the background will anyways will remain very close to 0.
     data.skip_normalization_using_mean = False
 
-    data.input_is_sum = False
+    # data.input_is_sum = True
 
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
@@ -44,12 +51,7 @@ def get_config():
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
-    data.target_separate_normalization = False
-
-    # This is for intensity augmentation
-    # data.ch1_min_alpha = 0.4
-    # data.ch1_max_alpha = 0.55
-    # data.return_alpha = True
+    data.target_separate_normalization = True
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -65,7 +67,7 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LVaeDeepEncoderIntensityAug
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
@@ -82,11 +84,11 @@ def get_config():
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
 
-    model.decoder.multiscale_retain_spatial_dims = False
+    model.decoder.multiscale_retain_spatial_dims = True
     config.model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
-    model.nonlin = 'elu'
+    model.nonlin = 'leakyrelu'
     model.merge_type = 'residual'
     model.stochastic_skip = True
     model.learn_top_prior = True
@@ -107,16 +109,16 @@ def get_config():
     model.non_stochastic_version = True
 
     training = config.training
-    training.lr = 0.001 / 2
-    training.lr_scheduler_patience = 30
-    training.max_epochs = 400
-    training.batch_size = 128
+    training.lr = 0.001
+    training.lr_scheduler_patience = 15
+    training.max_epochs = 200
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 200
+    training.earlystop_patience = 100
     training.precision = 16
 
     return config

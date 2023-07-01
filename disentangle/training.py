@@ -17,6 +17,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.model_type import ModelType
+from disentangle.data_loader.intensity_augm_tiff_dloader import IntensityAugCLTiffDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
 from disentangle.data_loader.multi_channel_tiff_dloader import MultiChTiffDloader
@@ -44,6 +45,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         label2 = config.data.label2
         train_data = None if skip_train_dataset else NotMNISTNoisyLoader(datapath, train_img_files_pkl, label1, label2)
         val_data = NotMNISTNoisyLoader(datapath, val_img_files_pkl, label1, label2)
+
     elif config.data.data_type == DataType.Places365:
         train_datapath = os.path.join(datadir, 'Noise-1', 'train')
         val_datapath = os.path.join(datadir, 'Noise-1', 'val')
@@ -362,7 +364,8 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             trainer = pl.Trainer(
                 gpus=1,
                 max_epochs=config.training.max_epochs,
-                gradient_clip_val=None if model.automatic_optimization == False else config.training.grad_clip_norm_value,
+                gradient_clip_val=None
+                if model.automatic_optimization == False else config.training.grad_clip_norm_value,
                 # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
                 logger=logger,
                 # fast_dev_run=10,
@@ -374,7 +377,8 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             trainer = pl.Trainer(
                 # gpus=1,
                 max_epochs=config.training.max_epochs,
-                gradient_clip_val=None if model.automatic_optimization == False else config.training.grad_clip_norm_value,
+                gradient_clip_val=None
+                if model.automatic_optimization == False else config.training.grad_clip_norm_value,
                 # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
                 logger=logger,
                 # fast_dev_run=10,
@@ -435,3 +439,24 @@ def train_network(train_loader, val_loader, data_mean, data_std, config, model_n
             if collapse_flag is None:
                 print('CTRL+C inturrupt. Ending')
                 return
+
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    from disentangle.configs.deepencoder_lvae_config import get_config
+
+    config = get_config()
+    train_data, val_data = create_dataset(config, '/group/jug/ashesh/data/microscopy/')
+
+    dset = val_data
+    idx = 0
+    _, ax = plt.subplots(figsize=(9, 3), ncols=3)
+    inp, target, alpha_val, ch1_idx, ch2_idx = dset[(idx, idx, 64, 19)]
+    ax[0].imshow(inp[0])
+    ax[1].imshow(target[0])
+    ax[2].imshow(target[1])
+
+    print(len(train_data), len(val_data))
+    print(inp.mean(), target.mean())
