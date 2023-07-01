@@ -1,10 +1,18 @@
 from copy import deepcopy
 
 import torch
+import torch.nn as nn
 
 import ml_collections
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
+
+
+class ExtraEncoder(LadderVAE):
+
+    def forward(self, *args):
+        out, _ = super().forward(*args)
+        return out
 
 
 class LVAEWithDeepEncoder(LadderVAETwinDecoder):
@@ -14,7 +22,11 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
         config = ml_collections.ConfigDict(config)
         new_config = deepcopy(config)
         with new_config.unlocked():
-            new_config.data.color_ch = config.model.encoder.n_filters
+            if 'extra_encoder_output_channel_count' in config.model.encoder:
+                new_config.data.color_ch = config.model.encoder.extra_encoder_output_channel_count
+            else:
+                new_config.data.color_ch = config.model.decoder.n_filters
+
             new_config.data.multiscale_lowres_count = None  # multiscaleing is inside the extra encoder.
             new_config.model.gated = False
             new_config.model.decoder.dropout = 0.
@@ -24,10 +36,19 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
         self.enable_input_alphasum_of_channels = config.data.target_separate_normalization == False
         with config.unlocked():
             config.model.non_stochastic_version = True
-        self.extra_encoder = LadderVAE(data_mean, data_std, config, target_ch=config.model.encoder.n_filters)
+
+        self.extra_encoder = ExtraEncoder(data_mean, data_std, config)
+        if 'extra_encoder_output_channel_count' in config.model.encoder:
+            self.extra_encoder = nn.Sequential(
+                self.extra_encoder,
+                nn.Conv2d(config.model.decoder.n_filters,
+                          config.model.encoder.extra_encoder_output_channel_count,
+                          kernel_size=3,
+                          padding=1,
+                          bias=True))
 
     def forward(self, x):
-        encoded, _ = self.extra_encoder(x)
+        encoded = self.extra_encoder(x)
         return super().forward(encoded)
 
     def normalize_target(self, target, batch=None):
