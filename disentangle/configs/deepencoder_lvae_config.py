@@ -17,8 +17,8 @@ def get_config():
     data.channel_1 = 2
     data.channel_2 = 3
 
-    data.ch1_min_alpha = None
-    data.ch1_max_alpha = None
+    data.ch1_min_alpha = 0.4
+    data.ch1_max_alpha = 0.6
     data.return_alpha = True
     data.return_individual_channels = True
 
