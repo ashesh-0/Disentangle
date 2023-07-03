@@ -10,7 +10,6 @@ from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
 class LVAEWithDeepEncoder(LadderVAETwinDecoder):
 
     def __init__(self, data_mean, data_std, config):
-
         config = ml_collections.ConfigDict(config)
         new_config = deepcopy(config)
         with new_config.unlocked():
