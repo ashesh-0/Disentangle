@@ -17,7 +17,7 @@ def get_config():
     data.channel_1 = 2
     data.channel_2 = 3
 
-    data.ch1_min_alpha = 0.45
+    data.ch1_min_alpha = 0.4
     data.ch1_max_alpha = 0.55
     data.return_alpha = True
     data.return_individual_channels = True
@@ -44,7 +44,7 @@ def get_config():
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
-    data.train_aug_rotate = False
+    data.train_aug_rotate = True
     data.randomized_channels = False
     data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
