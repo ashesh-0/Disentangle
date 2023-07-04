@@ -17,8 +17,8 @@ def get_config():
     data.channel_1 = 2
     data.channel_2 = 3
 
-    data.ch1_min_alpha = 0.4
-    data.ch1_max_alpha = 0.55
+    data.ch1_min_alpha = None
+    data.ch1_max_alpha = None
     data.return_alpha = True
     data.return_individual_channels = True
 
@@ -112,7 +112,7 @@ def get_config():
     training.lr = 0.001 / 2
     training.lr_scheduler_patience = 30
     training.max_epochs = 400
-    training.batch_size = 32
+    training.batch_size = 128
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
