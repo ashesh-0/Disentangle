@@ -1,9 +1,11 @@
-from disentangle.nets.hist_noise_model import HistNoiseModel
-from disentangle.nets.gmm_noise_model import GaussianMixtureNoiseModel
-import numpy as np
 import os
-import torch.nn as nn
+
+import numpy as np
 import torch
+import torch.nn as nn
+
+from disentangle.nets.gmm_noise_model import GaussianMixtureNoiseModel
+from disentangle.nets.hist_noise_model import HistNoiseModel
 
 
 class DisentNoiseModel(nn.Module):
@@ -19,7 +21,7 @@ class DisentNoiseModel(nn.Module):
         return torch.cat([ll1, ll2], dim=1)
 
 
-def get_noise_model(data_fpath, model_config):
+def get_noise_model(model_config):
     if 'enable_noise_model' in model_config and model_config.enable_noise_model:
         print(f'Noise model Ch1: {model_config.noise_model_ch1_fpath}')
         print(f'Noise model Ch2: {model_config.noise_model_ch2_fpath}')
