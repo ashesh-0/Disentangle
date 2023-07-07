@@ -88,8 +88,8 @@ def get_config():
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.5-100_Sig0.125_UpNone_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname_format.format('2307/6', 'actin')
-    model.noise_model_ch2_fpath = fname_format.format('2307/7', 'mito')
+    model.noise_model_ch1_fpath = fname_format.format('2307/15', 'actin')
+    model.noise_model_ch2_fpath = fname_format.format('2307/16', 'mito')
     model.non_stochastic_version = False
 
     training = config.training
