@@ -4,11 +4,13 @@ Taken from https://github.com/juglab/HDN/blob/main/lib/gaussianMixtureNoiseModel
 import torch
 
 dtype = torch.float
+import pickle
+
 import matplotlib.pyplot as plt
 import numpy as np
-import pickle
-from torch.distributions import normal
 from scipy.stats import norm
+from torch.distributions import normal
+
 from tifffile import imread
 
 
@@ -54,6 +56,7 @@ class GaussianMixtureNoiseModel:
     """
 
     def __init__(self, **kwargs):
+
         if (kwargs.get('params') is None):
             weight = kwargs.get('weight')
             n_gaussian = kwargs.get('n_gaussian')
@@ -82,7 +85,7 @@ class GaussianMixtureNoiseModel:
             self.max_signal = torch.Tensor(params['max_signal'])  #.to(self.device)
 
             self.weight = torch.Tensor(params['trained_weight'])  #.to(self.device)
-            self.min_sigma = np.asscalar(params['min_sigma'])
+            self.min_sigma = params['min_sigma'].item()
             self.n_gaussian = self.weight.shape[0] // 3
             self.n_coeff = self.weight.shape[1]
             self.tol = torch.Tensor([1e-10])  #.to(self.device)

@@ -8,12 +8,12 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 512
+    data.image_size = 128
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -47,23 +47,26 @@ def get_config():
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
 
+    model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
+    model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-    model.decoder.multiscale_retain_spatial_dims = True
+
+    model.decoder.multiscale_retain_spatial_dims = False
+    config.model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
     model.merge_type = 'residual'
-    model.batchnorm = True
     model.stochastic_skip = True
     model.learn_top_prior = True
     model.img_shape = None
@@ -74,17 +77,18 @@ def get_config():
     model.analytical_kl = False
     model.mode_pred = False
     model.var_clip_max = 20
-    # predict_logvar takes one of the three values: [None,'global','channelwise','pixelwise']
+    # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = 'pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.enable_noise_model = False
+
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname_format = None  #'/home/ashesh.ashesh/data/ventura_gigascience/GMMNoiseModel_ventura_gigascience-{}_3_2_Clip0.5-100_Sig0.125_Up128.0_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = None  #fname_format.format('actin')
-    model.noise_model_ch2_fpath = None  # fname_format.format('mito')
+    fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.5-100_Sig0.125_UpNone_Norm1_bootstrap.npz'
+    model.noise_model_ch1_fpath = fname_format.format('2307/6', 'actin')
+    model.noise_model_ch2_fpath = fname_format.format('2307/7', 'mito')
     model.non_stochastic_version = False
 
     training = config.training
