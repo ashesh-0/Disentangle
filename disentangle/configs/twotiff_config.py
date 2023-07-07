@@ -20,6 +20,7 @@ def get_config():
     data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
+    data.channelwise_quantile = True
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
@@ -84,7 +85,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.5-100_Sig0.125_UpNone_Norm1_bootstrap.npz'
     model.noise_model_ch1_fpath = fname_format.format('2307/6', 'actin')

@@ -155,6 +155,7 @@ class GaussianMixtureNoiseModel:
         """
         self.to_device(signals)
         gaussianParameters = self.getGaussianParameters(signals)
+
         p = 0
         for gaussian in range(self.n_gaussian):
             p += self.normalDens(

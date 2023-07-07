@@ -956,7 +956,7 @@ if __name__ == '__main__':
     import numpy as np
     import torch
 
-    from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+    from disentangle.configs.twotiff_config import get_config
 
     config = get_config()
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
