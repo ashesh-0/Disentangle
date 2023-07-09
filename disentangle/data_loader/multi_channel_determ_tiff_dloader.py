@@ -141,8 +141,6 @@ class MultiChDeterministicTiffDloader:
         if self._data.dtype in [np.uint16]:
             # unsigned integer creates havoc
             self._data = self._data.astype(np.int32)
-        else:
-            raise Exception('Handle other datatypes')
 
         for ch in range(self._data.shape[-1]):
             for idx in range(self._data.shape[0]):
