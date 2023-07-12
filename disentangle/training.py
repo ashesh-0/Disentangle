@@ -182,7 +182,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
     elif config.data.data_type in [
             DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.Prevedel_EMBL,
             DataType.AllenCellMito, DataType.SeparateTiffData, DataType.Pavia2VanillaSplitting, DataType.ShroffMitoEr,
-            DataType.HTIba1Ki67
+            DataType.HTIba1Ki67, DataType.BSD68
     ]:
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')

@@ -1,7 +1,3 @@
-from tkinter.tix import Tree
-
-import numpy as np
-
 from disentangle.configs.default_config import get_default_config
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
@@ -12,28 +8,20 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 128
     data.data_type = DataType.BSD68
-    data.channel_1 = 2
-    data.channel_2 = 3
+    data.channel_1 = 0
+    data.channel_2 = 1
+    data.ch1_fname = None  #'actin-60x-noise2-lowsnr.tif'
+    data.ch2_fname = None  #'mito-60x-noise2-lowsnr.tif'
 
     data.sampler_type = SamplerType.DefaultSampler
+    data.threshold = 0.02
     data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
-    data.background_quantile = 0.0
-    # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
-    # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
-    # the background noise is also a distribution. So, some amount of background noise will remain.
-    data.clip_background_noise_to_zero = False
 
-    # we will not subtract the mean of the dataset from every patch. We just want to subtract the background and normalize using std. This way, background will be very close to 0.
-    # this will help in the all scaling related approaches where we want to multiply the frame with some factor and then add them. we will then effectively just do these scaling on the
-    # foreground pixels and the background will anyways will remain very close to 0.
-    data.skip_normalization_using_mean = False
-
-    data.input_is_sum = False
-
+    data.channelwise_quantile = True
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
@@ -44,12 +32,7 @@ def get_config():
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
-    data.target_separate_normalization = False
-
-    # This is for intensity augmentation
-    # data.ch1_min_alpha = 0.4
-    # data.ch1_max_alpha = 0.55
-    # data.return_alpha = True
+    data.target_separate_normalization = True
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -61,8 +44,6 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    # loss.ch1_recons_w = 1
-    # loss.ch2_recons_w = 5
 
     model = config.model
     model.model_type = ModelType.LadderVae
@@ -104,22 +85,25 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
+
+    model.enable_noise_model = True
+    model.noise_model_type = 'gmm'
+    fname_format = '/home/ashesh.ashesh/training/noise_model/2307/37/GMMNoiseModel_ventura_gigascience-DCNN400_train_gaussian25.npy_12_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
+    model.noise_model_ch1_fpath = fname_format  #.format('2307/29', 'actin')
+    model.noise_model_ch2_fpath = fname_format  #.format('2307/30', 'mito')
     model.non_stochastic_version = False
-    model.enable_noise_model = False
-    model.noise_model_ch1_fpath = None
-    model.noise_model_ch1_fpath = None
 
     training = config.training
-    training.lr = 0.001 / 2
-    training.lr_scheduler_patience = 30
-    training.max_epochs = 400
-    training.batch_size = 128
+    training.lr = 0.001
+    training.lr_scheduler_patience = 15
+    training.max_epochs = 200
+    training.batch_size = 16
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 200
+    training.earlystop_patience = 100
     training.precision = 16
 
     return config
