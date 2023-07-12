@@ -17,3 +17,4 @@ class DataType(Enum):
     ExpansionMicroscopyMitoTub = 12
     ShroffMitoEr = 13
     HTIba1Ki67 = 14
+    BSD68 = 15
