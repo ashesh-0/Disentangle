@@ -14,13 +14,13 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
 
     if datasplit_type == DataSplitType.Train:
         fpath = os.path.join(dirname, 'train', 'DCNN400_train_gaussian25.npy')
+        data = np.load(fpath).astype(np.float32)
     elif datasplit_type == DataSplitType.Val:
         fpath = os.path.join(dirname, 'val', 'DCNN400_validation_gaussian25.npy')
+        data = np.load(fpath).astype(np.float32)
     elif datasplit_type == DataSplitType.Test:
         fpath = os.path.join(dirname, 'test', 'bsd68_gaussian25.npy')
+        data = np.load(fpath, allow_pickle=True).astype(np.float32)
 
-    data = np.load(fpath).astype(np.float32)
     data = np.tile(data[..., None], (1, 1, 1, 2))
-    import pdb
-    pdb.set_trace()
     return data
