@@ -36,6 +36,14 @@ def get_train_val_data(data_config,
                                     datasplit_type,
                                     val_fraction=val_fraction,
                                     test_fraction=test_fraction)
+    elif data_config.data_type == DataType.Convallaria:
+        assert data_config.channel_1 == data_config.channel_2 == 0
+        return _load_tiff_train_val(fpath,
+                                    data_config,
+                                    datasplit_type,
+                                    val_fraction=val_fraction,
+                                    test_fraction=test_fraction)
+
     elif data_config.data_type == DataType.CustomSinosoid:
         return _loadsinosoid(fpath,
                              data_config,
