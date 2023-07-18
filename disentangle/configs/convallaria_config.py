@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 64
     data.data_type = DataType.Convallaria
     data.channel_1 = 0
     data.channel_2 = 0
@@ -43,7 +43,7 @@ def get_config():
     loss.kl_annealtime = 10
     loss.kl_start = -1
     loss.kl_min = 1e-7
-    loss.free_bits = 0.0
+    loss.free_bits = 1.0
 
     model = config.model
     model.model_type = ModelType.LadderVae
@@ -51,7 +51,7 @@ def get_config():
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
-    model.encoder.n_filters = 64
+    model.encoder.n_filters = 32
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
