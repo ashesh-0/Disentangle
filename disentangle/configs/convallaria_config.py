@@ -52,14 +52,14 @@ def get_config():
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 32
-    model.encoder.dropout = 0.1
+    model.encoder.dropout = 0.2
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
     model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 32
-    model.decoder.dropout = 0.1
+    model.decoder.dropout = 0.2
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
 
@@ -97,7 +97,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
-    training.batch_size = 16
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
