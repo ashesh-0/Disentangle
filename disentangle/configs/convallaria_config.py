@@ -58,7 +58,7 @@ def get_config():
 
     model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1
-    model.decoder.n_filters = 64
+    model.decoder.n_filters = 32
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
