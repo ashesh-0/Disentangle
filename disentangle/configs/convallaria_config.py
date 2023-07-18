@@ -88,7 +88,7 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname_format = '/home/ashesh.ashesh/code/DivNoising/examples/Convallaria/data/Convallaria_diaphragm/GMMNoiseModel_convallaria_3_2_bootstrap.npz'
+    fname_format = '/home/ashesh.ashesh/training/noise_model/2307/47/GMMNoiseModel_Convallaria_diaphragm-20190520_tl_25um_50msec_05pc_488_130EM_Conv.tif_3_2_Clip0.0-0.995_Sig60.0_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname_format  #.format('2307/29', 'actin')
     model.noise_model_ch2_fpath = fname_format  #.format('2307/30', 'mito')
     model.non_stochastic_version = False
