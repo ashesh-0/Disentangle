@@ -508,12 +508,12 @@ class LadderVAE(pl.LightningModule):
         # kl[i] for each i has length batch_size
         # resulting kl shape: (batch_size, layers)
         # kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']], dim=1)
-        # nlayers = kl.shape[1]
-        # for i in range(nlayers):
-        #     kl[:, i] = kl[:, i] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
 
         # kl_loss = free_bits_kl(kl, self.free_bits).mean()
         kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']], dim=1)
+        nlayers = kl.shape[1]
+        for i in range(nlayers):
+            kl[:, i] = kl[:, i] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
 
         kl_loss = free_bits_kl(kl, self.free_bits).sum()  # sum over layers
 
