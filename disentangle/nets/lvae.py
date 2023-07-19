@@ -511,11 +511,8 @@ class LadderVAE(pl.LightningModule):
 
         # kl_loss = free_bits_kl(kl, self.free_bits).mean()
         kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']], dim=1)
-        nlayers = kl.shape[1]
-        for i in range(nlayers):
-            kl[:, i] = kl[:, i] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
-
-        kl_loss = free_bits_kl(kl, self.free_bits).sum()  # sum over layers
+        kl_loss = free_bits_kl(kl, self.free_bits).sum()
+        kl_loss = kl_loss / np.prod(self.img_shape)
 
         return kl_loss
 
