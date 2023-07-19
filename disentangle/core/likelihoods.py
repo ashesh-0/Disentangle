@@ -55,6 +55,9 @@ class NoiseModelLikelihood(LikelihoodModule):
         self.data_std = data_std
         self.noiseModel = noiseModel
 
+    def get_mean_lv(self, x):
+        return self.parameter_net(x), None
+
     def distr_params(self, x):
         x = self.parameter_net(x)
         # mean, lv = x.chunk(2, dim=1)
