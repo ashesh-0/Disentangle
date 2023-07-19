@@ -181,22 +181,24 @@ class LadderVAE(pl.LightningModule):
             output_expected_shape = (self.img_shape[0] // 2**(i + 1),
                                      self.img_shape[1] // 2**(i + 1)) if self._multiscale_count > 1 else None
             self.bottom_up_layers.append(
-                BottomUpLayer(n_res_blocks=self.encoder_blocks_per_layer,
-                              n_filters=self.encoder_n_filters,
-                              downsampling_steps=self.downsample[i],
-                              nonlin=nonlin,
-                              batchnorm=self.bottomup_batchnorm,
-                              dropout=self.encoder_dropout,
-                              res_block_type=self.res_block_type,
-                              res_block_kernel=self.encoder_res_block_kernel,
-                              res_block_skip_padding=self.encoder_res_block_skip_padding,
-                              gated=self.gated,
-                              lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
-                              enable_multiscale=enable_multiscale,
-                              multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
-                              multiscale_lowres_size_factor=multiscale_lowres_size_factor,
-                              decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
-                              output_expected_shape=output_expected_shape))
+                BottomUpLayer(
+                    n_res_blocks=self.encoder_blocks_per_layer,
+                    n_filters=self.encoder_n_filters,
+                    downsampling_steps=self.downsample[i],
+                    nonlin=nonlin,
+                    batchnorm=self.bottomup_batchnorm,
+                    dropout=self.encoder_dropout,
+                    res_block_type=self.res_block_type,
+                    #   res_block_kernel=self.encoder_res_block_kernel,
+                    #   res_block_skip_padding=self.encoder_res_block_skip_padding,
+                    gated=self.gated,
+                    #   lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
+                    #   enable_multiscale=enable_multiscale,
+                    #   multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
+                    #   multiscale_lowres_size_factor=multiscale_lowres_size_factor,
+                    #   decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
+                    #   output_expected_shape=output_expected_shape
+                ))
             # Add top-down stochastic layer at level i.
             # The architecture when doing inference is roughly as follows:
             #    p_params = output of top-down layer above
@@ -226,18 +228,19 @@ class LadderVAE(pl.LightningModule):
                     learn_top_prior=self.learn_top_prior,
                     top_prior_param_shape=self.get_top_prior_param_shape(),
                     res_block_type=self.res_block_type,
-                    res_block_kernel=self.decoder_res_block_kernel,
-                    res_block_skip_padding=self.decoder_res_block_skip_padding,
+                    # res_block_kernel=self.decoder_res_block_kernel,
+                    # res_block_skip_padding=self.decoder_res_block_skip_padding,
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
                     # in no_padding_mode, what gets passed from the encoder are not multiples of 2 and so merging operation does not work natively.
-                    bottomup_no_padding_mode=self.encoder_no_padding_mode,
-                    topdown_no_padding_mode=self.decoder_no_padding_mode,
-                    retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
-                    non_stochastic_version=self.non_stochastic_version,
-                    input_image_shape=self.img_shape,
-                    normalize_latent_factor=normalize_latent_factor,
-                    conv2d_bias=self.topdown_conv2d_bias))
+                    # bottomup_no_padding_mode=self.encoder_no_padding_mode,
+                    # topdown_no_padding_mode=self.decoder_no_padding_mode,
+                    # retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
+                    # non_stochastic_version=self.non_stochastic_version,
+                    # input_image_shape=self.img_shape,
+                    # normalize_latent_factor=normalize_latent_factor,
+                    # conv2d_bias=self.topdown_conv2d_bias
+                ))
 
         # Final top-down layer
         self.final_top_down = self.create_final_topdown_layer(not self.no_initial_downscaling)
@@ -273,10 +276,10 @@ class LadderVAE(pl.LightningModule):
                     batchnorm=self.topdown_batchnorm,
                     dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
-                    res_block_kernel=self.decoder_res_block_kernel,
-                    skip_padding=self.decoder_res_block_skip_padding,
+                    # res_block_kernel=self.decoder_res_block_kernel,
+                    # skip_padding=self.decoder_res_block_skip_padding,
                     gated=self.gated,
-                    conv2d_bias=self.topdown_conv2d_bias,
+                    # conv2d_bias=self.topdown_conv2d_bias,
                 ))
         return nn.Sequential(*modules)
 
@@ -315,8 +318,8 @@ class LadderVAE(pl.LightningModule):
                     batchnorm=self.bottomup_batchnorm,
                     dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
-                    skip_padding=self.encoder_res_block_skip_padding,
-                    res_block_kernel=self.encoder_res_block_kernel,
+                    # skip_padding=self.encoder_res_block_skip_padding,
+                    # res_block_kernel=self.encoder_res_block_kernel,
                 ))
         return nn.Sequential(*modules)
 
@@ -572,9 +575,6 @@ class LadderVAE(pl.LightningModule):
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
         if enable_logging:
-            for i, x in enumerate(td_data['debug_qvar_max']):
-                self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
-
             self.log('reconstruction_loss', recons_loss_dict['loss'], on_epoch=True)
             self.log('kl_loss', kl_loss, on_epoch=True)
             self.log('training_loss', net_loss, on_epoch=True)
@@ -711,8 +711,8 @@ class LadderVAE(pl.LightningModule):
             if self._multiscale_count > 1 and i + 1 < inp.shape[1]:
                 lowres_x = lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
 
-            x, bu_value = bottom_up_layers[i](x, lowres_x=lowres_x)
-            bu_values.append(bu_value)
+            x = bottom_up_layers[i](x)
+            bu_values.append(x)
 
         return bu_values
 
@@ -841,16 +841,15 @@ class LadderVAE(pl.LightningModule):
                                                             force_constant_output=constant_out,
                                                             forced_latent=forced_latent[i],
                                                             mode_pred=self.mode_pred,
-                                                            use_uncond_mode=use_uncond_mode,
-                                                            var_clip_max=self._var_clip_max)
+                                                            use_uncond_mode=use_uncond_mode)
             z[i] = aux['z']  # sampled variable at this layer (batch, ch, h, w)
             kl[i] = aux['kl_samplewise']  # (batch, )
             kl_spatial[i] = aux['kl_spatial']  # (batch, h, w)
-            q_mu[i] = aux['q_mu']
-            q_lv[i] = aux['q_lv']
+            q_mu[i] = None  # aux['q_mu']
+            q_lv[i] = None  # aux['q_lv']
 
-            kl_channelwise[i] = aux['kl_channelwise']
-            debug_qvar_max[i] = aux['qvar_max']
+            kl_channelwise[i] = None  # aux['kl_channelwise']
+            debug_qvar_max[i] = None  # aux['qvar_max']
             # if self.mode_pred is False:
             #     logprob_p += aux['logprob_p'].mean()  # mean over batch
             # else:

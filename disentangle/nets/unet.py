@@ -13,8 +13,9 @@ import wandb
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.metrics.running_psnr import RunningPSNR
 from disentangle.nets.context_transfer_module import ContextTransferModule
-from disentangle.nets.lvae_layers import BottomUpDeterministicResBlock, MergeLowRes
-from disentangle.nets.unet_parts import *
+
+# from disentangle.nets.lvae_layers import BottomUpDeterministicResBlock, MergeLowRes
+# from disentangle.nets.unet_parts import *
 
 
 class UNet(pl.LightningModule):

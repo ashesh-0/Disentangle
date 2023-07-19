@@ -1,6 +1,3 @@
-"""
-Taken from https://github.com/juglab/HDN/blob/main/lib/gaussianMixtureNoiseModel.py
-"""
 import torch
 
 dtype = torch.float
@@ -24,6 +21,8 @@ def fastShuffle(series, num):
 class GaussianMixtureNoiseModel:
     """The GaussianMixtureNoiseModel class describes a noise model which is parameterized as a mixture of gaussians.
        If you would like to initialize a new object from scratch, then set `params`= None and specify the other parameters as keyword arguments. If you are instead loading a model, use only `params`.
+
+
             Parameters
             ----------
             **kwargs: keyworded, variable-length argument dictionary.
@@ -50,47 +49,47 @@ class GaussianMixtureNoiseModel:
                 params: dictionary
                     Use `params` if one wishes to load a model with trained weights. 
                     While initializing a new object of the class `GaussianMixtureNoiseModel` from scratch, set this to `None`.
+
             Example
             -------
             >>> model = GaussianMixtureNoiseModel(min_signal = 484.85, max_signal = 3235.01, path='../../models/', weight = None, n_gaussian = 3, n_coeff = 2, min_sigma = 50, device = torch.device("cuda:0"))
     """
 
     def __init__(self, **kwargs):
-
         if (kwargs.get('params') is None):
             weight = kwargs.get('weight')
             n_gaussian = kwargs.get('n_gaussian')
             n_coeff = kwargs.get('n_coeff')
             min_signal = kwargs.get('min_signal')
             max_signal = kwargs.get('max_signal')
-            # self.device = kwargs.get('device')
+            self.device = kwargs.get('device')
             self.path = kwargs.get('path')
             self.min_sigma = kwargs.get('min_sigma')
             if (weight is None):
                 weight = np.random.randn(n_gaussian * 3, n_coeff)
                 weight[n_gaussian:2 * n_gaussian, 1] = np.log(max_signal - min_signal)
-                weight = torch.from_numpy(weight.astype(np.float32)).float()  #.to(self.device)
+                weight = torch.from_numpy(weight.astype(np.float32)).float().to(self.device)
                 weight.requires_grad = True
             self.n_gaussian = weight.shape[0] // 3
             self.n_coeff = weight.shape[1]
             self.weight = weight
-            self.min_signal = torch.Tensor([min_signal])  #.to(self.device)
-            self.max_signal = torch.Tensor([max_signal])  #.to(self.device)
-            self.tol = torch.Tensor([1e-10])  #.to(self.device)
+            self.min_signal = torch.Tensor([min_signal]).to(self.device)
+            self.max_signal = torch.Tensor([max_signal]).to(self.device)
+            self.tol = torch.Tensor([1e-10]).to(self.device)
         else:
             params = kwargs.get('params')
-            # self.device = kwargs.get('device')
+            self.device = kwargs.get('device')
 
-            self.min_signal = torch.Tensor(params['min_signal'])  #.to(self.device)
-            self.max_signal = torch.Tensor(params['max_signal'])  #.to(self.device)
+            self.min_signal = torch.Tensor(params['min_signal']).to(self.device)
+            self.max_signal = torch.Tensor(params['max_signal']).to(self.device)
 
-            self.weight = torch.Tensor(params['trained_weight'])  #.to(self.device)
+            self.weight = torch.Tensor(params['trained_weight']).to(self.device)
             self.min_sigma = params['min_sigma'].item()
             self.n_gaussian = self.weight.shape[0] // 3
             self.n_coeff = self.weight.shape[1]
-            self.tol = torch.Tensor([1e-10])  #.to(self.device)
-            self.min_signal = torch.Tensor([self.min_signal])  #.to(self.device)
-            self.max_signal = torch.Tensor([self.max_signal])  #.to(self.device)
+            self.tol = torch.Tensor([1e-10]).to(self.device)
+            self.min_signal = torch.Tensor([self.min_signal]).to(self.device)
+            self.max_signal = torch.Tensor([self.max_signal]).to(self.device)
 
     def to_device(self, cuda_tensor):
         # move everything to GPU
@@ -102,10 +101,12 @@ class GaussianMixtureNoiseModel:
 
     def polynomialRegressor(self, weightParams, signals):
         """Combines `weightParams` and signal `signals` to regress for the gaussian parameter values.
+
                 Parameters
                 ----------
                 weightParams : torch.cuda.FloatTensor
                     Corresponds to specific rows of the `self.weight`
+
                 signals : torch.cuda.FloatTensor
                     Signals
                 Returns
@@ -120,6 +121,7 @@ class GaussianMixtureNoiseModel:
 
     def normalDens(self, x, m_=0.0, std_=None):
         """Evaluates the normal probability density at `x` given the mean `m` and standard deviation `std`.
+
                 Parameters
                 ----------
                 x: torch.cuda.FloatTensor
@@ -132,7 +134,9 @@ class GaussianMixtureNoiseModel:
                 -------
                 tmp: torch.cuda.FloatTensor
                     Normal probability density of `x` given `m_` and `std_`
+
         """
+
         tmp = -((x - m_)**2)
         tmp = tmp / (2.0 * std_ * std_)
         tmp = torch.exp(tmp)
@@ -141,6 +145,7 @@ class GaussianMixtureNoiseModel:
 
     def likelihood(self, observations, signals):
         """Evaluates the likelihood of observations given the signals and the corresponding gaussian parameters.
+
                 Parameters
                 ----------
                 observations : torch.cuda.FloatTensor
@@ -151,10 +156,10 @@ class GaussianMixtureNoiseModel:
                 -------
                 value :p + self.tol
                     Likelihood of observations given the signals and the GMM noise model
+
         """
         self.to_device(signals)
         gaussianParameters = self.getGaussianParameters(signals)
-
         p = 0
         for gaussian in range(self.n_gaussian):
             p += self.normalDens(
@@ -164,6 +169,7 @@ class GaussianMixtureNoiseModel:
 
     def getGaussianParameters(self, signals):
         """Returns the noise model for given signals
+
                 Parameters
                 ----------
                 signals : torch.cuda.FloatTensor
@@ -172,6 +178,7 @@ class GaussianMixtureNoiseModel:
                 -------
                 noiseModel: list of torch.cuda.FloatTensor
                     Contains a list of `mu`, `sigma` and `alpha` for the `signals`
+
         """
         noiseModel = []
         mu = []
@@ -211,6 +218,7 @@ class GaussianMixtureNoiseModel:
 
     def getSignalObservationPairs(self, signal, observation, lowerClip, upperClip):
         """Returns the Signal-Observation pixel intensities as a two-column array
+
                 Parameters
                 ----------
                 signal : numpy array
@@ -221,10 +229,12 @@ class GaussianMixtureNoiseModel:
                     Lower percentile bound for clipping.
                 upperClip: float
                     Upper percentile bound for clipping.
+
                 Returns
                 -------
                 noiseModel: list of torch floats
                     Contains a list of `mu`, `sigma` and `alpha` for the `signals`
+
         """
         lb = np.percentile(signal, lowerClip)
         ub = np.percentile(signal, upperClip)
@@ -250,6 +260,7 @@ class GaussianMixtureNoiseModel:
               lowerClip=0,
               upperClip=100):
         """Training to learn the noise model from signal - observation pairs.
+
                 Parameters
                 ----------
                 signal: numpy array
@@ -263,7 +274,9 @@ class GaussianMixtureNoiseModel:
                 n_epochs: int
                     Number of epochs. Default = 2000.
                 name: string
+
                     Model name. Default is `GMMNoiseModel`. This model after being trained is saved at the location `path`.
+
                 lowerClip : int
                     Lower percentile for clipping. Default is 0.
                 upperClip : int
