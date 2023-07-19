@@ -16,9 +16,10 @@ class DisentNoiseModel(nn.Module):
         self.n2model = n2model
 
     def likelihood(self, obs, signal):
-        ll1 = self.n1model.likelihood(obs[:, :1], signal[:, :1])
-        ll2 = self.n2model.likelihood(obs[:, 1:], signal[:, 1:])
-        return torch.cat([ll1, ll2], dim=1)
+        ll1 = self.n1model.likelihood(obs[0], signal[:1])
+        ll2 = self.n2model.likelihood(obs[1], signal[1:])
+        # return torch.cat([ll1, ll2], dim=1)
+        return torch.cat([ll1[0, :, None], ll2[0, :, None]], dim=1)
 
 
 def get_noise_model(model_config):

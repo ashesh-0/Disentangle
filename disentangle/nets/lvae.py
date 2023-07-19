@@ -467,12 +467,12 @@ class LadderVAE(pl.LightningModule):
         Args:
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
-
         if likelihood_obj is None:
             likelihood_obj = self.likelihood
         # Log likelihood
         ll, like_dict = likelihood_obj(reconstruction, input)
         ll = self._get_weighted_likelihood(ll)
+
         if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
             pad = self.skip_nboundary_pixels_from_loss
             ll = ll[:, :, pad:-pad, pad:-pad]

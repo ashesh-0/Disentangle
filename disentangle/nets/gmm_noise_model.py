@@ -133,7 +133,6 @@ class GaussianMixtureNoiseModel:
                 tmp: torch.cuda.FloatTensor
                     Normal probability density of `x` given `m_` and `std_`
         """
-
         tmp = -((x - m_)**2)
         tmp = tmp / (2.0 * std_ * std_)
         tmp = torch.exp(tmp)

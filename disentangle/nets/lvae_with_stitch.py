@@ -1,19 +1,22 @@
-from disentangle.nets.lvae import LadderVAE, compute_batch_mean, torch_nanmean
+import numpy as np
+# from disentangle.core.likelihoods import GaussianLikelihoodWithStitching
+import torch
 import torch.nn as nn
 import torch.optim as optim
-from disentangle.core.likelihoods import GaussianLikelihoodWithStitching
-import torch
 import torchvision.transforms.functional as F
+
 from disentangle.core.psnr import RangeInvariantPsnr
-import numpy as np
+from disentangle.nets.lvae import LadderVAE, compute_batch_mean, torch_nanmean
 
 
 class SqueezeLayer(nn.Module):
+
     def forward(self, x):
         return torch.squeeze(x)
 
 
 class LadderVAEwithStitching(LadderVAE):
+
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
         self.offset_prediction_input_z_idx = config.model.offset_prediction_input_z_idx
@@ -242,8 +245,9 @@ class LadderVAEwithStitching(LadderVAE):
 
 
 if __name__ == '__main__':
-    from disentangle.configs.lvae_with_stitch_config import get_config
     import torch
+
+    from disentangle.configs.lvae_with_stitch_config import get_config
     config = get_config()
     model = LadderVAEwithStitching(0, 1, config)
     inp = torch.rand((16, 1, 64, 64))

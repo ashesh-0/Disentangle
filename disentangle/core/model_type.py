@@ -1,5 +1,4 @@
 from disentangle.core.custom_enum import Enum
-from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
 
 
 class ModelType(Enum):
