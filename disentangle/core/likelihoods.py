@@ -66,6 +66,12 @@ class NoiseModelLikelihood(LikelihoodModule):
         }
         return params
 
+    def set_params_to_same_device_as(self, correct_device_tensor):
+        if isinstance(self.data_mean, torch.Tensor):
+            if self.data_mean.device != correct_device_tensor.device:
+                self.data_mean = self.data_mean.to(correct_device_tensor.device)
+                self.data_std = self.data_std.to(correct_device_tensor.device)
+
     @staticmethod
     def mean(params):
         return params['mean']
