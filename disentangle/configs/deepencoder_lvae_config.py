@@ -22,8 +22,8 @@ def get_config():
     data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
     data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
 
-    data.ch1_min_alpha = None
-    data.ch1_max_alpha = None
+    data.ch1_min_alpha = 0.4
+    data.ch1_max_alpha = 0.6
     data.return_alpha = True
     data.return_individual_channels = True
 
