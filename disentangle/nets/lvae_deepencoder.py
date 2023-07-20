@@ -14,7 +14,7 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
         config = ml_collections.ConfigDict(config)
         new_config = deepcopy(config)
         with new_config.unlocked():
-            new_config.data.color_ch = config.model.encoder.n_filters
+            new_config.data.color_ch = config.model.encoder.n_filters + 1
             new_config.data.multiscale_lowres_count = None  # multiscaleing is inside the extra encoder.
             new_config.model.gated = False
             new_config.model.decoder.dropout = 0.
@@ -28,6 +28,7 @@ class LVAEWithDeepEncoder(LadderVAETwinDecoder):
 
     def forward(self, x):
         encoded, _ = self.extra_encoder(x)
+        encoded = torch.cat([encoded, x], dim=1)
         return super().forward(encoded)
 
     def normalize_target(self, target, batch=None):
