@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib.gridspec import GridSpec
 from matplotlib.patches import Rectangle
 
-from disentangle.analysis.plot_utils import add_pixel_kde, clean_ax
+from disentangle.analysis.plot_utils import clean_ax
 from disentangle.core.psnr import RangeInvariantPsnr
 
 
@@ -59,6 +59,7 @@ def plot_crop_predictions(
     output_filepath=None,
     add_inset=True,
     add_psnr=True,
+    imshow_with_vmax=True,
 ):
     """
     Here, we have single frame predictions. From it we crop patches from h_list,w_list being top left corner locations.
@@ -96,8 +97,11 @@ def plot_crop_predictions(
         # Get the targets.
         ch0_tar = pred_data_obj.target(0)[h_:h_ + sz, w_:w_ + sz]
         ch1_tar = pred_data_obj.target(1)[h_:h_ + sz, w_:w_ + sz]
-        vmax = max(ch0_tar.max(), ch1_tar.max())
-
+        vmax0 = pred_data_obj.target(0).max()
+        vmax1 = pred_data_obj.target(1).max()
+        if imshow_with_vmax != True:
+            vmax0 = None
+            vmax1 = None
         # Full input frame.
         ax_temp = fig.add_subplot(gs[row_s:row_s + grid_img_sz, :grid_img_sz])
         ax_temp.imshow(inp)
@@ -132,10 +136,9 @@ def plot_crop_predictions(
             ch0_pred = pred_data_obj.prediction(i - 1, 0)[h_:h_ + sz, w_:w_ + sz]
 
             ax_temp = fig.add_subplot(gs[row_s:row_s + grid_img_sz, grid_img_sz * i:grid_img_sz * i + grid_img_sz])
-            ax_temp.imshow(ch0_pred, vmax=vmax)
+            ax_temp.imshow(ch0_pred, vmax=vmax0)
             axes_list.append(ax_temp)
 
-            # print(ch0_tar.shape, ch0_pred.shape, h_, w_)
             if add_psnr:
                 psnr = RangeInvariantPsnr(ch0_tar[None], ch0_pred[None]).item()
                 ax_temp.text(sz * 1 / 15,
@@ -162,9 +165,9 @@ def plot_crop_predictions(
             ch1_pred = pred_data_obj.prediction(i - 1, 1)[h_:h_ + sz, w_:w_ + sz]
             ax_temp = fig.add_subplot(gs[row_s + grid_img_sz:row_s + 2 * grid_img_sz,
                                          grid_img_sz * i:grid_img_sz * i + grid_img_sz])
-            ax_temp.imshow(ch1_pred, vmax=vmax)
+            ax_temp.imshow(ch1_pred, vmax=vmax1)
             axes_list.append(ax_temp)
-            print(ch0_pred.max(), ch1_pred.max(), vmax)
+
             if add_psnr:
                 psnr = RangeInvariantPsnr(ch1_tar[None], ch1_pred[None]).item()
                 ax_temp.text(sz * 1 / 15,
@@ -189,7 +192,7 @@ def plot_crop_predictions(
         # Show target
         i += 1
         ax_temp = fig.add_subplot(gs[row_s:row_s + grid_img_sz, grid_img_sz * i:grid_img_sz * i + grid_img_sz])
-        ax_temp.imshow(ch0_tar, vmax=vmax)
+        ax_temp.imshow(ch0_tar, vmax=vmax0)
         axes_list.append(ax_temp)
         if add_inset:
             _ = add_pixel_kde(ax_temp,
@@ -205,7 +208,7 @@ def plot_crop_predictions(
 
         ax_temp = fig.add_subplot(gs[row_s + grid_img_sz:row_s + 2 * grid_img_sz,
                                      grid_img_sz * i:grid_img_sz * i + grid_img_sz])
-        ax_temp.imshow(ch1_tar, vmax=vmax)
+        ax_temp.imshow(ch1_tar, vmax=vmax1)
         axes_list.append(ax_temp)
         if add_inset:
             _ = add_pixel_kde(ax_temp,
