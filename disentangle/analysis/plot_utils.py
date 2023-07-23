@@ -119,6 +119,7 @@ def add_pixel_kde(ax,
                   data1: np.ndarray,
                   data2: Union[np.ndarray, None],
                   min_labelsize: int,
+                  plot_xmax_value: int = None,
                   color1='r',
                   color2='black',
                   color_xtick='white',
@@ -135,12 +136,18 @@ def add_pixel_kde(ax,
     if data2 is not None:
         sns.kdeplot(data=data2.reshape(-1, ), ax=inset_ax, color=color2, label=label2, clip=(0, None))
 
-    xmin, xmax = inset_ax.get_xlim()
-    xmax_data = data1.max()
-    if data2 is not None:
-        xmax_data = max(xmax_data, data2.max())
+    # xmin, xmax = inset_ax.get_xlim()
 
-    inset_ax.set_xlim(0, xmax_data)
+    if plot_xmax_value is not None:
+        xmax_data = plot_xmax_value
+    else:
+        xmax_data = int(data1.max())
+        if data2 is not None:
+            xmax_data = int(max(xmax_data, data2.max())) + 1
+
+    inset_ax.set_aspect('auto')
+    inset_ax.set_xlim([0, xmax_data])  #xmin=0,xmax= xmax_data
+    inset_ax.set_xbound(lower=0.0, upper=xmax_data)
 
     xticks = inset_ax.get_xticks()
     inset_ax.set_xticks([xticks[0], xticks[-1]])
