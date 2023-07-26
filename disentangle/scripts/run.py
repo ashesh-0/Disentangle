@@ -142,7 +142,8 @@ def overwride_with_cmd_params(config, params_dict):
 
 def main(argv):
     config = FLAGS.config
-    overwride_with_cmd_params(config, json.loads(FLAGS.override_kwargs))
+    if FLAGS.override_kwargs:
+        overwride_with_cmd_params(config, json.loads(FLAGS.override_kwargs))
     # making older configs compatible with current version.
     config = get_updated_config(config)
 
