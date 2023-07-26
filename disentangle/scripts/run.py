@@ -1,6 +1,7 @@
 """
 run file for the disentangle work. 
 """
+import json
 import logging
 import os
 import pickle
@@ -39,6 +40,7 @@ flags.DEFINE_string("logdir", '/group/jug/ashesh/wandb_backup/', "The folder nam
 flags.DEFINE_string("datadir", '/tmp2/ashesh/ashesh/VAE_based/data/MNIST/noisy/', "Data directory.")
 flags.DEFINE_boolean("use_max_version", False, "Overwrite the max version of the model")
 flags.DEFINE_string("load_ckptfpath", '', "The path to a previous ckpt from which the weights should be loaded")
+flags.DEFINE_string("override_kwargs", '', 'There keys will be overwridden with the corresponding values')
 flags.mark_flags_as_required(["workdir", "config", "mode"])
 
 
@@ -122,8 +124,25 @@ def get_workdir(config, root_dir, use_max_version):
     return cur_workdir, rel_path
 
 
+def _update_config(config, key_levels, value):
+    if len(key_levels) == 1:
+        config[key_levels[0]] = value
+    else:
+        _update_config(config[key_levels[0]], key_levels[1:], value)
+
+
+def overwride_with_cmd_params(config, params_dict):
+    """
+    It makes sure that config is updated correctly with the value typecasted to the same type as is already present in the config.
+    """
+    for key in params_dict:
+        key_levels = key.split('.')
+        _update_config(config, key_levels, params_dict[key])
+
+
 def main(argv):
     config = FLAGS.config
+    overwride_with_cmd_params(config, json.loads(FLAGS.override_kwargs))
     # making older configs compatible with current version.
     config = get_updated_config(config)
 
