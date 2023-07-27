@@ -423,6 +423,7 @@ def main(
     output_stats['psnr'] = [avg_psnr(tar1, pred1), avg_psnr(tar2, pred2)]
     output_stats['rangeinvpsnr'] = [avg_range_inv_psnr(tar1, pred1), avg_range_inv_psnr(tar2, pred2)]
     output_stats['ssim'] = [ssim1_mean, ssim2_mean, ssim1_std, ssim2_std]
+    output_stats['normalized_ssim'] = normalized_ssim
 
     print(print_token)
     print('Rec Loss', np.round(output_stats['rec_loss'], 3))
