@@ -12,7 +12,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
+    data.image_size = 128
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
@@ -55,7 +55,7 @@ def get_config():
     loss.loss_type = LossType.Elbo
     # loss.mixed_rec_weight = 1
 
-    loss.kl_weight = 1
+    loss.kl_weight = 0.1
     loss.kl_annealing = False
     loss.kl_annealtime = 10
     loss.kl_start = -1
@@ -65,7 +65,7 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.AutoRegresiveLadderVAE
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
@@ -113,7 +113,7 @@ def get_config():
     training.lr = 0.001 / 2
     training.lr_scheduler_patience = 30
     training.max_epochs = 400
-    training.batch_size = 128
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None

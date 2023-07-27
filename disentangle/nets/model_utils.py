@@ -11,6 +11,7 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.nets.brave_net import BraveNetPL
 from disentangle.nets.lvae import LadderVAE
+from disentangle.nets.lvae_autoregressive import AutoRegLadderVAE
 from disentangle.nets.lvae_bleedthrough import LadderVAEWithMixedRecons
 from disentangle.nets.lvae_deepencoder import LVAEWithDeepEncoder
 from disentangle.nets.lvae_multidset import LadderVaeMultiDataset
@@ -60,6 +61,8 @@ def create_model(config, data_mean, data_std):
         model = LadderVaeMultiDatasetMultiOptim(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LVaeDeepEncoderIntensityAug:
         model = LVAEWithDeepEncoder(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.AutoRegresiveLadderVAE:
+        model = AutoRegLadderVAE(data_mean, data_std, config)
 
     else:
         raise Exception('Invalid model type:', config.model.model_type)

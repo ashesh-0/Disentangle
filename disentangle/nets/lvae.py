@@ -296,10 +296,12 @@ class LadderVAE(pl.LightningModule):
             raise RuntimeError(msg)
         return likelihood
 
-    def create_first_bottom_up(self, init_stride, num_blocks=1):
+    def create_first_bottom_up(self, init_stride, num_blocks=1, color_ch=None):
         nonlin = self.get_nonlin()
+        if color_ch is None:
+            color_ch = self.color_ch
         modules = [
-            nn.Conv2d(self.color_ch,
+            nn.Conv2d(color_ch,
                       self.encoder_n_filters,
                       self.encoder_res_block_kernel,
                       padding=0 if self.encoder_res_block_skip_padding else self.encoder_res_block_kernel // 2,
