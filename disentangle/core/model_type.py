@@ -24,3 +24,4 @@ class ModelType(Enum):
     LadderVaeMultiDatasetMultiBranch = 18
     LadderVaeMultiDatasetMultiOptim = 19
     LVaeDeepEncoderIntensityAug = 20
+    AutoRegresiveLadderVAE = 21
