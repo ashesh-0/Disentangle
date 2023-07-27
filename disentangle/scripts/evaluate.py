@@ -102,6 +102,7 @@ def main(
     ignored_last_pixels=0,
     ignore_first_pixels=0,
     print_token='',
+    normalized_ssim=True,
 ):
     global DATA_ROOT, CODE_ROOT
 
@@ -408,8 +409,12 @@ def main(
     rmse = (rmse1 + rmse2) / 2
     rmse = np.round(rmse, 3)
 
-    ssim1_mean, ssim1_std = avg_ssim(tar[..., 0], ch1_pred_unnorm)
-    ssim2_mean, ssim2_std = avg_ssim(tar[..., 1], ch2_pred_unnorm)
+    if not normalized_ssim:
+        ssim1_mean, ssim1_std = avg_ssim(tar[..., 0], ch1_pred_unnorm)
+        ssim2_mean, ssim2_std = avg_ssim(tar[..., 1], ch2_pred_unnorm)
+    else:
+        ssim1_mean, ssim1_std = avg_ssim(tar_normalized[..., 0], pred[..., 0])
+        ssim2_mean, ssim2_std = avg_ssim(tar_normalized[..., 1], pred[..., 1])
 
     # Computing the output statistics.
     output_stats = {}
@@ -424,7 +429,11 @@ def main(
     print('RMSE', output_stats['rmse'][0].round(3), output_stats['rmse'][1].round(3), output_stats['rmse'][2].round(3))
     print('PSNR', output_stats['psnr'][0], output_stats['psnr'][1])
     print('RangeInvPSNR', output_stats['rangeinvpsnr'][0], output_stats['rangeinvpsnr'][1])
-    print('SSIM', round(ssim1_mean, 3), round(ssim2_mean, 3), '±', round((ssim1_std + ssim2_std) / 2, 4))
+    if normalized_ssim:
+        print('SSIM normalized:', round(ssim1_mean, 3), round(ssim2_mean, 3), '±', round((ssim1_std + ssim2_std) / 2,
+                                                                                         4))
+    else:
+        print('SSIM:', round(ssim1_mean, 3), round(ssim2_mean, 3), '±', round((ssim1_std + ssim2_std) / 2, 4))
     print()
 
     # if config.data.data_type == DataType.SeparateTiffData:
@@ -462,16 +471,11 @@ def main(
     return output_stats
 
 
-def save_hardcoded_ckpt_evaluations_to_file():
+def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/77',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/78',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/79',
-        '/home/ashesh.ashesh/training/disentangle/2211/D7-M3-S0-L0/1',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/91',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/89',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/90',
-        '/home/ashesh.ashesh/training/disentangle/2211/D7-M3-S0-L0/2',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/32',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/26',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/27',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -483,7 +487,7 @@ def save_hardcoded_ckpt_evaluations_to_file():
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    patchsz_gridsz_tuples = [(64, 64)]
+    patchsz_gridsz_tuples = [(64, 32)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
@@ -508,7 +512,9 @@ def save_hardcoded_ckpt_evaluations_to_file():
                     psnr_type='range_invariant',
                     ignored_last_pixels=ignored_last_pixels,
                     ignore_first_pixels=0,
-                    print_token=handler.dirpath())
+                    print_token=handler.dirpath(),
+                    normalized_ssim=normalized_ssim,
+                )
                 fpath = handler.save(ckpt_dir, data)
                 # except:
                 #     print('FAILED for ', handler.get_output_fpath(ckpt_dir))
@@ -526,10 +532,12 @@ if __name__ == '__main__':
     parser.add_argument('--patch_size', type=int, default=64)
     parser.add_argument('--grid_size', type=int, default=16)
     parser.add_argument('--hardcoded', action='store_true')
+    parser.add_argument('--normalized_ssim', action='store_true')
+
     args = parser.parse_args()
     if args.hardcoded:
         print('Ignoring ckpt_dir,patch_size and grid_size')
-        save_hardcoded_ckpt_evaluations_to_file()
+        save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=args.normalized_ssim)
     else:
         mmse_count = 1
         ignored_last_pixels = 32 if os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:] == '3' else 0
@@ -553,7 +561,9 @@ if __name__ == '__main__':
             val_repeat_factor=None,
             psnr_type='range_invariant',
             ignored_last_pixels=ignored_last_pixels,
-            ignore_first_pixels=0)
+            ignore_first_pixels=0,
+            normalized_ssim=args.normalized_ssim,
+        )
 
         print('')
         print('Paper Related Stats')
