@@ -476,6 +476,20 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
         '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/32',
         '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/26',
         '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/27',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/30',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/24',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/29',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/31',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/25',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/28',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/77',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/78',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/79',
+        '/home/ashesh.ashesh/training/disentangle/2211/D7-M3-S0-L0/1',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/91',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/89',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/90',
+        '/home/ashesh.ashesh/training/disentangle/2211/D7-M3-S0-L0/2',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
