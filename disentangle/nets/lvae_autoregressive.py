@@ -16,17 +16,19 @@ class AutoRegLadderVAE(LadderVAE):
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
         self._neighboring_encoder = None
-        self._merge_layers = nn.ModuleList([
-            MergeLayer(
-                channels=config.model.encoder.n_filters,
-                merge_type=config.model.merge_type,
-                nonlin=self.get_nonlin(),
-                batchnorm=config.model.encoder.batchnorm,
-                dropout=config.model.encoder.dropout,
-                res_block_type=config.model.res_block_type,
-                res_block_kernel=config.model.encoder.res_block_kernel,
-            ) for _ in range(self.n_layers)
-        ])
+        self._avg_pool_layers = nn.ModuleList(
+            [nn.AvgPool2d(kernel_size=self.img_shape[0] // (np.power(2, i + 1))) for i in range(self.n_layers)])
+        # self._merge_layers = nn.ModuleList([
+        #     MergeLayer(
+        #         channels=config.model.encoder.n_filters,
+        #         merge_type=config.model.merge_type,
+        #         nonlin=self.get_nonlin(),
+        #         batchnorm=config.model.encoder.batchnorm,
+        #         dropout=config.model.encoder.dropout,
+        #         res_block_type=config.model.res_block_type,
+        #         res_block_kernel=config.model.encoder.res_block_kernel,
+        #     ) for _ in range(self.n_layers)
+        # ])
         stride = 1 if config.model.no_initial_downscaling else 2
         self._nbr_first_bottom_up = self.create_first_bottom_up(stride, color_ch=2)
         self._nbr_bottom_up_layers = self.create_bottomup_layers()
@@ -70,7 +72,8 @@ class AutoRegLadderVAE(LadderVAE):
 
         merged_bu_values = []
         for idx in range(len(bu_values)):
-            merged_bu_values.append(self._merge_layers[idx](bu_values[idx], nbr_bu_values[idx]))
+            rescaling = nn.Tanh()(self._avg_pool_layers[idx](nbr_bu_values[idx]))
+            merged_bu_values.append(bu_values[idx] * rescaling)
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
         # Top-down inference/generation
