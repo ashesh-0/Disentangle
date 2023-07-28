@@ -59,26 +59,22 @@ class AutoRegLadderVAE(LadderVAE):
         # Pad input to make everything easier with conv strides
         x_pad = self.pad_input(x)
 
-        assert x_pad.shape[1] == 2, ' We must have exactly one neighbor'
-
-        bu_values = self.bottomup_pass(x_pad[:, :1])
         # Now, process the neighboring patch.
-        with torch.no_grad():
-            nbr_pred, *_ = super().forward(x_pad[:, 1:])
+        # with torch.no_grad():
+        nbr_pred, *_ = super().forward(x_pad[:, 1:])
 
-            # get the prediction for neighboring image.
-            nbr_pred = get_img_from_forward_output(nbr_pred, self, unnormalized=False)
-            # get some latent space encoding for the neighboring prediction.
-            nbr_bu_values = self._bottomup_pass(nbr_pred, self._nbr_first_bottom_up, None, self._nbr_bottom_up_layers)
+        # get the prediction for neighboring image.
+        nbr_pred = get_img_from_forward_output(nbr_pred, self, unnormalized=False)
+        # get some latent space encoding for the neighboring prediction.
+        nbr_bu_values = self._bottomup_pass(nbr_pred, self._nbr_first_bottom_up, None, self._nbr_bottom_up_layers)
+        nbr_bu_values = [nbr_bu_values[i].detach() for i in range(len(nbr_bu_values))]
+
+        assert x_pad.shape[1] == 2, ' We must have exactly one neighbor'
+        bu_values = self.bottomup_pass(x_pad[:, :1])
 
         merged_bu_values = []
         for idx in range(len(bu_values)):
-            if idx == len(bu_values):
-                import pdb
-                pdb.set_trace()
-                rescaling = nn.Tanh()(self._avg_pool_layers[idx](nbr_bu_values[idx]))
-            else:
-                rescaling = 1
+            rescaling = nn.Tanh()(self._avg_pool_layers[idx](nbr_bu_values[idx]))
             merged_bu_values.append(bu_values[idx] * rescaling)
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None

@@ -249,6 +249,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 val_data_kwargs['supervised_data_fraction'] = 1.0
             elif config.model.model_type == ModelType.AutoRegresiveLadderVAE:
                 data_class = AutoRegressiveDloader
+                train_data_kwargs['enable_random_cropping'] = enable_random_cropping
+                val_data_kwargs['enable_random_cropping'] = False
             else:
                 train_data_kwargs['enable_random_cropping'] = enable_random_cropping
                 val_data_kwargs['enable_random_cropping'] = False
