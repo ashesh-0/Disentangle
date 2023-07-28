@@ -73,7 +73,12 @@ class AutoRegLadderVAE(LadderVAE):
 
         merged_bu_values = []
         for idx in range(len(bu_values)):
-            rescaling = nn.Tanh()(self._avg_pool_layers[idx](nbr_bu_values[idx]))
+            if idx == len(bu_values):
+                import pdb
+                pdb.set_trace()
+                rescaling = nn.Tanh()(self._avg_pool_layers[idx](nbr_bu_values[idx]))
+            else:
+                rescaling = 1
             merged_bu_values.append(bu_values[idx] * rescaling)
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
