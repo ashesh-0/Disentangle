@@ -22,6 +22,7 @@ from disentangle.nets.lvae_multiple_encoders import LadderVAEMultipleEncoders
 from disentangle.nets.lvae_multires_target import LadderVAEMultiTarget
 from disentangle.nets.lvae_semi_supervised import LadderVAESemiSupervised
 from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
+from disentangle.nets.lvae_twindecoder_autoregressive import AutoRegTwinDecoderLadderVAE
 from disentangle.nets.lvae_with_critic import LadderVAECritic
 from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
 from disentangle.nets.lvae_with_stitch_2stage import LadderVAEwithStitching2Stage
@@ -63,7 +64,8 @@ def create_model(config, data_mean, data_std):
         model = LVAEWithDeepEncoder(data_mean, data_std, config)
     elif config.model.model_type == ModelType.AutoRegresiveLadderVAE:
         model = AutoRegLadderVAE(data_mean, data_std, config)
-
+    elif config.model.model_type == ModelType.AutoRegressiveLadderVaeTwinDecoder:
+        model = AutoRegTwinDecoderLadderVAE(data_mean, data_std, config)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
     return model

@@ -4,8 +4,11 @@ import torch
 from disentangle.core.data_utils import crop_img_tensor
 
 
-def get_img_from_forward_output(out, model, unnormalized=True):
-    recons_img = model.likelihood.get_mean_lv(out)[0]
+def get_img_from_forward_output(out, model, unnormalized=True, likelihood_obj=None):
+    if likelihood_obj is None:
+        likelihood_obj = model.likelihood
+
+    recons_img = likelihood_obj.get_mean_lv(out)[0]
     if unnormalized:
         recons_img = recons_img * model.data_std + model.data_mean
     return recons_img

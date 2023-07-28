@@ -296,13 +296,16 @@ class LadderVAE(pl.LightningModule):
             raise RuntimeError(msg)
         return likelihood
 
-    def create_first_bottom_up(self, init_stride, num_blocks=1, color_ch=None):
+    def create_first_bottom_up(self, init_stride, num_blocks=1, color_ch=None, encoder_n_filters=None):
         nonlin = self.get_nonlin()
         if color_ch is None:
             color_ch = self.color_ch
+        if encoder_n_filters is None:
+            encoder_n_filters = self.encoder_n_filters
+
         modules = [
             nn.Conv2d(color_ch,
-                      self.encoder_n_filters,
+                      encoder_n_filters,
                       self.encoder_res_block_kernel,
                       padding=0 if self.encoder_res_block_skip_padding else self.encoder_res_block_kernel // 2,
                       stride=init_stride),
@@ -311,8 +314,8 @@ class LadderVAE(pl.LightningModule):
         for _ in range(num_blocks):
             modules.append(
                 BottomUpDeterministicResBlock(
-                    c_in=self.encoder_n_filters,
-                    c_out=self.encoder_n_filters,
+                    c_in=encoder_n_filters,
+                    c_out=encoder_n_filters,
                     nonlin=nonlin,
                     batchnorm=self.bottomup_batchnorm,
                     dropout=self.encoder_dropout,

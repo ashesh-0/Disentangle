@@ -247,10 +247,13 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 train_data_kwargs['supervised_data_fraction'] = config.data.supervised_data_fraction
                 val_data_kwargs['mixed_input_type'] = config.data.mixed_input_type
                 val_data_kwargs['supervised_data_fraction'] = 1.0
-            elif config.model.model_type == ModelType.AutoRegresiveLadderVAE:
+            elif config.model.model_type in [
+                    ModelType.AutoRegresiveLadderVAE, ModelType.AutoRegressiveLadderVaeTwinDecoder
+            ]:
                 data_class = AutoRegressiveDloader
                 train_data_kwargs['enable_random_cropping'] = enable_random_cropping
                 val_data_kwargs['enable_random_cropping'] = False
+
             else:
                 train_data_kwargs['enable_random_cropping'] = enable_random_cropping
                 val_data_kwargs['enable_random_cropping'] = False
