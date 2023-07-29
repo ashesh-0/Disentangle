@@ -28,9 +28,9 @@ class UNet(pl.LightningModule):
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
         self.lr_scheduler_monitor = config.model.get('monitor', 'val_loss')
         self.lr_scheduler_mode = MetricMonitor(self.lr_scheduler_monitor).mode()
-        self.enable_context_transfer = config.model.enable_context_transfer
+        self.enable_context_transfer = config.model.get('enable_context_transfer', False)
         self.ct_modules = nn.ModuleList()
-        init_ch = config.model.init_channel_count
+        init_ch = config.model.get('init_channel_count', 64)
         self.multiscale_lowres_separate_branch = config.model.multiscale_lowres_separate_branch
         if self.enable_context_transfer:
             hw = config.data.image_size
