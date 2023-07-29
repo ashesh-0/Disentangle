@@ -474,18 +474,10 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/34',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/39',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/3',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/52',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/35',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/38',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/40',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/51',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/36',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/37',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/49',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/50',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M10-S0-L3/17',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M10-S0-L3/16',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M10-S0-L3/15',
+        '/home/ashesh.ashesh/training/disentangle/2211/D7-M10-S0-L3/1',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -497,7 +489,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    patchsz_gridsz_tuples = [(64, 32)]
+    patchsz_gridsz_tuples = [(512, 128)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
