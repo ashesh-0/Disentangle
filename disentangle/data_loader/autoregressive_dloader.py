@@ -40,7 +40,7 @@ class AutoRegressiveDloader(MultiChDeterministicTiffDloader):
         """
         t = self.idx_manager.get_t(index)
         index = self.idx_manager.idx_from_hwt(h_start, w_start, t)
-        top_nbr_idx = self.idx_manager.get_top_nbr_idx(index)
+        top_nbr_idx = self.idx_manager.get_top_nbr_idx(index, grid_size=self._img_sz)
         if top_nbr_idx is None:
             # TODO: A better thing could be (background_value - mean)/std
             return [np.zeros((1, self._img_sz, self._img_sz))] * len(img_tuples)
