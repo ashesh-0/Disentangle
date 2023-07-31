@@ -14,6 +14,7 @@ def get_config():
     data.channel_2 = 1
     data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
     data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
+    data.enable_poisson_noise = True
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
