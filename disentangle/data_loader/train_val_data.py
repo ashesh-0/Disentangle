@@ -45,43 +45,8 @@ def get_train_val_data(data_config,
                                    test_fraction=test_fraction,
                                    allow_generation=allow_generation)
 
-    elif data_config.data_type == DataType.Prevedel_EMBL:
-        return _load_tiff_train_val(fpath,
-                                    data_config,
-                                    datasplit_type,
-                                    val_fraction=val_fraction,
-                                    test_fraction=test_fraction)
-    elif data_config.data_type == DataType.AllenCellMito:
-        return _loadallencellmito(fpath, data_config, datasplit_type, val_fraction, test_fraction)
     elif data_config.data_type == DataType.SeparateTiffData:
         return _loadseparatetiff(fpath, data_config, datasplit_type, val_fraction, test_fraction)
-    elif data_config.data_type == DataType.Pavia2:
-        return _loadpavia2(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
-    elif data_config.data_type == DataType.Pavia2VanillaSplitting:
-        return _loadpavia2_vanilla(fpath,
-                                   data_config,
-                                   datasplit_type,
-                                   val_fraction=val_fraction,
-                                   test_fraction=test_fraction)
-    elif data_config.data_type == DataType.SemiSupBloodVesselsEMBL:
-        return _loadembl2_semisup(fpath,
-                                  data_config,
-                                  datasplit_type,
-                                  val_fraction=val_fraction,
-                                  test_fraction=test_fraction)
-
-    elif data_config.data_type == DataType.ShroffMitoEr:
-        return _loadschroff_mito_er(fpath,
-                                    data_config,
-                                    datasplit_type,
-                                    val_fraction=val_fraction,
-                                    test_fraction=test_fraction)
-    elif data_config.data_type == DataType.HTIba1Ki67:
-        return _load_ht_iba1_ki67(fpath,
-                                  data_config,
-                                  datasplit_type,
-                                  val_fraction=val_fraction,
-                                  test_fraction=test_fraction)
 
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')
