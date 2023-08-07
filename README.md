@@ -4,9 +4,10 @@ This is the official implementation of [μSplit: image decomposition for fluores
 
 ## Installation
 ```bash
-git clone
-cd usplit
-pip install -r requirements.txt
+git clone https://github.com/juglab/uSplit.git
+cd uSplit
+./install_deps.sh
+pip install -e .
 ```
 
 ## Usage
