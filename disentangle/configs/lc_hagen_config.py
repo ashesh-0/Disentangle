@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 64
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
@@ -22,7 +22,7 @@ def get_config():
     data.normalized_input = True
     data.clip_percentile = 0.995
 
-    data.channelwise_quantile = True
+    data.channelwise_quantile = False
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
@@ -64,7 +64,7 @@ def get_config():
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
 
-    model.decoder.multiscale_retain_spatial_dims = False
+    model.decoder.multiscale_retain_spatial_dims = True
     config.model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
@@ -88,10 +88,6 @@ def get_config():
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
     model.enable_noise_model = False
-    model.noise_model_type = 'gmm'
-    fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
-    model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
     model.non_stochastic_version = False
 
     training = config.training
