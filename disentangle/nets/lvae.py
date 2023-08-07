@@ -16,12 +16,10 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.core.sampler_type import SamplerType
-from disentangle.loss.nbr_consistency_loss import NeighborConsistencyLoss
 from disentangle.losses import free_bits_kl
 from disentangle.metrics.running_psnr import RunningPSNR
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
-from disentangle.nets.noise_model import get_noise_model
 
 
 def torch_nanmean(inp):
@@ -79,7 +77,7 @@ class LadderVAE(pl.LightningModule):
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
 
-        self.noiseModel = get_noise_model(config.model)
+        self.noiseModel = None
         self.merge_type = config.model.merge_type
         self.analytical_kl = config.model.analytical_kl
         self.no_initial_downscaling = config.model.no_initial_downscaling
@@ -505,9 +503,13 @@ class LadderVAE(pl.LightningModule):
         # kl[i] for each i has length batch_size
         # resulting kl shape: (batch_size, layers)
         kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']], dim=1)
-        kl_loss = free_bits_kl(kl, self.free_bits).sum()
-        kl_loss = kl_loss / np.prod(self.img_shape)
+        nlayers = kl.shape[1]
+        for i in range(nlayers):
+            kl[:, i] = kl[:, i] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
+
+        kl_loss = free_bits_kl(kl, self.free_bits).mean()
         return kl_loss
+
 
     #   NOTE: Gradient logging has been removed because of a version issue. The issue is that
     #   def backward() function arguments have changed. in one version, one needs to pass
