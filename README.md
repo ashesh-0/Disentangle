@@ -9,7 +9,7 @@ cd uSplit
 ./install_deps.sh
 pip install -e .
 ```
-One also needs to create an account on [wandb](https://docs.wandb.ai/quickstart). This is used for logging training and evaluation metrics. In case you do not want to use wandb, you can replace the logger [here](usplit/training.py#L406) with a logger of your choice.
+One also needs to create an account on [wandb](https://docs.wandb.ai/quickstart). This is used for logging training and evaluation metrics. In case you do not want to use wandb, you can replace the logger [here](usplit/training.py#L406) with a logger of your choice and comment out [here](usplit/training.py#L349).
 
 ## Usage
 To train a Regular-LC model on the Hagen dataset, run this command:
