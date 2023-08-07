@@ -60,6 +60,7 @@ def get_config():
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
+    model.encoder.batchnorm = True
 
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
@@ -67,11 +68,11 @@ def get_config():
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
     model.decoder.multiscale_retain_spatial_dims = True
+    model.decoder.batchnorm = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
     model.merge_type = 'residual'
-    model.batchnorm = True
     model.stochastic_skip = True
     model.learn_top_prior = True
     model.img_shape = None
