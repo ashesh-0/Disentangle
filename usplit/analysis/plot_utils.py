@@ -5,9 +5,72 @@ import numpy as np
 import seaborn as sns
 import torch
 
-from usplit.analysis.critic_notebook_utils import get_label_separated_loss, get_mmse_dict
 from usplit.analysis.lvae_utils import get_img_from_forward_output
-from usplit.analysis.quantifying_uncertainty import get_regionwise_metric
+
+def get_mmse_dict(model, x_normalized, target_normalized, mmse_count, model_type, psnr_type='range_invariant',
+                  compute_kl_loss=False):
+    assert psnr_type in ['simple', 'range_invariant']
+    if psnr_type == 'simple':
+        psnr_fn = PSNR
+    else:
+        psnr_fn = RangeInvariantPsnr
+
+    img_mmse = 0
+    avg_logvar = None
+    assert mmse_count >= 1
+    for _ in range(mmse_count):
+        recon_normalized, td_data = model(x_normalized)
+        ll, dic = model.likelihood(recon_normalized, target_normalized)
+        recon_img = dic['mean']
+        img_mmse += recon_img / mmse_count
+        if model.predict_logvar:
+            if avg_logvar is None:
+                avg_logvar = 0
+            avg_logvar += dic['logvar'] / mmse_count
+
+    ll, dic = model.likelihood(recon_normalized, target_normalized)
+    mse = (img_mmse - target_normalized) ** 2
+    # batch and the two channels
+    N = np.prod(mse.shape[:2])
+    rmse = torch.sqrt(torch.mean(mse.view(N, -1), dim=1))
+    rmse = rmse.view(mse.shape[:2])
+    loss_mmse = model.likelihood.log_likelihood(target_normalized, {'mean': img_mmse, 'logvar': avg_logvar})
+    kl_loss = None
+    kl_loss_channelwise = None
+    if compute_kl_loss:
+        kl_loss = model.get_kl_divergence_loss(td_data).cpu().numpy()
+        resN = len(td_data['kl_channelwise'])
+        kl_loss_channelwise = [td_data['kl_channelwise'][i].detach().cpu().numpy() for i in range(resN)]
+
+    psnrl1 = psnr_fn(target_normalized[:, 0], img_mmse[:, 0]).cpu().numpy()
+    psnrl2 = psnr_fn(target_normalized[:, 1], img_mmse[:, 1]).cpu().numpy()
+
+    output = {
+        'mmse_img': img_mmse,
+        'mmse_rec_loss': loss_mmse,
+        'img': recon_img,
+        'rec_loss': ll,
+        'rmse': rmse,
+        'psnr_l1': psnrl1,
+        'psnr_l2': psnrl2,
+        'kl_loss': kl_loss,
+        'kl_loss_channelwise': kl_loss_channelwise,
+    }
+    if model_type == ModelType.LadderVAECritic:
+        D_loss = model.get_critic_loss_stats(recon_img, target_normalized)['loss'].cpu().item()
+        cpred_1, cpred_2 = get_critic_prediction(model, recon_img, target_normalized)
+        critic = {
+            'label1': cpred_1,
+            'label2': cpred_2,
+            'D_loss': D_loss,
+        }
+        output['critic'] = critic
+    return output
+
+
+def get_label_separated_loss(loss_tensor):
+    assert loss_tensor.shape[1] == 2
+    return -1 * loss_tensor[:, 0].mean(dim=(1, 2)).cpu().numpy(), -1 * loss_tensor[:, 1].mean(dim=(1, 2)).cpu().numpy()
 
 
 def clean_ax(ax):
@@ -256,56 +319,6 @@ def plot_imgs_from_idx(idx_list,
             ax[ax_idx, 0].set_title(f'Id:{img_idx}')
             ax[ax_idx, 1].set_title('Image 1')
             ax[ax_idx, 3].set_title('Image 2')
-
-
-def plot_regionwise_metric(model,
-                           dset,
-                           idx_list: List[int],
-                           metric_types: List[str],
-                           regionsize: int = 64,
-                           sample_count: int = 5,
-                           normalize_type=None):
-    metric_dict, target = get_regionwise_metric(model,
-                                                dset,
-                                                idx_list,
-                                                metric_types,
-                                                regionsize=regionsize,
-                                                sample_count=sample_count,
-                                                normalize_type=normalize_type)
-
-    img_sz = 3.5
-    nrows = len(idx_list)
-    sample_count = 20
-    inset_rect = [0.1, 0.1, 0.4, 0.2]
-    inset_min_labelsize = 8
-    _, ax = plt.subplots(figsize=(img_sz * 4, nrows * img_sz), ncols=4, nrows=nrows)
-    for i, img_idx in enumerate(idx_list):
-        ax[i, 0].imshow(target[img_idx][0])
-        ax[i, 2].imshow(target[img_idx][1])
-
-        add_pixel_kde(
-            ax[i, 0],
-            inset_rect,
-            target[img_idx][0],
-            target[img_idx][1],
-            inset_min_labelsize,
-            color1='r',
-            color2='black',
-        )
-        add_pixel_kde(
-            ax[i, 2],
-            inset_rect,
-            target[img_idx][1],
-            target[img_idx][0],
-            inset_min_labelsize,
-            color1='r',
-            color2='black',
-        )
-
-        max_val = metric_dict[sample_count][img_idx]['RMSE'].max()
-        min_val = metric_dict[sample_count][img_idx]['RMSE'].min()
-        sns.heatmap(metric_dict[sample_count][img_idx]['RMSE'][0], ax=ax[i, 1], vmax=max_val, vmin=min_val)
-        sns.heatmap(metric_dict[sample_count][img_idx]['RMSE'][1], ax=ax[i, 3], vmax=max_val, vmin=min_val)
 
 
 # Adding arrows.
