@@ -1,5 +1,6 @@
 # μSplit
-<!-- ["Swin Transformer: Hierarchical Vision Transformer using Shifted Windows"](https://arxiv.org/pdf/2103.14030.pdf) -->
+<img src="./images/SplittedImgs_small.png" width="500px"></img>
+
 This is the official implementation of [μSplit: image decomposition for fluorescence microscopy](https://arxiv.org/abs/2106.01883).
 
 ## Installation
