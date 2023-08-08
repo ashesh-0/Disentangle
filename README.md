@@ -1,5 +1,5 @@
 # μSplit
-<img src="./images/SplittedImgs_small.png" width="500px"></img>
+<img src="./images/SplittedImgs_small.png" width="700px"></img>
 
 This is the official implementation of [μSplit: image decomposition for fluorescence microscopy](https://arxiv.org/abs/2106.01883).
 
