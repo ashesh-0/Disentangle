@@ -259,18 +259,18 @@ def generate_dataset(
     w_rangelist,
     size,
     img_sz,
-    num_curves=3,
-    curve_amplitude=64,
-    max_rotation=math.pi / 8,
-    max_vertical_shift_factor=0.8,
+    num_curves=5,
+    curve_amplitude=8.0,
+    max_rotation=0.0,
+    max_vertical_shift_factor=0.9,
     max_horizontal_shift_factor=0.3,
     flip_w12_randomly=False,
-    curve_thickness=31,
-    encourage_non_overlap_single_channel=False,
-    vertical_min_spacing=0,
+    curve_thickness=21,
+    encourage_non_overlap_single_channel=True,
+    vertical_min_spacing=16,
     joining_frequency=0.01,
-    connecting_w_len=0.5,
-    curve_initial_phase=None,
+    connecting_w_len=0.1,
+    curve_initial_phase=0.0,
 ):
     """
 
@@ -485,38 +485,14 @@ def train_val_data(data_dir,
 
 
 if __name__ == '__main__':
-    w1 = 0.05
-    w2 = 0.15
-    max_angle = 100
-    # curve, x = generate_one_curve(w1, w2, max_angle)
-    # x = 2 * x / max_angle - 1
-    # # x = np.arange(len(curve))
-    # xy = np.concatenate([x.reshape(1, -1), curve.reshape(1, -1)], axis=0)
-    # rotated = apply_rotation(xy, math.pi / 200)
-    # print(curve.shape)
-    import matplotlib.pyplot as plt
-
-    # img = np.zeros((512, 512))
-    # vshift = np.random.rand() * img.shape[-1]
-    # max_rotate = math.pi / 8
-    # rotate = 2 * np.random.rand() * max_rotate - max_rotate
-    # add_to_img(img, w1, w2, vertical_shift=vshift, rotate_radian=rotate)
-    #
-    # vshift = np.random.rand() * img.shape[-1]
-    # rotate = 2 * np.random.rand() * max_rotate - max_rotate
-    # add_to_img(img, w1, w2, vertical_shift=vshift, rotate_radian=rotate)
-    # plt.imshow(img)
-    # plt.plot(x, curve)
-    # plt.plot(rotated[0], rotated[1], color='r')
-    w_rangelist = [Range(0.05, 0.1), Range(0.15, 0.2), Range(0.25, 0.3), Range(0.35, 0.4)]
+    w_rangelist = [Range(0.05, 0.07), Range(0.12, 0.14), Range(0.3, 0.32), Range(0.6, 0.62)]
     size = 10
-    img_sz = 512
+    img_sz = 256
     imgs1, imgs2 = generate_dataset(w_rangelist,
                                     size,
                                     img_sz,
                                     num_curves=3,
-                                    curve_amplitude=64,
-                                    max_rotation=math.pi / 8,
+                                    curve_amplitude=8,
+                                    max_rotation=0.0,
+                                    curve_thickness=21,
                                     flip_w12_randomly=True)
-    plt.imshow(imgs1[0])
-    plt.show()
