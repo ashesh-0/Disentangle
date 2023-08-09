@@ -52,14 +52,14 @@ class LocationBasedSolutionRAManager:
         self._skipN = skip_boundary_pixelcount
 
     def update_at_locations(self, batch_predictions, locations: List[Location]):
-        H, W = batch_predictions.shape[1:3]
+        H, W = batch_predictions.shape[2:]
         for i, location in enumerate(locations):
             self._data[location.t, :, location.h + self._skipN:location.h + H - self._skipN, location.w +
                        self._skipN:location.w + W - self._skipN] = batch_predictions[i][:, self._skipN:H - self._skipN,
                                                                                         self._skipN:W - self._skipN]
 
     def is_valid_location(self, location, patch_size):
-        T, H, W = self._data.shape[:3]
+        T,_, H, W = self._data.shape
         return location.h >= 0 and location.h + patch_size <= H and location.w >= 0 and location.w + patch_size <= W and location.t >= 0 and location.t < T
 
     def get_from_locations(self, locations, patch_size):
@@ -134,12 +134,13 @@ if __name__ == '__main__':
     patch_size = 64
     grid_alignment = GridAlignement.LeftTop
     data_shape = (10, 2720, 2720, 2)
-    idx_manager = GridIndexManager(data_shape, grid_size, patch_size, grid_alignment)
+    idx_manager = GridIndexManager(data_shape, grid_size, patch_size, grid_alignment, set_train_instance=True )
     N = idx_manager.grid_count()
-    indices = np.random.randint(0, N, 8)
-    sol = SolutionRAManager(skip_boundary_pixelcount=5, patch_size=patch_size)
-    sol.update(np.ones((8, patch_size, patch_size, data_shape[-1])), indices, [grid_size] * 8)
-    print(sol.get_top([0, 1], [10, 10]))
+    indices = torch.Tensor(np.random.randint(0, N, 8)).type(torch.int32)
+    sol = SolutionRAManager(DataSplitType.Train, skip_boundary_pixelcount=5, patch_size=patch_size)
+    sol.update(torch.Tensor(np.ones((8,data_shape[-1], patch_size, patch_size))), indices, 
+               torch.Tensor([grid_size] * 8).type(torch.int32))
+    print(sol.get_top(torch.Tensor([0, 1]).type(torch.int32), torch.Tensor([10, 10]).type(torch.int32)))
 
     # from skimage.io import imread, imsave
     # data = imread('/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif', plugin='tifffile')

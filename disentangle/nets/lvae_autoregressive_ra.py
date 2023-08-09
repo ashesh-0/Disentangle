@@ -98,17 +98,15 @@ class AutoRegLadderRAvgVAE(LadderVAE):
 
         return out, td_data
 
-    def get_output_from_batch(self, batch):
+    def get_output_from_batch(self, batch, sol_manager):
         x, target, indices, grid_sizes = batch
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
         nbr_preds = []
-        nbr_preds.append(self._train_sol_manager.get_top(indices, grid_sizes))
-        import pdb
-        pdb.set_trace()
-        nbr_preds.append(self._train_sol_manager.get_bottom(indices, grid_sizes))
-        nbr_preds.append(self._train_sol_manager.get_left(indices, grid_sizes))
-        nbr_preds.append(self._train_sol_manager.get_right(indices, grid_sizes))
+        nbr_preds.append(sol_manager.get_top(indices, grid_sizes))
+        nbr_preds.append(sol_manager.get_bottom(indices, grid_sizes))
+        nbr_preds.append(sol_manager.get_left(indices, grid_sizes))
+        nbr_preds.append(sol_manager.get_right(indices, grid_sizes))
         nbr_preds = [torch.Tensor(nbr_y).to(x.device) for nbr_y in nbr_preds]
         out, td_data = self.forward(x_normalized, nbr_preds)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
@@ -121,7 +119,19 @@ class AutoRegLadderRAvgVAE(LadderVAE):
             'td_data': td_data
         }
 
+    def training_step(self, batch, batch_idx, enable_logging=True):
+        output_dict = self.get_output_from_batch(batch, self._train_sol_manager)
+        imgs = get_img_from_forward_output(output_dict['out'],self,unnormalized=False, likelihood_obj=self.likelihood)
+        self._train_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
+        self._training_step(batch, batch_idx, output_dict, enable_logging=enable_logging)
 
+    def validation_step(self, batch, batch_idx):
+        output_dict = self.get_output_from_batch(batch, self._val_sol_manager)
+        imgs = get_img_from_forward_output(output_dict['out'],self,unnormalized=False, likelihood_obj=self.likelihood)
+        self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
+        self._validation_step(batch, batch_idx, output_dict)
+
+    
 if __name__ == '__main__':
     import numpy as np
     import torch
@@ -139,15 +149,8 @@ if __name__ == '__main__':
     inp = torch.rand((20, 1, config.data.image_size, config.data.image_size))
     nbr = [torch.rand((20, 2, config.data.image_size, config.data.image_size))] * 4
     out, td_data = model(inp, nbr)
-    print(out.shape)
     batch = (torch.rand((16, 1, config.data.image_size, config.data.image_size)),
              torch.rand((16, 2, config.data.image_size, config.data.image_size)), torch.randint(0, 100, (16, )),
              torch.Tensor(np.array([config.data.image_size] * 16)).reshape(16, ).type(torch.int32))
     model.training_step(batch, 0)
     model.validation_step(batch, 0)
-
-    ll = torch.ones((12, 2, 32, 32))
-    ll_new = model._get_weighted_likelihood(ll)
-    print(ll_new[:, 0].mean(), ll_new[:, 0].std())
-    print(ll_new[:, 1].mean(), ll_new[:, 1].std())
-    print('mar')

@@ -557,6 +557,9 @@ class LadderVAE(pl.LightningModule):
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         output_dict = self.get_output_from_batch(batch)
+        self._training_step(batch, batch_idx, output_dict, enable_logging=enable_logging)
+
+    def _training_step(self, batch, batch_idx, output_dict, enable_logging=True):
         out = output_dict['out']
         target_normalized = output_dict['target_normalized']
         td_data = output_dict['td_data']
@@ -637,6 +640,9 @@ class LadderVAE(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         output_dict = self.get_output_from_batch(batch)
+        self._validation_step(batch, batch_idx, output_dict)
+        
+    def _validation_step(self, batch, batch_idx, output_dict):
         out = output_dict['out']
         target_normalized = output_dict['target_normalized']
         td_data = output_dict['td_data']
