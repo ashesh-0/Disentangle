@@ -26,3 +26,4 @@ class ModelType(Enum):
     LVaeDeepEncoderIntensityAug = 20
     AutoRegresiveLadderVAE = 21
     AutoRegressiveLadderVaeTwinDecoder = 22
+    AutoRegresiveRALadderVAE = 23

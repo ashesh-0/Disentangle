@@ -204,7 +204,20 @@ class MultiChDeterministicTiffDloader:
 
         self._img_sz = image_size
         self._grid_sz = grid_size
-        self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz, self._grid_alignment)
+        if self._is_train:
+            self.idx_manager = GridIndexManager(self._data.shape,
+                                                self._grid_sz,
+                                                self._img_sz,
+                                                self._grid_alignment,
+                                                set_train_instance=True)
+        else:
+            self.idx_manager = GridIndexManager(
+                self._data.shape,
+                self._grid_sz,
+                self._img_sz,
+                self._grid_alignment,
+                set_val_instance=True,
+            )
         self.set_repeat_factor()
 
     def set_repeat_factor(self):

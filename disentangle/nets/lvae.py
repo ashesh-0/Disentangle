@@ -538,14 +538,28 @@ class LadderVAE(pl.LightningModule):
     #     loss.backward(retain_graph=True)
     #     self.grad_norm_bottom_up, self.grad_norm_top_down = self.compute_gradient_norm()
 
-    def training_step(self, batch, batch_idx, enable_logging=True):
+    def get_output_from_batch(self, batch):
         x, target = batch[:2]
+        self.set_params_to_same_device_as(target)
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
+
+        return {
+            'out': out,
+            'input_normalized': x_normalized,
+            'target_normalized': target_normalized,
+            'td_data': td_data
+        }
+
+    def training_step(self, batch, batch_idx, enable_logging=True):
+        output_dict = self.get_output_from_batch(batch)
+        out = output_dict['out']
+        target_normalized = output_dict['target_normalized']
+        td_data = output_dict['td_data']
 
         recons_loss_dict, imgs = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
 
@@ -622,12 +636,13 @@ class LadderVAE(pl.LightningModule):
                 self.likelihood.set_params_to_same_device_as(correct_device_tensor)
 
     def validation_step(self, batch, batch_idx):
-        x, target = batch[:2]
-        self.set_params_to_same_device_as(target)
+        output_dict = self.get_output_from_batch(batch)
+        out = output_dict['out']
+        target_normalized = output_dict['target_normalized']
+        td_data = output_dict['td_data']
+        x_normalized = output_dict['input_normalized']
+        target = batch[1]
 
-        x_normalized = self.normalize_input(x)
-        target_normalized = self.normalize_target(target, batch=batch)
-        out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 

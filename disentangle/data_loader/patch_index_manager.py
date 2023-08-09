@@ -16,26 +16,45 @@ from tkinter import Grid
 from disentangle.core.custom_enum import Enum
 
 
-class Singleton(type):
+class Threeton(type):
+    """
+        A metaclass that restricts the number of instances of a class to three.
+    """
 
     def __init__(self, *args, **kwargs):
-        self.__instance = None
+        self.__train_instance = None
+        self.__val_instance = None
+        self.__test_instance = None
         super().__init__(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
-        if 'get_live_instance' in kwargs and kwargs['get_live_instance'] is False:
-            kwargs = kwargs.pop('get_live_instance')
-            self.__instance = super().__call__(*args, **kwargs)
-            return self.__instance
-        if self.__instance is None:
-            assert 'get_live_instance' not in kwargs or kwargs[
-                'get_live_instance'] is False, "get_live_instance=True called when the instance is not created yet."
-            self.__instance = super().__call__(*args, **kwargs)
-            return self.__instance
+        if 'get_train_instance' in kwargs and kwargs['get_train_instance'] is True:
+            assert self.__train_instance is not None, "Train instance is not created yet."
+            return self.__train_instance
+        elif 'get_val_instance' in kwargs and kwargs['get_val_instance'] is True:
+            assert self.__val_instance is not None, "Val instance is not created yet."
+            return self.__val_instance
+        elif 'get_test_instance' in kwargs and kwargs['get_test_instance'] is True:
+            assert self.__test_instance is not None, "Test instance is not created yet."
+            return self.__test_instance
+
+        elif 'set_train_instance' in kwargs and kwargs['set_train_instance'] is True:
+            assert self.__train_instance is None, "Train instance is already created."
+            _ = kwargs.pop('set_train_instance')
+            self.__train_instance = super().__call__(*args, **kwargs)
+            return self.__train_instance
+        elif 'set_val_instance' in kwargs and kwargs['set_val_instance'] is True:
+            assert self.__val_instance is None, "Val instance is already created."
+            _ = kwargs.pop('set_val_instance')
+            self.__val_instance = super().__call__(*args, **kwargs)
+            return self.__val_instance
+        elif 'set_test_instance' in kwargs and kwargs['set_test_instance'] is True:
+            assert self.__test_instance is None, "Test instance is already created."
+            _ = kwargs.pop('set_test_instance')
+            self.__test_instance = super().__call__(*args, **kwargs)
+            return self.__test_instance
         else:
-            assert 'get_live_instance' in kwargs and kwargs[
-                'get_live_instance'] is True, "get_live_instance=True must be passed."
-            return self.__instance
+            raise ValueError("Invalid arguments passed., kwargs: {}".format(kwargs))
 
 
 class GridAlignement(Enum):
@@ -49,7 +68,7 @@ class GridAlignement(Enum):
     Center = 1
 
 
-class GridIndexManager(metaclass=Singleton):
+class GridIndexManager(metaclass=Threeton):
 
     def __init__(self, data_shape, grid_size, patch_size, grid_alignement) -> None:
         self._data_shape = data_shape
@@ -188,6 +207,9 @@ class GridIndexManager(metaclass=Singleton):
         if self.on_bottom_boundary(idx, grid_size=grid_size):
             return True
         return False
+
+    def get_data_shape(self):
+        return self._data_shape
 
     def get_deterministic_hw(self, index: int, grid_size=None):
         """

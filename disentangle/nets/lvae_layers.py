@@ -633,7 +633,6 @@ class MergeLayer(nn.Module):
                 channels = [channels[0]] * 3
 
         # assert len(channels) == 3
-
         if merge_type == 'linear':
             self.layer = nn.Conv2d(sum(channels[:-1]), channels[-1], 1, bias=conv2d_bias)
         elif merge_type == 'residual':
