@@ -16,6 +16,28 @@ from tkinter import Grid
 from disentangle.core.custom_enum import Enum
 
 
+class Singleton(type):
+
+    def __init__(self, *args, **kwargs):
+        self.__instance = None
+        super().__init__(*args, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        if 'get_live_instance' in kwargs and kwargs['get_live_instance'] is False:
+            kwargs = kwargs.pop('get_live_instance')
+            self.__instance = super().__call__(*args, **kwargs)
+            return self.__instance
+        if self.__instance is None:
+            assert 'get_live_instance' not in kwargs or kwargs[
+                'get_live_instance'] is False, "get_live_instance=True called when the instance is not created yet."
+            self.__instance = super().__call__(*args, **kwargs)
+            return self.__instance
+        else:
+            assert 'get_live_instance' in kwargs and kwargs[
+                'get_live_instance'] is True, "get_live_instance=True must be passed."
+            return self.__instance
+
+
 class GridAlignement(Enum):
     """
     A patch is formed by padding the grid with content. If the grids are 'Center' aligned, then padding is to done equally on all 4 sides.
@@ -27,7 +49,7 @@ class GridAlignement(Enum):
     Center = 1
 
 
-class GridIndexManager:
+class GridIndexManager(metaclass=Singleton):
 
     def __init__(self, data_shape, grid_size, patch_size, grid_alignement) -> None:
         self._data_shape = data_shape
@@ -194,3 +216,6 @@ if __name__ == '__main__':
     h_start, w_start = manager.get_deterministic_hw(index)
     print(h_start, w_start, manager.grid_count())
     print(manager.grid_rows(grid_size), manager.grid_cols(grid_size))
+
+    manager2 = GridIndexManager()
+    assert manager == manager2

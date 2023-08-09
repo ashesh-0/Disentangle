@@ -1,0 +1,158 @@
+"""
+This class manages the running average of the solution on training data.
+"""
+"""
+This class manages the running average of the solution on training data.
+"""
+from typing import List
+
+import numpy as np
+
+from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+
+
+class Location:
+
+    def __init__(self, topleft_h, topleft_w, time):
+        self.h = topleft_h
+        self.w = topleft_w
+        self.t = time
+
+    def shift_up(self, shift):
+        self.h -= shift
+
+    def shift_down(self, shift):
+        self.h += shift
+
+    def shift_left(self, shift):
+        self.w -= shift
+
+    def shift_right(self, shift):
+        self.w += shift
+
+
+class LocationBasedSolutionRAManager:
+    """
+    It works with Location objects
+    """
+
+    def __init__(self, data_shape, skip_boundary_pixelcount) -> None:
+        """
+        data_shape: (T,H,W,C)
+        """
+        self._data = np.zeros(data_shape)
+        assert len(data_shape) == 4
+        self._skipN = skip_boundary_pixelcount
+
+    def update_at_locations(self, batch_predictions, locations: List[Location]):
+        H, W = batch_predictions.shape[1:3]
+        for i, location in enumerate(locations):
+            self._data[location.t, location.h + self._skipN:location.h + H - self._skipN, location.w +
+                       self._skipN:location.w + W - self._skipN] = batch_predictions[i][self._skipN:H - self._skipN,
+                                                                                        self._skipN:W - self._skipN]
+
+    def is_valid_location(self, location, patch_size):
+        T, H, W = self._data.shape[:3]
+        return location.h >= 0 and location.h + patch_size <= H and location.w >= 0 and location.w + patch_size <= W and location.t >= 0 and location.t < T
+
+    def get_from_locations(self, locations, patch_size):
+        output = []
+        for location in locations:
+            if self.is_valid_location(location, patch_size):
+                output.append(self._data[location.t, location.h:location.h + patch_size,
+                                         location.w:location.w + patch_size])
+            else:
+                output.append(np.zeros((patch_size, patch_size, self._data.shape[-1])))
+        return np.array(output)
+
+
+class SolutionRAManager(LocationBasedSolutionRAManager):
+
+    def __init__(self, data_shape, skip_boundary_pixelcount, patch_size) -> None:
+        super().__init__(data_shape, skip_boundary_pixelcount)
+        self._index_manager = GridIndexManager(get_live_instance=True)
+        self._patch_size = patch_size
+
+    def get_locations(self, indices, grid_sizes):
+        locations = [self._index_manager.hwt_from_idx(indices[i], grid_size=grid_sizes[i]) for i in range(len(indices))]
+        locations = [Location(*location) for location in locations]
+        return locations
+
+    def get_top(self, indices, grid_sizes):
+        locations = self.get_locations(indices, grid_sizes)
+        for location in locations:
+            location.shift_up(self._patch_size)
+
+        return self.get_from_locations(locations, self._patch_size)
+
+    def get_bottom(self, indices, grid_sizes):
+        locations = self.get_locations(indices, grid_sizes)
+        for location in locations:
+            location.shift_down(self._patch_size)
+
+        return self.get_from_locations(locations, self._patch_size)
+
+    def get_left(self, indices, grid_sizes):
+        locations = self.get_locations(indices, grid_sizes)
+        for location in locations:
+            location.shift_left(self._patch_size)
+
+        return self.get_from_locations(locations, self._patch_size)
+
+    def get_right(self, indices, grid_sizes):
+        locations = self.get_locations(indices, grid_sizes)
+        for location in locations:
+            location.shift_right(self._patch_size)
+
+        return self.get_from_locations(locations, self._patch_size)
+
+    def update(self, batch_predictions, indices, grid_sizes):
+        locations = self.get_locations(indices, grid_sizes)
+        self.update_at_locations(batch_predictions, locations)
+
+
+if __name__ == '__main__':
+    grid_size = 64
+    patch_size = 64
+    grid_alignment = GridAlignement.LeftTop
+    data_shape = (10, 2720, 2720, 2)
+    idx_manager = GridIndexManager(data_shape, grid_size, patch_size, grid_alignment)
+    N = idx_manager.grid_count()
+    indices = np.random.randint(0, N, 8)
+    sol = SolutionRAManager(data_shape=data_shape, skip_boundary_pixelcount=5, patch_size=patch_size)
+    sol.update(np.ones((8, patch_size, patch_size, data_shape[-1])), indices, [grid_size] * 8)
+    print(sol.get_top([0, 1], [10, 10]))
+
+    # from skimage.io import imread, imsave
+    # data = imread('/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif', plugin='tifffile')
+    # grid_size = 1
+    # patch_size = 256
+    # grid_alignment = GridAlignement.LeftTop
+    # idx_manager= GridIndexManager(data.shape, grid_size, patch_size, grid_alignment)
+
+    # sol = SolutionRAManager(data_shape=data.shape, skip_boundary_pixelcount=16, patch_size=patch_size)
+    # sol._data = data.copy()
+    # N = idx_manager.grid_count()
+    # indices = np.array([N//7])
+    # imgs_top = sol.get_top(indices, [grid_size]*len(indices))[0,...,0]
+    # imgs_bottom = sol.get_bottom(indices, [grid_size]*len(indices))[0,...,0]
+    # imgs_left = sol.get_left(indices, [grid_size]*len(indices))[0,...,0]
+    # imgs_right = sol.get_right(indices, [grid_size]*len(indices))[0,...,0]
+
+    # h,w,t= idx_manager.hwt_from_idx(indices[0], grid_size=1)
+    # img_center = sol._data[t,h:h+patch_size,w:w+patch_size,0]
+
+    # vmax = np.max([np.max(imgs_top), np.max(imgs_bottom), np.max(imgs_left), np.max(imgs_right), np.max(img_center)])
+    # vmin = np.min([np.min(imgs_top), np.min(imgs_bottom), np.min(imgs_left), np.min(imgs_right), np.min(img_center)])
+    # print(h,w,t)
+
+    # batch_predictions = np.zeros((1,patch_size,patch_size,data.shape[-1]))
+    # sol.update(batch_predictions, indices, [grid_size]*len(indices))
+    # plt.imshow(sol._data[7,...,0])
+    # _,ax = plt.subplots(nrows=3,ncols=3, figsize=(15,15))
+    # ax[1,1].imshow(img_center,  vmin=vmin, vmax=vmax)
+    # ax[0,1].imshow(imgs_top,  vmin=vmin, vmax=vmax)
+    # ax[2,1].imshow(imgs_bottom,  vmin=vmin, vmax=vmax)
+    # ax[1,0].imshow(imgs_left,  vmin=vmin, vmax=vmax)
+    # ax[1,2].imshow(imgs_right,  vmin=vmin, vmax=vmax)
+    # plt.subplots_adjust(wspace=0, hspace=0)
