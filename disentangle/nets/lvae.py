@@ -557,7 +557,7 @@ class LadderVAE(pl.LightningModule):
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         output_dict = self.get_output_from_batch(batch)
-        self._training_step(batch, batch_idx, output_dict, enable_logging=enable_logging)
+        return self._training_step(batch, batch_idx, output_dict, enable_logging=enable_logging)
 
     def _training_step(self, batch, batch_idx, output_dict, enable_logging=True):
         out = output_dict['out']
@@ -640,7 +640,7 @@ class LadderVAE(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         output_dict = self.get_output_from_batch(batch)
-        self._validation_step(batch, batch_idx, output_dict)
+        return self._validation_step(batch, batch_idx, output_dict)
         
     def _validation_step(self, batch, batch_idx, output_dict):
         out = output_dict['out']
@@ -675,7 +675,8 @@ class LadderVAE(pl.LightningModule):
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples = []
             for i in range(20):
-                sample, _ = self(x_normalized[0:1, ...])
+                output_dict = self.get_output_from_batch([x[:1] for x in batch])
+                sample = output_dict['out']
                 sample = self.likelihood.get_mean_lv(sample)[0]
                 all_samples.append(sample[None])
 

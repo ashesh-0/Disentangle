@@ -370,12 +370,15 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
         try:
             # older version has this code
             trainer = pl.Trainer(
+                # num_sanity_val_steps=0,
                 gpus=1,
                 max_epochs=config.training.max_epochs,
                 gradient_clip_val=None
                 if model.automatic_optimization == False else config.training.grad_clip_norm_value,
                 # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
                 logger=logger,
+                    # limit_train_batches=10,
+    # limit_val_batches=10,
                 # fast_dev_run=10,
                 #  profiler=profiler,
                 # overfit_batches=20,
@@ -384,11 +387,14 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
         except:
             trainer = pl.Trainer(
                 # gpus=1,
+                # num_sanity_val_steps=0, # no validation sanity check
                 max_epochs=config.training.max_epochs,
                 gradient_clip_val=None
                 if model.automatic_optimization == False else config.training.grad_clip_norm_value,
                 # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
                 logger=logger,
+                    # limit_train_batches=10,
+    # limit_val_batches=10,
                 # fast_dev_run=10,
                 #  profiler=profiler,
                 # overfit_batches=20,

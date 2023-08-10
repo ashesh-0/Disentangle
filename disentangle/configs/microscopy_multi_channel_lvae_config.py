@@ -65,7 +65,7 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.AutoRegresiveLadderVAE
+    model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True

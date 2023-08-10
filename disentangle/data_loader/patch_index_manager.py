@@ -80,6 +80,9 @@ class GridIndexManager(metaclass=Threeton):
     def use_default_grid(self, grid_size):
         return grid_size is None or grid_size < 0
 
+    def get_innerpad_amount(self):
+        return (self.patch_size - self._default_grid_size)//2
+    
     def grid_rows(self, grid_size):
         if self._align == GridAlignement.LeftTop:
             extra_pixels = (self.patch_size - grid_size)

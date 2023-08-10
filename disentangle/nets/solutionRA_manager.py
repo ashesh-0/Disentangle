@@ -57,9 +57,7 @@ class LocationBasedSolutionRAManager:
     def update_at_locations(self, batch_predictions, locations: List[Location]):
         H, W = batch_predictions.shape[2:]
         for i, location in enumerate(locations):
-            self._data[location.t, :, location.h + self._skipN:location.h + H - self._skipN, location.w +
-                       self._skipN:location.w + W - self._skipN] = batch_predictions[i][:, self._skipN:H - self._skipN,
-                                                                                        self._skipN:W - self._skipN]
+            self._data[location.t, :, location.h + self._skipN:location.h + H - self._skipN, location.w + self._skipN:location.w + W - self._skipN] = batch_predictions[i][:, self._skipN:H - self._skipN,self._skipN:W - self._skipN]
 
     def is_valid_location(self, location, patch_size):
         T,_, H, W = self._data.shape
@@ -84,14 +82,12 @@ class LocationBasedSolutionRAManager:
         fpath = os.path.join(self._dump_img_dir,fname)
         img = self._data[t:(t+1),:,::downscale_factor,::downscale_factor]
         img = (img*std + mean).astype(np.int32)[0]
-
-        im = Image.fromarray(img[...,0])
+        im = Image.fromarray(img[0])
         im.save(fpath.format(0))
-        im = Image.fromarray(img[...,1])
+        im = Image.fromarray(img[1])
         im.save(fpath.format(1))
 
 class SolutionRAManager(LocationBasedSolutionRAManager):
-
     def __init__(self, datasplit_type: DataSplitType, skip_boundary_pixelcount, patch_size, dump_img_dir=None) -> None:
         if datasplit_type == DataSplitType.Train:
             self._index_manager = GridIndexManager(get_train_instance=True)
@@ -101,11 +97,13 @@ class SolutionRAManager(LocationBasedSolutionRAManager):
             self._index_manager = GridIndexManager(get_test_instance=True)
         else:
             raise NotImplementedError()
+    
         super().__init__(self._index_manager.get_data_shape(), skip_boundary_pixelcount, dump_img_dir=dump_img_dir)
         self._patch_size = patch_size
 
     def get_locations(self, indices, grid_sizes):
         assert isinstance(indices, torch.Tensor) and len(indices.shape) == 1
+
         locations = [
             self._index_manager.hwt_from_idx(indices[i].item(), grid_size=grid_sizes[i].item())
             for i in range(len(indices))

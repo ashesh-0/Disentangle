@@ -9,3 +9,4 @@ class SamplerType(Enum):
     ContrastiveSampler = 4
     DefaultGridSampler = 5
     IntensityAugSampler = 6
+    GridSampler = 7 # This returns index along with grid_size

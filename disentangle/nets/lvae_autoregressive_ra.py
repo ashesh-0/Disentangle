@@ -10,9 +10,10 @@ from disentangle.core.model_type import ModelType
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_layers import BottomUpLayer, MergeLayer
 from disentangle.nets.solutionRA_manager import SolutionRAManager
+from disentangle.data_loader.patch_index_manager import GridIndexManager
 
 
-class AutoRegLadderRAvgVAE(LadderVAE):
+class AutoRegRALadderVAE(LadderVAE):
     """
     In this variant, we feed the prediction of the upper patch into its prediction.  
     At this point, there is no extra loss which caters to smoothe prediction.
@@ -24,10 +25,12 @@ class AutoRegLadderRAvgVAE(LadderVAE):
         self._avg_pool_layers = nn.ModuleList(
             [nn.AvgPool2d(kernel_size=self.img_shape[0] // (np.power(2, i + 1))) for i in range(self.n_layers)])
 
-        self._train_sol_manager = SolutionRAManager(DataSplitType.Train, config.model.skip_boundary_pixelcount,
-                                                    config.data.image_size, dump_img_dir=os.path.join(config.workdir,'val_imgs'))
-        self._val_sol_manager = SolutionRAManager(DataSplitType.Val, config.model.skip_boundary_pixelcount,
-                                                  config.data.image_size, dump_img_dir=os.path.join(config.workdir,'train_imgs'))
+        # when creating the frame prediction, we want to skip boundary.
+        innerpad_amount=GridIndexManager(get_val_instance=True).get_innerpad_amount()
+        self._train_sol_manager = SolutionRAManager(DataSplitType.Train, innerpad_amount,
+                                                    config.data.image_size, dump_img_dir=os.path.join(config.workdir,'train_imgs'))
+        self._val_sol_manager = SolutionRAManager(DataSplitType.Val, innerpad_amount,
+                                                  config.data.image_size, dump_img_dir=os.path.join(config.workdir,'val_imgs'))
 
         nbr_count = 4
         self._merge_layers = nn.ModuleList([
@@ -99,8 +102,12 @@ class AutoRegLadderRAvgVAE(LadderVAE):
 
         return out, td_data
 
-    def get_output_from_batch(self, batch, sol_manager):
+    def get_output_from_batch(self, batch, sol_manager=None):
+        if sol_manager is None:
+            sol_manager = self._val_sol_manager
+
         x, target, indices, grid_sizes = batch
+        self.set_params_to_same_device_as(target)
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
         nbr_preds = []
@@ -124,25 +131,33 @@ class AutoRegLadderRAvgVAE(LadderVAE):
         output_dict = self.get_output_from_batch(batch, self._train_sol_manager)
         imgs = get_img_from_forward_output(output_dict['out'],self,unnormalized=False, likelihood_obj=self.likelihood)
         self._train_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
-        self._training_step(batch, batch_idx, output_dict, enable_logging=enable_logging)
+        return self._training_step(batch, batch_idx, output_dict, enable_logging=enable_logging)
 
     def validation_step(self, batch, batch_idx):
         output_dict = self.get_output_from_batch(batch, self._val_sol_manager)
         imgs = get_img_from_forward_output(output_dict['out'],self,unnormalized=False, likelihood_obj=self.likelihood)
         self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
-        self._validation_step(batch, batch_idx, output_dict)
+        return self._validation_step(batch, batch_idx, output_dict)
 
     def on_validation_epoch_end(self):
         self._val_sol_manager.dump_img(self.data_mean.cpu().numpy(), 
                                        self.data_std.cpu().numpy(), 
                                        t=0,
-                                       downscale_factor=3)
+                                       downscale_factor=3,
+                                       epoch=self.current_epoch)
+        self._train_sol_manager.dump_img(self.data_mean.cpu().numpy(), 
+                                       self.data_std.cpu().numpy(), 
+                                       t=0,
+                                       downscale_factor=3,
+                                       epoch=self.current_epoch)
+        
+        super().on_validation_epoch_end()
     
 if __name__ == '__main__':
     import numpy as np
     import torch
 
-    from disentangle.configs.twotiff_config import get_config
+    from disentangle.configs.autoregressive_config import get_config
     from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
     GridIndexManager((61, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_train_instance=True)
     GridIndexManager((6, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_val_instance=True)
@@ -151,7 +166,7 @@ if __name__ == '__main__':
     config.model.skip_boundary_pixelcount = 16
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
     data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
-    model = AutoRegLadderRAvgVAE(data_mean, data_std, config)
+    model = AutoRegRALadderVAE(data_mean, data_std, config)
     inp = torch.rand((20, 1, config.data.image_size, config.data.image_size))
     nbr = [torch.rand((20, 2, config.data.image_size, config.data.image_size))] * 4
     out, td_data = model(inp, nbr)

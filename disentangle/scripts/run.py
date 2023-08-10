@@ -28,6 +28,7 @@ from disentangle.sampler.intensity_aug_sampler import IntensityAugSampler, Inten
 from disentangle.sampler.nbr_sampler import NeighborSampler
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.sampler.singleimg_sampler import SingleImgSampler
+from disentangle.sampler.grid_sampler import GridSampler
 from disentangle.training import create_dataset, train_network
 from ml_collections.config_flags import config_flags
 
@@ -215,6 +216,12 @@ def main(argv):
                                                     config.data.ch1_alpha_interval_count,
                                                     config.data.num_intensity_variations,
                                                     batch_size=config.training.batch_size)
+                
+            elif config.data.sampler_type == SamplerType.GridSampler:
+                val_grid_size = config.data.image_size - 2*config.data.innerpad_amount
+                train_sampler = GridSampler(train_data, config.training.batch_size, randomized=True, grid_size=1)
+                val_sampler = GridSampler(val_data, config.training.batch_size, randomized=False, grid_size=val_grid_size)
+
             train_dloader = DataLoader(train_data,
                                        pin_memory=False,
                                        batch_sampler=train_sampler,

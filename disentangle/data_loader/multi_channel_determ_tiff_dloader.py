@@ -514,11 +514,11 @@ class MultiChDeterministicTiffDloader:
         if isinstance(index, int):
             return tuple(output)
 
-        _, grid_size = index
-        output.append(grid_size)
+        output.append(index[0])
+        output.append(index[1])
         return tuple(output)
 
-
+# 329,458,801
 if __name__ == '__main__':
     from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
     config = get_config()
