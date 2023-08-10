@@ -8,9 +8,11 @@ from typing import List
 
 import numpy as np
 import torch
+import os
 
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+from PIL import Image
 
 
 class Location:
@@ -41,7 +43,7 @@ class LocationBasedSolutionRAManager:
     It works with Location objects
     """
 
-    def __init__(self, data_shape, skip_boundary_pixelcount) -> None:
+    def __init__(self, data_shape, skip_boundary_pixelcount, dump_img_dir=None) -> None:
         """
         data_shape: (T,H,W,C)
         we however wamt to work with (T,C,H,W)
@@ -50,6 +52,7 @@ class LocationBasedSolutionRAManager:
         self._data = np.zeros(data_shape)
         assert len(data_shape) == 4
         self._skipN = skip_boundary_pixelcount
+        self._dump_img_dir = dump_img_dir
 
     def update_at_locations(self, batch_predictions, locations: List[Location]):
         H, W = batch_predictions.shape[2:]
@@ -72,10 +75,24 @@ class LocationBasedSolutionRAManager:
                 output.append(np.zeros((self._data.shape[1], patch_size, patch_size)))
         return np.array(output)
 
+    def dump_img(self, mean,std, t=0,downscale_factor=3, epoch=0):
+        if not os.path.exists(self._dump_img_dir):
+            os.makedirs(self._dump_img_dir)
+
+        fname = f'T{t}_Dfac{downscale_factor}_Epoch{epoch}'
+        fname += '_Ch{}.png'
+        fpath = os.path.join(self._dump_img_dir,fname)
+        img = self._data[t:(t+1),:,::downscale_factor,::downscale_factor]
+        img = (img*std + mean).astype(np.int32)[0]
+
+        im = Image.fromarray(img[...,0])
+        im.save(fpath.format(0))
+        im = Image.fromarray(img[...,1])
+        im.save(fpath.format(1))
 
 class SolutionRAManager(LocationBasedSolutionRAManager):
 
-    def __init__(self, datasplit_type: DataSplitType, skip_boundary_pixelcount, patch_size) -> None:
+    def __init__(self, datasplit_type: DataSplitType, skip_boundary_pixelcount, patch_size, dump_img_dir=None) -> None:
         if datasplit_type == DataSplitType.Train:
             self._index_manager = GridIndexManager(get_train_instance=True)
         elif datasplit_type == DataSplitType.Val:
@@ -84,7 +101,7 @@ class SolutionRAManager(LocationBasedSolutionRAManager):
             self._index_manager = GridIndexManager(get_test_instance=True)
         else:
             raise NotImplementedError()
-        super().__init__(self._index_manager.get_data_shape(), skip_boundary_pixelcount)
+        super().__init__(self._index_manager.get_data_shape(), skip_boundary_pixelcount, dump_img_dir=dump_img_dir)
         self._patch_size = patch_size
 
     def get_locations(self, indices, grid_sizes):
@@ -137,10 +154,11 @@ if __name__ == '__main__':
     idx_manager = GridIndexManager(data_shape, grid_size, patch_size, grid_alignment, set_train_instance=True )
     N = idx_manager.grid_count()
     indices = torch.Tensor(np.random.randint(0, N, 8)).type(torch.int32)
-    sol = SolutionRAManager(DataSplitType.Train, skip_boundary_pixelcount=5, patch_size=patch_size)
+    sol = SolutionRAManager(DataSplitType.Train, skip_boundary_pixelcount=5, patch_size=patch_size, dump_img_dir='.')
     sol.update(torch.Tensor(np.ones((8,data_shape[-1], patch_size, patch_size))), indices, 
                torch.Tensor([grid_size] * 8).type(torch.int32))
     print(sol.get_top(torch.Tensor([0, 1]).type(torch.int32), torch.Tensor([10, 10]).type(torch.int32)))
+    sol.dump_img(0, 1)
 
     # from skimage.io import imread, imsave
     # data = imread('/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif', plugin='tifffile')

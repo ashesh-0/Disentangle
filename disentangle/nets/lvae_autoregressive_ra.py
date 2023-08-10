@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import torch.nn as nn
+import os
 
 from disentangle.analysis.lvae_utils import get_img_from_forward_output
 from disentangle.core.data_split_type import DataSplitType
@@ -24,9 +25,9 @@ class AutoRegLadderRAvgVAE(LadderVAE):
             [nn.AvgPool2d(kernel_size=self.img_shape[0] // (np.power(2, i + 1))) for i in range(self.n_layers)])
 
         self._train_sol_manager = SolutionRAManager(DataSplitType.Train, config.model.skip_boundary_pixelcount,
-                                                    config.data.image_size)
+                                                    config.data.image_size, dump_img_dir=os.path.join(config.workdir,'val_imgs'))
         self._val_sol_manager = SolutionRAManager(DataSplitType.Val, config.model.skip_boundary_pixelcount,
-                                                  config.data.image_size)
+                                                  config.data.image_size, dump_img_dir=os.path.join(config.workdir,'train_imgs'))
 
         nbr_count = 4
         self._merge_layers = nn.ModuleList([
@@ -131,6 +132,11 @@ class AutoRegLadderRAvgVAE(LadderVAE):
         self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
         self._validation_step(batch, batch_idx, output_dict)
 
+    def on_validation_epoch_end(self):
+        self._val_sol_manager.dump_img(self.data_mean.cpu().numpy(), 
+                                       self.data_std.cpu().numpy(), 
+                                       t=0,
+                                       downscale_factor=3)
     
 if __name__ == '__main__':
     import numpy as np
@@ -154,3 +160,4 @@ if __name__ == '__main__':
              torch.Tensor(np.array([config.data.image_size] * 16)).reshape(16, ).type(torch.int32))
     model.training_step(batch, 0)
     model.validation_step(batch, 0)
+    model.on_validation_epoch_end()
