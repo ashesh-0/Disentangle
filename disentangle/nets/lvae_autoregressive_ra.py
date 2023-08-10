@@ -1,16 +1,17 @@
+import os
+
 import numpy as np
 import torch
 import torch.nn as nn
-import os
 
 from disentangle.analysis.lvae_utils import get_img_from_forward_output
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_utils import crop_img_tensor
 from disentangle.core.model_type import ModelType
+from disentangle.data_loader.patch_index_manager import GridIndexManager
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_layers import BottomUpLayer, MergeLayer
 from disentangle.nets.solutionRA_manager import SolutionRAManager
-from disentangle.data_loader.patch_index_manager import GridIndexManager
 
 
 class AutoRegRALadderVAE(LadderVAE):
@@ -26,11 +27,15 @@ class AutoRegRALadderVAE(LadderVAE):
             [nn.AvgPool2d(kernel_size=self.img_shape[0] // (np.power(2, i + 1))) for i in range(self.n_layers)])
 
         # when creating the frame prediction, we want to skip boundary.
-        innerpad_amount=GridIndexManager(get_val_instance=True).get_innerpad_amount()
-        self._train_sol_manager = SolutionRAManager(DataSplitType.Train, innerpad_amount,
-                                                    config.data.image_size, dump_img_dir=os.path.join(config.workdir,'train_imgs'))
-        self._val_sol_manager = SolutionRAManager(DataSplitType.Val, innerpad_amount,
-                                                  config.data.image_size, dump_img_dir=os.path.join(config.workdir,'val_imgs'))
+        innerpad_amount = GridIndexManager(get_val_instance=True).get_innerpad_amount()
+        self._train_sol_manager = SolutionRAManager(DataSplitType.Train,
+                                                    innerpad_amount,
+                                                    config.data.image_size,
+                                                    dump_img_dir=os.path.join(config.workdir, 'train_imgs'))
+        self._val_sol_manager = SolutionRAManager(DataSplitType.Val,
+                                                  innerpad_amount,
+                                                  config.data.image_size,
+                                                  dump_img_dir=os.path.join(config.workdir, 'val_imgs'))
 
         nbr_count = 4
         self._merge_layers = nn.ModuleList([
@@ -79,11 +84,30 @@ class AutoRegRALadderVAE(LadderVAE):
             nbr_bu_values_list.append([])
 
         # get some latent space encoding for the neighboring prediction.
-        for idx in range(len(nbr_pred)):
-            nbr_bu_values = self._bottomup_pass(nbr_pred[idx], self._nbr_first_bottom_up_list[idx], None,
-                                                self._nbr_bottom_up_layers_list[idx])
-            for i in range(len(nbr_bu_values)):
-                nbr_bu_values_list[i].append(nbr_bu_values[i])
+        # top, bottom, left, right
+        assert len(nbr_pred) == 4
+
+        nbr_bu_values_top = self._bottomup_pass(nbr_pred[0], self._nbr_first_bottom_up_list[0], None,
+                                                self._nbr_bottom_up_layers_list[0])
+        nbr_bu_values_top = [torch.mean(x, dim=2, keepdim=True) for x in nbr_bu_values_top]
+        nbr_bu_values_top = [x.repeat(1, 1, x.shape[3], 1) for x in nbr_bu_values_top]
+
+        nbr_bu_values_bottom = self._bottomup_pass(nbr_pred[1], self._nbr_first_bottom_up_list[1], None,
+                                                   self._nbr_bottom_up_layers_list[1])
+        nbr_bu_values_bottom = [torch.mean(x, dim=2, keepdim=True) for x in nbr_bu_values_bottom]
+        nbr_bu_values_bottom = [x.repeat(1, 1, x.shape[3], 1) for x in nbr_bu_values_bottom]
+
+        nbr_bu_values_left = self._bottomup_pass(nbr_pred[2], self._nbr_first_bottom_up_list[2], None,
+                                                 self._nbr_bottom_up_layers_list[2])
+        nbr_bu_values_left = [torch.mean(x, dim=3, keepdim=True) for x in nbr_bu_values_left]
+        nbr_bu_values_left = [x.repeat(1, 1, 1, x.shape[2]) for x in nbr_bu_values_left]
+
+        nbr_bu_values_right = self._bottomup_pass(nbr_pred[3], self._nbr_first_bottom_up_list[3], None,
+                                                  self._nbr_bottom_up_layers_list[3])
+        nbr_bu_values_right = [torch.mean(x, dim=3, keepdim=True) for x in nbr_bu_values_right]
+        nbr_bu_values_right = [x.repeat(1, 1, 1, x.shape[2]) for x in nbr_bu_values_right]
+
+        nbr_bu_values_list = list(zip(nbr_bu_values_top, nbr_bu_values_bottom, nbr_bu_values_left, nbr_bu_values_right))
 
         bu_values = self.bottomup_pass(x_pad)
 
@@ -129,30 +153,31 @@ class AutoRegRALadderVAE(LadderVAE):
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         output_dict = self.get_output_from_batch(batch, self._train_sol_manager)
-        imgs = get_img_from_forward_output(output_dict['out'],self,unnormalized=False, likelihood_obj=self.likelihood)
+        imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
         self._train_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
         return self._training_step(batch, batch_idx, output_dict, enable_logging=enable_logging)
 
     def validation_step(self, batch, batch_idx):
         output_dict = self.get_output_from_batch(batch, self._val_sol_manager)
-        imgs = get_img_from_forward_output(output_dict['out'],self,unnormalized=False, likelihood_obj=self.likelihood)
+        imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
         self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
         return self._validation_step(batch, batch_idx, output_dict)
 
     def on_validation_epoch_end(self):
-        self._val_sol_manager.dump_img(self.data_mean.cpu().numpy(), 
-                                       self.data_std.cpu().numpy(), 
+        self._val_sol_manager.dump_img(self.data_mean.cpu().numpy(),
+                                       self.data_std.cpu().numpy(),
                                        t=0,
                                        downscale_factor=3,
                                        epoch=self.current_epoch)
-        self._train_sol_manager.dump_img(self.data_mean.cpu().numpy(), 
-                                       self.data_std.cpu().numpy(), 
-                                       t=0,
-                                       downscale_factor=3,
-                                       epoch=self.current_epoch)
-        
+        self._train_sol_manager.dump_img(self.data_mean.cpu().numpy(),
+                                         self.data_std.cpu().numpy(),
+                                         t=0,
+                                         downscale_factor=3,
+                                         epoch=self.current_epoch)
+
         super().on_validation_epoch_end()
-    
+
+
 if __name__ == '__main__':
     import numpy as np
     import torch
