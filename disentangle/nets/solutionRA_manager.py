@@ -77,15 +77,20 @@ class LocationBasedSolutionRAManager:
         if not os.path.exists(self._dump_img_dir):
             os.makedirs(self._dump_img_dir)
 
-        fname = f'T{t}_Dfac{downscale_factor}_Epoch{epoch}'
-        fname += '_Ch{}.png'
-        fpath = os.path.join(self._dump_img_dir,fname)
+        fname = f'T{t}_Dfac{downscale_factor}_Epoch{epoch}.png'
         img = self._data[t:(t+1),:,::downscale_factor,::downscale_factor]
         img = (img*std + mean).astype(np.int32)[0]
         im = Image.fromarray(img[0])
-        im.save(fpath.format(0))
+        dir0 = os.path.join(self._dump_img_dir,'Ch0')
+        if not os.path.exists(dir0):
+            os.makedirs(dir0)
+        im.save(os.path.join(dir0,fname))
+
         im = Image.fromarray(img[1])
-        im.save(fpath.format(1))
+        dir1 = os.path.join(self._dump_img_dir,'Ch1')
+        if not os.path.exists(dir1):
+            os.makedirs(dir1)
+        im.save(os.path.join(dir1,fname))
 
 class SolutionRAManager(LocationBasedSolutionRAManager):
     def __init__(self, datasplit_type: DataSplitType, skip_boundary_pixelcount, patch_size, dump_img_dir=None) -> None:
