@@ -163,32 +163,37 @@ if __name__ == '__main__':
     print(sol.get_top(torch.Tensor([0, 1]).type(torch.int32), torch.Tensor([10, 10]).type(torch.int32)))
     sol.dump_img(0, 1)
 
+    ##
+    # from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
     # from skimage.io import imread, imsave
-    # data = imread('/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif', plugin='tifffile')
+    # data = imread('/home/ubuntu/ashesh/data/microscopy/OptiMEM100x014.tif', plugin='tifffile')
+    # data = data[:3].copy()
     # grid_size = 1
     # patch_size = 256
     # grid_alignment = GridAlignement.LeftTop
-    # idx_manager= GridIndexManager(data.shape, grid_size, patch_size, grid_alignment)
+    # idx_manager= GridIndexManager(data.shape, grid_size, patch_size, grid_alignment, set_train_instance=True)
 
-    # sol = SolutionRAManager(data_shape=data.shape, skip_boundary_pixelcount=16, patch_size=patch_size)
-    # sol._data = data.copy()
+    
+    # sol = SolutionRAManager(DataSplitType.Train, skip_boundary_pixelcount=0, patch_size=patch_size)
+    # sol._data = np.swapaxes(data[:,None],1,4)[...,0]
     # N = idx_manager.grid_count()
-    # indices = np.array([N//7])
-    # imgs_top = sol.get_top(indices, [grid_size]*len(indices))[0,...,0]
-    # imgs_bottom = sol.get_bottom(indices, [grid_size]*len(indices))[0,...,0]
-    # imgs_left = sol.get_left(indices, [grid_size]*len(indices))[0,...,0]
-    # imgs_right = sol.get_right(indices, [grid_size]*len(indices))[0,...,0]
+    # indices = torch.Tensor(np.array([N//3])).type(torch.int32)
+    # grid_sizes = torch.Tensor([grid_size]*len(indices)).type(torch.int32)
+    # imgs_top = sol.get_top(indices, grid_sizes)[0,0]
+    # imgs_bottom = sol.get_bottom(indices, grid_sizes)[0,0]
+    # imgs_left = sol.get_left(indices, grid_sizes)[0,0]
+    # imgs_right = sol.get_right(indices, grid_sizes)[0,0]
 
     # h,w,t= idx_manager.hwt_from_idx(indices[0], grid_size=1)
-    # img_center = sol._data[t,h:h+patch_size,w:w+patch_size,0]
+    # img_center = sol._data[t,0,h:h+patch_size,w:w+patch_size]
 
     # vmax = np.max([np.max(imgs_top), np.max(imgs_bottom), np.max(imgs_left), np.max(imgs_right), np.max(img_center)])
     # vmin = np.min([np.min(imgs_top), np.min(imgs_bottom), np.min(imgs_left), np.min(imgs_right), np.min(img_center)])
     # print(h,w,t)
 
-    # batch_predictions = np.zeros((1,patch_size,patch_size,data.shape[-1]))
-    # sol.update(batch_predictions, indices, [grid_size]*len(indices))
-    # plt.imshow(sol._data[7,...,0])
+    # # batch_predictions = np.zeros((1,patch_size,patch_size,data.shape[-1]))
+    # # sol.update(batch_predictions, indices, grid_sizes)
+    # # plt.imshow(sol._data[7,0])
     # _,ax = plt.subplots(nrows=3,ncols=3, figsize=(15,15))
     # ax[1,1].imshow(img_center,  vmin=vmin, vmax=vmax)
     # ax[0,1].imshow(imgs_top,  vmin=vmin, vmax=vmax)

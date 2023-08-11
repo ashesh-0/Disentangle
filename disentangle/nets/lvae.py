@@ -30,7 +30,7 @@ def torch_nanmean(inp):
 
 def compute_batch_mean(x):
     N = len(x)
-    return x.view(N, -1).mean(dim=1)
+    return x.reshape(N, -1).mean(dim=1)
 
 
 class LadderVAE(pl.LightningModule):
