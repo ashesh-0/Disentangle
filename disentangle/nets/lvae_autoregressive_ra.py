@@ -45,6 +45,7 @@ class AutoRegRALadderVAE(LadderVAE):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
         self._neighboring_encoder = None
         self._enable_rotation = config.model.get('rotation_with_neighbors', False)
+        self._untrained_nbr_branch = config.model.get('untrained_nbr_branch', False)
         self._avg_pool_layers = nn.ModuleList(
             [nn.AvgPool2d(kernel_size=self.img_shape[0] // (np.power(2, i + 1))) for i in range(self.n_layers)])
 
@@ -116,7 +117,10 @@ class AutoRegRALadderVAE(LadderVAE):
             nbr_bu_values = self._bottomup_pass(nbr_pred[idx], self._nbr_first_bottom_up_list[idx], None,
                                                 self._nbr_bottom_up_layers_list[idx])
             for i in range(len(nbr_bu_values)):
-                nbr_bu_values_list[i].append(nbr_bu_values[i])
+                if self._untrained_nbr_branch:
+                    nbr_bu_values_list[i].append(nbr_bu_values[i].detach())
+                else:
+                    nbr_bu_values_list[i].append(nbr_bu_values[i])
 
         bu_values = self.bottomup_pass(x_pad)
 
