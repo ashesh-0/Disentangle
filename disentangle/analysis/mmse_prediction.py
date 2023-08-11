@@ -72,6 +72,10 @@ def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, pred
 
 def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1, num_workers=4):
     dloader = DataLoader(dset, pin_memory=False, num_workers=num_workers, shuffle=False, batch_size=batch_size)
+    return get_dloader_predictions(model, dloader, model_type=model_type, mmse_count=mmse_count)
+
+
+def get_dloader_predictions(model, dloader, model_type=None, mmse_count=1):
     predictions = []
     losses = []
     logvar_arr = []
@@ -171,6 +175,17 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                                                                        return_predicted_img=True)
                         imgs = torch.cat(imgs, dim=1)
                         rec_loss = {'loss': rec_loss}
+                    elif model_type == ModelType.AutoRegresiveRALadderVAE:
+                        # NOTE: msg = "val_sol_manager can be of train as well. for now, only val_sol_manager is used"
+                        # assert dset._is_train is False, msg
+                        batch = (x.cuda() for x in batch)
+                        output_dict = model.get_output_from_batch(batch, model._val_sol_manager)
+                        x_normalized = output_dict['input_normalized']
+                        tar_normalized = output_dict['target_normalized']
+                        recon_normalized = output_dict['out']
+                        rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
+                                                                       tar_normalized,
+                                                                       return_predicted_img=True)
                     else:
                         x_normalized = model.normalize_input(inp)
                         tar_normalized = model.normalize_target(tar)
