@@ -8,11 +8,12 @@ from disentangle.analysis.lvae_utils import get_img_from_forward_output
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_utils import crop_img_tensor
 from disentangle.core.model_type import ModelType
+from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.data_loader.patch_index_manager import GridIndexManager
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_layers import BottomUpLayer, MergeLayer
 from disentangle.nets.solutionRA_manager import SolutionRAManager
-from disentangle.core.psnr import RangeInvariantPsnr
+
 
 class AutoRegRALadderVAE(LadderVAE):
     """
@@ -38,9 +39,9 @@ class AutoRegRALadderVAE(LadderVAE):
                                                   dump_img_dir=os.path.join(config.workdir, 'val_imgs'))
         # save the groundtruth
         self._val_gt_manager = SolutionRAManager(DataSplitType.Val,
-                                                  innerpad_amount,
-                                                  config.data.image_size,
-                                                  dump_img_dir=os.path.join(config.workdir, 'val_groundtruth'))
+                                                 innerpad_amount,
+                                                 config.data.image_size,
+                                                 dump_img_dir=os.path.join(config.workdir, 'val_groundtruth'))
 
         nbr_count = 4
         self._merge_layers = nn.ModuleList([
@@ -165,18 +166,22 @@ class AutoRegRALadderVAE(LadderVAE):
                                          t=0,
                                          downscale_factor=3,
                                          epoch=self.current_epoch)
-        if self.current_epoch ==0:
+        if self.current_epoch == 0:
             self._val_gt_manager.dump_img(self.data_mean.cpu().numpy(),
-                                         self.data_std.cpu().numpy(),
-                                         t=0,
-                                         downscale_factor=3,
-                                         epoch=self.current_epoch)
-        
+                                          self.data_std.cpu().numpy(),
+                                          t=0,
+                                          downscale_factor=3,
+                                          epoch=self.current_epoch)
+
         # PSNR
-        psnr1 = RangeInvariantPsnr(self._val_gt_manager._data[:,0], self._val_sol_manager._data[:,0])
-        psnr2 = RangeInvariantPsnr(self._val_gt_manager._data[:,1], self._val_sol_manager._data[:,1])
-        psnr = (psnr1 + psnr2) / 2
-        self.log('val_psnr', psnr, on_epoch=True)
+        if self.current_epoch > 0:
+            psnr1 = RangeInvariantPsnr(self._val_gt_manager._data[:, 0], self._val_sol_manager._data[:,
+                                                                                                     0]).mean().item()
+            psnr2 = RangeInvariantPsnr(self._val_gt_manager._data[:, 1], self._val_sol_manager._data[:,
+                                                                                                     1]).mean().item()
+            psnr = (psnr1 + psnr2) / 2
+            self.log('val_psnr', psnr, on_epoch=True)
+
         self.label1_psnr.reset()
         self.label2_psnr.reset()
 
