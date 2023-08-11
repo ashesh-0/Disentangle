@@ -12,7 +12,7 @@ from disentangle.data_loader.patch_index_manager import GridIndexManager
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_layers import BottomUpLayer, MergeLayer
 from disentangle.nets.solutionRA_manager import SolutionRAManager
-
+from disentangle.core.psnr import RangeInvariantPsnr
 
 class AutoRegRALadderVAE(LadderVAE):
     """
@@ -36,6 +36,11 @@ class AutoRegRALadderVAE(LadderVAE):
                                                   innerpad_amount,
                                                   config.data.image_size,
                                                   dump_img_dir=os.path.join(config.workdir, 'val_imgs'))
+        # save the groundtruth
+        self._val_gt_manager = SolutionRAManager(DataSplitType.Val,
+                                                  innerpad_amount,
+                                                  config.data.image_size,
+                                                  dump_img_dir=os.path.join(config.workdir, 'val_groundtruth'))
 
         nbr_count = 4
         self._merge_layers = nn.ModuleList([
@@ -142,6 +147,7 @@ class AutoRegRALadderVAE(LadderVAE):
         output_dict = self.get_output_from_batch(batch, self._val_sol_manager)
         imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
         self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
+        self._val_gt_manager.update(output_dict['target_normalized'].cpu().detach().numpy(), batch[2], batch[3])
         val_out = self._validation_step(batch, batch_idx, output_dict)
         if return_output_dict:
             return val_out, output_dict
@@ -159,8 +165,20 @@ class AutoRegRALadderVAE(LadderVAE):
                                          t=0,
                                          downscale_factor=3,
                                          epoch=self.current_epoch)
-
-        super().on_validation_epoch_end()
+        if self.current_epoch ==0:
+            self._val_gt_manager.dump_img(self.data_mean.cpu().numpy(),
+                                         self.data_std.cpu().numpy(),
+                                         t=0,
+                                         downscale_factor=3,
+                                         epoch=self.current_epoch)
+        
+        # PSNR
+        psnr1 = RangeInvariantPsnr(self._val_gt_manager._data[:,0], self._val_sol_manager._data[:,0])
+        psnr2 = RangeInvariantPsnr(self._val_gt_manager._data[:,1], self._val_sol_manager._data[:,1])
+        psnr = (psnr1 + psnr2) / 2
+        self.log('val_psnr', psnr, on_epoch=True)
+        self.label1_psnr.reset()
+        self.label2_psnr.reset()
 
 
 if __name__ == '__main__':
