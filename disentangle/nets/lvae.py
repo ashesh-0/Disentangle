@@ -679,6 +679,8 @@ class LadderVAE(pl.LightningModule):
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
+
+        bu_values = [x.detach() for x in bu_values]
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values, mode_layers=mode_layers)
 
