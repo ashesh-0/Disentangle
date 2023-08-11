@@ -88,7 +88,7 @@ class AutoRegRALadderVAE(LadderVAE):
             nbr_bu_values = self._bottomup_pass(nbr_pred[idx], self._nbr_first_bottom_up_list[idx], None,
                                                 self._nbr_bottom_up_layers_list[idx])
             for i in range(len(nbr_bu_values)):
-                nbr_bu_values_list[i].append(nbr_bu_values[i])
+                nbr_bu_values_list[i].append(nbr_bu_values[i].detach())
 
         bu_values = self.bottomup_pass(x_pad)
 
