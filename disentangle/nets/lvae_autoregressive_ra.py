@@ -19,23 +19,26 @@ class Neighbors:
     """
     It enables rotation of tensors (B,C,H,W)=> HW will be rotated.
     """
+
     def __init__(self, top, bottom, left, right) -> None:
         self.top = top
         self.bottom = bottom
         self.left = left
         self.right = right
-    
+
     def rotate90anticlock(self, k):
-        k = k%4
+        k = k % 4
         if k == 0:
             return
         arr = [self.top, self.left, self.bottom, self.right]
-        nbr_preds = [torch.rot90(inp,k=k, dims=(2,3)) for inp in arr]
-        nbr_preds = nbr_preds[-k:] + nbr_preds[:4-k]
+        nbr_preds = [torch.rot90(inp, k=k, dims=(2, 3)) for inp in arr]
+        nbr_preds = nbr_preds[-k:] + nbr_preds[:4 - k]
         self.top, self.left, self.bottom, self.right = nbr_preds
+
     def get(self):
-        return [self.top,self.bottom,self.left, self.right ]
-    
+        return [self.top, self.bottom, self.left, self.right]
+
+
 class AutoRegRALadderVAE(LadderVAE):
     """
     In this variant, we feed the prediction of the upper patch into its prediction.  
@@ -55,7 +58,8 @@ class AutoRegRALadderVAE(LadderVAE):
         self._train_sol_manager = SolutionRAManager(DataSplitType.Train,
                                                     innerpad_amount,
                                                     config.data.image_size,
-                                                    dump_img_dir=os.path.join(config.workdir, 'train_imgs'))
+                                                    dump_img_dir=os.path.join(config.workdir, 'train_imgs'),
+                                                    dropout=config.model.get('nbr_dropout', 0.0))
         self._val_sol_manager = SolutionRAManager(DataSplitType.Val,
                                                   innerpad_amount,
                                                   config.data.image_size,
@@ -83,7 +87,7 @@ class AutoRegRALadderVAE(LadderVAE):
             [self.create_first_bottom_up(stride, color_ch=2) for _ in range(nbr_count)])
         self._nbr_bottom_up_layers_list = nn.ModuleList([self.create_bottomup_layers() for _ in range(nbr_count)])
         print(f'[{self.__class__.__name__}]Rotation:{self._enable_rotation}')
-    
+
     def create_bottomup_layers(self):
         nbr_bottom_up_layers = []
         for i in range(self.n_layers):
@@ -140,10 +144,6 @@ class AutoRegRALadderVAE(LadderVAE):
 
         return out, td_data
 
-   
-    
-    
-    
     def get_output_from_batch(self, batch, sol_manager=None, enable_rotation=False):
         if sol_manager is None:
             sol_manager = self._val_sol_manager
@@ -160,12 +160,12 @@ class AutoRegRALadderVAE(LadderVAE):
         nbr_preds = [torch.Tensor(nbr_y).to(x.device) for nbr_y in nbr_preds]
         nbrs = Neighbors(*nbr_preds)
         nbr_preds = nbrs.get()
-        
+
         if enable_rotation:
-            quadrant = np.random.randint(0,4)
+            quadrant = np.random.randint(0, 4)
             if quadrant > 0:
-                x_normalized = torch.rot90(x_normalized,k=quadrant, dims=(2,3))
-                target_normalized = torch.rot90(target_normalized,k=quadrant, dims=(2,3))
+                x_normalized = torch.rot90(x_normalized, k=quadrant, dims=(2, 3))
+                target_normalized = torch.rot90(target_normalized, k=quadrant, dims=(2, 3))
                 nbrs.rotate90anticlock(quadrant)
                 nbr_preds = nbrs.get()
 
@@ -185,7 +185,7 @@ class AutoRegRALadderVAE(LadderVAE):
         output_dict = self.get_output_from_batch(batch, self._train_sol_manager, enable_rotation=self._enable_rotation)
         imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
         self._train_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
-        # in case of rotation, batch is invalid. since this is oly done in training, 
+        # in case of rotation, batch is invalid. since this is oly done in training,
         # None is being passed for batch in training and not in validation
         return self._training_step(None, batch_idx, output_dict, enable_logging=enable_logging)
 
