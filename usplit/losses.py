@@ -12,7 +12,7 @@ import torch.optim as optim
 from torch.autograd import Variable
 from torch.nn import init
 
-from disentangle import utils
+from usplit import utils
 
 
 def free_bits_kl(kl, free_bits, batch_average=False, eps=1e-6) -> torch.Tensor:
