@@ -408,8 +408,8 @@ def main(
     rmse = (rmse1 + rmse2) / 2
     rmse = np.round(rmse, 3)
 
-    ssim1_mean, ssim1_std = avg_ssim(tar[..., 0], ch1_pred_unnorm)
-    ssim2_mean, ssim2_std = avg_ssim(tar[..., 1], ch2_pred_unnorm)
+    ssim1_mean, ssim1_std = avg_ssim(tar1, pred1)
+    ssim2_mean, ssim2_std = avg_ssim(tar2, pred2)
 
     # Computing the output statistics.
     output_stats = {}
@@ -464,14 +464,20 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file():
     ckpt_dirs = [
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/32',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/27',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/26',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/30',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/24',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/29',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/31',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/25',
+        '/home/ashesh.ashesh/training/disentangle/2211/D3-M3-S0-L0/28',
         '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/77',
         '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/78',
         '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/79',
         '/home/ashesh.ashesh/training/disentangle/2211/D7-M3-S0-L0/1',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/91',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/89',
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/90',
-        '/home/ashesh.ashesh/training/disentangle/2211/D7-M3-S0-L0/2',
+        '/home/ashesh.ashesh/training/disentangle/2308/D7-M3-S0-L0/15',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -483,7 +489,7 @@ def save_hardcoded_ckpt_evaluations_to_file():
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    patchsz_gridsz_tuples = [(64, 64)]
+    patchsz_gridsz_tuples = [(64, 32)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
