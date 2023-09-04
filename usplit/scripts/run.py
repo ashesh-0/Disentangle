@@ -24,11 +24,6 @@ from usplit.config_utils import get_updated_config
 from usplit.core.loss_type import LossType
 from usplit.core.model_type import ModelType
 from usplit.core.sampler_type import SamplerType
-from usplit.sampler.default_grid_sampler import DefaultGridSampler
-from usplit.sampler.intensity_aug_sampler import IntensityAugSampler, IntensityAugValSampler
-from usplit.sampler.nbr_sampler import NeighborSampler
-from usplit.sampler.random_sampler import RandomSampler
-from usplit.sampler.singleimg_sampler import SingleImgSampler
 from usplit.training import create_dataset, train_network
 
 FLAGS = flags.FLAGS
@@ -188,41 +183,6 @@ def main(argv):
                                      num_workers=config.training.num_workers,
                                      shuffle=False,
                                      batch_size=batch_size)
-
-        else:
-
-            if config.data.sampler_type == SamplerType.RandomSampler:
-                train_sampler = RandomSampler(train_data, config.training.batch_size)
-                val_sampler = DefaultGridSampler(val_data, config.training.batch_size, grid_size=config.data.image_size)
-            elif config.data.sampler_type == SamplerType.SingleImgSampler:
-                train_sampler = SingleImgSampler(train_data, config.training.batch_size)
-                val_sampler = SingleImgSampler(val_data, config.training.batch_size)
-            elif config.data.sampler_type == SamplerType.NeighborSampler:
-                assert 'gridsizes' in config.training, 'For this to work, gridsizes must be provided'
-                nbr_set_count = config.data.nbr_set_count
-                train_sampler = NeighborSampler(train_data,
-                                                config.training.batch_size,
-                                                valid_gridsizes=config.training.gridsizes,
-                                                nbr_set_count=nbr_set_count)
-                val_sampler = NeighborSampler(val_data, config.training.batch_size, nbr_set_count=0)
-            elif config.data.sampler_type == SamplerType.DefaultGridSampler:
-                train_sampler = DefaultGridSampler(train_data, config.training.batch_size)
-                val_sampler = DefaultGridSampler(val_data, config.training.batch_size, grid_size=config.data.image_size)
-            elif config.data.sampler_type == SamplerType.IntensityAugSampler:
-                val_sampler = IntensityAugValSampler(val_data, config.data.image_size, config.training.batch_size)
-                train_sampler = IntensityAugSampler(train_data,
-                                                    len(train_data),
-                                                    config.data.ch1_alpha_interval_count,
-                                                    config.data.num_intensity_variations,
-                                                    batch_size=config.training.batch_size)
-            train_dloader = DataLoader(train_data,
-                                       pin_memory=False,
-                                       batch_sampler=train_sampler,
-                                       num_workers=config.training.num_workers)
-            val_dloader = DataLoader(val_data,
-                                     pin_memory=False,
-                                     batch_sampler=val_sampler,
-                                     num_workers=config.training.num_workers)
 
         train_network(train_dloader, val_dloader, data_mean, data_std, config, 'BaselineVAECL', FLAGS.logdir)
 
