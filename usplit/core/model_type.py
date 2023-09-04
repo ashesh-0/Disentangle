@@ -1,5 +1,4 @@
 from usplit.core.custom_enum import Enum
-from usplit.nets.lvae_with_stitch import LadderVAEwithStitching
 
 
 class ModelType(Enum):
