@@ -19,6 +19,7 @@ from usplit.core.metric_monitor import MetricMonitor
 from usplit.core.model_type import ModelType
 from usplit.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from usplit.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
+from usplit.data_loader.multiscale_mc_zarr_dloader import MultiScaleZarrDloader
 from usplit.nets.model_utils import create_model
 from usplit.training_utils import ValEveryNSteps
 
@@ -27,7 +28,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
 
     if config.data.data_type in [
             DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve,
-            DataType.SeparateTiffData
+            DataType.SeparateTiffData, DataType.SingleZarrData
     ]:
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
@@ -44,23 +45,23 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             if 'padding_value' in config.data and config.data.padding_value is not None:
                 padding_kwargs['constant_values'] = config.data.padding_value
 
-            train_data = None if skip_train_dataset else MultiScaleTiffDloader(
-                config.data,
-                datapath,
-                datasplit_type=DataSplitType.Train,
-                val_fraction=config.training.val_fraction,
-                test_fraction=config.training.test_fraction,
-                normalized_input=normalized_input,
-                use_one_mu_std=use_one_mu_std,
-                enable_rotation_aug=train_aug_rotate,
-                enable_random_cropping=enable_random_cropping,
-                num_scales=config.data.multiscale_lowres_count,
-                lowres_supervision=lowres_supervision,
-                padding_kwargs=padding_kwargs,
-                allow_generation=True)
+            dataclass = MultiScaleZarrDloader if config.data.data_type == DataType.SingleZarrData else MultiScaleTiffDloader
+            train_data = None if skip_train_dataset else dataclass(config.data,
+                                                                   datapath,
+                                                                   datasplit_type=DataSplitType.Train,
+                                                                   val_fraction=config.training.val_fraction,
+                                                                   test_fraction=config.training.test_fraction,
+                                                                   normalized_input=normalized_input,
+                                                                   use_one_mu_std=use_one_mu_std,
+                                                                   enable_rotation_aug=train_aug_rotate,
+                                                                   enable_random_cropping=enable_random_cropping,
+                                                                   num_scales=config.data.multiscale_lowres_count,
+                                                                   lowres_supervision=lowres_supervision,
+                                                                   padding_kwargs=padding_kwargs,
+                                                                   allow_generation=True)
             max_val = train_data.get_max_val()
 
-            val_data = MultiScaleTiffDloader(
+            val_data = dataclass(
                 config.data,
                 datapath,
                 datasplit_type=DataSplitType.Val,
