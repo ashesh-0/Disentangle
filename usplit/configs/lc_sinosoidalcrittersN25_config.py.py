@@ -10,8 +10,8 @@ from usplit.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
-    data.frame_size = 128
+    data.image_size = 64
+    data.frame_size = 256
     data.data_type = DataType.CustomSinosoidThreeCurve
     data.total_size = 1000
     data.curve_amplitude = 8.0
@@ -30,13 +30,13 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 5
     data.padding_mode = 'constant'
     data.padding_value = 0
     data.encourage_non_overlap_single_channel = True
     data.vertical_min_spacing = data.curve_amplitude * 2
     # 0.5 would mean that 50% of the points would be covered with the connecting w.
-    data.connecting_w_len = 0.2
+    data.connecting_w_len = 0.1
     data.curve_initial_phase = 0.0
     data.target_separate_normalization = True
 
@@ -60,6 +60,7 @@ def get_config():
     model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
+    model.encoder.batchnorm = True
 
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
@@ -67,11 +68,11 @@ def get_config():
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
     model.decoder.multiscale_retain_spatial_dims = True
+    model.decoder.batchnorm = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
     model.merge_type = 'residual'
-    model.batchnorm = True
     model.stochastic_skip = True
     model.learn_top_prior = True
     model.img_shape = None
