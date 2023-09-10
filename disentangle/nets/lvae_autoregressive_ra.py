@@ -73,6 +73,22 @@ class AutoRegRALadderVAE(LadderVAE):
                 ))
         return nn.ModuleList(nbr_bottom_up_layers)
 
+    @staticmethod
+    def get_mask(spatial_dim, orientation: str, device):
+        mask = torch.arange(0, spatial_dim) / (spatial_dim - 1)
+        if orientation == 'top':
+            return mask.reshape(1, 1, -1, 1).to(device)
+        elif orientation == 'bottom':
+            mask = torch.flip(mask, [0])
+            return mask.reshape(1, 1, -1, 1).to(device)
+        elif orientation == 'left':
+            return mask.reshape(1, 1, 1, -1).to(device)
+        elif orientation == 'right':
+            mask = torch.flip(mask, [0])
+            return mask.reshape(1, 1, 1, -1).to(device)
+        else:
+            raise ValueError(f"orientation {orientation} not recognized")
+
     def forward(self, x, nbr_pred):
         img_size = x.size()[2:]
 
@@ -89,23 +105,36 @@ class AutoRegRALadderVAE(LadderVAE):
 
         nbr_bu_values_top = self._bottomup_pass(nbr_pred[0], self._nbr_first_bottom_up_list[0], None,
                                                 self._nbr_bottom_up_layers_list[0])
-        nbr_bu_values_top = [torch.mean(x, dim=2, keepdim=True) for x in nbr_bu_values_top]
-        nbr_bu_values_top = [x.repeat(1, 1, x.shape[3], 1) for x in nbr_bu_values_top]
+        shapes = [x.shape[-2:] for x in nbr_bu_values_top]
+        assert all([x[0] == x[1] for x in shapes])
+
+        nbr_bu_values_top = [x[:, :, -1:] for x in nbr_bu_values_top]
+        # import pdb;pdb.set_trace()
+        nbr_bu_values_top = [x * self.get_mask(shapes[i][0], 'top', x.device) for i, x in enumerate(nbr_bu_values_top)]
+        # nbr_bu_values_top = [x.repeat(1, 1, x.shape[3], 1) for x in nbr_bu_values_top]
 
         nbr_bu_values_bottom = self._bottomup_pass(nbr_pred[1], self._nbr_first_bottom_up_list[1], None,
                                                    self._nbr_bottom_up_layers_list[1])
-        nbr_bu_values_bottom = [torch.mean(x, dim=2, keepdim=True) for x in nbr_bu_values_bottom]
-        nbr_bu_values_bottom = [x.repeat(1, 1, x.shape[3], 1) for x in nbr_bu_values_bottom]
+
+        nbr_bu_values_bottom = [x[:, :, :1] for x in nbr_bu_values_bottom]
+        nbr_bu_values_bottom = [
+            x * self.get_mask(shapes[i][0], 'bottom', x.device) for i, x in enumerate(nbr_bu_values_bottom)
+        ]
 
         nbr_bu_values_left = self._bottomup_pass(nbr_pred[2], self._nbr_first_bottom_up_list[2], None,
                                                  self._nbr_bottom_up_layers_list[2])
-        nbr_bu_values_left = [torch.mean(x, dim=3, keepdim=True) for x in nbr_bu_values_left]
-        nbr_bu_values_left = [x.repeat(1, 1, 1, x.shape[2]) for x in nbr_bu_values_left]
+        nbr_bu_values_left = [x[..., -1:] for x in nbr_bu_values_left]
+        nbr_bu_values_left = [
+            x * self.get_mask(shapes[i][0], 'left', x.device) for i, x in enumerate(nbr_bu_values_left)
+        ]
 
         nbr_bu_values_right = self._bottomup_pass(nbr_pred[3], self._nbr_first_bottom_up_list[3], None,
                                                   self._nbr_bottom_up_layers_list[3])
-        nbr_bu_values_right = [torch.mean(x, dim=3, keepdim=True) for x in nbr_bu_values_right]
-        nbr_bu_values_right = [x.repeat(1, 1, 1, x.shape[2]) for x in nbr_bu_values_right]
+        nbr_bu_values_right = [x[..., :1] for x in nbr_bu_values_right]
+        nbr_bu_values_right = [
+            x * self.get_mask(shapes[i][0], 'right', x.device) for i, x in enumerate(nbr_bu_values_right)
+        ]
+        # nbr_bu_values_right = [x.repeat(1, 1, 1, x.shape[2]) for x in nbr_bu_values_right]
 
         nbr_bu_values_list = list(zip(nbr_bu_values_top, nbr_bu_values_bottom, nbr_bu_values_left, nbr_bu_values_right))
 
@@ -179,9 +208,14 @@ class AutoRegRALadderVAE(LadderVAE):
 
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
     import numpy as np
     import torch
 
+    # mask = AutoRegRALadderVAE.get_mask(64, 'bottom', 'cpu')[0,0].numpy()
+    # mask = np.repeat(mask, 64, axis=0) if mask.shape[0] ==1 else np.repeat(mask, 64, axis=1)
+    # plt.imshow(mask)
+    # plt.show()
     from disentangle.configs.autoregressive_config import get_config
     from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
     GridIndexManager((61, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_train_instance=True)
