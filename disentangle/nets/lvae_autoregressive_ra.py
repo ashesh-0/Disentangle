@@ -226,12 +226,17 @@ class AutoRegRALadderVAE(LadderVAE):
             'out': out,
             'input_normalized': x_normalized,
             'target_normalized': target_normalized,
-            'td_data': td_data
+            'td_data': td_data,
+            'quadrant': quadrant if enable_rotation else None,
         }
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         output_dict = self.get_output_from_batch(batch, self._train_sol_manager, enable_rotation=self._enable_rotation)
         imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
+
+        if output_dict['quadrant'] is not None and output_dict['quadrant'] > 0:
+            imgs = torch.rot90(imgs, k=-output_dict['quadrant'], dims=(2, 3))
+
         self._train_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
         # in case of rotation, batch is invalid. since this is oly done in training,
         # None is being passed for batch in training and not in validation
