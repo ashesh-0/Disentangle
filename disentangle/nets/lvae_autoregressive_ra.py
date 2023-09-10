@@ -123,7 +123,7 @@ class AutoRegRALadderVAE(LadderVAE):
         else:
             raise ValueError(f"orientation {orientation} not recognized")
 
-        # mask[mask < 0.95] = 0
+        mask[mask < 0.95] = 0
         return mask
 
     def forward(self, x, nbr_pred):
