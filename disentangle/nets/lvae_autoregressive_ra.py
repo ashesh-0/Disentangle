@@ -53,6 +53,8 @@ class AutoRegRALadderVAE(LadderVAE):
         self._avg_pool_layers = nn.ModuleList(
             [nn.AvgPool2d(kernel_size=self.img_shape[0] // (np.power(2, i + 1))) for i in range(self.n_layers)])
 
+        self._nbr_share_weights = config.model.get('nbr_share_weights', False)
+
         # when creating the frame prediction, we want to skip boundary.
         innerpad_amount = GridIndexManager(get_val_instance=True).get_innerpad_amount()
         self._train_sol_manager = SolutionRAManager(DataSplitType.Train,
@@ -83,10 +85,16 @@ class AutoRegRALadderVAE(LadderVAE):
             ) for _ in range(self.n_layers)
         ])
         stride = 1 if config.model.no_initial_downscaling else 2
-        self._nbr_first_bottom_up_list = nn.ModuleList(
-            [self.create_first_bottom_up(stride, color_ch=2) for _ in range(nbr_count)])
-        self._nbr_bottom_up_layers_list = nn.ModuleList([self.create_bottomup_layers() for _ in range(nbr_count)])
-        print(f'[{self.__class__.__name__}]Rotation:{self._enable_rotation}')
+        if self._nbr_share_weights:
+            self._nbr_first_bottom_up = self.create_first_bottom_up(stride, color_ch=2)
+            self._nbr_bottom_up_layers = self.create_bottomup_layers()
+            self._nbr_first_bottom_up_list = [self._nbr_first_bottom_up for _ in range(nbr_count)]
+            self._nbr_bottom_up_layers_list = [self._nbr_bottom_up_layers for _ in range(nbr_count)]
+        else:
+            self._nbr_first_bottom_up_list = nn.ModuleList(
+                [self.create_first_bottom_up(stride, color_ch=2) for _ in range(nbr_count)])
+            self._nbr_bottom_up_layers_list = nn.ModuleList([self.create_bottomup_layers() for _ in range(nbr_count)])
+        print(f'[{self.__class__.__name__}]Rotation:{self._enable_rotation} NbrSharedWeights:{self._nbr_share_weights}')
 
     def create_bottomup_layers(self):
         nbr_bottom_up_layers = []
