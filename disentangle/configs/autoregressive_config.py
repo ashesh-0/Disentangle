@@ -13,16 +13,19 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 128
+    data.val_grid_size = 96
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
 
     data.sampler_type = SamplerType.GridSampler
-    data.deterministic_grid = False
+    data.deterministic_grid = True
     data.normalized_input = True
     data.clip_percentile = 0.995
     data.background_quantile = 0.0
-    data.innerpad_amount = 16 # how many pixel predictions should be ignored while computing the full prediction for the frame.
+    data.innerpad_amount = (
+        data.image_size - data.val_grid_size
+    ) // 2  # how many pixel predictions should be ignored while computing the full prediction for the frame.
 
     # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
     # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
@@ -68,7 +71,10 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.AutoRegresiveRALadderVAE
+    model.rotation_with_neighbors = True
+    model.untrained_nbr_branch = True
     model.z_dims = [128, 128, 128, 128]
+    model.nbr_dropout = 0.7
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
