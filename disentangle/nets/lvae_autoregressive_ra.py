@@ -77,17 +77,20 @@ class AutoRegRALadderVAE(LadderVAE):
     def get_mask(spatial_dim, orientation: str, device):
         mask = torch.arange(0, spatial_dim) / (spatial_dim - 1)
         if orientation == 'top':
-            return mask.reshape(1, 1, -1, 1).to(device)
+            mask = mask.reshape(1, 1, -1, 1).to(device)
         elif orientation == 'bottom':
             mask = torch.flip(mask, [0])
-            return mask.reshape(1, 1, -1, 1).to(device)
+            mask = mask.reshape(1, 1, -1, 1).to(device)
         elif orientation == 'left':
-            return mask.reshape(1, 1, 1, -1).to(device)
+            mask = mask.reshape(1, 1, 1, -1).to(device)
         elif orientation == 'right':
             mask = torch.flip(mask, [0])
-            return mask.reshape(1, 1, 1, -1).to(device)
+            mask = mask.reshape(1, 1, 1, -1).to(device)
         else:
             raise ValueError(f"orientation {orientation} not recognized")
+
+        mask[mask < 0.95] = 0
+        return mask
 
     def forward(self, x, nbr_pred):
         img_size = x.size()[2:]
@@ -212,26 +215,26 @@ if __name__ == '__main__':
     import numpy as np
     import torch
 
-    # mask = AutoRegRALadderVAE.get_mask(64, 'bottom', 'cpu')[0,0].numpy()
-    # mask = np.repeat(mask, 64, axis=0) if mask.shape[0] ==1 else np.repeat(mask, 64, axis=1)
-    # plt.imshow(mask)
-    # plt.show()
-    from disentangle.configs.autoregressive_config import get_config
-    from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
-    GridIndexManager((61, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_train_instance=True)
-    GridIndexManager((6, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_val_instance=True)
+    mask = AutoRegRALadderVAE.get_mask(64, 'left', 'cpu')[0, 0].numpy()
+    mask = np.repeat(mask, 64, axis=0) if mask.shape[0] == 1 else np.repeat(mask, 64, axis=1)
+    plt.imshow(mask)
+    plt.show()
+    # from disentangle.configs.autoregressive_config import get_config
+    # from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+    # GridIndexManager((61, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_train_instance=True)
+    # GridIndexManager((6, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_val_instance=True)
 
-    config = get_config()
-    config.model.skip_boundary_pixelcount = 16
-    data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
-    data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
-    model = AutoRegRALadderVAE(data_mean, data_std, config)
-    inp = torch.rand((20, 1, config.data.image_size, config.data.image_size))
-    nbr = [torch.rand((20, 2, config.data.image_size, config.data.image_size))] * 4
-    out, td_data = model(inp, nbr)
-    batch = (torch.rand((16, 1, config.data.image_size, config.data.image_size)),
-             torch.rand((16, 2, config.data.image_size, config.data.image_size)), torch.randint(0, 100, (16, )),
-             torch.Tensor(np.array([config.data.image_size] * 16)).reshape(16, ).type(torch.int32))
-    model.training_step(batch, 0)
-    model.validation_step(batch, 0)
-    model.on_validation_epoch_end()
+    # config = get_config()
+    # config.model.skip_boundary_pixelcount = 16
+    # data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
+    # data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
+    # model = AutoRegRALadderVAE(data_mean, data_std, config)
+    # inp = torch.rand((20, 1, config.data.image_size, config.data.image_size))
+    # nbr = [torch.rand((20, 2, config.data.image_size, config.data.image_size))] * 4
+    # out, td_data = model(inp, nbr)
+    # batch = (torch.rand((16, 1, config.data.image_size, config.data.image_size)),
+    #          torch.rand((16, 2, config.data.image_size, config.data.image_size)), torch.randint(0, 100, (16, )),
+    #          torch.Tensor(np.array([config.data.image_size] * 16)).reshape(16, ).type(torch.int32))
+    # model.training_step(batch, 0)
+    # model.validation_step(batch, 0)
+    # model.on_validation_epoch_end()
