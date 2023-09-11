@@ -19,7 +19,7 @@ def get_config():
     data.channel_2 = 3
 
     data.sampler_type = SamplerType.GridSampler
-    data.deterministic_grid = False
+    data.deterministic_grid = True
     data.normalized_input = True
     data.clip_percentile = 0.995
     data.background_quantile = 0.0
@@ -77,7 +77,7 @@ def get_config():
     model.nbr_dropout = 0.2
     model.nbr_share_weights = True
     model.nbr_learnable_mask = True
-    model.nbr_disabled = False
+    model.nbr_disabled = True
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
