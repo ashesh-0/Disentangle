@@ -50,8 +50,16 @@ class AutoRegRALadderVAE(LadderVAE):
         self._neighboring_encoder = None
         self._enable_rotation = config.model.get('rotation_with_neighbors', False)
         self._untrained_nbr_branch = config.model.get('untrained_nbr_branch', False)
+        latent_shapes = [self.img_shape[0] // (np.power(2, i + 1)) for i in range(self.n_layers)]
         self._avg_pool_layers = nn.ModuleList(
-            [nn.AvgPool2d(kernel_size=self.img_shape[0] // (np.power(2, i + 1))) for i in range(self.n_layers)])
+            [nn.AvgPool2d(kernel_size=latent_shapes[i]) for i in range(self.n_layers)])
+
+        self._learnable_mask = config.model.get('learnable_mask', False)
+        if self._learnable_mask:
+            self._weight_masks = nn.ModuleList(
+                [nn.Linear(1, latent_shapes[i], bias=False) for i in range(self.n_layers)])
+            self._dummy_inp = torch.ones((1, 1, 1), requires_grad=False)
+            self._dim_to_idx = {dim: idx for idx, dim in enumerate(latent_shapes)}
 
         self._nbr_share_weights = config.model.get('nbr_share_weights', False)
 
@@ -94,7 +102,8 @@ class AutoRegRALadderVAE(LadderVAE):
             self._nbr_first_bottom_up_list = nn.ModuleList(
                 [self.create_first_bottom_up(stride, color_ch=2) for _ in range(nbr_count)])
             self._nbr_bottom_up_layers_list = nn.ModuleList([self.create_bottomup_layers() for _ in range(nbr_count)])
-        print(f'[{self.__class__.__name__}]Rotation:{self._enable_rotation} NbrSharedWeights:{self._nbr_share_weights}')
+        print(f'[{self.__class__.__name__}]Rotation:{self._enable_rotation} NbrSharedWeights:{self._nbr_share_weights}\
+               LearnableMask:{self._learnable_mask} UntrainedNbrBranch:{self._untrained_nbr_branch}')
 
     def create_bottomup_layers(self):
         nbr_bottom_up_layers = []
@@ -115,9 +124,19 @@ class AutoRegRALadderVAE(LadderVAE):
                 ))
         return nn.ModuleList(nbr_bottom_up_layers)
 
-    @staticmethod
-    def get_mask(spatial_dim, orientation: str, device):
-        mask = torch.arange(0, spatial_dim) / (spatial_dim - 1)
+    def _get_learned_mask(self, hierarchy_idx):
+        return nn.Sigmoid()(self._weight_masks[hierarchy_idx](self._dummy_inp))
+
+    def get_mask(self, spatial_dim, orientation: str, device):
+        if self._learnable_mask:
+            idx = self._dim_to_idx[spatial_dim]
+            if self._dummy_inp.device != device:
+                self._dummy_inp = self._dummy_inp.to(device)
+
+            mask = self._get_learned_mask(idx)
+        else:
+            mask = torch.arange(0, spatial_dim) / (spatial_dim - 1)
+
         if orientation == 'top':
             mask = mask.reshape(1, 1, -1, 1).to(device)
         elif orientation == 'bottom':
@@ -131,7 +150,8 @@ class AutoRegRALadderVAE(LadderVAE):
         else:
             raise ValueError(f"orientation {orientation} not recognized")
 
-        mask[mask < 0.95] = 0
+        if not self._learnable_mask:
+            mask[mask < 0.95] = 0
         return mask
 
     def forward(self, x, nbr_pred):
@@ -239,6 +259,12 @@ class AutoRegRALadderVAE(LadderVAE):
         }
 
     def training_step(self, batch, batch_idx, enable_logging=True):
+        # log
+        if self._learnable_mask:
+            w = self._get_learned_mask(0).detach().cpu().numpy().squeeze()
+            self.log('mask_w0', w[0], on_epoch=True)
+            self.log(f'mask_w{len(w)-1}', w[-1], on_epoch=True)
+
         output_dict = self.get_output_from_batch(batch, self._train_sol_manager, enable_rotation=self._enable_rotation)
         imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
 
@@ -294,19 +320,21 @@ if __name__ == '__main__':
     import numpy as np
     import torch
 
-    mask = AutoRegRALadderVAE.get_mask(64, 'left', 'cpu')[0, 0].numpy()
+    from disentangle.configs.autoregressive_config import get_config
+    from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+
+    # GridIndexManager((61, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_train_instance=True)
+    # GridIndexManager((6, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_val_instance=True)
+    config = get_config()
+    config.model.skip_boundary_pixelcount = 16
+    data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
+    data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
+    with torch.no_grad():
+        mask = AutoRegRALadderVAE(data_mean, data_std, config).get_mask(64, 'bottom', 'cpu')[0, 0].numpy()
     mask = np.repeat(mask, 64, axis=0) if mask.shape[0] == 1 else np.repeat(mask, 64, axis=1)
     plt.imshow(mask)
     plt.show()
-    # from disentangle.configs.autoregressive_config import get_config
-    # from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
-    # GridIndexManager((61, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_train_instance=True)
-    # GridIndexManager((6, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_val_instance=True)
 
-    # config = get_config()
-    # config.model.skip_boundary_pixelcount = 16
-    # data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
-    # data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
     # model = AutoRegRALadderVAE(data_mean, data_std, config)
     # inp = torch.rand((20, 1, config.data.image_size, config.data.image_size))
     # nbr = [torch.rand((20, 2, config.data.image_size, config.data.image_size))] * 4
