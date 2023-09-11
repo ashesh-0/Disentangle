@@ -54,7 +54,9 @@ class AutoRegRALadderVAE(LadderVAE):
         self._avg_pool_layers = nn.ModuleList(
             [nn.AvgPool2d(kernel_size=latent_shapes[i]) for i in range(self.n_layers)])
 
-        self._learnable_mask = config.model.get('learnable_mask', False)
+        self._learnable_mask = config.model.get('nbr_learnable_mask', False)
+        self._nbr_disabled = config.model.get('nbr_disabled', False)
+
         if self._learnable_mask:
             self._weight_masks = nn.ModuleList(
                 [nn.Linear(1, latent_shapes[i], bias=False) for i in range(self.n_layers)])
@@ -154,12 +156,7 @@ class AutoRegRALadderVAE(LadderVAE):
             mask[mask < 0.95] = 0
         return mask
 
-    def forward(self, x, nbr_pred):
-        img_size = x.size()[2:]
-
-        # Pad input to make everything easier with conv strides
-        x_pad = self.pad_input(x)
-
+    def _get_nbr_bu_values(self, nbr_pred):
         nbr_bu_values_list = []
         for _ in range(len(self.bottom_up_layers)):
             nbr_bu_values_list.append([])
@@ -174,9 +171,7 @@ class AutoRegRALadderVAE(LadderVAE):
         assert all([x[0] == x[1] for x in shapes])
 
         nbr_bu_values_top = [x[:, :, -1:] for x in nbr_bu_values_top]
-        # import pdb;pdb.set_trace()
         nbr_bu_values_top = [x * self.get_mask(shapes[i][0], 'top', x.device) for i, x in enumerate(nbr_bu_values_top)]
-        # nbr_bu_values_top = [x.repeat(1, 1, x.shape[3], 1) for x in nbr_bu_values_top]
 
         nbr_bu_values_bottom = self._bottomup_pass(nbr_pred[1], self._nbr_first_bottom_up_list[1], None,
                                                    self._nbr_bottom_up_layers_list[1])
@@ -202,13 +197,24 @@ class AutoRegRALadderVAE(LadderVAE):
         # nbr_bu_values_right = [x.repeat(1, 1, 1, x.shape[2]) for x in nbr_bu_values_right]
 
         nbr_bu_values_list = list(zip(nbr_bu_values_top, nbr_bu_values_bottom, nbr_bu_values_left, nbr_bu_values_right))
+        return nbr_bu_values_list
+
+    def forward(self, x, nbr_pred):
+        img_size = x.size()[2:]
+
+        # Pad input to make everything easier with conv strides
+        x_pad = self.pad_input(x)
 
         bu_values = self.bottomup_pass(x_pad)
-
         merged_bu_values = []
 
-        for idx in range(len(bu_values)):
-            merged_bu_values.append(self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
+        if self._nbr_disabled:
+            nbr_bu_values_list = None
+            merged_bu_values = bu_values
+        else:
+            nbr_bu_values_list = self._get_nbr_bu_values(nbr_pred)
+            for idx in range(len(bu_values)):
+                merged_bu_values.append(self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
         # Top-down inference/generation
@@ -329,19 +335,19 @@ if __name__ == '__main__':
     config.model.skip_boundary_pixelcount = 16
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
     data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
-    with torch.no_grad():
-        mask = AutoRegRALadderVAE(data_mean, data_std, config).get_mask(64, 'bottom', 'cpu')[0, 0].numpy()
-    mask = np.repeat(mask, 64, axis=0) if mask.shape[0] == 1 else np.repeat(mask, 64, axis=1)
-    plt.imshow(mask)
-    plt.show()
+    # with torch.no_grad():
+    #     mask = AutoRegRALadderVAE(data_mean, data_std, config).get_mask(64, 'bottom', 'cpu')[0, 0].numpy()
+    # mask = np.repeat(mask, 64, axis=0) if mask.shape[0] == 1 else np.repeat(mask, 64, axis=1)
+    # plt.imshow(mask)
+    # plt.show()
 
-    # model = AutoRegRALadderVAE(data_mean, data_std, config)
-    # inp = torch.rand((20, 1, config.data.image_size, config.data.image_size))
-    # nbr = [torch.rand((20, 2, config.data.image_size, config.data.image_size))] * 4
-    # out, td_data = model(inp, nbr)
-    # batch = (torch.rand((16, 1, config.data.image_size, config.data.image_size)),
-    #          torch.rand((16, 2, config.data.image_size, config.data.image_size)), torch.randint(0, 100, (16, )),
-    #          torch.Tensor(np.array([config.data.image_size] * 16)).reshape(16, ).type(torch.int32))
-    # model.training_step(batch, 0)
-    # model.validation_step(batch, 0)
-    # model.on_validation_epoch_end()
+    model = AutoRegRALadderVAE(data_mean, data_std, config)
+    inp = torch.rand((20, 1, config.data.image_size, config.data.image_size))
+    nbr = [torch.rand((20, 2, config.data.image_size, config.data.image_size))] * 4
+    out, td_data = model(inp, nbr)
+    batch = (torch.rand((16, 1, config.data.image_size, config.data.image_size)),
+             torch.rand((16, 2, config.data.image_size, config.data.image_size)), torch.randint(0, 100, (16, )),
+             torch.Tensor(np.array([config.data.image_size] * 16)).reshape(16, ).type(torch.int32))
+    model.training_step(batch, 0)
+    model.validation_step(batch, 0)
+    model.on_validation_epoch_end()
