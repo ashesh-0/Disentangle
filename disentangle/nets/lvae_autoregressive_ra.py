@@ -104,7 +104,12 @@ class AutoRegRALadderVAE(LadderVAE):
             self._nbr_first_bottom_up_list = nn.ModuleList(
                 [self.create_first_bottom_up(stride, color_ch=2) for _ in range(nbr_count)])
             self._nbr_bottom_up_layers_list = nn.ModuleList([self.create_bottomup_layers() for _ in range(nbr_count)])
-        print(f'[{self.__class__.__name__}]Rotation:{self._enable_rotation} NbrSharedWeights:{self._nbr_share_weights}\
+        if self._nbr_disabled:
+            print(f'[{self.__class__.__name__}]Rotation:{self._enable_rotation} NbrDisabled:{self._nbr_disabled}')
+
+        else:
+            print(
+                f'[{self.__class__.__name__}]Rotation:{self._enable_rotation} NbrSharedWeights:{self._nbr_share_weights}\
                LearnableMask:{self._learnable_mask} UntrainedNbrBranch:{self._untrained_nbr_branch}')
 
     def create_bottomup_layers(self):
@@ -266,7 +271,7 @@ class AutoRegRALadderVAE(LadderVAE):
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         # log
-        if self._learnable_mask:
+        if self._learnable_mask and not self._nbr_disabled:
             w = self._get_learned_mask(0).detach().cpu().numpy().squeeze()
             self.log('mask_w0', w[0], on_epoch=True)
             self.log(f'mask_w{len(w)-1}', w[-1], on_epoch=True)
