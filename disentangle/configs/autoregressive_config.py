@@ -75,6 +75,7 @@ def get_config():
     model.untrained_nbr_branch = True
     model.z_dims = [128, 128, 128, 128]
     model.nbr_dropout = 0.7
+    model.nbr_share_weights = True
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
