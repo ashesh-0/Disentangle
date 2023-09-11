@@ -50,6 +50,10 @@ class AutoRegressiveDloader(MultiChDeterministicTiffDloader):
             return [self._crop_flip_img(img, h_start, w_start, False, False) for img in img_tuples]
 
     def _crop_imgs(self, index, *img_tuples: np.ndarray):
+        """
+        The code uses h_start, w_start to find neighboring indices. index is used only to get the frame index.
+        That being the case, this allows random cropping as well.
+        """
         h, w = img_tuples[0].shape[-2:]
         if self._img_sz is None:
             return (*img_tuples, {'h': [0, h], 'w': [0, w], 'hflip': False, 'wflip': False})
