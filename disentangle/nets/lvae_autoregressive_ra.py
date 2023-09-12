@@ -65,6 +65,7 @@ class AutoRegRALadderVAE(LadderVAE):
 
         self._nbr_share_weights = config.model.get('nbr_share_weights', False)
 
+        self._nbr_share_weights = config.model.get('nbr_share_weights', False)
         # when creating the frame prediction, we want to skip boundary.
         innerpad_amount = GridIndexManager(get_val_instance=True).get_innerpad_amount()
         self._train_sol_manager = SolutionRAManager(DataSplitType.Train,
