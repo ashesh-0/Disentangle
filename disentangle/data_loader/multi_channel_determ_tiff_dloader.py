@@ -81,6 +81,7 @@ class MultiChDeterministicTiffDloader:
                             data_config.val_grid_size if 'val_grid_size' in data_config else data_config.image_size)
 
         self._return_alpha = data_config.get('return_alpha', False)
+        self._return_hwt = data_config.get('return_hwt', False)
 
         self._empty_patch_replacement_enabled = data_config.get("empty_patch_replacement_enabled",
                                                                 False) and self._is_train
@@ -256,7 +257,7 @@ class MultiChDeterministicTiffDloader:
             img = self._crop_flip_img(img, h_start, w_start, False, False)
             cropped_imgs.append(img)
 
-        return (*tuple(cropped_imgs), {
+        return (tuple(cropped_imgs), {
             'h': [h_start, h_start + self._img_sz],
             'w': [w_start, w_start + self._img_sz],
             'hflip': False,
@@ -327,13 +328,15 @@ class MultiChDeterministicTiffDloader:
     def __len__(self):
         return self.N * self._repeat_factor
 
-    def _load_img(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_t(self, index):
         if isinstance(index, int):
             idx = index
         else:
             idx = index[0]
+        return self.idx_manager.get_t(idx)
 
-        imgs = self._data[self.idx_manager.get_t(idx)]
+    def _load_img(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+        imgs = self._data[self._get_t(index)]
         loaded_imgs = [imgs[None, ..., i] for i in range(imgs.shape[-1])]
         return tuple(loaded_imgs)
 
@@ -447,8 +450,10 @@ class MultiChDeterministicTiffDloader:
         Crops the image such that cropped image has content.
         """
         img_tuples = self._load_img(index)
-        cropped_img_tuples = self._crop_imgs(index, *img_tuples)[:-1]
-        return cropped_img_tuples
+        cropped_img_tuples, metadata_dict = self._crop_imgs(index, *img_tuples)
+
+        hwt = np.array([metadata_dict['h'][0], metadata_dict['w'][0], self._get_t(index)], dtype=np.int32)
+        return cropped_img_tuples, hwt
 
     def replace_with_empty_patch(self, img_tuples):
         empty_index = self._empty_patch_fetcher.sample()
@@ -491,7 +496,7 @@ class MultiChDeterministicTiffDloader:
         return inp, alpha
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
-        img_tuples = self._get_img(index)
+        img_tuples, hwt = self._get_img(index)
         if self._empty_patch_replacement_enabled:
             if np.random.rand() < self._empty_patch_replacement_probab:
                 img_tuples = self.replace_with_empty_patch(img_tuples)
@@ -512,15 +517,24 @@ class MultiChDeterministicTiffDloader:
             output.append(alpha)
 
         if isinstance(index, int):
+            if self._return_hwt:
+                output.append(hwt)
             return tuple(output)
 
-        output.append(index[0])
+        # either return hwt or index
+        if self._return_hwt:
+            output.append(hwt)
+        else:
+            output.append(index[0])
+
+        # return grid_size
         output.append(index[1])
         return tuple(output)
 
+
 # 329,458,801
 if __name__ == '__main__':
-    from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+    from disentangle.configs.autoregressive_config import get_config
     config = get_config()
     dset = MultiChDeterministicTiffDloader(config.data,
                                            '/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif',
@@ -539,4 +553,5 @@ if __name__ == '__main__':
     mean, std = dset.compute_mean_std()
     dset.set_mean_std(mean, std)
 
-    inp, target, alpha = dset[0]
+    inp, target, hwt = dset[0]
+    print(hwt.shape, hwt)

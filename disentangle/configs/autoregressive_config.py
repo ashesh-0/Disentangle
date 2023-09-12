@@ -19,7 +19,8 @@ def get_config():
     data.channel_2 = 3
 
     data.sampler_type = SamplerType.GridSampler
-    data.deterministic_grid = True
+    data.deterministic_grid = False
+    data.return_hwt = True
     data.normalized_input = True
     data.clip_percentile = 0.995
     data.background_quantile = 0.0
