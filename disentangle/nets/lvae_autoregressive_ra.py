@@ -236,15 +236,17 @@ class AutoRegRALadderVAE(LadderVAE):
         if sol_manager is None:
             sol_manager = self._val_sol_manager
 
-        x, target, indices, grid_sizes = batch
+        x, target, batch_locations, grid_sizes = batch
+
         self.set_params_to_same_device_as(target)
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
         nbr_preds = []
-        nbr_preds.append(sol_manager.get_top(indices, grid_sizes))
-        nbr_preds.append(sol_manager.get_bottom(indices, grid_sizes))
-        nbr_preds.append(sol_manager.get_left(indices, grid_sizes))
-        nbr_preds.append(sol_manager.get_right(indices, grid_sizes))
+
+        nbr_preds.append(sol_manager.get_top(batch_locations, grid_sizes))
+        nbr_preds.append(sol_manager.get_bottom(batch_locations, grid_sizes))
+        nbr_preds.append(sol_manager.get_left(batch_locations, grid_sizes))
+        nbr_preds.append(sol_manager.get_right(batch_locations, grid_sizes))
         nbr_preds = [torch.Tensor(nbr_y).to(x.device) for nbr_y in nbr_preds]
         nbrs = Neighbors(*nbr_preds)
         nbr_preds = nbrs.get()
@@ -277,6 +279,10 @@ class AutoRegRALadderVAE(LadderVAE):
             self.log('mask_w0', w[0], on_epoch=True)
             self.log(f'mask_w{len(w)-1}', w[-1], on_epoch=True)
 
+        x, target, batch_locations, grid_sizes = batch
+        batch_locations = batch_locations.cpu().numpy()
+        batch = (x, target, batch_locations, grid_sizes)
+
         output_dict = self.get_output_from_batch(batch, self._train_sol_manager, enable_rotation=self._enable_rotation)
         imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
 
@@ -289,6 +295,10 @@ class AutoRegRALadderVAE(LadderVAE):
         return self._training_step(None, batch_idx, output_dict, enable_logging=enable_logging)
 
     def validation_step(self, batch, batch_idx, return_output_dict=False):
+        x, target, batch_locations, grid_sizes = batch
+        batch_locations = batch_locations.cpu().numpy()
+        batch = (x, target, batch_locations, grid_sizes)
+
         output_dict = self.get_output_from_batch(batch, self._val_sol_manager)
         imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
         self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])

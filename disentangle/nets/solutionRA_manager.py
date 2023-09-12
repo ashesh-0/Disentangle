@@ -21,9 +21,9 @@ class Location:
         self.h = topleft_h
         self.w = topleft_w
         self.t = time
-        assert isinstance(self.h, int)
-        assert isinstance(self.w, int)
-        assert isinstance(self.t, int)
+        assert isinstance(self.h, int) or isinstance(self.h, np.int32)
+        assert isinstance(self.w, int) or isinstance(self.w, np.int32)
+        assert isinstance(self.t, int) or isinstance(self.t, np.int32)
 
     def shift_up(self, shift):
         self.h -= shift
@@ -123,46 +123,40 @@ class SolutionRAManager(LocationBasedSolutionRAManager):
             f'[{self.__class__.__name__}] {DataSplitType.name(datasplit_type)} P{self._patch_size} Sk{self._skipN} D{self._dropout}'
         )
 
-    def get_locations(self, indices, grid_sizes):
-        assert isinstance(indices, torch.Tensor) and len(indices.shape) == 1
-
-        locations = [
-            self._index_manager.hwt_from_idx(indices[i].item(), grid_size=grid_sizes[i].item())
-            for i in range(len(indices))
-        ]
-        locations = [Location(*location) for location in locations]
+    def get_locations(self, batch_locations, grid_sizes):
+        locations = [Location(*location) for location in batch_locations]
         return locations
 
-    def get_top(self, indices, grid_sizes):
-        locations = self.get_locations(indices, grid_sizes)
+    def get_top(self, batch_locations, grid_sizes):
+        locations = self.get_locations(batch_locations, grid_sizes)
         for location in locations:
             location.shift_up(self._patch_size)
 
         return self.get_from_locations(locations, self._patch_size)
 
-    def get_bottom(self, indices, grid_sizes):
-        locations = self.get_locations(indices, grid_sizes)
+    def get_bottom(self, batch_locations, grid_sizes):
+        locations = self.get_locations(batch_locations, grid_sizes)
         for location in locations:
             location.shift_down(self._patch_size)
 
         return self.get_from_locations(locations, self._patch_size)
 
-    def get_left(self, indices, grid_sizes):
-        locations = self.get_locations(indices, grid_sizes)
+    def get_left(self, batch_locations, grid_sizes):
+        locations = self.get_locations(batch_locations, grid_sizes)
         for location in locations:
             location.shift_left(self._patch_size)
 
         return self.get_from_locations(locations, self._patch_size)
 
-    def get_right(self, indices, grid_sizes):
-        locations = self.get_locations(indices, grid_sizes)
+    def get_right(self, batch_locations, grid_sizes):
+        locations = self.get_locations(batch_locations, grid_sizes)
         for location in locations:
             location.shift_right(self._patch_size)
 
         return self.get_from_locations(locations, self._patch_size)
 
-    def update(self, batch_predictions, indices, grid_sizes):
-        locations = self.get_locations(indices, grid_sizes)
+    def update(self, batch_predictions, batch_locations, grid_sizes):
+        locations = self.get_locations(batch_locations, grid_sizes)
         self.update_at_locations(batch_predictions, locations)
 
 
