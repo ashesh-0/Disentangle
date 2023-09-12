@@ -78,7 +78,7 @@ def get_config():
     model.nbr_dropout = 0.2
     model.nbr_share_weights = True
     model.nbr_learnable_mask = True
-    model.nbr_disabled = True
+    model.nbr_disabled = False
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
