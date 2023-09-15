@@ -241,29 +241,32 @@ class AutoRegRALadderVAE(LadderVAE):
         self.set_params_to_same_device_as(target)
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
-        nbr_preds = []
+        if self._nbr_disabled:
+            nbr_preds = None
+        else:
+            nbr_preds = []
 
-        nbr_preds.append(sol_manager.get_top(batch_locations, grid_sizes))
-        nbr_preds.append(sol_manager.get_bottom(batch_locations, grid_sizes))
-        nbr_preds.append(sol_manager.get_left(batch_locations, grid_sizes))
-        nbr_preds.append(sol_manager.get_right(batch_locations, grid_sizes))
-        nbr_preds = [torch.Tensor(nbr_y).to(x.device) for nbr_y in nbr_preds]
-        nbrs = Neighbors(*nbr_preds)
-        nbr_preds = nbrs.get()
+            nbr_preds.append(sol_manager.get_top(batch_locations, grid_sizes))
+            nbr_preds.append(sol_manager.get_bottom(batch_locations, grid_sizes))
+            nbr_preds.append(sol_manager.get_left(batch_locations, grid_sizes))
+            nbr_preds.append(sol_manager.get_right(batch_locations, grid_sizes))
+            nbr_preds = [torch.Tensor(nbr_y).to(x.device) for nbr_y in nbr_preds]
+            nbrs = Neighbors(*nbr_preds)
+            nbr_preds = nbrs.get()
 
-        if enable_rotation:
-            quadrant = np.random.randint(0, 4)
-            if quadrant > 0:
-                x_normalized = torch.rot90(x_normalized, k=quadrant, dims=(2, 3))
-                target_normalized = torch.rot90(target_normalized, k=quadrant, dims=(2, 3))
-                nbrs.rotate90anticlock(quadrant)
-                nbr_preds = nbrs.get()
+            if enable_rotation:
+                quadrant = np.random.randint(0, 4)
+                if quadrant > 0:
+                    x_normalized = torch.rot90(x_normalized, k=quadrant, dims=(2, 3))
+                    target_normalized = torch.rot90(target_normalized, k=quadrant, dims=(2, 3))
+                    nbrs.rotate90anticlock(quadrant)
+                    nbr_preds = nbrs.get()
 
         out, td_data = self.forward(x_normalized, nbr_preds)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        del nbrs
+        # del nbrs
         return {
             'out': out,
             'input_normalized': x_normalized,
@@ -301,8 +304,9 @@ class AutoRegRALadderVAE(LadderVAE):
 
         output_dict = self.get_output_from_batch(batch, self._val_sol_manager)
         imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
-        self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
-        self._val_gt_manager.update(output_dict['target_normalized'].cpu().detach().numpy(), batch[2], batch[3])
+        if not self._nbr_disabled:
+            self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
+            self._val_gt_manager.update(output_dict['target_normalized'].cpu().detach().numpy(), batch[2], batch[3])
         val_out = self._validation_step(batch, batch_idx, output_dict)
         if return_output_dict:
             return val_out, output_dict
