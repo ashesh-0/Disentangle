@@ -79,6 +79,7 @@ def get_config():
     model.nbr_share_weights = True
     model.nbr_learnable_mask = True
     model.nbr_disabled = False
+    model.nbr_enable_seep_merge = True
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1

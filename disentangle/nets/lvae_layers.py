@@ -223,7 +223,7 @@ class TopDownLayer(nn.Module):
         In case the padding is not used either (or both) in encoder and decoder, we could have a mismatch. Doing a centercrop to ensure that both remain aligned.
         """
         if bu_value.shape[-2:] != p_params.shape[-2:]:
-            assert self.bottomup_no_padding_mode is True
+            # assert self.bottomup_no_padding_mode is True
             if self.topdown_no_padding_mode is False:
                 assert bu_value.shape[-1] > p_params.shape[-1]
                 bu_value = F.center_crop(bu_value, p_params.shape[-2:])
@@ -276,9 +276,9 @@ class TopDownLayer(nn.Module):
         # merging with top-down path if it's not the top layer
         if inference_mode:
             if self.is_top_layer:
-                q_params = bu_value
                 if mode_pred is False:
                     p_params, bu_value = self.align_pparams_buvalue(p_params, bu_value)
+                q_params = bu_value
             else:
                 if use_uncond_mode:
                     q_params = p_params

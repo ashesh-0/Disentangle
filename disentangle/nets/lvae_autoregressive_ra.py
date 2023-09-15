@@ -3,6 +3,7 @@ import os
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from disentangle.analysis.lvae_utils import get_img_from_forward_output
 from disentangle.core.data_split_type import DataSplitType
@@ -55,6 +56,8 @@ class AutoRegRALadderVAE(LadderVAE):
             [nn.AvgPool2d(kernel_size=latent_shapes[i]) for i in range(self.n_layers)])
 
         self._learnable_mask = config.model.get('nbr_learnable_mask', False)
+        self._enable_seep_merge = config.model.get('nbr_enable_seep_merge', False)
+
         self._nbr_disabled = config.model.get('nbr_disabled', False)
 
         if self._learnable_mask:
@@ -136,6 +139,10 @@ class AutoRegRALadderVAE(LadderVAE):
         return nn.Sigmoid()(self._weight_masks[hierarchy_idx](self._dummy_inp))
 
     def get_mask(self, spatial_dim, orientation: str, device):
+        # disable mask when seep merge is enabled
+        if self._enable_seep_merge:
+            return 1
+
         if self._learnable_mask:
             idx = self._dim_to_idx[spatial_dim]
             if self._dummy_inp.device != device:
@@ -162,6 +169,23 @@ class AutoRegRALadderVAE(LadderVAE):
             mask[mask < 0.95] = 0
         return mask
 
+    def _get_nbr_bu_values_one_side(self, side: str, nbr_pred_one_side, nbr_first_bottom_up, nbr_bottom_up_layers):
+        nbr_bu_values = self._bottomup_pass(nbr_pred_one_side, nbr_first_bottom_up, None, nbr_bottom_up_layers)
+        shapes = [x.shape[-2:] for x in nbr_bu_values]
+        assert all([x[0] == x[1] for x in shapes])
+
+        if side == 'top':
+            nbr_bu_values = [x[:, :, -1:] for x in nbr_bu_values]
+        elif side == 'bottom':
+            nbr_bu_values = [x[:, :, :1] for x in nbr_bu_values]
+        elif side == 'left':
+            nbr_bu_values = [x[:, :, :, -1:] for x in nbr_bu_values]
+        elif side == 'right':
+            nbr_bu_values = [x[:, :, :, :1] for x in nbr_bu_values]
+
+        nbr_bu_values = [x * self.get_mask(shapes[i][0], side, x.device) for i, x in enumerate(nbr_bu_values)]
+        return nbr_bu_values
+
     def _get_nbr_bu_values(self, nbr_pred):
         nbr_bu_values_list = []
         for _ in range(len(self.bottom_up_layers)):
@@ -170,40 +194,41 @@ class AutoRegRALadderVAE(LadderVAE):
         # get some latent space encoding for the neighboring prediction.
         # top, bottom, left, right
         assert len(nbr_pred) == 4
+        nbr_bu_values_top = self._get_nbr_bu_values_one_side('top', nbr_pred[0], self._nbr_first_bottom_up_list[0],
+                                                             self._nbr_bottom_up_layers_list[0])
 
-        nbr_bu_values_top = self._bottomup_pass(nbr_pred[0], self._nbr_first_bottom_up_list[0], None,
-                                                self._nbr_bottom_up_layers_list[0])
-        shapes = [x.shape[-2:] for x in nbr_bu_values_top]
-        assert all([x[0] == x[1] for x in shapes])
+        nbr_bu_values_bottom = self._get_nbr_bu_values_one_side('bottom', nbr_pred[1],
+                                                                self._nbr_first_bottom_up_list[1],
+                                                                self._nbr_bottom_up_layers_list[1])
 
-        nbr_bu_values_top = [x[:, :, -1:] for x in nbr_bu_values_top]
-        nbr_bu_values_top = [x * self.get_mask(shapes[i][0], 'top', x.device) for i, x in enumerate(nbr_bu_values_top)]
+        nbr_bu_values_left = self._get_nbr_bu_values_one_side('left', nbr_pred[2], self._nbr_first_bottom_up_list[2],
+                                                              self._nbr_bottom_up_layers_list[2])
 
-        nbr_bu_values_bottom = self._bottomup_pass(nbr_pred[1], self._nbr_first_bottom_up_list[1], None,
-                                                   self._nbr_bottom_up_layers_list[1])
-
-        nbr_bu_values_bottom = [x[:, :, :1] for x in nbr_bu_values_bottom]
-        nbr_bu_values_bottom = [
-            x * self.get_mask(shapes[i][0], 'bottom', x.device) for i, x in enumerate(nbr_bu_values_bottom)
-        ]
-
-        nbr_bu_values_left = self._bottomup_pass(nbr_pred[2], self._nbr_first_bottom_up_list[2], None,
-                                                 self._nbr_bottom_up_layers_list[2])
-        nbr_bu_values_left = [x[..., -1:] for x in nbr_bu_values_left]
-        nbr_bu_values_left = [
-            x * self.get_mask(shapes[i][0], 'left', x.device) for i, x in enumerate(nbr_bu_values_left)
-        ]
-
-        nbr_bu_values_right = self._bottomup_pass(nbr_pred[3], self._nbr_first_bottom_up_list[3], None,
-                                                  self._nbr_bottom_up_layers_list[3])
-        nbr_bu_values_right = [x[..., :1] for x in nbr_bu_values_right]
-        nbr_bu_values_right = [
-            x * self.get_mask(shapes[i][0], 'right', x.device) for i, x in enumerate(nbr_bu_values_right)
-        ]
-        # nbr_bu_values_right = [x.repeat(1, 1, 1, x.shape[2]) for x in nbr_bu_values_right]
+        nbr_bu_values_right = self._get_nbr_bu_values_one_side('right', nbr_pred[3], self._nbr_first_bottom_up_list[3],
+                                                               self._nbr_bottom_up_layers_list[3])
 
         nbr_bu_values_list = list(zip(nbr_bu_values_top, nbr_bu_values_bottom, nbr_bu_values_left, nbr_bu_values_right))
         return nbr_bu_values_list
+
+    def merge_bu_values(self, bu_values, nbr_pred):
+        merged_bu_values = []
+        nbr_bu_values_list = self._get_nbr_bu_values(nbr_pred)
+        if self._enable_seep_merge:
+            for idx in range(len(bu_values)):
+                topb, bottomb, leftb, rightb = nbr_bu_values_list[idx]
+                shape = bu_values[idx].shape
+                boundary = torch.zeros((*shape[:-2], shape[-2] + 2, shape[-1] + 2)).to(bu_values[idx].device)
+                boundary[..., :1, 1:-1] = topb
+                boundary[..., -1:, 1:-1] = bottomb
+                boundary[..., 1:-1, :1] = leftb
+                boundary[..., 1:-1, -1:] = rightb
+                bu_value = F.pad(bu_values[idx], (1, 1, 1, 1), mode='constant', value=0)
+                bu_value = bu_value + boundary
+                merged_bu_values.append(bu_value)
+        else:
+            for idx in range(len(bu_values)):
+                merged_bu_values.append(self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
+        return merged_bu_values
 
     def forward(self, x, nbr_pred):
         img_size = x.size()[2:]
@@ -212,15 +237,10 @@ class AutoRegRALadderVAE(LadderVAE):
         x_pad = self.pad_input(x)
 
         bu_values = self.bottomup_pass(x_pad)
-        merged_bu_values = []
-
         if self._nbr_disabled:
-            nbr_bu_values_list = None
             merged_bu_values = bu_values
         else:
-            nbr_bu_values_list = self._get_nbr_bu_values(nbr_pred)
-            for idx in range(len(bu_values)):
-                merged_bu_values.append(self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
+            merged_bu_values = self.merge_bu_values(bu_values, nbr_pred)
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
         # Top-down inference/generation
@@ -349,8 +369,8 @@ if __name__ == '__main__':
     from disentangle.configs.autoregressive_config import get_config
     from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 
-    # GridIndexManager((61, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_train_instance=True)
-    # GridIndexManager((6, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_val_instance=True)
+    GridIndexManager((61, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_train_instance=True)
+    GridIndexManager((20, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_val_instance=True)
     config = get_config()
     config.model.skip_boundary_pixelcount = 16
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
@@ -365,8 +385,10 @@ if __name__ == '__main__':
     inp = torch.rand((20, 1, config.data.image_size, config.data.image_size))
     nbr = [torch.rand((20, 2, config.data.image_size, config.data.image_size))] * 4
     out, td_data = model(inp, nbr)
-    batch = (torch.rand((16, 1, config.data.image_size, config.data.image_size)),
-             torch.rand((16, 2, config.data.image_size, config.data.image_size)), torch.randint(0, 100, (16, )),
+    batch = (torch.rand(
+        (16, 1, config.data.image_size,
+         config.data.image_size)), torch.rand(
+             (16, 2, config.data.image_size, config.data.image_size)), torch.randint(0, 10, (16, 3), dtype=torch.int32),
              torch.Tensor(np.array([config.data.image_size] * 16)).reshape(16, ).type(torch.int32))
     model.training_step(batch, 0)
     model.validation_step(batch, 0)
