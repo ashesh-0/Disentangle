@@ -57,7 +57,7 @@ class AutoRegRALadderVAE(LadderVAE):
 
         self._learnable_mask = config.model.get('nbr_learnable_mask', False)
         self._enable_seep_merge = config.model.get('nbr_enable_seep_merge', False)
-
+        assert self._enable_seep_merge is False or self._learnable_mask is False
         self._nbr_disabled = config.model.get('nbr_disabled', False)
 
         if self._learnable_mask:
@@ -114,7 +114,8 @@ class AutoRegRALadderVAE(LadderVAE):
         else:
             print(
                 f'[{self.__class__.__name__}]Rotation:{self._enable_rotation} NbrSharedWeights:{self._nbr_share_weights}\
-               LearnableMask:{self._learnable_mask} UntrainedNbrBranch:{self._untrained_nbr_branch}')
+               LearnableMask:{self._learnable_mask} UntrainedNbrBranch:{self._untrained_nbr_branch} Seep:{self._enable_seep_merge}'
+            )
 
     def create_bottomup_layers(self):
         nbr_bottom_up_layers = []

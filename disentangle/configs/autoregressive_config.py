@@ -77,7 +77,7 @@ def get_config():
     model.z_dims = [128, 128, 128, 128]
     model.nbr_dropout = 0.2
     model.nbr_share_weights = True
-    model.nbr_learnable_mask = True
+    model.nbr_learnable_mask = False
     model.nbr_disabled = False
     model.nbr_enable_seep_merge = True
 
