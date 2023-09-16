@@ -370,7 +370,11 @@ def main(
 
     def print_ignored_pixels():
         ignored_pixels = 1
-        while (pred[0, -ignored_pixels:, -ignored_pixels:, ].std() == 0):
+        while (pred[
+                0,
+                -ignored_pixels:,
+                -ignored_pixels:,
+        ].std() == 0):
             ignored_pixels += 1
         ignored_pixels -= 1
         # print(f'In {pred.shape}, {ignored_pixels} many rows and columns are all zero.')
@@ -474,10 +478,8 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M10-S0-L3/17',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M10-S0-L3/16',
-        '/home/ashesh.ashesh/training/disentangle/2211/D3-M10-S0-L3/15',
-        '/home/ashesh.ashesh/training/disentangle/2211/D7-M10-S0-L3/1',
+        '/home/ashesh.ashesh/training/disentangle/2303/D7-M10-S0-L3/0',
+        '/home/ashesh.ashesh/training/disentangle/2301/D3-M10-S0-L3/43',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -489,7 +491,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    patchsz_gridsz_tuples = [(512, 128)]
+    patchsz_gridsz_tuples = [(64, 32)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:

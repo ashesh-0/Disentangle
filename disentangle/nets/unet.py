@@ -28,10 +28,12 @@ class UNet(pl.LightningModule):
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
         self.lr_scheduler_monitor = config.model.get('monitor', 'val_loss')
         self.lr_scheduler_mode = MetricMonitor(self.lr_scheduler_monitor).mode()
-        self.enable_context_transfer = config.model.enable_context_transfer
+        self.enable_context_transfer = config.model.get('enable_context_transfer', False)
         self.ct_modules = nn.ModuleList()
-        init_ch = config.model.init_channel_count
+        init_ch = config.model.get('init_channel_count', 64)
         self.multiscale_lowres_separate_branch = config.model.multiscale_lowres_separate_branch
+        self._img_sz = config.data.image_size
+
         if self.enable_context_transfer:
             hw = config.data.image_size
             cur_ch = init_ch
@@ -71,6 +73,9 @@ class UNet(pl.LightningModule):
         print(
             f'[{self.__class__.__name__}] ContextTransfer:{self.enable_context_transfer} SepBranch:{self.multiscale_lowres_separate_branch}'
         )
+
+    def reset_for_different_output_size(self, output_size):
+        assert self._img_sz == output_size, f"{self._img_sz}!={output_size}. This model does not support different output size due to context transfer module"
 
     def _init_multires(self, config, init_n_filters):
         """
