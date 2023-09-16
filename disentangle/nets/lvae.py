@@ -164,39 +164,33 @@ class LadderVAE(pl.LightningModule):
 
         # Init lists of layers
         self.top_down_layers = nn.ModuleList([])
-        self.bottom_up_layers = nn.ModuleList([])
+        self.bottom_up_layers = None
         enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
         self.multiscale_decoder_retain_spatial_dims = config.model.decoder.multiscale_retain_spatial_dims and enable_multiscale
+        self.create_bottom_up_layers(config.model.multiscale_lowres_separate_branch)
+        self.create_top_down_layers()
 
-        multiscale_lowres_size_factor = 1
+        # Final top-down layer
+        self.final_top_down = self.create_final_topdown_layer(not self.no_initial_downscaling)
+
+        self.channel_1_w = config.loss.get('channel_1_w', 1)
+        self.channel_2_w = config.loss.get('channel_2_w', 1)
+
+        self.likelihood = self.create_likelihood_module()
+        # gradient norms. updated while training. this is also logged.
+        self.grad_norm_bottom_up = 0.0
+        self.grad_norm_top_down = 0.0
+        # PSNR computation on validation.
+        self.label1_psnr = RunningPSNR()
+        self.label2_psnr = RunningPSNR()
+        print(f'[{self.__class__.__name__}] Enc [ResKSize{self.encoder_res_block_kernel}',
+              f'SkipPadding:{self.encoder_res_block_skip_padding}]',
+              f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]',
+              f'Stoc:{not self.non_stochastic_version}')
+
+    def create_top_down_layers(self):
+        nonlin = self.get_nonlin()
         for i in range(self.n_layers):
-            # Whether this is the top layer
-            is_top = i == self.n_layers - 1
-            layer_enable_multiscale = enable_multiscale and self._multiscale_count > i + 1
-            # if multiscale is enabled, this is the factor by which the lowres tensor will be larger than
-            multiscale_lowres_size_factor *= (1 + int(layer_enable_multiscale))
-            # Add bottom-up deterministic layer at level i.
-            # It's a sequence of residual blocks (BottomUpDeterministicResBlock)
-            # possibly with downsampling between them.
-            output_expected_shape = (self.img_shape[0] // 2**(i + 1),
-                                     self.img_shape[1] // 2**(i + 1)) if self._multiscale_count > 1 else None
-            self.bottom_up_layers.append(
-                BottomUpLayer(n_res_blocks=self.encoder_blocks_per_layer,
-                              n_filters=self.encoder_n_filters,
-                              downsampling_steps=self.downsample[i],
-                              nonlin=nonlin,
-                              batchnorm=self.bottomup_batchnorm,
-                              dropout=self.encoder_dropout,
-                              res_block_type=self.res_block_type,
-                              res_block_kernel=self.encoder_res_block_kernel,
-                              res_block_skip_padding=self.encoder_res_block_skip_padding,
-                              gated=self.gated,
-                              lowres_separate_branch=config.model.multiscale_lowres_separate_branch,
-                              enable_multiscale=enable_multiscale,
-                              multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
-                              multiscale_lowres_size_factor=multiscale_lowres_size_factor,
-                              decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
-                              output_expected_shape=output_expected_shape))
             # Add top-down stochastic layer at level i.
             # The architecture when doing inference is roughly as follows:
             #    p_params = output of top-down layer above
@@ -210,6 +204,8 @@ class LadderVAE(pl.LightningModule):
             # merge layer is not used, and z is sampled directly from p_params.
             #
             # only apply this normalization with relatively deep networks.
+            # Whether this is the top layer
+            is_top = i == self.n_layers - 1
             normalize_latent_factor = 1 / np.sqrt(2 * (1 + i)) if len(self.z_dims) > 4 else 1.0
             self.top_down_layers.append(
                 TopDownLayer(
@@ -239,23 +235,39 @@ class LadderVAE(pl.LightningModule):
                     normalize_latent_factor=normalize_latent_factor,
                     conv2d_bias=self.topdown_conv2d_bias))
 
-        # Final top-down layer
-        self.final_top_down = self.create_final_topdown_layer(not self.no_initial_downscaling)
-
-        self.channel_1_w = config.loss.get('channel_1_w', 1)
-        self.channel_2_w = config.loss.get('channel_2_w', 1)
-
-        self.likelihood = self.create_likelihood_module()
-        # gradient norms. updated while training. this is also logged.
-        self.grad_norm_bottom_up = 0.0
-        self.grad_norm_top_down = 0.0
-        # PSNR computation on validation.
-        self.label1_psnr = RunningPSNR()
-        self.label2_psnr = RunningPSNR()
-        print(f'[{self.__class__.__name__}] Enc [ResKSize{self.encoder_res_block_kernel}',
-              f'SkipPadding:{self.encoder_res_block_skip_padding}]',
-              f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]',
-              f'Stoc:{not self.non_stochastic_version}')
+    def create_bottom_up_layers(self, lowres_separate_branch):
+        self.bottom_up_layers = nn.ModuleList([])
+        multiscale_lowres_size_factor = 1
+        enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
+        nonlin = self.get_nonlin()
+        for i in range(self.n_layers):
+            # Whether this is the top layer
+            is_top = i == self.n_layers - 1
+            layer_enable_multiscale = enable_multiscale and self._multiscale_count > i + 1
+            # if multiscale is enabled, this is the factor by which the lowres tensor will be larger than
+            multiscale_lowres_size_factor *= (1 + int(layer_enable_multiscale))
+            # Add bottom-up deterministic layer at level i.
+            # It's a sequence of residual blocks (BottomUpDeterministicResBlock)
+            # possibly with downsampling between them.
+            output_expected_shape = (self.img_shape[0] // 2**(i + 1),
+                                     self.img_shape[1] // 2**(i + 1)) if self._multiscale_count > 1 else None
+            self.bottom_up_layers.append(
+                BottomUpLayer(n_res_blocks=self.encoder_blocks_per_layer,
+                              n_filters=self.encoder_n_filters,
+                              downsampling_steps=self.downsample[i],
+                              nonlin=nonlin,
+                              batchnorm=self.bottomup_batchnorm,
+                              dropout=self.encoder_dropout,
+                              res_block_type=self.res_block_type,
+                              res_block_kernel=self.encoder_res_block_kernel,
+                              res_block_skip_padding=self.encoder_res_block_skip_padding,
+                              gated=self.gated,
+                              lowres_separate_branch=lowres_separate_branch,
+                              enable_multiscale=enable_multiscale,
+                              multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
+                              multiscale_lowres_size_factor=multiscale_lowres_size_factor,
+                              decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
+                              output_expected_shape=output_expected_shape))
 
     def create_final_topdown_layer(self, upsample):
 
