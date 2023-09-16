@@ -8,10 +8,12 @@ import torch
 import torchvision.transforms.functional as F
 from torch import nn
 
-from disentangle.core.data_utils import crop_img_tensor, pad_img_tensor
-from disentangle.core.nn_submodules import ResidualBlock, ResidualGatedBlock
+from disentangle.core.data_utils import crop_img_tensor
+from disentangle.core.merge_layer import MergeLayer, MergeLowRes, SkipConnectionMerger
+from disentangle.core.nn_submodules import ResidualBlock
 from disentangle.core.non_stochastic import NonStochasticBlock2d
 from disentangle.core.stochastic import NormalStochasticBlock2d
+from disentangle.nets.neighbor_embed import NeighborEmbedManager
 
 
 class TopDownLayer(nn.Module):
@@ -376,6 +378,11 @@ class BottomUpLayer(nn.Module):
                  gated: bool = None,
                  multiscale_lowres_size_factor: int = None,
                  enable_multiscale: bool = False,
+                 enable_nbr_embedding: bool = False,
+                 nbr_enable_seep_merge: bool = False,
+                 nbr_learnable_mask: bool = False,
+                 nbr_merge_type: str = None,
+                 nbr_latent_spatialsize: tuple = None,
                  lowres_separate_branch=False,
                  multiscale_retain_spatial_dims: bool = False,
                  decoder_retain_spatial_dims: bool = False,
@@ -406,6 +413,22 @@ class BottomUpLayer(nn.Module):
         self.decoder_retain_spatial_dims = decoder_retain_spatial_dims
         assert self.output_expected_shape is None or self.enable_multiscale is True
 
+        # If neighboring prediction is fed
+        self._enable_nbr_embedding = enable_nbr_embedding
+        self.nbr_embedding_manager = None
+        if self._enable_nbr_embedding:
+            self.nbr_embedding_manager = NeighborEmbedManager(nbr_latent_spatialsize,
+                                                              nbr_enable_seep_merge,
+                                                              nbr_learnable_mask,
+                                                              n_filters=n_filters,
+                                                              merge_type=nbr_merge_type,
+                                                              nonlin=nonlin,
+                                                              batchnorm=batchnorm,
+                                                              dropout=dropout,
+                                                              res_block_type=res_block_type,
+                                                              res_block_kernel=res_block_kernel)
+
+        #
         bu_blocks_downsized = []
         bu_blocks_samesize = []
         for _ in range(n_res_blocks):
@@ -474,12 +497,13 @@ class BottomUpLayer(nn.Module):
             multiscale_lowres_size_factor=self.multiscale_lowres_size_factor,
         )
 
-    def forward(self, x, lowres_x=None):
+    def forward(self, x, lowres_x=None, nbr_embeddings=None):
         primary_flow = self.net_downsized(x)
         primary_flow = self.net(primary_flow)
 
-        if self.enable_multiscale is False:
+        if self.enable_multiscale is False and self._enable_nbr_embedding is False:
             assert lowres_x is None
+            assert nbr_embeddings is None
             return primary_flow, primary_flow
 
         if lowres_x is not None:
@@ -488,7 +512,11 @@ class BottomUpLayer(nn.Module):
         else:
             merged = primary_flow
 
-        if self.multiscale_retain_spatial_dims is False or self.decoder_retain_spatial_dims is True:
+        if self._enable_nbr_embedding and nbr_embeddings is not None:
+            merged = self.nbr_embedding_manager.merge_bu_value(merged, nbr_embeddings)
+
+        if self.enable_multiscale is False or (self.multiscale_retain_spatial_dims
+                                               is False) or (self.decoder_retain_spatial_dims is True):
             return merged, merged
 
         if self.output_expected_shape is not None:
@@ -605,115 +633,3 @@ class BottomUpDeterministicResBlock(ResBlockWithResampling):
     def __init__(self, *args, downsample=False, **kwargs):
         kwargs['resample'] = downsample
         super().__init__('bottom-up', *args, **kwargs)
-
-
-class MergeLayer(nn.Module):
-    """
-    Merge two/more than two 4D input tensors by concatenating along dim=1 and passing the
-    result through 1) a convolutional 1x1 layer, or 2) a residual block
-    """
-
-    def __init__(self,
-                 channels,
-                 merge_type,
-                 nonlin=nn.LeakyReLU,
-                 batchnorm=True,
-                 dropout=None,
-                 res_block_type=None,
-                 res_block_kernel=None,
-                 conv2d_bias=True,
-                 res_block_skip_padding=False):
-        super().__init__()
-        try:
-            iter(channels)
-        except TypeError:  # it is not iterable
-            channels = [channels] * 3
-        else:  # it is iterable
-            if len(channels) == 1:
-                channels = [channels[0]] * 3
-
-        # assert len(channels) == 3
-        if merge_type == 'linear':
-            self.layer = nn.Conv2d(sum(channels[:-1]), channels[-1], 1, bias=conv2d_bias)
-        elif merge_type == 'residual':
-            self.layer = nn.Sequential(
-                nn.Conv2d(sum(channels[:-1]), channels[-1], 1, padding=0, bias=conv2d_bias),
-                ResidualGatedBlock(
-                    channels[-1],
-                    nonlin,
-                    batchnorm=batchnorm,
-                    dropout=dropout,
-                    block_type=res_block_type,
-                    kernel=res_block_kernel,
-                    conv2d_bias=conv2d_bias,
-                    skip_padding=res_block_skip_padding,
-                ),
-            )
-        elif merge_type == 'residual_ungated':
-            self.layer = nn.Sequential(
-                nn.Conv2d(sum(channels[:-1]), channels[-1], 1, padding=0, bias=conv2d_bias),
-                ResidualBlock(
-                    channels[-1],
-                    nonlin,
-                    batchnorm=batchnorm,
-                    dropout=dropout,
-                    block_type=res_block_type,
-                    kernel=res_block_kernel,
-                    conv2d_bias=conv2d_bias,
-                    skip_padding=res_block_skip_padding,
-                ),
-            )
-
-    def forward(self, *args):
-        x = torch.cat(args, dim=1)
-        return self.layer(x)
-
-
-class MergeLowRes(MergeLayer):
-    """
-    Here, we merge the lowresolution input (which has higher size)
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.retain_spatial_dims = kwargs.pop('multiscale_retain_spatial_dims')
-        self.multiscale_lowres_size_factor = kwargs.pop('multiscale_lowres_size_factor')
-        super().__init__(*args, **kwargs)
-
-    def forward(self, latent, lowres):
-        if self.retain_spatial_dims:
-            latent = pad_img_tensor(latent, lowres.shape[2:])
-        else:
-            lh, lw = lowres.shape[-2:]
-            h = lh // self.multiscale_lowres_size_factor
-            w = lw // self.multiscale_lowres_size_factor
-            h_pad = (lh - h) // 2
-            w_pad = (lw - w) // 2
-            lowres = lowres[:, :, h_pad:-h_pad, w_pad:-w_pad]
-
-        return super().forward(latent, lowres)
-
-
-class SkipConnectionMerger(MergeLayer):
-    """
-    By default for now simply a merge layer.
-    """
-
-    def __init__(self,
-                 channels,
-                 nonlin,
-                 batchnorm,
-                 dropout,
-                 res_block_type,
-                 merge_type='residual',
-                 conv2d_bias: bool = True,
-                 res_block_kernel=None,
-                 res_block_skip_padding=False):
-        super().__init__(channels,
-                         merge_type,
-                         nonlin,
-                         batchnorm,
-                         dropout=dropout,
-                         res_block_type=res_block_type,
-                         res_block_kernel=res_block_kernel,
-                         conv2d_bias=conv2d_bias,
-                         res_block_skip_padding=res_block_skip_padding)
