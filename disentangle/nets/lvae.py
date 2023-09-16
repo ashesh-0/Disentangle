@@ -163,12 +163,11 @@ class LadderVAE(pl.LightningModule):
         self._init_multires(config)
 
         # Init lists of layers
-        self.top_down_layers = nn.ModuleList([])
-        self.bottom_up_layers = None
+
         enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
         self.multiscale_decoder_retain_spatial_dims = config.model.decoder.multiscale_retain_spatial_dims and enable_multiscale
-        self.create_bottom_up_layers(config.model.multiscale_lowres_separate_branch)
-        self.create_top_down_layers()
+        self.bottom_up_layers = self.create_bottom_up_layers(config.model.multiscale_lowres_separate_branch)
+        self.top_down_layers = self.create_top_down_layers()
 
         # Final top-down layer
         self.final_top_down = self.create_final_topdown_layer(not self.no_initial_downscaling)
@@ -189,6 +188,7 @@ class LadderVAE(pl.LightningModule):
               f'Stoc:{not self.non_stochastic_version}')
 
     def create_top_down_layers(self):
+        top_down_layers = nn.ModuleList([])
         nonlin = self.get_nonlin()
         for i in range(self.n_layers):
             # Add top-down stochastic layer at level i.
@@ -207,7 +207,7 @@ class LadderVAE(pl.LightningModule):
             # Whether this is the top layer
             is_top = i == self.n_layers - 1
             normalize_latent_factor = 1 / np.sqrt(2 * (1 + i)) if len(self.z_dims) > 4 else 1.0
-            self.top_down_layers.append(
+            top_down_layers.append(
                 TopDownLayer(
                     z_dim=self.z_dims[i],
                     n_res_blocks=self.decoder_blocks_per_layer,
@@ -234,9 +234,10 @@ class LadderVAE(pl.LightningModule):
                     input_image_shape=self.img_shape,
                     normalize_latent_factor=normalize_latent_factor,
                     conv2d_bias=self.topdown_conv2d_bias))
+        return top_down_layers
 
     def create_bottom_up_layers(self, lowres_separate_branch):
-        self.bottom_up_layers = nn.ModuleList([])
+        bottom_up_layers = nn.ModuleList([])
         multiscale_lowres_size_factor = 1
         enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
         nonlin = self.get_nonlin()
@@ -251,7 +252,7 @@ class LadderVAE(pl.LightningModule):
             # possibly with downsampling between them.
             output_expected_shape = (self.img_shape[0] // 2**(i + 1),
                                      self.img_shape[1] // 2**(i + 1)) if self._multiscale_count > 1 else None
-            self.bottom_up_layers.append(
+            bottom_up_layers.append(
                 BottomUpLayer(n_res_blocks=self.encoder_blocks_per_layer,
                               n_filters=self.encoder_n_filters,
                               downsampling_steps=self.downsample[i],
@@ -268,6 +269,7 @@ class LadderVAE(pl.LightningModule):
                               multiscale_lowres_size_factor=multiscale_lowres_size_factor,
                               decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
                               output_expected_shape=output_expected_shape))
+        return bottom_up_layers
 
     def create_final_topdown_layer(self, upsample):
 
