@@ -187,7 +187,7 @@ class LadderVAE(pl.LightningModule):
               f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]',
               f'Stoc:{not self.non_stochastic_version}')
 
-    def create_top_down_layers(self):
+    def create_top_down_layers(self, **kwargs):
         top_down_layers = nn.ModuleList([])
         nonlin = self.get_nonlin()
         for i in range(self.n_layers):
@@ -233,7 +233,8 @@ class LadderVAE(pl.LightningModule):
                     non_stochastic_version=self.non_stochastic_version,
                     input_image_shape=self.img_shape,
                     normalize_latent_factor=normalize_latent_factor,
-                    conv2d_bias=self.topdown_conv2d_bias))
+                    conv2d_bias=self.topdown_conv2d_bias,
+                    **kwargs))
         return top_down_layers
 
     def create_bottom_up_layers(self, lowres_separate_branch):

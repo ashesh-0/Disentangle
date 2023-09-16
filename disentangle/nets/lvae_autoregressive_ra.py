@@ -110,6 +110,14 @@ class AutoRegRALadderVAE(LadderVAE):
                LearnableMask:{self._learnable_mask} UntrainedNbrBranch:{self._untrained_nbr_branch} Seep:{self._enable_seep_merge}'
             )
 
+    def get_top_prior_param_shape(self, n_imgs=1):
+        shape = super().get_top_prior_param_shape(n_imgs)
+        # the way we are feeding the target (2 pixels on each side at first bottom-up layer nad 1 pixel on subsequent layers)
+        return (*shape[:-2], shape[-2]+4, shape[-1]+4)
+    
+    def create_top_down_layers(self):
+        return super().create_top_down_layers(enable_nbr_embedding=True)
+    
     def get_latent_spatialsize(self):
         """
         This assumes that a padding of 2 on each of the 4 sides is used for the first layer. 
