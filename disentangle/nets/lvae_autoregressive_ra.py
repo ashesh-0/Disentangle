@@ -112,9 +112,12 @@ class AutoRegRALadderVAE(LadderVAE):
 
     def get_top_prior_param_shape(self, n_imgs=1):
         shape = super().get_top_prior_param_shape(n_imgs)
-        # the way we are feeding the target (2 pixels on each side at first bottom-up layer nad 1 pixel on subsequent layers)
-        return (*shape[:-2], shape[-2]+4, shape[-1]+4)
-    
+        if self._enable_seep_merge:
+            # the way we are feeding the target (2 pixels on each side at first bottom-up layer nad 1 pixel on subsequent layers)
+            return (*shape[:-2], shape[-2]+4, shape[-1]+4)
+        else:
+            return shape
+            
     def create_top_down_layers(self):
         return super().create_top_down_layers(enable_nbr_embedding=True)
     
@@ -123,7 +126,7 @@ class AutoRegRALadderVAE(LadderVAE):
         This assumes that a padding of 2 on each of the 4 sides is used for the first layer. 
         Every subsequent layer has a padding of 1 on each side.
         """
-        latent_shapes = [self.img_shape[0] // (np.power(2, i + 1) + 2) for i in range(self.n_layers)]
+        latent_shapes = [(self.img_shape[0] // np.power(2, i + 1) + 2) for i in range(self.n_layers)]
         return latent_shapes
 
     def create_bottom_up_layers(self, lowres_separate_branch, enable_nbr_embedding=True):

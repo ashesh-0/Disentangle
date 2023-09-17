@@ -117,8 +117,13 @@ class NeighborEmbedManager(nn.Module):
     def merge_bu_value(self, bu_value, nbr_bu_value):
         merged_bu_value = None
         nbr_shape = nbr_bu_value[0].shape
-        pix_n = 2
-        final_shape = (*nbr_shape[:-2], nbr_shape[-2] + 2 * pix_n, nbr_shape[-1] + 2 * pix_n)
+        if self._enable_seep_merge:
+            pix_n = 2
+            final_shape = (*nbr_shape[:-2], nbr_shape[-2] + 2 * pix_n, nbr_shape[-1] + 2 * pix_n)
+        else:
+            pix_n = 1
+            final_shape = nbr_shape
+            
 
         nbr_bu_value = [
             self._process_nbr_bu_value(*x, pix_n=pix_n) for x in zip(['top', 'bottom', 'left', 'right'], nbr_bu_value)
