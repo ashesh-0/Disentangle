@@ -59,6 +59,7 @@ class TopDownLayer(nn.Module):
                  non_stochastic_version=False,
                  input_image_shape: Union[None, Tuple[int, int]] = None,
                  normalize_latent_factor=1.0,
+                 enable_nbr_embedding: bool = False,
                  conv2d_bias: bool = True):
         """
             Args:
@@ -106,6 +107,7 @@ class TopDownLayer(nn.Module):
         self.latent_shape = input_image_shape if self.retain_spatial_dims else None
         self.non_stochastic_version = non_stochastic_version
         self.normalize_latent_factor = normalize_latent_factor
+        self._enable_nbr_embedding = enable_nbr_embedding
         # Define top layer prior parameters, possibly learnable
         if is_top_layer:
             self.top_prior_params = nn.Parameter(torch.zeros(top_prior_param_shape), requires_grad=learn_top_prior)
@@ -226,7 +228,7 @@ class TopDownLayer(nn.Module):
         """
         if bu_value.shape[-2:] != p_params.shape[-2:]:
             # assert self.bottomup_no_padding_mode is True
-            if self.topdown_no_padding_mode is False:
+            if self.topdown_no_padding_mode is False and self._enable_nbr_embedding is False:
                 assert bu_value.shape[-1] > p_params.shape[-1]
                 bu_value = F.center_crop(bu_value, p_params.shape[-2:])
             else:
@@ -311,7 +313,7 @@ class TopDownLayer(nn.Module):
 
         # Skip connection from previous layer
         if self.stochastic_skip and not self.is_top_layer:
-            if self.topdown_no_padding_mode is True:
+            if self.topdown_no_padding_mode is True or self._enable_nbr_embedding is True:
                 # the output of last TopDown layer was of size 64*64. Due to lack of padding, currecnt x has become, say 60*60.
                 skip_connection_input = F.center_crop(skip_connection_input, x.shape[-2:])
 
