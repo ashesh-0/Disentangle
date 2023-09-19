@@ -55,6 +55,7 @@ class AutoRegRALadderVAE(LadderVAE):
             [nn.AvgPool2d(kernel_size=self.img_shape[0] // (np.power(2, i + 1))) for i in range(self.n_layers)])
 
         self._nbr_share_weights = config.model.get('nbr_share_weights', False)
+        self._nbr_disabled = config.model.get('nbr_disabled', False)
 
         # when creating the frame prediction, we want to skip boundary.
         innerpad_amount = GridIndexManager(get_val_instance=True).get_innerpad_amount()
@@ -140,80 +141,86 @@ class AutoRegRALadderVAE(LadderVAE):
 
         # Pad input to make everything easier with conv strides
         x_pad = self.pad_input(x)
-
-        nbr_bu_values_list = []
-        for _ in range(len(self.bottom_up_layers)):
-            nbr_bu_values_list.append([])
-
-        # get some latent space encoding for the neighboring prediction.
-        # top, bottom, left, right
-        assert len(nbr_pred) == 4
-
-        nbr_bu_values_top = self._bottomup_pass(nbr_pred[0],
-                                                self._nbr_first_bottom_up_list[0],
-                                                None,
-                                                self._nbr_bottom_up_layers_list[0],
-                                                disable_multiscale=True)
-        shapes = [x.shape[-2:] for x in nbr_bu_values_top]
-        assert all([x[0] == x[1] for x in shapes])
-
-        nbr_bu_values_top = [x[:, :, -1:] for x in nbr_bu_values_top]
-        # import pdb;pdb.set_trace()
-        nbr_bu_values_top = [x * self.get_mask(shapes[i][0], 'top', x.device) for i, x in enumerate(nbr_bu_values_top)]
-        # nbr_bu_values_top = [x.repeat(1, 1, x.shape[3], 1) for x in nbr_bu_values_top]
-
-        nbr_bu_values_bottom = self._bottomup_pass(nbr_pred[1],
-                                                   self._nbr_first_bottom_up_list[1],
-                                                   None,
-                                                   self._nbr_bottom_up_layers_list[1],
-                                                   disable_multiscale=True)
-
-        nbr_bu_values_bottom = [x[:, :, :1] for x in nbr_bu_values_bottom]
-        nbr_bu_values_bottom = [
-            x * self.get_mask(shapes[i][0], 'bottom', x.device) for i, x in enumerate(nbr_bu_values_bottom)
-        ]
-
-        nbr_bu_values_left = self._bottomup_pass(nbr_pred[2],
-                                                 self._nbr_first_bottom_up_list[2],
-                                                 None,
-                                                 self._nbr_bottom_up_layers_list[2],
-                                                 disable_multiscale=True)
-
-        nbr_bu_values_left = [x[..., -1:] for x in nbr_bu_values_left]
-        nbr_bu_values_left = [
-            x * self.get_mask(shapes[i][0], 'left', x.device) for i, x in enumerate(nbr_bu_values_left)
-        ]
-
-        nbr_bu_values_right = self._bottomup_pass(nbr_pred[3],
-                                                  self._nbr_first_bottom_up_list[3],
-                                                  None,
-                                                  self._nbr_bottom_up_layers_list[3],
-                                                  disable_multiscale=True)
-
-        nbr_bu_values_right = [x[..., :1] for x in nbr_bu_values_right]
-        nbr_bu_values_right = [
-            x * self.get_mask(shapes[i][0], 'right', x.device) for i, x in enumerate(nbr_bu_values_right)
-        ]
-
-        nbr_bu_values_list = list(zip(nbr_bu_values_top, nbr_bu_values_bottom, nbr_bu_values_left, nbr_bu_values_right))
         bu_values = self.bottomup_pass(x_pad)
 
-        multiscale_enabled = self._multiscale_count is not None and self._multiscale_count > 1
-        if multiscale_enabled:
-            upsampled_nbr_values = []
-            # Upsample nbr_values to match the size of the bottom-up values
-            for hierarchy_idx in range(len(nbr_bu_values_list)):
-                upsampled_one_hier = []
-                for nbr_value_h in nbr_bu_values_list[hierarchy_idx]:
-                    pad = (bu_values[hierarchy_idx].shape[-1] - nbr_value_h.shape[-1]) // 2
-                    upsampled_one_hier.append(F.pad(nbr_value_h, (pad, pad, pad, pad)))
-                upsampled_nbr_values.append(upsampled_one_hier)
-            nbr_bu_values_list = upsampled_nbr_values
+        if self._nbr_disabled is False:
+            nbr_bu_values_list = []
+            for _ in range(len(self.bottom_up_layers)):
+                nbr_bu_values_list.append([])
 
-        merged_bu_values = []
+            # get some latent space encoding for the neighboring prediction.
+            # top, bottom, left, right
+            assert len(nbr_pred) == 4
 
-        for idx in range(len(bu_values)):
-            merged_bu_values.append(self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
+            nbr_bu_values_top = self._bottomup_pass(nbr_pred[0],
+                                                    self._nbr_first_bottom_up_list[0],
+                                                    None,
+                                                    self._nbr_bottom_up_layers_list[0],
+                                                    disable_multiscale=True)
+            shapes = [x.shape[-2:] for x in nbr_bu_values_top]
+            assert all([x[0] == x[1] for x in shapes])
+
+            nbr_bu_values_top = [x[:, :, -1:] for x in nbr_bu_values_top]
+            # import pdb;pdb.set_trace()
+            nbr_bu_values_top = [
+                x * self.get_mask(shapes[i][0], 'top', x.device) for i, x in enumerate(nbr_bu_values_top)
+            ]
+            # nbr_bu_values_top = [x.repeat(1, 1, x.shape[3], 1) for x in nbr_bu_values_top]
+
+            nbr_bu_values_bottom = self._bottomup_pass(nbr_pred[1],
+                                                       self._nbr_first_bottom_up_list[1],
+                                                       None,
+                                                       self._nbr_bottom_up_layers_list[1],
+                                                       disable_multiscale=True)
+
+            nbr_bu_values_bottom = [x[:, :, :1] for x in nbr_bu_values_bottom]
+            nbr_bu_values_bottom = [
+                x * self.get_mask(shapes[i][0], 'bottom', x.device) for i, x in enumerate(nbr_bu_values_bottom)
+            ]
+
+            nbr_bu_values_left = self._bottomup_pass(nbr_pred[2],
+                                                     self._nbr_first_bottom_up_list[2],
+                                                     None,
+                                                     self._nbr_bottom_up_layers_list[2],
+                                                     disable_multiscale=True)
+
+            nbr_bu_values_left = [x[..., -1:] for x in nbr_bu_values_left]
+            nbr_bu_values_left = [
+                x * self.get_mask(shapes[i][0], 'left', x.device) for i, x in enumerate(nbr_bu_values_left)
+            ]
+
+            nbr_bu_values_right = self._bottomup_pass(nbr_pred[3],
+                                                      self._nbr_first_bottom_up_list[3],
+                                                      None,
+                                                      self._nbr_bottom_up_layers_list[3],
+                                                      disable_multiscale=True)
+
+            nbr_bu_values_right = [x[..., :1] for x in nbr_bu_values_right]
+            nbr_bu_values_right = [
+                x * self.get_mask(shapes[i][0], 'right', x.device) for i, x in enumerate(nbr_bu_values_right)
+            ]
+
+            nbr_bu_values_list = list(
+                zip(nbr_bu_values_top, nbr_bu_values_bottom, nbr_bu_values_left, nbr_bu_values_right))
+
+            multiscale_enabled = self._multiscale_count is not None and self._multiscale_count > 1
+            if multiscale_enabled:
+                upsampled_nbr_values = []
+                # Upsample nbr_values to match the size of the bottom-up values
+                for hierarchy_idx in range(len(nbr_bu_values_list)):
+                    upsampled_one_hier = []
+                    for nbr_value_h in nbr_bu_values_list[hierarchy_idx]:
+                        pad = (bu_values[hierarchy_idx].shape[-1] - nbr_value_h.shape[-1]) // 2
+                        upsampled_one_hier.append(F.pad(nbr_value_h, (pad, pad, pad, pad)))
+                    upsampled_nbr_values.append(upsampled_one_hier)
+                nbr_bu_values_list = upsampled_nbr_values
+
+            merged_bu_values = []
+
+            for idx in range(len(bu_values)):
+                merged_bu_values.append(self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
+        else:
+            merged_bu_values = bu_values
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
         # Top-down inference/generation
@@ -327,16 +334,16 @@ if __name__ == '__main__':
     from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
     GridIndexManager((61, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_train_instance=True)
     GridIndexManager((6, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_val_instance=True)
-
     config = get_config()
     config.model.skip_boundary_pixelcount = 16
     data_mean = torch.Tensor([0, 0]).reshape(1, 2, 1, 1)
     data_std = torch.Tensor([1, 1]).reshape(1, 2, 1, 1)
     model = AutoRegRALadderVAE(data_mean, data_std, config)
-    inp = torch.rand((20, 5, config.data.image_size, config.data.image_size))
+    mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count + 1
+    inp = torch.rand((20, mc, config.data.image_size, config.data.image_size))
     nbr = [torch.rand((20, 2, config.data.image_size, config.data.image_size))] * 4
     out, td_data = model(inp, nbr)
-    batch = (torch.rand((16, 5, config.data.image_size, config.data.image_size)),
+    batch = (torch.rand((16, mc, config.data.image_size, config.data.image_size)),
              torch.rand((16, 2, config.data.image_size, config.data.image_size)), torch.randint(0, 100, (16, )),
              torch.Tensor(np.array([config.data.image_size] * 16)).reshape(16, ).type(torch.int32))
     model.training_step(batch, 0)
