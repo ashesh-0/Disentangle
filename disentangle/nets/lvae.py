@@ -641,7 +641,7 @@ class LadderVAE(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         output_dict = self.get_output_from_batch(batch)
         return self._validation_step(batch, batch_idx, output_dict)
-        
+
     def _validation_step(self, batch, batch_idx, output_dict):
         out = output_dict['out']
         target_normalized = output_dict['target_normalized']
@@ -718,9 +718,10 @@ class LadderVAE(pl.LightningModule):
     def bottomup_pass(self, inp):
         return self._bottomup_pass(inp, self.first_bottom_up, self.lowres_first_bottom_ups, self.bottom_up_layers)
 
-    def _bottomup_pass(self, inp, first_bottom_up, lowres_first_bottom_ups, bottom_up_layers):
+    def _bottomup_pass(self, inp, first_bottom_up, lowres_first_bottom_ups, bottom_up_layers, disable_multiscale=False):
 
-        if self._multiscale_count > 1:
+        enable_multiscale = self._multiscale_count > 1 and disable_multiscale is False
+        if enable_multiscale:
             # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
             # later channels are simply to yield more context.
             x = first_bottom_up(inp[:, :1])
@@ -732,7 +733,7 @@ class LadderVAE(pl.LightningModule):
         bu_values = []
         for i in range(self.n_layers):
             lowres_x = None
-            if self._multiscale_count > 1 and i + 1 < inp.shape[1]:
+            if enable_multiscale and i + 1 < inp.shape[1]:
                 lowres_x = lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
 
             x, bu_value = bottom_up_layers[i](x, lowres_x=lowres_x)

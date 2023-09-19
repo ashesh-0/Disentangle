@@ -148,8 +148,8 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         if isinstance(index, int):
             return tuple(output)
 
-        _, grid_size = index
-        output.append(grid_size)
+        output.append(index[0])
+        output.append(index[1])
         return tuple(output)
 
         # if isinstance(index, int):
