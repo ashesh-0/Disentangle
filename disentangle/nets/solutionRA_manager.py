@@ -127,7 +127,7 @@ class SolutionRAManager(LocationBasedSolutionRAManager):
         assert isinstance(indices, torch.Tensor) and len(indices.shape) == 1
 
         locations = [
-            self._index_manager.hwt_from_idx(indices[i].item(), grid_size=grid_sizes[i].item())
+            self._index_manager.topleft_hwt_from_idx(indices[i].item(), grid_size=grid_sizes[i].item())
             for i in range(len(indices))
         ]
         locations = [Location(*location) for location in locations]

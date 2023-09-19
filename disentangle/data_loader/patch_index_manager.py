@@ -81,8 +81,8 @@ class GridIndexManager(metaclass=Threeton):
         return grid_size is None or grid_size < 0
 
     def get_innerpad_amount(self):
-        return (self.patch_size - self._default_grid_size)//2
-    
+        return (self.patch_size - self._default_grid_size) // 2
+
     def grid_rows(self, grid_size):
         if self._align == GridAlignement.LeftTop:
             extra_pixels = (self.patch_size - grid_size)
@@ -111,6 +111,13 @@ class GridIndexManager(metaclass=Threeton):
     def hwt_from_idx(self, index, grid_size=None):
         t = self.get_t(index)
         return (*self.get_deterministic_hw(index, grid_size=grid_size), t)
+
+    def topleft_hwt_from_idx(self, index, grid_size=None):
+        h, w, t = self.hwt_from_idx(index, grid_size=grid_size)
+        if self._align == GridAlignement.LeftTop:
+            return h, w, t
+        elif self._align == GridAlignement.Center:
+            return h - self.get_innerpad_amount(), w - self.get_innerpad_amount(), t
 
     def idx_from_hwt(self, h_start, w_start, t, grid_size=None):
         """
