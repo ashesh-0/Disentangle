@@ -43,7 +43,12 @@ class LocationBasedSolutionRAManager:
     It works with Location objects
     """
 
-    def __init__(self, data_shape, skip_boundary_pixelcount, dump_img_dir=None, dropout=0.0) -> None:
+    def __init__(self,
+                 data_shape,
+                 skip_boundary_pixelcount,
+                 dump_img_dir=None,
+                 dropout=0.0,
+                 enable_after_nepoch=-1) -> None:
         """
         data_shape: (T,H,W,C)
         we however wamt to work with (T,C,H,W)
@@ -54,6 +59,8 @@ class LocationBasedSolutionRAManager:
         self._skipN = skip_boundary_pixelcount
         self._dump_img_dir = dump_img_dir
         self._dropout = dropout
+        self._enable_after_nepoch = enable_after_nepoch
+        self._return_data_state = None
 
     def update_at_locations(self, batch_predictions, locations: List[Location]):
         H, W = batch_predictions.shape[2:]
@@ -66,10 +73,19 @@ class LocationBasedSolutionRAManager:
         T, _, H, W = self._data.shape
         return location.h >= 0 and location.h + patch_size <= H and location.w >= 0 and location.w + patch_size <= W and location.t >= 0 and location.t < T
 
-    def get_from_locations(self, locations, patch_size):
+    def get_from_locations(self, locations, patch_size, cur_epoch=None):
         output = []
         for location in locations:
-            skipdata = np.random.rand() < self._dropout
+            nottimeyet = (cur_epoch is not None and cur_epoch < self._enable_after_nepoch)
+            if self._return_data_state is None:
+                self._return_data_state = nottimeyet
+            elif self._return_data_state != nottimeyet:
+                print(f'[{self.__class__.__name__}] Changing return data state to {nottimeyet}')
+                assert nottimeyet is False, 'At later epochs, we should not disable returning the data'
+                self._return_data_state = nottimeyet
+
+            skipdata = np.random.rand() < self._dropout or nottimeyet
+
             if self.is_valid_location(location, patch_size) and skipdata is False:
                 output.append(self._data[location.t, :, location.h:location.h + patch_size,
                                          location.w:location.w + patch_size])
@@ -104,7 +120,8 @@ class SolutionRAManager(LocationBasedSolutionRAManager):
                  skip_boundary_pixelcount,
                  patch_size,
                  dump_img_dir=None,
-                 dropout=0.0) -> None:
+                 dropout=0.0,
+                 enable_after_nepoch=-1) -> None:
         if datasplit_type == DataSplitType.Train:
             self._index_manager = GridIndexManager(get_train_instance=True)
         elif datasplit_type == DataSplitType.Val:
@@ -117,7 +134,8 @@ class SolutionRAManager(LocationBasedSolutionRAManager):
         super().__init__(self._index_manager.get_data_shape(),
                          skip_boundary_pixelcount,
                          dump_img_dir=dump_img_dir,
-                         dropout=dropout)
+                         dropout=dropout,
+                         enable_after_nepoch=enable_after_nepoch)
         self._patch_size = patch_size
         print(
             f'[{self.__class__.__name__}] {DataSplitType.name(datasplit_type)} P{self._patch_size} Sk{self._skipN} D{self._dropout}'
@@ -133,33 +151,33 @@ class SolutionRAManager(LocationBasedSolutionRAManager):
         locations = [Location(*location) for location in locations]
         return locations
 
-    def get_top(self, indices, grid_sizes):
+    def get_top(self, indices, grid_sizes, cur_epoch=None):
         locations = self.get_locations(indices, grid_sizes)
         for location in locations:
             location.shift_up(self._patch_size)
 
-        return self.get_from_locations(locations, self._patch_size)
+        return self.get_from_locations(locations, self._patch_size, cur_epoch)
 
-    def get_bottom(self, indices, grid_sizes):
+    def get_bottom(self, indices, grid_sizes, cur_epoch=None):
         locations = self.get_locations(indices, grid_sizes)
         for location in locations:
             location.shift_down(self._patch_size)
 
-        return self.get_from_locations(locations, self._patch_size)
+        return self.get_from_locations(locations, self._patch_size, cur_epoch)
 
-    def get_left(self, indices, grid_sizes):
+    def get_left(self, indices, grid_sizes, cur_epoch=None):
         locations = self.get_locations(indices, grid_sizes)
         for location in locations:
             location.shift_left(self._patch_size)
 
-        return self.get_from_locations(locations, self._patch_size)
+        return self.get_from_locations(locations, self._patch_size, cur_epoch)
 
-    def get_right(self, indices, grid_sizes):
+    def get_right(self, indices, grid_sizes, cur_epoch=None):
         locations = self.get_locations(indices, grid_sizes)
         for location in locations:
             location.shift_right(self._patch_size)
 
-        return self.get_from_locations(locations, self._patch_size)
+        return self.get_from_locations(locations, self._patch_size, cur_epoch)
 
     def update(self, batch_predictions, indices, grid_sizes):
         locations = self.get_locations(indices, grid_sizes)

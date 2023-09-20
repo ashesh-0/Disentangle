@@ -56,6 +56,7 @@ class AutoRegRALadderVAE(LadderVAE):
 
         self._nbr_share_weights = config.model.get('nbr_share_weights', False)
         self._nbr_disabled = config.model.get('nbr_disabled', False)
+        self._enable_after_nepoch = config.model.get('enable_after_nepoch', -1)
 
         # when creating the frame prediction, we want to skip boundary.
         innerpad_amount = GridIndexManager(get_val_instance=True).get_innerpad_amount()
@@ -63,11 +64,13 @@ class AutoRegRALadderVAE(LadderVAE):
                                                     innerpad_amount,
                                                     config.data.image_size,
                                                     dump_img_dir=os.path.join(config.workdir, 'train_imgs'),
-                                                    dropout=config.model.get('nbr_dropout', 0.0))
+                                                    dropout=config.model.get('nbr_dropout', 0.0),
+                                                    enable_after_nepoch=self._enable_after_nepoch)
         self._val_sol_manager = SolutionRAManager(DataSplitType.Val,
                                                   innerpad_amount,
                                                   config.data.image_size,
-                                                  dump_img_dir=os.path.join(config.workdir, 'val_imgs'))
+                                                  dump_img_dir=os.path.join(config.workdir, 'val_imgs'),
+                                                  enable_after_nepoch=self._enable_after_nepoch)
         # save the groundtruth
         self._val_gt_manager = SolutionRAManager(DataSplitType.Val,
                                                  innerpad_amount,
@@ -219,7 +222,7 @@ class AutoRegRALadderVAE(LadderVAE):
 
             for idx in range(len(bu_values)):
                 merged_bu_values.append(bu_values[idx] +
-                                        0.2 * self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
+                                        self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
         else:
             merged_bu_values = bu_values
 
@@ -242,10 +245,16 @@ class AutoRegRALadderVAE(LadderVAE):
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
         nbr_preds = []
-        nbr_preds.append(sol_manager.get_top(indices, grid_sizes))
-        nbr_preds.append(sol_manager.get_bottom(indices, grid_sizes))
-        nbr_preds.append(sol_manager.get_left(indices, grid_sizes))
-        nbr_preds.append(sol_manager.get_right(indices, grid_sizes))
+        nbr_preds.append(sol_manager.get_top(indices, grid_sizes, cur_epoch=self.current_epoch))
+        nbr_preds.append(sol_manager.get_bottom(indices, grid_sizes, cur_epoch=self.current_epoch))
+        nbr_preds.append(sol_manager.get_left(indices, grid_sizes, cur_epoch=self.current_epoch))
+        nbr_preds.append(sol_manager.get_right(indices, grid_sizes, cur_epoch=self.current_epoch))
+        if self._enable_after_nepoch > 0 and self.current_epoch < self._enable_after_nepoch:
+            assert (nbr_preds[0] == 0).all()
+            assert (nbr_preds[1] == 0).all()
+            assert (nbr_preds[2] == 0).all()
+            assert (nbr_preds[3] == 0).all()
+
         nbr_preds = [torch.Tensor(nbr_y).to(x.device) for nbr_y in nbr_preds]
         nbrs = Neighbors(*nbr_preds)
         nbr_preds = nbrs.get()
