@@ -218,8 +218,7 @@ class AutoRegRALadderVAE(LadderVAE):
             merged_bu_values = []
 
             for idx in range(len(bu_values)):
-                merged_bu_values.append(bu_values[idx] +
-                                        self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
+                merged_bu_values.append(self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
         else:
             merged_bu_values = bu_values
 
