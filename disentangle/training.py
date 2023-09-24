@@ -25,6 +25,7 @@ from disentangle.data_loader.multi_channel_tiff_dloader import MultiChTiffDloade
 from disentangle.data_loader.multi_dset_dloader import IBA1Ki67DataLoader
 from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
+from disentangle.data_loader.patch_index_manager import GridAlignement
 from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
 from disentangle.data_loader.places_dloader import PlacesLoader
 from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
@@ -197,6 +198,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_aug_rotate = config.data.train_aug_rotate
         enable_random_cropping = config.data.deterministic_grid is False
         lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
+        grid_alignment = config.data.get('grid_alignment', GridAlignement.LeftTop)
+
         if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
             padding_kwargs = {'mode': config.data.padding_mode}
             if 'padding_value' in config.data and config.data.padding_value is not None:
@@ -214,6 +217,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 enable_random_cropping=enable_random_cropping,
                 num_scales=config.data.multiscale_lowres_count,
                 lowres_supervision=lowres_supervision,
+                grid_alignment=grid_alignment,
                 padding_kwargs=padding_kwargs,
                 allow_generation=True)
             max_val = train_data.get_max_val()
@@ -232,13 +236,14 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 num_scales=config.data.multiscale_lowres_count,
                 lowres_supervision=lowres_supervision,
                 padding_kwargs=padding_kwargs,
+                grid_alignment=grid_alignment,
                 allow_generation=False,
                 max_val=max_val,
             )
 
         else:
-            train_data_kwargs = {'allow_generation': True}
-            val_data_kwargs = {'allow_generation': False}
+            train_data_kwargs = {'allow_generation': True, 'grid_alignment': grid_alignment}
+            val_data_kwargs = {'allow_generation': False, 'grid_alignment': grid_alignment}
             if config.model.model_type in [ModelType.LadderVaeSepEncoder, ModelType.LadderVaeSepEncoderSingleOptim]:
                 data_class = SemiSupDloader
                 # mixed_input_type = None,
@@ -377,8 +382,8 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 if model.automatic_optimization == False else config.training.grad_clip_norm_value,
                 # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
                 logger=logger,
-                    # limit_train_batches=10,
-    # limit_val_batches=10,
+                # limit_train_batches=10,
+                # limit_val_batches=10,
                 # fast_dev_run=10,
                 #  profiler=profiler,
                 # overfit_batches=20,
@@ -393,8 +398,8 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 if model.automatic_optimization == False else config.training.grad_clip_norm_value,
                 # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
                 logger=logger,
-                    # limit_train_batches=10,
-    # limit_val_batches=10,
+                # limit_train_batches=10,
+                # limit_val_batches=10,
                 # fast_dev_run=10,
                 #  profiler=profiler,
                 # overfit_batches=20,

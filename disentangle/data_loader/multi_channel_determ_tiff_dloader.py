@@ -518,6 +518,7 @@ class MultiChDeterministicTiffDloader:
         output.append(index[1])
         return tuple(output)
 
+
 # 329,458,801
 if __name__ == '__main__':
     from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
@@ -528,7 +529,7 @@ if __name__ == '__main__':
                                            val_fraction=config.training.val_fraction,
                                            test_fraction=config.training.test_fraction,
                                            normalized_input=config.data.normalized_input,
-                                           enable_rotation_aug=config.data.normalized_input,
+                                           enable_rotation_aug=False,
                                            enable_random_cropping=config.data.deterministic_grid is False,
                                            use_one_mu_std=config.data.use_one_mu_std,
                                            allow_generation=False,

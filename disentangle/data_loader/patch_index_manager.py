@@ -77,11 +77,20 @@ class GridIndexManager(metaclass=Threeton):
         self.N = self._data_shape[0]
         self._align = grid_alignement
 
+    def get_grid_alignment(self):
+        return self._align
+
     def use_default_grid(self, grid_size):
         return grid_size is None or grid_size < 0
 
     def get_innerpad_amount(self):
         return (self.patch_size - self._default_grid_size) // 2
+
+    def get_numrows(self):
+        return self._data_shape[-3]
+
+    def get_numcols(self):
+        return self._data_shape[-2]
 
     def grid_rows(self, grid_size):
         if self._align == GridAlignement.LeftTop:
@@ -92,7 +101,7 @@ class GridIndexManager(metaclass=Threeton):
             # If there was no padding, then it should be set to (self.patch_size - grid_size) // 2
             extra_pixels = 0
 
-        return ((self._data_shape[-3] - extra_pixels) // grid_size)
+        return ((self.get_numrows() - extra_pixels) // grid_size)
 
     def grid_cols(self, grid_size):
         if self._align == GridAlignement.LeftTop:
@@ -100,7 +109,7 @@ class GridIndexManager(metaclass=Threeton):
         elif self._align == GridAlignement.Center:
             extra_pixels = 0
 
-        return ((self._data_shape[-2] - extra_pixels) // grid_size)
+        return ((self.get_numcols() - extra_pixels) // grid_size)
 
     def grid_count(self, grid_size=None):
         if self.use_default_grid(grid_size):

@@ -7,6 +7,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
+from disentangle.data_loader.patch_index_manager import GridAlignement
 
 
 def get_config():
@@ -15,6 +16,7 @@ def get_config():
     data.image_size = 64
     data.val_grid_size = 32
     data.data_type = DataType.OptiMEM100_014
+    data.grid_alignment = GridAlignement.Center
     data.channel_1 = 2
     data.channel_2 = 3
 
