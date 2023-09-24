@@ -26,7 +26,6 @@ class GridSampler(BaseSampler):
         self._randomized = randomized
         self._randomized_full_coverage = full_coverage_randomized
         self._overlap = self._patch_size = None
-
         assert self._randomized_full_coverage is False or self._randomized is False, "Cannot have both randomized and full coverage randomized"
         if self._randomized_full_coverage:
             dataset.idx_manager.get_grid_alignment() == GridAlignement.Center
@@ -34,6 +33,9 @@ class GridSampler(BaseSampler):
             self._patch_size = patch_size
             assert self._overlap is not None, "Overlap cannot be None"
             assert self._patch_size is not None, "Patch size cannot be None"
+        print(
+            f'[{self.__class__.__name__}] randomized: {self._randomized}, full_coverage_randomized: {self._randomized_full_coverage} \
+              full_coverage_overlap: {self._overlap}, patch_size: {self._patch_size} grid_size: {self._grid_size}')
 
     def get_right_nbr_idx(self, last_idx):
         tilesize = self._patch_size - 2 * self._overlap
@@ -98,9 +100,8 @@ class GridSampler(BaseSampler):
         return indices
 
     def init_full_coverage(self):
-        print('full coverage')
-        offsetrow = np.random.randint(0, self._overlap)
-        offsetcol = np.random.randint(0, self._overlap)
+        offsetrow = np.random.randint(0, self._overlap // 2)
+        offsetcol = np.random.randint(0, self._overlap // 2)
         self.index_batches = []
         for t in range(self._dset.idx_manager.N):
             idx_start = self._dset.idx_manager.idx_from_hwt(offsetrow, offsetcol, t, grid_size=self._grid_size)
@@ -189,11 +190,15 @@ if __name__ == '__main__':
             elif h_start + patch_size > stitched_data.shape[1] or w_start + patch_size > stitched_data.shape[2]:
                 continue
             for ch_idx in range(stitched_data.shape[-1]):
-                stitched_data[t, h_start + overlap:h_start + patch_size - overlap,
-                              w_start + overlap:w_start + patch_size - overlap,
-                              ch_idx] = tar[i, ch_idx, overlap:-overlap, overlap:-overlap].numpy()
+                skiphs = overlap if h_start >= overlap else max(0, 0 - h_start)
+                skipws = overlap if w_start >= overlap else max(0, 0 - w_start)
+                if skiphs == 0 or skipws == 0:
+                    print(h_start, w_start, t)
+                stitched_data[t, h_start + skiphs:h_start + patch_size - overlap,
+                              w_start + skipws:w_start + patch_size - overlap, ch_idx] = tar[i, ch_idx, skiphs:-overlap,
+                                                                                             skipws:-overlap].numpy()
 
     import matplotlib.pyplot as plt
     _, ax = plt.subplots(figsize=(6, 3), ncols=2)
-    ax[0].imshow(dset._data[0, :100, :100, 0])
-    ax[1].imshow(stitched_data[0, :100, :100, 0])
+    ax[0].imshow(dset._data[0, :32, :32, 0])
+    ax[1].imshow(stitched_data[0, :32, :32, 0])

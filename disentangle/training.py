@@ -199,11 +199,11 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         enable_random_cropping = config.data.deterministic_grid is False
         lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
         grid_alignment = config.data.get('grid_alignment', GridAlignement.LeftTop)
+        padding_kwargs = {'mode': config.data.padding_mode}
+        if 'padding_value' in config.data and config.data.padding_value is not None:
+            padding_kwargs['constant_values'] = config.data.padding_value
 
         if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
-            padding_kwargs = {'mode': config.data.padding_mode}
-            if 'padding_value' in config.data and config.data.padding_value is not None:
-                padding_kwargs['constant_values'] = config.data.padding_value
 
             train_data = None if skip_train_dataset else MultiScaleTiffDloader(
                 config.data,
@@ -219,7 +219,8 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 lowres_supervision=lowres_supervision,
                 grid_alignment=grid_alignment,
                 padding_kwargs=padding_kwargs,
-                allow_generation=True)
+                allow_generation=True,
+                overlapping_padding_kwargs=padding_kwargs)
             max_val = train_data.get_max_val()
 
             val_data = MultiScaleTiffDloader(
@@ -239,6 +240,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 grid_alignment=grid_alignment,
                 allow_generation=False,
                 max_val=max_val,
+                overlapping_padding_kwargs=padding_kwargs,
             )
 
         else:
@@ -273,6 +275,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                                                                     normalized_input=normalized_input,
                                                                     use_one_mu_std=use_one_mu_std,
                                                                     enable_rotation_aug=train_aug_rotate,
+                                                                    overlapping_padding_kwargs=padding_kwargs,
                                                                     **train_data_kwargs)
 
             max_val = train_data.get_max_val()
@@ -286,6 +289,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 use_one_mu_std=use_one_mu_std,
                 enable_rotation_aug=False,  # No rotation aug on validation
                 max_val=max_val,
+                overlapping_padding_kwargs=padding_kwargs,
                 **val_data_kwargs,
             )
 

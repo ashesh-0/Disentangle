@@ -17,6 +17,7 @@ def get_config():
     data.val_grid_size = 32
     data.data_type = DataType.OptiMEM100_014
     data.grid_alignment = GridAlignement.Center
+    data.full_coverage_randomized = True
     data.channel_1 = 2
     data.channel_2 = 3
 

@@ -24,11 +24,11 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
 from disentangle.sampler.default_grid_sampler import DefaultGridSampler
+from disentangle.sampler.grid_sampler import GridSampler
 from disentangle.sampler.intensity_aug_sampler import IntensityAugSampler, IntensityAugValSampler
 from disentangle.sampler.nbr_sampler import NeighborSampler
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.sampler.singleimg_sampler import SingleImgSampler
-from disentangle.sampler.grid_sampler import GridSampler
 from disentangle.training import create_dataset, train_network
 from ml_collections.config_flags import config_flags
 
@@ -216,11 +216,28 @@ def main(argv):
                                                     config.data.ch1_alpha_interval_count,
                                                     config.data.num_intensity_variations,
                                                     batch_size=config.training.batch_size)
-                
+
             elif config.data.sampler_type == SamplerType.GridSampler:
-                val_grid_size = config.data.image_size - 2*config.data.innerpad_amount
-                train_sampler = GridSampler(train_data, config.training.batch_size, randomized=True, grid_size=1)
-                val_sampler = GridSampler(val_data, config.training.batch_size, randomized=False, grid_size=val_grid_size)
+                val_grid_size = config.data.image_size - 2 * config.data.innerpad_amount
+                full_coverage_randomized = config.data.get('full_coverage_randomized', False)
+                randomized = not full_coverage_randomized
+                full_coverage_overlap = config.data.innerpad_amount
+                train_sampler = GridSampler(train_data,
+                                            config.training.batch_size,
+                                            randomized=randomized,
+                                            full_coverage_randomized=full_coverage_randomized,
+                                            full_coverage_overlap=full_coverage_overlap,
+                                            patch_size=config.data.image_size,
+                                            grid_size=1)
+                val_sampler = GridSampler(
+                    val_data,
+                    config.training.batch_size,
+                    randomized=False,
+                    full_coverage_randomized=full_coverage_randomized,
+                    full_coverage_overlap=full_coverage_overlap,
+                    grid_size=val_grid_size if not full_coverage_randomized else 1,
+                    patch_size=config.data.image_size,
+                )
 
             train_dloader = DataLoader(train_data,
                                        pin_memory=False,

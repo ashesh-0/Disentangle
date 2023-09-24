@@ -65,9 +65,18 @@ class LocationBasedSolutionRAManager:
     def update_at_locations(self, batch_predictions, locations: List[Location]):
         H, W = batch_predictions.shape[2:]
         for i, location in enumerate(locations):
-            self._data[location.t, :, location.h + self._skipN:location.h + H - self._skipN, location.w +
-                       self._skipN:location.w + W - self._skipN] = batch_predictions[i][:, self._skipN:H - self._skipN,
-                                                                                        self._skipN:W - self._skipN]
+            # TODO: fix this. this is intended to not skip the boudnary pixels. right now this will always be self._skipN
+            skiphs = self._skipN if location.h >= self._skipN else max(0, 0 - location.h)
+            skipws = self._skipN if location.w >= self._skipN else max(0, 0 - location.w)
+
+            # when we are at the boundary, then the slice selected in self._data will be smaller than the fixed size of batch_predictions
+            # so, we need to skip the extra pixels. e stands for end.
+            skiphe = max(0, location.h + H - self._skipN - self._data.shape[2])
+            skipwe = max(0, location.w + W - self._skipN - self._data.shape[3])
+
+            self._data[location.t, :, location.h + skiphs:location.h + H - self._skipN, location.w + skipws:location.w +
+                       W - self._skipN] = batch_predictions[i][:, skiphs:H - self._skipN - skiphe,
+                                                               skipws:W - self._skipN - skipwe]
 
     def is_valid_location(self, location, patch_size):
         T, _, H, W = self._data.shape
