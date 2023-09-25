@@ -80,7 +80,7 @@ def get_config():
     model.nbr_dropout = 0.2
     model.nbr_share_weights = True
     model.nbr_disabled = False
-    model.enable_after_nepoch = 8
+    model.enable_after_nepoch = -1
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
