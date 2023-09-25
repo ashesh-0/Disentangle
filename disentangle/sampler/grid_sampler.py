@@ -109,6 +109,7 @@ class GridSampler(BaseSampler):
 
         grid_size = np.array([self._grid_size] * len(self.index_batches))
         self.index_batches = list(zip(self.index_batches, grid_size))
+        np.random.shuffle(self.index_batches)
 
     def init(self):
         if self._randomized_full_coverage:
