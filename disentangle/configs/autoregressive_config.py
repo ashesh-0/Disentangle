@@ -17,14 +17,14 @@ def get_config():
     data.val_grid_size = 32
     data.grid_alignment = GridAlignement.Center
     data.full_coverage_randomized = True
-    # data.data_type = DataType.OptiMEM100_014
-    # data.channel_1 = 2
-    # data.channel_2 = 3
-    data.data_type = DataType.SeparateTiffData
-    data.channel_1 = 0
-    data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+    data.data_type = DataType.OptiMEM100_014
+    data.channel_1 = 2
+    data.channel_2 = 3
+    # data.data_type = DataType.SeparateTiffData
+    # data.channel_1 = 0
+    # data.channel_2 = 1
+    # data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
+    # data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
 
     data.sampler_type = SamplerType.GridSampler
     data.deterministic_grid = True
@@ -84,7 +84,7 @@ def get_config():
     model.z_dims = [128, 128, 128, 128]
     model.nbr_dropout = 0.2
     model.nbr_share_weights = True
-    model.nbr_disabled = True
+    model.nbr_disabled = False
     model.enable_after_nepoch = -1
 
     model.encoder.batchnorm = True
