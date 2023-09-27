@@ -15,11 +15,16 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.val_grid_size = 32
-    data.data_type = DataType.OptiMEM100_014
     data.grid_alignment = GridAlignement.Center
     data.full_coverage_randomized = True
-    data.channel_1 = 2
-    data.channel_2 = 3
+    # data.data_type = DataType.OptiMEM100_014
+    # data.channel_1 = 2
+    # data.channel_2 = 3
+    data.data_type = DataType.SeparateTiffData
+    data.channel_1 = 0
+    data.channel_2 = 1
+    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
 
     data.sampler_type = SamplerType.GridSampler
     data.deterministic_grid = True
