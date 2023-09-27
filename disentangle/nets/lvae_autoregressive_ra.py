@@ -77,6 +77,11 @@ class AutoRegRALadderVAE(LadderVAE):
                                                  config.data.image_size,
                                                  dump_img_dir=os.path.join(config.workdir, 'val_groundtruth'))
 
+        self._train_gt_manager = SolutionRAManager(DataSplitType.Train,
+                                                   innerpad_amount,
+                                                   config.data.image_size,
+                                                   dump_img_dir=os.path.join(config.workdir, 'train_groundtruth'))
+
         nbr_count = 4
         self._merge_layers = nn.ModuleList([
             MergeLayer(
@@ -258,6 +263,7 @@ class AutoRegRALadderVAE(LadderVAE):
         nbr_preds = [torch.Tensor(nbr_y).to(x.device) for nbr_y in nbr_preds]
         nbrs = Neighbors(*nbr_preds)
         nbr_preds = nbrs.get()
+        # print('\n', 'LgStats', is_train, len(nbr_preds), f'{nbr_preds[0].shape}, {nbr_preds[0].max().item():.2f}, {nbr_preds[0].min().item():.2f}, {nbr_preds[0].mean().item():.2f}')
 
         if enable_rotation:
             quadrant = np.random.randint(0, 4)
@@ -278,6 +284,7 @@ class AutoRegRALadderVAE(LadderVAE):
             'target_normalized': target_normalized,
             'td_data': td_data,
             'quadrant': quadrant if enable_rotation else None,
+            'nbr_preds': nbr_preds
         }
 
     def training_step(self, batch, batch_idx, enable_logging=True):
@@ -287,7 +294,14 @@ class AutoRegRALadderVAE(LadderVAE):
         if output_dict['quadrant'] is not None and output_dict['quadrant'] > 0:
             imgs = torch.rot90(imgs, k=-output_dict['quadrant'], dims=(2, 3))
 
+        if self.current_epoch % 10 == 0 and batch_idx < 2:
+            nbrs = torch.cat([output_dict['target_normalized'], imgs] + output_dict['nbr_preds'], dim=1)
+            nbrs = nbrs.detach().cpu().numpy()
+            np.save(f'./nbrs_train_{self.current_epoch}_{batch_idx}.npy', nbrs)
+            np.save(f'./nbrs_trainindices_{self.current_epoch}_{batch_idx}.npy', batch[2].detach().cpu().numpy())
+
         self._train_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
+        self._train_gt_manager.update(output_dict['target_normalized'].cpu().detach().numpy(), batch[2], batch[3])
         # in case of rotation, batch is invalid. since this is oly done in training,
         # None is being passed for batch in training and not in validation
         return self._training_step(None, batch_idx, output_dict, enable_logging=enable_logging)
@@ -295,6 +309,12 @@ class AutoRegRALadderVAE(LadderVAE):
     def validation_step(self, batch, batch_idx, return_output_dict=False):
         output_dict = self.get_output_from_batch(batch, self._val_sol_manager)
         imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
+        if self.current_epoch % 10 == 0 and batch_idx < 2:
+            nbrs = torch.cat([output_dict['target_normalized'], imgs] + output_dict['nbr_preds'], dim=1)
+            nbrs = nbrs.detach().cpu().numpy()
+            np.save(f'./nbrs_val_{self.current_epoch}_{batch_idx}.npy', nbrs)
+            np.save(f'./nbrs_valindices_{self.current_epoch}_{batch_idx}.npy', batch[2].detach().cpu().numpy())
+
         self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
         self._val_gt_manager.update(output_dict['target_normalized'].cpu().detach().numpy(), batch[2], batch[3])
         val_out = self._validation_step(batch, batch_idx, output_dict)
@@ -304,6 +324,12 @@ class AutoRegRALadderVAE(LadderVAE):
         return val_out
 
     def on_validation_epoch_end(self):
+        if self.current_epoch % 10 == 0:
+            np.save(f'val_{self.current_epoch}.npy', self._val_sol_manager._data)
+            np.save(f'train_{self.current_epoch}.npy', self._train_sol_manager._data)
+            np.save(f'train_gt_{self.current_epoch}.npy', self._train_gt_manager._data)
+            np.save(f'val_gt_{self.current_epoch}.npy', self._val_gt_manager._data)
+
         self._val_sol_manager.dump_img(self.data_mean.cpu().numpy(),
                                        self.data_std.cpu().numpy(),
                                        t=0,
