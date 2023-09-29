@@ -80,6 +80,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.AutoRegresiveRALadderVAE
     model.rotation_with_neighbors = True
+    model.flips_with_neighbors = True
     model.untrained_nbr_branch = False
     model.z_dims = [128, 128, 128, 128]
     model.nbr_dropout = 0.2

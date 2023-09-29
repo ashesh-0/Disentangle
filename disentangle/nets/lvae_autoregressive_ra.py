@@ -36,6 +36,45 @@ class Neighbors:
         nbr_preds = nbr_preds[-k:] + nbr_preds[:4 - k]
         self.top, self.left, self.bottom, self.right = nbr_preds
 
+    def hflip(self):
+        """
+        Flip about vertical axis
+        """
+        left = self.right
+        right = self.left
+        self.left = left
+        self.right = right
+        self.top = torch.flip(self.top, dims=(3, ))
+        self.bottom = torch.flip(self.bottom, dims=(3, ))
+        self.left = torch.flip(self.left, dims=(3, ))
+        self.right = torch.flip(self.right, dims=(3, ))
+
+    def vflip(self):
+        """
+        Flip about horizontal axis
+        """
+        top = self.bottom
+        bottom = self.top
+        self.top = top
+        self.bottom = bottom
+        self.top = torch.flip(self.top, dims=(2, ))
+        self.bottom = torch.flip(self.bottom, dims=(2, ))
+        self.left = torch.flip(self.left, dims=(2, ))
+        self.right = torch.flip(self.right, dims=(2, ))
+
+    def flip(self, hflip, vflip):
+        """
+        hflip: bool, whether to flip about vertical axis
+        vflip: bool, whether to flip about horizontal axis
+        """
+        assert isinstance(hflip, bool) and isinstance(vflip, bool), "hflip and vflip must be boolean"
+        if hflip == False and vflip == False:
+            return
+        if hflip == True:
+            self.hflip()
+        if vflip == True:
+            self.vflip()
+
     def get(self):
         return [self.top, self.bottom, self.left, self.right]
 
@@ -50,6 +89,8 @@ class AutoRegRALadderVAE(LadderVAE):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
         self._neighboring_encoder = None
         self._enable_rotation = config.model.get('rotation_with_neighbors', False)
+        self._enable_flips = config.model.get('flips_with_neighbors', False)
+
         self._untrained_nbr_branch = config.model.get('untrained_nbr_branch', False)
         self._avg_pool_layers = nn.ModuleList(
             [nn.AvgPool2d(kernel_size=self.img_shape[0] // (np.power(2, i + 1))) for i in range(self.n_layers)])
@@ -104,7 +145,9 @@ class AutoRegRALadderVAE(LadderVAE):
             self._nbr_first_bottom_up_list = nn.ModuleList(
                 [self.create_first_bottom_up(stride, color_ch=2) for _ in range(nbr_count)])
             self._nbr_bottom_up_layers_list = nn.ModuleList([self.create_bottomup_layers() for _ in range(nbr_count)])
-        print(f'[{self.__class__.__name__}]Rotation:{self._enable_rotation} NbrSharedWeights:{self._nbr_share_weights}')
+        print(
+            f'[{self.__class__.__name__}]Rotation:{self._enable_rotation} Flips:{self._enable_flips} NbrSharedWeights:{self._nbr_share_weights}'
+        )
 
     def create_bottomup_layers(self):
         nbr_bottom_up_layers = []
@@ -241,7 +284,7 @@ class AutoRegRALadderVAE(LadderVAE):
 
         return out, td_data
 
-    def get_output_from_batch(self, batch, sol_manager=None, enable_rotation=False):
+    def get_output_from_batch(self, batch, sol_manager=None, enable_rotation=False, enable_flips=False):
         if sol_manager is None:
             sol_manager = self._val_sol_manager
 
@@ -273,6 +316,20 @@ class AutoRegRALadderVAE(LadderVAE):
                 nbrs.rotate90anticlock(quadrant)
                 nbr_preds = nbrs.get()
 
+        if enable_flips:
+            hflip = bool(np.random.randint(0, 2))
+            vflip = bool(np.random.randint(0, 2))
+            if hflip:
+                x_normalized = torch.flip(x_normalized, dims=(3, ))
+                target_normalized = torch.flip(target_normalized, dims=(3, ))
+
+            if vflip:
+                x_normalized = torch.flip(x_normalized, dims=(2, ))
+                target_normalized = torch.flip(target_normalized, dims=(2, ))
+
+            nbrs.flip(hflip, vflip)
+            nbr_preds = nbrs.get()
+
         out, td_data = self.forward(x_normalized, nbr_preds)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
@@ -288,7 +345,10 @@ class AutoRegRALadderVAE(LadderVAE):
         }
 
     def training_step(self, batch, batch_idx, enable_logging=True):
-        output_dict = self.get_output_from_batch(batch, self._train_sol_manager, enable_rotation=self._enable_rotation)
+        output_dict = self.get_output_from_batch(batch,
+                                                 self._train_sol_manager,
+                                                 enable_rotation=self._enable_rotation,
+                                                 enable_flips=self._enable_flips)
         imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
 
         if output_dict['quadrant'] is not None and output_dict['quadrant'] > 0:
