@@ -341,7 +341,9 @@ class AutoRegRALadderVAE(LadderVAE):
             'target_normalized': target_normalized,
             'td_data': td_data,
             'quadrant': quadrant if enable_rotation else None,
-            'nbr_preds': nbr_preds
+            'nbr_preds': nbr_preds,
+            'hflip': hflip if enable_flips else None,
+            'vflip': vflip if enable_flips else None,
         }
 
     def training_step(self, batch, batch_idx, enable_logging=True):
@@ -353,6 +355,11 @@ class AutoRegRALadderVAE(LadderVAE):
 
         if output_dict['quadrant'] is not None and output_dict['quadrant'] > 0:
             imgs = torch.rot90(imgs, k=-output_dict['quadrant'], dims=(2, 3))
+
+        if output_dict['hflip'] is not None and output_dict['hflip']:
+            imgs = torch.flip(imgs, dims=(3, ))
+        if output_dict['vflip'] is not None and output_dict['vflip']:
+            imgs = torch.flip(imgs, dims=(2, ))
 
         # if self.current_epoch % 10 == 0 and batch_idx < 2:
         #     nbrs = torch.cat([output_dict['target_normalized'], imgs] + output_dict['nbr_preds'], dim=1)
