@@ -130,16 +130,16 @@ def get_config():
     model.noise_model_ch1_fpath = None
 
     training = config.training
-    training.lr = 0.001 / 4
-    training.lr_scheduler_patience = 16
-    training.max_epochs = 150
+    training.lr = 0.001
+    training.lr_scheduler_patience = 8
+    training.max_epochs = 75
     training.batch_size = 16
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 100
+    training.earlystop_patience = 50
     training.precision = 16
 
     return config
