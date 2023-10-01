@@ -292,11 +292,7 @@ class AutoRegRALadderVAE(LadderVAE):
         self.set_params_to_same_device_as(target)
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
-        nbr_preds = []
-        nbr_preds.append(sol_manager.get_top(indices, grid_sizes, cur_epoch=self.current_epoch))
-        nbr_preds.append(sol_manager.get_bottom(indices, grid_sizes, cur_epoch=self.current_epoch))
-        nbr_preds.append(sol_manager.get_left(indices, grid_sizes, cur_epoch=self.current_epoch))
-        nbr_preds.append(sol_manager.get_right(indices, grid_sizes, cur_epoch=self.current_epoch))
+        nbr_preds = sol_manager.get_nbrs(indices, grid_sizes, cur_epoch=self.current_epoch)
         if self._enable_after_nepoch > 0 and self.current_epoch < self._enable_after_nepoch:
             assert (nbr_preds[0] == 0).all()
             assert (nbr_preds[1] == 0).all()

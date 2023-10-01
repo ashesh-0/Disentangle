@@ -124,7 +124,6 @@ class GridSampler(BaseSampler):
 
         grid_size = np.array([self._grid_size] * len(idx))
         self.index_batches = list(zip(idx, grid_size))
-        np.random.shuffle(self.index_batches)
 
 
 if __name__ == '__main__':

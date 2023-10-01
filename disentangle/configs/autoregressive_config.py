@@ -83,7 +83,7 @@ def get_config():
     model.flips_with_neighbors = True
     model.untrained_nbr_branch = False
     model.z_dims = [128, 128, 128, 128]
-    model.nbr_dropout = 0.2
+    model.nbr_dropout = 0.5
     model.nbr_share_weights = True
     model.nbr_disabled = False
     model.enable_after_nepoch = -1
