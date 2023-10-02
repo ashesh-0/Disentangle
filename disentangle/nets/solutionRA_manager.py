@@ -192,9 +192,9 @@ class SolutionRAManager(LocationBasedSolutionRAManager):
 
         return self.get_from_locations(locations, self._patch_size, cur_epoch, skipdata=skipdata)
 
-    def get_nbrs(self, indices, grid_sizes, cur_epoch=None):
+    def get_nbrs(self, indices, grid_sizes, skipdata=None, cur_epoch=None):
         nbr_preds = []
-        skipdata = np.random.rand() < self._dropout
+        skipdata = skipdata == True or np.random.rand() < self._dropout
         nbr_preds.append(self.get_top(indices, grid_sizes, cur_epoch=cur_epoch, skipdata=skipdata))
         nbr_preds.append(self.get_bottom(indices, grid_sizes, cur_epoch=cur_epoch, skipdata=skipdata))
         nbr_preds.append(self.get_left(indices, grid_sizes, cur_epoch=cur_epoch, skipdata=skipdata))

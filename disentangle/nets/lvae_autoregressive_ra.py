@@ -284,7 +284,7 @@ class AutoRegRALadderVAE(LadderVAE):
 
         return out, td_data
 
-    def get_output_from_batch(self, batch, sol_manager=None, enable_rotation=False, enable_flips=False):
+    def get_output_from_batch(self, batch, sol_manager=None, enable_rotation=False, enable_flips=False, skip_nbr=False):
         if sol_manager is None:
             sol_manager = self._val_sol_manager
 
@@ -292,7 +292,7 @@ class AutoRegRALadderVAE(LadderVAE):
         self.set_params_to_same_device_as(target)
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
-        nbr_preds = sol_manager.get_nbrs(indices, grid_sizes, cur_epoch=self.current_epoch)
+        nbr_preds = sol_manager.get_nbrs(indices, grid_sizes, cur_epoch=self.current_epoch, skipdata=skip_nbr)
         if self._enable_after_nepoch > 0 and self.current_epoch < self._enable_after_nepoch:
             assert (nbr_preds[0] == 0).all()
             assert (nbr_preds[1] == 0).all()
@@ -304,7 +304,7 @@ class AutoRegRALadderVAE(LadderVAE):
         nbr_preds = nbrs.get()
         # print('\n', 'LgStats', is_train, len(nbr_preds), f'{nbr_preds[0].shape}, {nbr_preds[0].max().item():.2f}, {nbr_preds[0].min().item():.2f}, {nbr_preds[0].mean().item():.2f}')
 
-        if enable_rotation:
+        if enable_rotation == True:
             quadrant = np.random.randint(0, 4)
             if quadrant > 0:
                 x_normalized = torch.rot90(x_normalized, k=quadrant, dims=(2, 3))
@@ -342,45 +342,72 @@ class AutoRegRALadderVAE(LadderVAE):
             'vflip': vflip if enable_flips else None,
         }
 
+    def merge_loss_dicts(self, output_dicts):
+        assert len(output_dicts) == 2
+        output = {
+            'loss': (output_dicts[0]['loss'] + output_dicts[1]['loss']) / 2,
+            'reconstruction_loss':
+            (output_dicts[0]['reconstruction_loss'] + output_dicts[1]['reconstruction_loss']) / 2,
+            'kl_loss': (output_dicts[0]['kl_loss'] + output_dicts[1]['kl_loss']) / 2,
+        }
+        return output
+
     def training_step(self, batch, batch_idx, enable_logging=True):
-        output_dict = self.get_output_from_batch(batch,
-                                                 self._train_sol_manager,
-                                                 enable_rotation=self._enable_rotation,
-                                                 enable_flips=self._enable_flips)
-        imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
+        # the order of skip_nbr matters.
+        loss_dicts = []
+        for skip_nbr in [False, True]:
+            output_dict = self.get_output_from_batch(batch,
+                                                     self._train_sol_manager,
+                                                     enable_rotation=self._enable_rotation,
+                                                     enable_flips=self._enable_flips,
+                                                     skip_nbr=skip_nbr)
+            if skip_nbr == True:
+                imgs = get_img_from_forward_output(output_dict['out'],
+                                                   self,
+                                                   unnormalized=False,
+                                                   likelihood_obj=self.likelihood)
 
-        if output_dict['quadrant'] is not None and output_dict['quadrant'] > 0:
-            imgs = torch.rot90(imgs, k=-output_dict['quadrant'], dims=(2, 3))
+                if output_dict['quadrant'] is not None and output_dict['quadrant'] > 0:
+                    imgs = torch.rot90(imgs, k=-output_dict['quadrant'], dims=(2, 3))
 
-        if output_dict['hflip'] is not None and output_dict['hflip']:
-            imgs = torch.flip(imgs, dims=(3, ))
-        if output_dict['vflip'] is not None and output_dict['vflip']:
-            imgs = torch.flip(imgs, dims=(2, ))
+                if output_dict['hflip'] is not None and output_dict['hflip']:
+                    imgs = torch.flip(imgs, dims=(3, ))
+                if output_dict['vflip'] is not None and output_dict['vflip']:
+                    imgs = torch.flip(imgs, dims=(2, ))
 
-        # if self.current_epoch % 10 == 0 and batch_idx < 2:
-        #     nbrs = torch.cat([output_dict['target_normalized'], imgs] + output_dict['nbr_preds'], dim=1)
-        #     nbrs = nbrs.detach().cpu().numpy()
-        #     np.save(f'./nbrs_train_{self.current_epoch}_{batch_idx}.npy', nbrs)
-        #     np.save(f'./nbrs_trainindices_{self.current_epoch}_{batch_idx}.npy', batch[2].detach().cpu().numpy())
+                # if self.current_epoch % 10 == 0 and batch_idx < 2:
+                #     nbrs = torch.cat([output_dict['target_normalized'], imgs] + output_dict['nbr_preds'], dim=1)
+                #     nbrs = nbrs.detach().cpu().numpy()
+                #     np.save(f'./nbrs_train_{self.current_epoch}_{batch_idx}.npy', nbrs)
+                #     np.save(f'./nbrs_trainindices_{self.current_epoch}_{batch_idx}.npy', batch[2].detach().cpu().numpy())
 
-        self._train_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
-        # self._train_gt_manager.update(output_dict['target_normalized'].cpu().detach().numpy(), batch[2], batch[3])
-        # in case of rotation, batch is invalid. since this is oly done in training,
-        # None is being passed for batch in training and not in validation
-        return self._training_step(None, batch_idx, output_dict, enable_logging=enable_logging)
+                self._train_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
+            # in case of rotation, batch is invalid. since this is oly done in training,
+            # None is being passed for batch in training and not in validation
+            output = self._training_step(None, batch_idx, output_dict, enable_logging=enable_logging)
+            loss_dicts.append(output)
+        return self.merge_loss_dicts(loss_dicts)
 
     def validation_step(self, batch, batch_idx, return_output_dict=False):
-        output_dict = self.get_output_from_batch(batch, self._val_sol_manager)
-        imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
+        for skip_nbr in [False, True]:
+            output_dict = self.get_output_from_batch(batch, self._val_sol_manager, skip_nbr=skip_nbr)
+            if skip_nbr == True:
+                imgs = get_img_from_forward_output(output_dict['out'],
+                                                   self,
+                                                   unnormalized=False,
+                                                   likelihood_obj=self.likelihood)
+                self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
+                self._val_gt_manager.update(output_dict['target_normalized'].cpu().detach().numpy(), batch[2], batch[3])
+
         # if self.current_epoch % 10 == 0 and batch_idx < 2:
         #     nbrs = torch.cat([output_dict['target_normalized'], imgs] + output_dict['nbr_preds'], dim=1)
         #     nbrs = nbrs.detach().cpu().numpy()
         #     np.save(f'./nbrs_val_{self.current_epoch}_{batch_idx}.npy', nbrs)
         #     np.save(f'./nbrs_valindices_{self.current_epoch}_{batch_idx}.npy', batch[2].detach().cpu().numpy())
 
-        self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
-        self._val_gt_manager.update(output_dict['target_normalized'].cpu().detach().numpy(), batch[2], batch[3])
-        val_out = self._validation_step(batch, batch_idx, output_dict)
+            val_out = self._validation_step(batch, batch_idx, output_dict)
+            assert val_out is None
+
         if return_output_dict:
             return val_out, output_dict
 
@@ -446,5 +473,5 @@ if __name__ == '__main__':
              torch.rand((16, 2, config.data.image_size, config.data.image_size)), torch.randint(0, 100, (16, )),
              torch.Tensor(np.array([config.data.image_size] * 16)).reshape(16, ).type(torch.int32))
     model.training_step(batch, 0)
-    # model.validation_step(batch, 0)
+    model.validation_step(batch, 0)
     # model.on_validation_epoch_end()
