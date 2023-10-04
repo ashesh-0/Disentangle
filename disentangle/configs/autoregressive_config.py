@@ -87,7 +87,7 @@ def get_config():
     model.nbr_share_weights = True
     model.nbr_disabled = False
     model.enable_after_nepoch = -1
-    model.skip_nbr_in_bottomk_levels = 1
+    # model.skip_nbr_in_bottomk_levels = 1
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
@@ -134,11 +134,11 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 8
     training.max_epochs = 75
-    training.batch_size = 32
+    training.batch_size = 16
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
-    training.val_fraction = 0.1
+    training.val_fraction = 0.3
     training.test_fraction = 0.1
     training.earlystop_patience = 50
     training.precision = 16

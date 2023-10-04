@@ -138,6 +138,11 @@ class AutoRegRALadderVAE(LadderVAE):
                 res_block_kernel=config.model.encoder.res_block_kernel,
             ) for _ in range(self.n_layers)
         ])
+
+        # We don't need the merge layers for the bottomk levels where we skip the nbrs.
+        for i in range(0, self._skip_nbr_in_bottomk_levels + 1):
+            self._merge_layers[i] = nn.Identity()
+
         stride = 1 if config.model.no_initial_downscaling else 2
         if self._nbr_share_weights:
             self._nbr_first_bottom_up = self.create_first_bottom_up(stride, color_ch=2)
@@ -367,7 +372,7 @@ class AutoRegRALadderVAE(LadderVAE):
                                                      enable_rotation=self._enable_rotation,
                                                      enable_flips=self._enable_flips,
                                                      skip_nbr=skip_nbr)
-            if skip_nbr == True:
+            if skip_nbr == False:
                 imgs = get_img_from_forward_output(output_dict['out'],
                                                    self,
                                                    unnormalized=False,
@@ -411,7 +416,7 @@ class AutoRegRALadderVAE(LadderVAE):
     def validation_step(self, batch, batch_idx, return_output_dict=False):
         for skip_nbr in [False, True]:
             output_dict = self.get_output_from_batch(batch, self._val_sol_manager, skip_nbr=skip_nbr)
-            if skip_nbr == True:
+            if skip_nbr == False:
                 imgs = get_img_from_forward_output(output_dict['out'],
                                                    self,
                                                    unnormalized=False,
