@@ -13,8 +13,8 @@ from disentangle.data_loader.patch_index_manager import GridAlignement
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
-    data.val_grid_size = 32
+    data.image_size = 128
+    data.val_grid_size = 96
     data.grid_alignment = GridAlignement.Center
     data.full_coverage_randomized = True
     data.data_type = DataType.OptiMEM100_014
@@ -52,7 +52,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -87,6 +87,7 @@ def get_config():
     model.nbr_share_weights = True
     model.nbr_disabled = False
     model.enable_after_nepoch = -1
+    model.skip_nbr_in_bottomk_levels = 1
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1

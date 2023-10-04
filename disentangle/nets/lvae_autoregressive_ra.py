@@ -94,6 +94,7 @@ class AutoRegRALadderVAE(LadderVAE):
         self._enable_flips = config.model.get('flips_with_neighbors', False)
 
         self._untrained_nbr_branch = config.model.get('untrained_nbr_branch', False)
+        self._skip_nbr_in_bottomk_levels = config.model.get('skip_nbr_in_bottomk_levels', -1)
         self._avg_pool_layers = nn.ModuleList(
             [nn.AvgPool2d(kernel_size=self.img_shape[0] // (np.power(2, i + 1))) for i in range(self.n_layers)])
 
@@ -147,9 +148,9 @@ class AutoRegRALadderVAE(LadderVAE):
             self._nbr_first_bottom_up_list = nn.ModuleList(
                 [self.create_first_bottom_up(stride, color_ch=2) for _ in range(nbr_count)])
             self._nbr_bottom_up_layers_list = nn.ModuleList([self.create_bottomup_layers() for _ in range(nbr_count)])
-        print(
-            f'[{self.__class__.__name__}]Rotation:{self._enable_rotation} Flips:{self._enable_flips} NbrSharedWeights:{self._nbr_share_weights}'
-        )
+        print(f'[{self.__class__.__name__}]Rotation:{self._enable_rotation} \
+                Flips:{self._enable_flips} NbrSharedWeights:{self._nbr_share_weights} \
+                SkipNbrBottomkLevels:{self._skip_nbr_in_bottomk_levels}')
 
     def create_bottomup_layers(self):
         nbr_bottom_up_layers = []
@@ -271,8 +272,11 @@ class AutoRegRALadderVAE(LadderVAE):
             merged_bu_values = []
 
             for idx in range(len(bu_values)):
-                merged_bu_values.append(bu_values[idx] +
-                                        self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
+                if idx > self._skip_nbr_in_bottomk_levels:
+                    merged_bu_values.append(bu_values[idx] +
+                                            self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
+                else:
+                    merged_bu_values.append(bu_values[idx])
         else:
             merged_bu_values = bu_values
 
