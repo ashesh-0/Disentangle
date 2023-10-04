@@ -14,7 +14,7 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 128
-    data.val_grid_size = 64
+    data.val_grid_size = 96
     data.grid_alignment = GridAlignement.Center
     data.full_coverage_randomized = True
     data.data_type = DataType.OptiMEM100_014
