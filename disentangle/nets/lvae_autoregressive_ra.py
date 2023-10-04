@@ -1,9 +1,11 @@
 import os
+from typing import Any, Optional
 
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 from disentangle.analysis.lvae_utils import get_img_from_forward_output
 from disentangle.core.data_split_type import DataSplitType
@@ -387,6 +389,20 @@ class AutoRegRALadderVAE(LadderVAE):
             output = self._training_step(None, batch_idx, output_dict, enable_logging=enable_logging)
             loss_dicts.append(output)
         return self.merge_loss_dicts(loss_dicts)
+
+    def test_step(self, batch, batch_idx, return_output_dict=False):
+        skip_nbr = False
+        output_dict = self.get_output_from_batch(batch, self._val_sol_manager, skip_nbr=skip_nbr)
+        imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
+        self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
+        self._val_gt_manager.update(output_dict['target_normalized'].cpu().detach().numpy(), batch[2], batch[3])
+        test_out = self._validation_step(batch, batch_idx, output_dict)
+        assert test_out is None
+
+        if return_output_dict:
+            return test_out, output_dict
+
+        return test_out
 
     def validation_step(self, batch, batch_idx, return_output_dict=False):
         for skip_nbr in [False, True]:

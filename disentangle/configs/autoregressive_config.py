@@ -13,8 +13,8 @@ from disentangle.data_loader.patch_index_manager import GridAlignement
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
-    data.val_grid_size = 32
+    data.image_size = 128
+    data.val_grid_size = 64
     data.grid_alignment = GridAlignement.Center
     data.full_coverage_randomized = True
     data.data_type = DataType.OptiMEM100_014
