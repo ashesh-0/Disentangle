@@ -365,64 +365,39 @@ class AutoRegRALadderVAE(LadderVAE):
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         # the order of skip_nbr matters.
-        loss_dicts = []
-        for skip_nbr in [False, True]:
-            output_dict = self.get_output_from_batch(batch,
-                                                     self._train_sol_manager,
-                                                     enable_rotation=self._enable_rotation,
-                                                     enable_flips=self._enable_flips,
-                                                     skip_nbr=skip_nbr)
-            if skip_nbr == False:
-                imgs = get_img_from_forward_output(output_dict['out'],
-                                                   self,
-                                                   unnormalized=False,
-                                                   likelihood_obj=self.likelihood)
+        output_dict = self.get_output_from_batch(batch,
+                                                 self._train_sol_manager,
+                                                 enable_rotation=self._enable_rotation,
+                                                 enable_flips=self._enable_flips)
+        imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
 
-                if output_dict['quadrant'] is not None and output_dict['quadrant'] > 0:
-                    imgs = torch.rot90(imgs, k=-output_dict['quadrant'], dims=(2, 3))
+        if output_dict['quadrant'] is not None and output_dict['quadrant'] > 0:
+            imgs = torch.rot90(imgs, k=-output_dict['quadrant'], dims=(2, 3))
 
-                if output_dict['hflip'] is not None and output_dict['hflip']:
-                    imgs = torch.flip(imgs, dims=(3, ))
-                if output_dict['vflip'] is not None and output_dict['vflip']:
-                    imgs = torch.flip(imgs, dims=(2, ))
+        if output_dict['hflip'] is not None and output_dict['hflip']:
+            imgs = torch.flip(imgs, dims=(3, ))
+        if output_dict['vflip'] is not None and output_dict['vflip']:
+            imgs = torch.flip(imgs, dims=(2, ))
 
-                # if self.current_epoch % 10 == 0 and batch_idx < 2:
-                #     nbrs = torch.cat([output_dict['target_normalized'], imgs] + output_dict['nbr_preds'], dim=1)
-                #     nbrs = nbrs.detach().cpu().numpy()
-                #     np.save(f'./nbrs_train_{self.current_epoch}_{batch_idx}.npy', nbrs)
-                #     np.save(f'./nbrs_trainindices_{self.current_epoch}_{batch_idx}.npy', batch[2].detach().cpu().numpy())
+        # if self.current_epoch % 10 == 0 and batch_idx < 2:
+        #     nbrs = torch.cat([output_dict['target_normalized'], imgs] + output_dict['nbr_preds'], dim=1)
+        #     nbrs = nbrs.detach().cpu().numpy()
+        #     np.save(f'./nbrs_train_{self.current_epoch}_{batch_idx}.npy', nbrs)
+        #     np.save(f'./nbrs_trainindices_{self.current_epoch}_{batch_idx}.npy', batch[2].detach().cpu().numpy())
 
-                self._train_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
-            # in case of rotation, batch is invalid. since this is oly done in training,
-            # None is being passed for batch in training and not in validation
-            output = self._training_step(None, batch_idx, output_dict, enable_logging=enable_logging)
-            loss_dicts.append(output)
-        return self.merge_loss_dicts(loss_dicts)
+        self._train_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
+        # in case of rotation, batch is invalid. since this is oly done in training,
+        # None is being passed for batch in training and not in validation
+        return self._training_step(None, batch_idx, output_dict, enable_logging=enable_logging)
 
     def test_step(self, batch, batch_idx, return_output_dict=False):
-        skip_nbr = False
-        output_dict = self.get_output_from_batch(batch, self._val_sol_manager, skip_nbr=skip_nbr)
+        self.validation_step(batch, batch_idx, return_output_dict=return_output_dict)
+
+    def validation_step(self, batch, batch_idx, return_output_dict=False):
+        output_dict = self.get_output_from_batch(batch, self._val_sol_manager)
         imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
         self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
         self._val_gt_manager.update(output_dict['target_normalized'].cpu().detach().numpy(), batch[2], batch[3])
-        test_out = self._validation_step(batch, batch_idx, output_dict)
-        assert test_out is None
-
-        if return_output_dict:
-            return test_out, output_dict
-
-        return test_out
-
-    def validation_step(self, batch, batch_idx, return_output_dict=False):
-        for skip_nbr in [False, True]:
-            output_dict = self.get_output_from_batch(batch, self._val_sol_manager, skip_nbr=skip_nbr)
-            if skip_nbr == False:
-                imgs = get_img_from_forward_output(output_dict['out'],
-                                                   self,
-                                                   unnormalized=False,
-                                                   likelihood_obj=self.likelihood)
-                self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
-                self._val_gt_manager.update(output_dict['target_normalized'].cpu().detach().numpy(), batch[2], batch[3])
 
         # if self.current_epoch % 10 == 0 and batch_idx < 2:
         #     nbrs = torch.cat([output_dict['target_normalized'], imgs] + output_dict['nbr_preds'], dim=1)
@@ -430,8 +405,8 @@ class AutoRegRALadderVAE(LadderVAE):
         #     np.save(f'./nbrs_val_{self.current_epoch}_{batch_idx}.npy', nbrs)
         #     np.save(f'./nbrs_valindices_{self.current_epoch}_{batch_idx}.npy', batch[2].detach().cpu().numpy())
 
-            val_out = self._validation_step(batch, batch_idx, output_dict)
-            assert val_out is None
+        val_out = self._validation_step(batch, batch_idx, output_dict)
+        assert val_out is None
 
         if return_output_dict:
             return val_out, output_dict
