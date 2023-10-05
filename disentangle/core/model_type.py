@@ -27,3 +27,4 @@ class ModelType(Enum):
     AutoRegresiveLadderVAE = 21
     AutoRegressiveLadderVaeTwinDecoder = 22
     AutoRegresiveRALadderVAE = 23
+    AutoRegresiveRATwinLadderVAE = 24

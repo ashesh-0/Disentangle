@@ -78,7 +78,7 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.AutoRegresiveRALadderVAE
+    model.model_type = ModelType.AutoRegresiveRATwinLadderVAE
     model.rotation_with_neighbors = True
     model.flips_with_neighbors = True
     model.untrained_nbr_branch = False

@@ -12,6 +12,7 @@ from disentangle.core.model_type import ModelType
 from disentangle.nets.brave_net import BraveNetPL
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_autoregressive import AutoRegLadderVAE
+from disentangle.nets.lvae_autoregressive_ra import AutoRegRALadderVAE
 from disentangle.nets.lvae_bleedthrough import LadderVAEWithMixedRecons
 from disentangle.nets.lvae_deepencoder import LVAEWithDeepEncoder
 from disentangle.nets.lvae_multidset import LadderVaeMultiDataset
@@ -26,8 +27,8 @@ from disentangle.nets.lvae_twindecoder_autoregressive import AutoRegTwinDecoderL
 from disentangle.nets.lvae_with_critic import LadderVAECritic
 from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
 from disentangle.nets.lvae_with_stitch_2stage import LadderVAEwithStitching2Stage
+from disentangle.nets.twin_lvae_autoregressive_ra import TwinAutoRegRALadderVAE
 from disentangle.nets.unet import UNet
-from disentangle.nets.lvae_autoregressive_ra import AutoRegRALadderVAE  
 
 
 def create_model(config, data_mean, data_std):
@@ -67,8 +68,10 @@ def create_model(config, data_mean, data_std):
         model = AutoRegLadderVAE(data_mean, data_std, config)
     elif config.model.model_type == ModelType.AutoRegressiveLadderVaeTwinDecoder:
         model = AutoRegTwinDecoderLadderVAE(data_mean, data_std, config)
-    elif config.model.model_type== ModelType.AutoRegresiveRALadderVAE:
-        model =  AutoRegRALadderVAE(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.AutoRegresiveRALadderVAE:
+        model = AutoRegRALadderVAE(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.AutoRegresiveRATwinLadderVAE:
+        model = TwinAutoRegRALadderVAE(data_mean, data_std, config)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
     return model
