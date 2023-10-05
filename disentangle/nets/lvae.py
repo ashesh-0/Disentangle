@@ -278,6 +278,14 @@ class LadderVAE(pl.LightningModule):
                     gated=self.gated,
                     conv2d_bias=self.topdown_conv2d_bias,
                 ))
+
+        logvar_ch_needed = self.predict_logvar is not None
+        modules.append(
+            nn.Conv2d(self.decoder_n_filters,
+                      self.target_ch * (1 + logvar_ch_needed),
+                      kernel_size=3,
+                      padding=1,
+                      bias=self.topdown_conv2d_bias))
         return nn.Sequential(*modules)
 
     def create_likelihood_module(self):

@@ -128,12 +128,12 @@ class GaussianLikelihood(LikelihoodModule):
         self.conv2d_bias = conv2d_bias
         assert self.predict_logvar in [None, 'global', 'pixelwise', 'channelwise']
         logvar_ch_needed = self.predict_logvar is not None
-        self.parameter_net = nn.Conv2d(ch_in,
-                                       color_channels * (1 + logvar_ch_needed),
-                                       kernel_size=3,
-                                       padding=1,
-                                       bias=self.conv2d_bias)
-
+        # self.parameter_net = nn.Conv2d(ch_in,
+        #                                color_channels * (1 + logvar_ch_needed),
+        #                                kernel_size=3,
+        #                                padding=1,
+        #                                bias=self.conv2d_bias)
+        self.parameter_net = nn.Identity()
         print(f'[{self.__class__.__name__}] PredLVar:{self.predict_logvar} LowBLVar:{self.logvar_lowerbound}')
 
     def get_mean_lv(self, x):
