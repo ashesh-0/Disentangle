@@ -19,6 +19,10 @@ class TwinAutoRegRALadderVAE(AutoRegRALadderVAE):
         with new_config.unlocked():
             new_config.data.color_ch = 2
             new_config.data.multiscale_lowres_count = 1 if config.data.multiscale_lowres_count != None else None
+            # make it lean.
+            new_config.model.z_dims = [32, 32, 32, 32]
+            new_config.model.encoder.n_filters = 16
+            new_config.model.decoder.n_filters = 16
         super().__init__(data_mean, data_std, new_config, use_uncond_mode_at, target_ch)
         self._vae0 = LadderVAE(data_mean, data_std, config, use_uncond_mode_at, target_ch)
         innerpad_amount = GridIndexManager(get_val_instance=True).get_innerpad_amount()
