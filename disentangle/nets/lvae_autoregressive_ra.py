@@ -391,7 +391,7 @@ class AutoRegRALadderVAE(LadderVAE):
         return self._training_step(None, batch_idx, output_dict, enable_logging=enable_logging)
 
     def test_step(self, batch, batch_idx, return_output_dict=False):
-        self.validation_step(batch, batch_idx, return_output_dict=return_output_dict)
+        return self.validation_step(batch, batch_idx, return_output_dict=return_output_dict)
 
     def validation_step(self, batch, batch_idx, return_output_dict=False):
         output_dict = self.get_output_from_batch(batch, self._val_sol_manager)

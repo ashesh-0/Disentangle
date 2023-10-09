@@ -103,7 +103,7 @@ class TwinAutoRegRALadderVAE(AutoRegRALadderVAE):
 
         return output
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx, return_output_dict=False):
         # dict_data = self.get_output_from_sequential_model(batch, return_new_batch=True)
         # output_dict0, recons_loss_dict0, imgs0 = dict_data['img0']
         # output_dict, recons_loss_dict, imgs = dict_data['img1']
@@ -128,6 +128,11 @@ class TwinAutoRegRALadderVAE(AutoRegRALadderVAE):
 
         self.label1_psnr.update(imgs[:, 0], target_normalized[:, 0])
         self.label2_psnr.update(imgs[:, 1], target_normalized[:, 1])
+        val_out = None
+        if return_output_dict:
+            return val_out, output_dict
+
+        return val_out
 
     def on_validation_epoch_end(self):
         # PSNR
