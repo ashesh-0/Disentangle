@@ -54,6 +54,7 @@ class AutoRegRALadderVAE(LadderVAE):
             [nn.AvgPool2d(kernel_size=self.img_shape[0] // (np.power(2, i + 1))) for i in range(self.n_layers)])
 
         self._nbr_share_weights = config.model.get('nbr_share_weights', False)
+        self._nbrs_enable_from = config.model.get('nbrs_enable_from', -1)
 
         # when creating the frame prediction, we want to skip boundary.
         innerpad_amount = GridIndexManager(get_val_instance=True).get_innerpad_amount()
@@ -84,6 +85,11 @@ class AutoRegRALadderVAE(LadderVAE):
                 res_block_kernel=config.model.encoder.res_block_kernel,
             ) for _ in range(self.n_layers)
         ])
+
+        for idx in range(self.n_layers):
+            if idx < self._nbrs_enable_from:
+                self._merge_layers[idx] = nn.Identity()
+
         stride = 1 if config.model.no_initial_downscaling else 2
         if self._nbr_share_weights:
             self._nbr_first_bottom_up = self.create_first_bottom_up(stride, color_ch=2)
@@ -186,14 +192,16 @@ class AutoRegRALadderVAE(LadderVAE):
         bu_values = self.bottomup_pass(x_pad)
 
         merged_bu_values = []
-
         for idx in range(len(bu_values)):
-            merged_bu_values.append(self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
+            if idx >= self._nbrs_enable_from:
+                merged_bu_values.append(self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
+            else:
+                merged_bu_values.append(bu_values[idx])
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
+
         # Top-down inference/generation
         out, td_data = self.topdown_pass(merged_bu_values, mode_layers=mode_layers)
-
         if out.shape[-1] > img_size[-1]:
             # Restore original image size
             out = crop_img_tensor(out, img_size)
@@ -296,24 +304,24 @@ if __name__ == '__main__':
 
     mask = AutoRegRALadderVAE.get_mask(64, 'left', 'cpu')[0, 0].numpy()
     mask = np.repeat(mask, 64, axis=0) if mask.shape[0] == 1 else np.repeat(mask, 64, axis=1)
-    plt.imshow(mask)
-    plt.show()
-    # from disentangle.configs.autoregressive_config import get_config
-    # from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
-    # GridIndexManager((61, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_train_instance=True)
-    # GridIndexManager((6, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_val_instance=True)
+    # plt.imshow(mask)
+    # plt.show()
+    from disentangle.configs.autoregressive_config import get_config
+    from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+    GridIndexManager((61, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_train_instance=True)
+    GridIndexManager((6, 2700, 2700, 2), 1, 64, GridAlignement.LeftTop, set_val_instance=True)
 
-    # config = get_config()
-    # config.model.skip_boundary_pixelcount = 16
-    # data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
-    # data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
-    # model = AutoRegRALadderVAE(data_mean, data_std, config)
-    # inp = torch.rand((20, 1, config.data.image_size, config.data.image_size))
-    # nbr = [torch.rand((20, 2, config.data.image_size, config.data.image_size))] * 4
-    # out, td_data = model(inp, nbr)
-    # batch = (torch.rand((16, 1, config.data.image_size, config.data.image_size)),
-    #          torch.rand((16, 2, config.data.image_size, config.data.image_size)), torch.randint(0, 100, (16, )),
-    #          torch.Tensor(np.array([config.data.image_size] * 16)).reshape(16, ).type(torch.int32))
-    # model.training_step(batch, 0)
-    # model.validation_step(batch, 0)
-    # model.on_validation_epoch_end()
+    config = get_config()
+    config.model.skip_boundary_pixelcount = 16
+    data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
+    data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
+    model = AutoRegRALadderVAE(data_mean, data_std, config)
+    inp = torch.rand((20, 1, config.data.image_size, config.data.image_size))
+    nbr = [torch.rand((20, 2, config.data.image_size, config.data.image_size))] * 4
+    out, td_data = model(inp, nbr)
+    batch = (torch.rand((16, 1, config.data.image_size, config.data.image_size)),
+             torch.rand((16, 2, config.data.image_size, config.data.image_size)), torch.randint(0, 100, (16, )),
+             torch.Tensor(np.array([config.data.image_size] * 16)).reshape(16, ).type(torch.int32))
+    model.training_step(batch, 0)
+    model.validation_step(batch, 0)
+    model.on_validation_epoch_end()
