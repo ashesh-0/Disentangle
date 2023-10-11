@@ -641,7 +641,7 @@ class LadderVAE(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         output_dict = self.get_output_from_batch(batch)
         return self._validation_step(batch, batch_idx, output_dict)
-        
+
     def _validation_step(self, batch, batch_idx, output_dict):
         out = output_dict['out']
         target_normalized = output_dict['target_normalized']
@@ -720,7 +720,7 @@ class LadderVAE(pl.LightningModule):
 
     def _bottomup_pass(self, inp, first_bottom_up, lowres_first_bottom_ups, bottom_up_layers):
 
-        if self._multiscale_count > 1:
+        if self._multiscale_count > 1 and lowres_first_bottom_ups is not None:
             # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
             # later channels are simply to yield more context.
             x = first_bottom_up(inp[:, :1])
@@ -730,9 +730,9 @@ class LadderVAE(pl.LightningModule):
         # Loop from bottom to top layer, store all deterministic nodes we
         # need in the top-down pass
         bu_values = []
-        for i in range(self.n_layers):
+        for i in range(len(bottom_up_layers)):
             lowres_x = None
-            if self._multiscale_count > 1 and i + 1 < inp.shape[1]:
+            if self._multiscale_count > 1 and i + 1 < inp.shape[1] and lowres_first_bottom_ups is not None:
                 lowres_x = lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
 
             x, bu_value = bottom_up_layers[i](x, lowres_x=lowres_x)

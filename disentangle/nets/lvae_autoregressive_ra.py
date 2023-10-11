@@ -3,6 +3,7 @@ import os
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from disentangle.analysis.lvae_utils import get_img_from_forward_output
 from disentangle.core.data_split_type import DataSplitType
@@ -93,7 +94,7 @@ class AutoRegRALadderVAE(LadderVAE):
         stride = 1 if config.model.no_initial_downscaling else 2
         if self._nbr_share_weights:
             self._nbr_first_bottom_up = self.create_first_bottom_up(stride, color_ch=2)
-            self._nbr_bottom_up_layers = self.create_bottomup_layers()
+            self._nbr_bottom_up_layers = self.create_bottomup_layers(min(4, self.n_layers))
             self._nbr_first_bottom_up_list = [self._nbr_first_bottom_up for _ in range(nbr_count)]
             self._nbr_bottom_up_layers_list = [self._nbr_bottom_up_layers for _ in range(nbr_count)]
         else:
@@ -102,9 +103,9 @@ class AutoRegRALadderVAE(LadderVAE):
             self._nbr_bottom_up_layers_list = nn.ModuleList([self.create_bottomup_layers() for _ in range(nbr_count)])
         print(f'[{self.__class__.__name__}]Rotation:{self._enable_rotation} NbrSharedWeights:{self._nbr_share_weights}')
 
-    def create_bottomup_layers(self):
+    def create_bottomup_layers(self, n_layers):
         nbr_bottom_up_layers = []
-        for i in range(self.n_layers):
+        for i in range(n_layers):
             nbr_bottom_up_layers.append(
                 BottomUpLayer(
                     n_res_blocks=self.encoder_blocks_per_layer,
@@ -139,6 +140,16 @@ class AutoRegRALadderVAE(LadderVAE):
 
         mask[mask < 0.95] = 0
         return mask
+
+    def pad_nbrs(self, nbrs, shape):
+        if nbrs[0].shape[-2] != shape:
+            padhN = shape[0] - nbrs[0].shape[-2]
+            padwN = shape[1] - nbrs[0].shape[-1]
+            assert padhN % 2 == 0 and padwN % 2 == 0
+            output = [F.pad(x, (padwN // 2, padwN // 2, padhN // 2, padhN // 2)) for x in nbrs]
+            return output
+        else:
+            return nbrs
 
     def forward(self, x, nbr_pred):
         img_size = x.size()[2:]
@@ -193,8 +204,9 @@ class AutoRegRALadderVAE(LadderVAE):
 
         merged_bu_values = []
         for idx in range(len(bu_values)):
-            if idx >= self._nbrs_enable_from:
-                merged_bu_values.append(self._merge_layers[idx](bu_values[idx], *nbr_bu_values_list[idx]))
+            if idx >= self._nbrs_enable_from and idx < len(nbr_bu_values_list):
+                padded_nbr_bu_values = self.pad_nbrs(nbr_bu_values_list[idx], bu_values[idx].shape[-2:])
+                merged_bu_values.append(self._merge_layers[idx](bu_values[idx], *padded_nbr_bu_values))
             else:
                 merged_bu_values.append(bu_values[idx])
 
@@ -316,10 +328,11 @@ if __name__ == '__main__':
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
     data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
     model = AutoRegRALadderVAE(data_mean, data_std, config)
-    inp = torch.rand((20, 1, config.data.image_size, config.data.image_size))
+    mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count
+    inp = torch.rand((20, mc, config.data.image_size, config.data.image_size))
     nbr = [torch.rand((20, 2, config.data.image_size, config.data.image_size))] * 4
     out, td_data = model(inp, nbr)
-    batch = (torch.rand((16, 1, config.data.image_size, config.data.image_size)),
+    batch = (torch.rand((16, mc, config.data.image_size, config.data.image_size)),
              torch.rand((16, 2, config.data.image_size, config.data.image_size)), torch.randint(0, 100, (16, )),
              torch.Tensor(np.array([config.data.image_size] * 16)).reshape(16, ).type(torch.int32))
     model.training_step(batch, 0)
