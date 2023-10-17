@@ -186,7 +186,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             DataType.HTIba1Ki67
     ]:
         if config.data.data_type == DataType.OptiMEM100_014:
-            datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
+            datapath = os.path.join(datadir, 'OptiMEM100x014_medium_spatially_large.tif')
         elif config.data.data_type == DataType.Prevedel_EMBL:
             datapath = os.path.join(datadir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
         else:
@@ -419,18 +419,23 @@ def train_network(train_loader, val_loader, data_mean, data_std, config, model_n
     ckpt_mode = MetricMonitor(ckpt_monitor).mode()
     every_n_epochs = config.training.get('save_every_n_epochs', None)
     print('Saving every n epochs', every_n_epochs)
-    checkpoint_callback = ModelCheckpoint(
-        monitor=ckpt_monitor,
-        dirpath=config.workdir,
-        filename=model_name + '_best',
-        save_last=True,
-        save_top_k=1,
-        mode=ckpt_mode,
-        every_n_epochs=every_n_epochs,
-    )
+
     if every_n_epochs is not None:
+        checkpoint_callback = ModelCheckpoint(
+            save_top_k=-1,
+            dirpath=config.workdir,
+            every_n_epochs=every_n_epochs,
+        )
         checkpoint_callback.CHECKPOINT_NAME_LAST = model_name + "{epoch}-last"
     else:
+        checkpoint_callback = ModelCheckpoint(
+            save_top_k=1,
+            monitor=ckpt_monitor,
+            dirpath=config.workdir,
+            filename=model_name + '_best',
+            save_last=True,
+            mode=ckpt_mode,
+        )
         checkpoint_callback.CHECKPOINT_NAME_LAST = model_name + "_last"
 
     logger = WandbLogger(name=os.path.join(config.hostname, config.exptname),
