@@ -428,8 +428,11 @@ def train_network(train_loader, val_loader, data_mean, data_std, config, model_n
         mode=ckpt_mode,
         every_n_epochs=every_n_epochs,
     )
+    if every_n_epochs is not None:
+        checkpoint_callback.CHECKPOINT_NAME_LAST = model_name + "{epoch}-last"
+    else:
+        checkpoint_callback.CHECKPOINT_NAME_LAST = model_name + "_last"
 
-    checkpoint_callback.CHECKPOINT_NAME_LAST = model_name + "_last"
     logger = WandbLogger(name=os.path.join(config.hostname, config.exptname),
                          save_dir=logdir,
                          project="Disentanglement")
