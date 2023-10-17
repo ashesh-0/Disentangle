@@ -110,6 +110,8 @@ class NeighborEmbedManager(nn.Module):
             nbr_bu_value = nbr_bu_value[:, :, :, -pix_n:]
         elif side == 'right':
             nbr_bu_value = nbr_bu_value[:, :, :, :pix_n]
+        else:
+            raise ValueError(f"side {side} not recognized")
 
         nbr_bu_value = nbr_bu_value * self.get_mask(shape[0], side, nbr_bu_value.device)
         return nbr_bu_value
@@ -123,7 +125,6 @@ class NeighborEmbedManager(nn.Module):
         else:
             pix_n = 1
             final_shape = nbr_shape
-            
 
         nbr_bu_value = [
             self._process_nbr_bu_value(*x, pix_n=pix_n) for x in zip(['top', 'bottom', 'left', 'right'], nbr_bu_value)
