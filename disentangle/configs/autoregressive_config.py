@@ -12,8 +12,8 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
-    data.val_grid_size = 128
+    data.image_size = 512
+    data.val_grid_size = 256
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
@@ -78,7 +78,7 @@ def get_config():
 
     model.nbr_dropout = 0.2
     model.nbr_share_weights = True
-    model.nbrs_enable_from = 1
+    model.nbrs_enable_from = 5
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
@@ -122,9 +122,10 @@ def get_config():
     model.noise_model_ch1_fpath = None
 
     training = config.training
+    training.save_every_n_epochs = 1
     training.lr = 0.001 / 2
     training.lr_scheduler_patience = 30
-    training.max_epochs = 400
+    training.max_epochs = 100
     training.batch_size = 16
     training.num_workers = 0
     training.val_repeat_factor = None

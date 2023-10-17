@@ -417,6 +417,8 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
 def train_network(train_loader, val_loader, data_mean, data_std, config, model_name, logdir):
     ckpt_monitor = config.model.get('monitor', 'val_loss')
     ckpt_mode = MetricMonitor(ckpt_monitor).mode()
+    every_n_epochs = config.training.get('save_every_n_epochs', None)
+    print('Saving every n epochs', every_n_epochs)
     checkpoint_callback = ModelCheckpoint(
         monitor=ckpt_monitor,
         dirpath=config.workdir,
@@ -424,7 +426,9 @@ def train_network(train_loader, val_loader, data_mean, data_std, config, model_n
         save_last=True,
         save_top_k=1,
         mode=ckpt_mode,
+        every_n_epochs=every_n_epochs,
     )
+
     checkpoint_callback.CHECKPOINT_NAME_LAST = model_name + "_last"
     logger = WandbLogger(name=os.path.join(config.hostname, config.exptname),
                          save_dir=logdir,
