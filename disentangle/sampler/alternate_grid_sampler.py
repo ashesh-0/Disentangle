@@ -91,7 +91,6 @@ class AlternateGridSampler(GridSampler):
         if self._state == 0:
             self._offsetrow = np.random.randint(0, self._overlap // 2)
             self._offsetcol = np.random.randint(0, self._overlap // 2)
-            print('Updated offset row and col', self._dset._data.shape, self._offsetrow, self._offsetcol)
 
         self.index_batches = []
         for t in range(self._dset.idx_manager.N):
