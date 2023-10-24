@@ -194,11 +194,14 @@ class SolutionRAManager(LocationBasedSolutionRAManager):
 
     def get_nbrs(self, indices, grid_sizes, skipdata=None, cur_epoch=None):
         nbr_preds = []
-        skipdata = skipdata == True or np.random.rand() < self._dropout
-        nbr_preds.append(self.get_top(indices, grid_sizes, cur_epoch=cur_epoch, skipdata=skipdata))
-        nbr_preds.append(self.get_bottom(indices, grid_sizes, cur_epoch=cur_epoch, skipdata=skipdata))
-        nbr_preds.append(self.get_left(indices, grid_sizes, cur_epoch=cur_epoch, skipdata=skipdata))
-        nbr_preds.append(self.get_right(indices, grid_sizes, cur_epoch=cur_epoch, skipdata=skipdata))
+        tmp_skipdata = skipdata == True or np.random.rand() < self._dropout
+        nbr_preds.append(self.get_top(indices, grid_sizes, cur_epoch=cur_epoch, skipdata=tmp_skipdata))
+        tmp_skipdata = skipdata == True or np.random.rand() < self._dropout
+        nbr_preds.append(self.get_bottom(indices, grid_sizes, cur_epoch=cur_epoch, skipdata=tmp_skipdata))
+        tmp_skipdata = skipdata == True or np.random.rand() < self._dropout
+        nbr_preds.append(self.get_left(indices, grid_sizes, cur_epoch=cur_epoch, skipdata=tmp_skipdata))
+        tmp_skipdata = skipdata == True or np.random.rand() < self._dropout
+        nbr_preds.append(self.get_right(indices, grid_sizes, cur_epoch=cur_epoch, skipdata=tmp_skipdata))
         return nbr_preds
 
     def update(self, batch_predictions, indices, grid_sizes):

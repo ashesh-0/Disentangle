@@ -187,7 +187,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             DataType.HTIba1Ki67
     ]:
         if config.data.data_type == DataType.OptiMEM100_014:
-            datapath = os.path.join(datadir, 'OptiMEM100x014_medium_spatially_large.tif')
+            datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
         elif config.data.data_type == DataType.Prevedel_EMBL:
             datapath = os.path.join(datadir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
         else:
@@ -386,6 +386,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 if model.automatic_optimization == False else config.training.grad_clip_norm_value,
                 # gradient_clip_algorithm=config.training.gradient_clip_algorithm,
                 logger=logger,
+                num_sanity_val_steps=0,
                 # limit_train_batches=10,
                 # limit_val_batches=10,
                 # fast_dev_run=10,
@@ -398,6 +399,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 # gpus=1,
                 # num_sanity_val_steps=0, # no validation sanity check
                 max_epochs=config.training.max_epochs,
+                num_sanity_val_steps=0,
                 gradient_clip_val=None
                 if model.automatic_optimization == False else config.training.grad_clip_norm_value,
                 # gradient_clip_algorithm=config.training.gradient_clip_algorithm,

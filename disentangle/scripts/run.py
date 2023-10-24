@@ -23,6 +23,7 @@ from disentangle.config_utils import get_updated_config
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
+from disentangle.sampler.alternate_grid_sampler import AlternateGridSampler
 from disentangle.sampler.default_grid_sampler import DefaultGridSampler
 from disentangle.sampler.grid_sampler import GridSampler
 from disentangle.sampler.intensity_aug_sampler import IntensityAugSampler, IntensityAugValSampler
@@ -217,19 +218,20 @@ def main(argv):
                                                     config.data.num_intensity_variations,
                                                     batch_size=config.training.batch_size)
 
-            elif config.data.sampler_type == SamplerType.GridSampler:
+            elif config.data.sampler_type in [SamplerType.GridSampler, SamplerType.AlternateGridSampler]:
+                sampler_cls = GridSampler if config.data.sampler_type == SamplerType.GridSampler else AlternateGridSampler
                 val_grid_size = config.data.image_size - 2 * config.data.innerpad_amount
                 full_coverage_randomized = config.data.get('full_coverage_randomized', False)
                 randomized = not full_coverage_randomized
                 full_coverage_overlap = config.data.innerpad_amount
-                train_sampler = GridSampler(train_data,
+                train_sampler = sampler_cls(train_data,
                                             config.training.batch_size,
                                             randomized=randomized,
                                             full_coverage_randomized=full_coverage_randomized,
                                             full_coverage_overlap=full_coverage_overlap,
                                             patch_size=config.data.image_size,
                                             grid_size=1)
-                val_sampler = GridSampler(
+                val_sampler = sampler_cls(
                     val_data,
                     config.training.batch_size,
                     randomized=False,
