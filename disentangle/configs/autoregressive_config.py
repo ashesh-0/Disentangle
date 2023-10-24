@@ -131,7 +131,7 @@ def get_config():
     model.noise_model_ch1_fpath = None
 
     training = config.training
-    training.lr = 0.001
+    training.lr = 0.001 // 2
     training.lr_scheduler_patience = 8
     training.max_epochs = 200
     training.batch_size = 16
