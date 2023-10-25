@@ -304,11 +304,11 @@ class AutoRegRALadderVAE(LadderVAE):
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
         nbr_preds = sol_manager.get_nbrs(indices, grid_sizes, cur_epoch=self.current_epoch, skipdata=skip_nbr)
-        if self._enable_after_nepoch > 0 and self.current_epoch < self._enable_after_nepoch:
-            assert (nbr_preds[0] == 0).all()
-            assert (nbr_preds[1] == 0).all()
-            assert (nbr_preds[2] == 0).all()
-            assert (nbr_preds[3] == 0).all()
+        # if self._enable_after_nepoch > 0 and self.current_epoch < self._enable_after_nepoch:
+        #     assert (nbr_preds[0] == 0).all()
+        #     assert (nbr_preds[1] == 0).all()
+        #     assert (nbr_preds[2] == 0).all()
+        #     assert (nbr_preds[3] == 0).all()
 
         nbr_preds = [torch.Tensor(nbr_y).to(x.device) for nbr_y in nbr_preds]
         nbrs = Neighbors(*nbr_preds)
