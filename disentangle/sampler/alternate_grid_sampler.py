@@ -113,9 +113,11 @@ class AlternateGridSampler(GridSampler):
     def __iter__(self):
         self.init()
         start_idx = 0
-        for _ in range(len(self.index_batches) // self._batch_size):
-            yield self.index_batches[start_idx:start_idx + self._batch_size].copy()
-            start_idx += self._batch_size
+        num_batches = int(np.ceil(len(self.index_batches) / self._batch_size))
+        for _ in range(num_batches):
+            batch_indices = self.index_batches[start_idx:start_idx + self._batch_size].copy()
+            yield batch_indices
+            start_idx += len(batch_indices)
 
 
 if __name__ == '__main__':
