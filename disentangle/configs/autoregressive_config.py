@@ -13,8 +13,8 @@ from disentangle.data_loader.patch_index_manager import GridAlignement
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
-    data.val_grid_size = 96
+    data.image_size = 512
+    data.val_grid_size = 256
     data.grid_alignment = GridAlignement.Center
     data.full_coverage_randomized = True
     data.data_type = DataType.OptiMEM100_014
@@ -134,8 +134,8 @@ def get_config():
     training.lr = 0.001 / 2
     training.lr_scheduler_patience = 32
     training.max_epochs = 400
-    training.batch_size = 16
-    training.num_workers = 4
+    training.batch_size = 4
+    training.num_workers = 1
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
