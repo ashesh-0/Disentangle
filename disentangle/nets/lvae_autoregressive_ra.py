@@ -370,14 +370,12 @@ class AutoRegRALadderVAE(LadderVAE):
                                                  enable_rotation=self._enable_rotation,
                                                  enable_flips=self._enable_flips)
         imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
-
-        if output_dict['quadrant'] is not None and output_dict['quadrant'] > 0:
-            imgs = torch.rot90(imgs, k=-output_dict['quadrant'], dims=(2, 3))
-
-        if output_dict['hflip'] is not None and output_dict['hflip']:
-            imgs = torch.flip(imgs, dims=(3, ))
         if output_dict['vflip'] is not None and output_dict['vflip']:
             imgs = torch.flip(imgs, dims=(2, ))
+        if output_dict['hflip'] is not None and output_dict['hflip']:
+            imgs = torch.flip(imgs, dims=(3, ))
+        if output_dict['quadrant'] is not None and output_dict['quadrant'] > 0:
+            imgs = torch.rot90(imgs, k=-output_dict['quadrant'], dims=(2, 3))
 
         # if self.current_epoch % 10 == 0 and batch_idx < 2:
         #     nbrs = torch.cat([output_dict['target_normalized'], imgs] + output_dict['nbr_preds'], dim=1)
@@ -395,6 +393,10 @@ class AutoRegRALadderVAE(LadderVAE):
 
     def validation_step(self, batch, batch_idx, return_output_dict=False):
         output_dict = self.get_output_from_batch(batch, self._val_sol_manager)
+        assert output_dict['vflip'] is None
+        assert output_dict['hflip'] is None
+        assert output_dict['quadrant'] is None
+
         imgs = get_img_from_forward_output(output_dict['out'], self, unnormalized=False, likelihood_obj=self.likelihood)
         self._val_sol_manager.update(imgs.cpu().detach().numpy(), batch[2], batch[3])
         self._val_gt_manager.update(output_dict['target_normalized'].cpu().detach().numpy(), batch[2], batch[3])
@@ -430,7 +432,7 @@ class AutoRegRALadderVAE(LadderVAE):
                                          t=0,
                                          downscale_factor=3,
                                          epoch=self.current_epoch)
-        if self.current_epoch == 0:
+        if self.current_epoch in [0, 1]:
             self._val_gt_manager.dump_img(self.data_mean.cpu().numpy(),
                                           self.data_std.cpu().numpy(),
                                           t=0,

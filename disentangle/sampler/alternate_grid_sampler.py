@@ -89,8 +89,9 @@ class AlternateGridSampler(GridSampler):
 
     def init_full_coverage(self):
         if self._state == 0:
-            self._offsetrow = np.random.randint(0, self._overlap // 2)
-            self._offsetcol = np.random.randint(0, self._overlap // 2)
+            grid_size = self._patch_size - 2 * self._overlap
+            self._offsetrow = np.random.randint(0, grid_size // 2)
+            self._offsetcol = np.random.randint(0, grid_size // 2)
 
         self.index_batches = []
         for t in range(self._dset.idx_manager.N):

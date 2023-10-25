@@ -80,13 +80,13 @@ def get_config():
     model = config.model
     model.model_type = ModelType.AutoRegresiveRALadderVAE
     model.rotation_with_neighbors = True
-    model.flips_with_neighbors = False
+    model.flips_with_neighbors = True
     model.untrained_nbr_branch = False
     model.z_dims = [128, 128, 128, 128]
     model.nbr_dropout = 0.2
     model.nbr_share_weights = True
     model.nbr_disabled = False
-    model.enable_after_nepoch = 5
+    model.enable_after_nepoch = 10
     # model.skip_nbr_in_bottomk_levels = 1
 
     model.encoder.batchnorm = True
@@ -131,7 +131,7 @@ def get_config():
     model.noise_model_ch1_fpath = None
 
     training = config.training
-    training.lr = 0.001 // 2
+    training.lr = 0.001 / 2
     training.lr_scheduler_patience = 8
     training.max_epochs = 200
     training.batch_size = 16
