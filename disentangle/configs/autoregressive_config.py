@@ -57,7 +57,7 @@ def get_config():
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
-    data.target_separate_normalization = True
+    data.target_separate_normalization = False
 
     # This is for intensity augmentation
     # data.ch1_min_alpha = 0.4
