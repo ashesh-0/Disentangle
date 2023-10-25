@@ -103,7 +103,9 @@ class LocationBasedSolutionRAManager:
                 output.append(self._data[location.t, :, location.h:location.h + patch_size,
                                          location.w:location.w + patch_size])
             else:
-                output.append(np.zeros((self._data.shape[1], patch_size, patch_size)))
+                # output.append(np.zeros((self._data.shape[1], patch_size, patch_size)))
+                rvector = 2 * np.random.rand(self._data.shape[1], patch_size, patch_size) - 1
+                output.append(rvector)
         return np.array(output)
 
     def dump_img(self, mean, std, t=0, downscale_factor=3, epoch=0):
