@@ -125,22 +125,22 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = True
+    model.non_stochastic_version = False
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = 8
-    training.max_epochs = 200
+    training.lr_scheduler_patience = 32
+    training.max_epochs = 400
     training.batch_size = 16
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 50
+    training.earlystop_patience = 200
     training.precision = 16
 
     return config
