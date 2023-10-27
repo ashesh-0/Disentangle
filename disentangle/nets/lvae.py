@@ -75,6 +75,8 @@ class LadderVAE(pl.LightningModule):
         self.encoder_res_block_skip_padding = config.model.encoder.res_block_skip_padding
         self.decoder_res_block_skip_padding = config.model.decoder.res_block_skip_padding
 
+        self.reconstruction_mode = config.model.get('reconstruction_mode', False)
+
         self.gated = config.model.gated
         self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
         self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
@@ -185,7 +187,7 @@ class LadderVAE(pl.LightningModule):
         print(f'[{self.__class__.__name__}] Enc [ResKSize{self.encoder_res_block_kernel}',
               f'SkipPadding:{self.encoder_res_block_skip_padding}]',
               f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]',
-              f'Stoc:{not self.non_stochastic_version}')
+              f'Stoc:{not self.non_stochastic_version} RecMode:{self.reconstruction_mode}')
 
     def create_top_down_layers(self):
         top_down_layers = nn.ModuleList([])
@@ -550,7 +552,11 @@ class LadderVAE(pl.LightningModule):
     def training_step(self, batch, batch_idx, enable_logging=True):
         x, target = batch[:2]
         x_normalized = self.normalize_input(x)
-        target_normalized = self.normalize_target(target)
+        if self.reconstruction_mode:
+            target_normalized = x_normalized.repeat(1, 2, 1, 1)
+            target = None
+        else:
+            target_normalized = self.normalize_target(target)
 
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
@@ -632,10 +638,14 @@ class LadderVAE(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, target = batch[:2]
-        self.set_params_to_same_device_as(target)
-
+        self.set_params_to_same_device_as(x)
         x_normalized = self.normalize_input(x)
-        target_normalized = self.normalize_target(target, batch=batch)
+        if self.reconstruction_mode:
+            target_normalized = x_normalized.repeat(1, 2, 1, 1)
+            target = None
+        else:
+            target_normalized = self.normalize_target(target)
+
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])

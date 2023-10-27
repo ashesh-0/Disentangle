@@ -83,7 +83,8 @@ def get_config():
     model.decoder.res_block_skip_padding = False
 
     model.decoder.multiscale_retain_spatial_dims = False
-    config.model.decoder.conv2d_bias = True
+    model.decoder.conv2d_bias = True
+    model.reconstruction_mode = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -113,7 +114,7 @@ def get_config():
     training.lr = 0.001 / 2
     training.lr_scheduler_patience = 30
     training.max_epochs = 400
-    training.batch_size = 128
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
