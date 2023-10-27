@@ -670,19 +670,19 @@ class LadderVAE(pl.LightningModule):
         self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
         # self.log('val_psnr', (val_psnr_l1 + val_psnr_l2) / 2, on_epoch=True)
 
-        if batch_idx == 0 and self.power_of_2(self.current_epoch):
-            all_samples = []
-            for i in range(20):
-                sample, _ = self(x_normalized[0:1, ...])
-                sample = self.likelihood.get_mean_lv(sample)[0]
-                all_samples.append(sample[None])
+        # if batch_idx == 0 and self.power_of_2(self.current_epoch):
+        #     all_samples = []
+        #     for i in range(20):
+        #         sample, _ = self(x_normalized[0:1, ...])
+        #         sample = self.likelihood.get_mean_lv(sample)[0]
+        #         all_samples.append(sample[None])
 
-            all_samples = torch.cat(all_samples, dim=0)
-            all_samples = all_samples * self.data_std + self.data_mean
-            all_samples = all_samples.cpu()
-            img_mmse = torch.mean(all_samples, dim=0)[0]
-            self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
-            self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
+        #     all_samples = torch.cat(all_samples, dim=0)
+        #     all_samples = all_samples * self.data_std + self.data_mean
+        #     all_samples = all_samples.cpu()
+        #     img_mmse = torch.mean(all_samples, dim=0)[0]
+        #     self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
+        #     self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
 
         # return net_loss
 
