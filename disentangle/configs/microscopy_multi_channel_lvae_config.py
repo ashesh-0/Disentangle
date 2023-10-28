@@ -18,7 +18,8 @@ def get_config():
     data.channel_2 = 3
 
     # from the training data, we will use only this fraction of data. This is useful for working with less supervised data.
-    data.trainig_datausage_fraction = 0.03
+    # data.trainig_datausage_fraction = 0.03
+    data.training_validtarget_fraction = 0.05
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
     data.normalized_input = True
@@ -54,8 +55,8 @@ def get_config():
     # data.return_alpha = True
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
-    # loss.mixed_rec_weight = 1
+    loss.loss_type = LossType.ElboMixedReconstruction
+    loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
     loss.kl_annealing = False
@@ -101,7 +102,7 @@ def get_config():
     model.analytical_kl = False
     model.mode_pred = False
     model.var_clip_max = 20
-    # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
+    # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise', 'ch_invariant_pixelwise]
     model.predict_logvar = None
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
@@ -111,7 +112,7 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
-    model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D3-M3-S0-L0/2/kepler/BaselineVAECL_best.ckpt'
+    # model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D3-M3-S0-L0/2/kepler/BaselineVAECL_best.ckpt'
 
     training = config.training
     training.lr = 0.001 / 2

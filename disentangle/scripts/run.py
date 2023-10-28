@@ -167,10 +167,20 @@ def main(argv):
         log_config(config, cur_workdir)
 
         train_data, val_data = create_dataset(config, FLAGS.datadir, raw_data_dict=raw_data_dict)
+        mean_dict = {'input': None, 'target': None}
+        std_dict = {'input': None, 'target': None}
+        inp_mean, inp_std = train_data.get_mean_std()
+        mean_dict['input'] = inp_mean
+        std_dict['input'] = inp_std
+
         if config.data.target_separate_normalization is True:
             data_mean, data_std = train_data.compute_individual_mean_std()
         else:
             data_mean, data_std = train_data.get_mean_std()
+
+        mean_dict['target'] = data_mean
+        std_dict['target'] = data_std
+
         # assert np.abs(config.data.mean_val - data_mean) < 1e-3, f'{config.data.mean_val - data_mean}'
         # assert np.abs(config.data.std_val - data_std) < 1e-3, f'{config.data.std_val - data_std}'
 
@@ -224,7 +234,7 @@ def main(argv):
                                      batch_sampler=val_sampler,
                                      num_workers=config.training.num_workers)
 
-        train_network(train_dloader, val_dloader, data_mean, data_std, config, 'BaselineVAECL', FLAGS.logdir)
+        train_network(train_dloader, val_dloader, mean_dict, std_dict, config, 'BaselineVAECL', FLAGS.logdir)
 
     elif FLAGS.mode == "eval":
         pass

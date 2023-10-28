@@ -42,6 +42,7 @@ class LadderVAE(pl.LightningModule):
         self.ch1_recons_w = config.loss.get('ch1_recons_w', 1)
         self.ch2_recons_w = config.loss.get('ch2_recons_w', 1)
 
+        self._input_is_sum = config.data.input_is_sum
         # grayscale input
         self.color_ch = config.data.get('color_ch', 1)
 
@@ -78,8 +79,17 @@ class LadderVAE(pl.LightningModule):
         self.reconstruction_mode = config.model.get('reconstruction_mode', False)
 
         self.gated = config.model.gated
-        self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
-        self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
+        if isinstance(data_mean, np.ndarray):
+            self.data_mean = torch.Tensor(data_mean)
+            self.data_std = torch.Tensor(data_std)
+        elif isinstance(data_mean, dict):
+            for k in data_mean.keys():
+                data_mean[k] = torch.Tensor(data_mean[k])
+                data_std[k] = torch.Tensor(data_std[k])
+            self.data_mean = data_mean
+            self.data_std = data_std
+        else:
+            raise NotImplementedError('data_mean and data_std must be either a numpy array or a dictionary')
 
         self.noiseModel = get_noise_model(config.model)
         self.merge_type = config.model.merge_type
@@ -419,15 +429,17 @@ class LadderVAE(pl.LightningModule):
             kl_weight = 1.0
         return kl_weight
 
-    def get_reconstruction_loss(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
+    def get_reconstruction_loss(self, reconstruction, target, input, return_predicted_img=False, likelihood_obj=None):
         output = self._get_reconstruction_loss_vector(reconstruction,
+                                                      target,
                                                       input,
                                                       return_predicted_img=return_predicted_img,
                                                       likelihood_obj=likelihood_obj)
         loss_dict = output[0] if return_predicted_img else output
-        loss_dict['loss'] = torch.mean(loss_dict['loss'])
-        loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'])
-        loss_dict['ch2_loss'] = torch.mean(loss_dict['ch2_loss'])
+        loss_dict['loss'] = torch.nanmean(loss_dict['loss'])
+        loss_dict['ch1_loss'] = torch.nanmean(loss_dict['ch1_loss'])
+        loss_dict['ch2_loss'] = torch.nanmean(loss_dict['ch2_loss'])
+
         if 'mixed_loss' in loss_dict:
             loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'])
         if return_predicted_img:
@@ -442,27 +454,31 @@ class LadderVAE(pl.LightningModule):
             self.bottom_up_layers[i].output_expected_shape = (sz, sz)
             self.top_down_layers[i].latent_shape = (output_size, output_size)
 
-    @staticmethod
-    def get_mixed_prediction(prediction, prediction_logvar, data_mean, data_std, channel_weights=None):
+    def get_mixed_prediction(self, prediction, prediction_logvar, data_mean, data_std, channel_weights=None):
         pred_unorm = prediction * data_std['target'] + data_mean['target']
         if channel_weights is None:
             channel_weights = 1
 
-        mixed_prediction = (torch.sum(pred_unorm * channel_weights, dim=1, keepdim=True) -
-                            data_mean['input']) / data_std['input']
+        if self._input_is_sum:
+            mixed_prediction = torch.sum(pred_unorm * channel_weights, dim=1, keepdim=True)
+        else:
+            mixed_prediction = torch.mean(pred_unorm * channel_weights, dim=1, keepdim=True)
 
-        var = torch.exp(prediction_logvar)
-        var = var * (data_std['target'] / data_std['input'])**2
+        mixed_prediction = (mixed_prediction - data_mean['input'].mean()) / data_std['input'].mean()
+        if prediction_logvar is not None:
+            var = torch.exp(prediction_logvar)
+            var = var * (data_std['target'] / data_std['input'])**2
 
-        var = var * torch.square(channel_weights)
+            var = var * torch.square(channel_weights)
 
-        # sum of variance.
-        mixed_var = 0
-        for i in range(var.shape[1]):
-            mixed_var += var[:, i:i + 1]
+            # sum of variance.
+            mixed_var = 0
+            for i in range(var.shape[1]):
+                mixed_var += var[:, i:i + 1]
 
-        logvar = torch.log(mixed_var)
-
+            logvar = torch.log(mixed_var)
+        else:
+            logvar = None
         return mixed_prediction, logvar
 
     def _get_weighted_likelihood(self, ll):
@@ -478,16 +494,28 @@ class LadderVAE(pl.LightningModule):
         mask2[:, 1] = 1
         return ll * mask1 * self.ch1_recons_w + ll * mask2 * self.ch2_recons_w
 
-    def _get_reconstruction_loss_vector(self, reconstruction, input, return_predicted_img=False, likelihood_obj=None):
+    def _get_reconstruction_loss_vector(self,
+                                        reconstruction,
+                                        target,
+                                        input,
+                                        return_predicted_img=False,
+                                        likelihood_obj=None):
         """
         Args:
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
 
+        output = {
+            'loss': None,
+            'ch1_loss': None,
+            'ch2_loss': None,
+            'mixed_loss': None,
+        }
         if likelihood_obj is None:
             likelihood_obj = self.likelihood
+
         # Log likelihood
-        ll, like_dict = likelihood_obj(reconstruction, input)
+        ll, like_dict = likelihood_obj(reconstruction, target)
         ll = self._get_weighted_likelihood(ll)
         if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
             pad = self.skip_nboundary_pixels_from_loss
@@ -508,8 +536,7 @@ class LadderVAE(pl.LightningModule):
             mixed_pred, mixed_logvar = self.get_mixed_prediction(like_dict['params']['mean'],
                                                                  like_dict['params']['logvar'], self.data_mean,
                                                                  self.data_std)
-            mixed_target = input
-            mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_pred, 'logvar': mixed_logvar})
+            mixed_recons_ll = self.likelihood.log_likelihood(input, {'mean': mixed_pred, 'logvar': mixed_logvar})
             output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
         if return_predicted_img:
@@ -562,13 +589,19 @@ class LadderVAE(pl.LightningModule):
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict, imgs = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        recons_loss_dict, imgs = self.get_reconstruction_loss(out,
+                                                              target_normalized,
+                                                              x_normalized,
+                                                              return_predicted_img=True)
 
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         recons_loss = recons_loss_dict['loss']
+        if torch.isnan(recons_loss).any():
+            recons_loss = 0.0
+
         if self.loss_type == LossType.ElboMixedReconstruction:
             recons_loss += self.mixed_rec_w * recons_loss_dict['mixed_loss']
             if enable_logging:
@@ -613,10 +646,10 @@ class LadderVAE(pl.LightningModule):
     def normalize_input(self, x):
         if self.normalized_input:
             return x
-        return (x - self.data_mean.mean()) / self.data_std.mean()
+        return (x - self.data_mean['input'].mean()) / self.data_std['input'].mean()
 
     def normalize_target(self, target, batch=None):
-        return (target - self.data_mean) / self.data_std
+        return (target - self.data_mean['target']) / self.data_std['target']
 
     def power_of_2(self, x):
         assert isinstance(x, int)
@@ -630,11 +663,16 @@ class LadderVAE(pl.LightningModule):
         return self.power_of_2(x // 2)
 
     def set_params_to_same_device_as(self, correct_device_tensor):
+        self.likelihood.set_params_to_same_device_as(correct_device_tensor)
         if isinstance(self.data_mean, torch.Tensor):
             if self.data_mean.device != correct_device_tensor.device:
                 self.data_mean = self.data_mean.to(correct_device_tensor.device)
                 self.data_std = self.data_std.to(correct_device_tensor.device)
-                self.likelihood.set_params_to_same_device_as(correct_device_tensor)
+        elif isinstance(self.data_mean, dict):
+            for k, v in self.data_mean.items():
+                if v.device != correct_device_tensor.device:
+                    self.data_mean[k] = v.to(correct_device_tensor.device)
+                    self.data_std[k] = self.data_std[k].to(correct_device_tensor.device)
 
     def validation_step(self, batch, batch_idx):
         x, target = batch[:2]
@@ -650,7 +688,10 @@ class LadderVAE(pl.LightningModule):
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        recons_loss_dict, recons_img = self.get_reconstruction_loss(out,
+                                                                    target_normalized,
+                                                                    x_normalized,
+                                                                    return_predicted_img=True)
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]

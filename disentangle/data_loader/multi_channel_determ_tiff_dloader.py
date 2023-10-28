@@ -38,9 +38,11 @@ class MultiChDeterministicTiffDloader:
         """
         self._fpath = fpath
         self._data = self.N = None
-        self._datausage_fraction = 1
+        self._datausage_fraction = self._training_validtarget_fraction = 1
+        self._validtarget_maxt = None
         if datasplit_type == DataSplitType.Train:
             self._datausage_fraction = data_config.get('trainig_datausage_fraction', 1.0)
+            self._training_validtarget_fraction = data_config.get('training_validtarget_fraction', 1.0)
 
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
@@ -129,6 +131,12 @@ class MultiChDeterministicTiffDloader:
             cnt = int(self._data.shape[0] * self._datausage_fraction)
             print(f'[{self.__class__.__name__}] Using only {cnt} out of {self._data.shape[0]} training data.')
             self._data = self._data[:cnt].copy()
+        if self._training_validtarget_fraction < 1.0:
+            self._validtarget_maxt = int(self._data.shape[0] * self._training_validtarget_fraction)
+            print(
+                f'[{self.__class__.__name__}] Target only for {self._validtarget_maxt} out of {self._data.shape[0]} training data for valid target.'
+            )
+
         self.N = len(self._data)
 
     def save_background(self, channel_idx, frame_idx, background_value):
@@ -321,13 +329,16 @@ class MultiChDeterministicTiffDloader:
     def __len__(self):
         return self.N * self._repeat_factor
 
-    def _load_img(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+    def _get_tidx(self, index):
         if isinstance(index, int):
             idx = index
         else:
             idx = index[0]
 
-        imgs = self._data[self.idx_manager.get_t(idx)]
+        return self.idx_manager.get_t(idx)
+
+    def _load_img(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+        imgs = self._data[self._get_tidx(index)]
         loaded_imgs = [imgs[None, ..., i] for i in range(imgs.shape[-1])]
         return tuple(loaded_imgs)
 
@@ -498,6 +509,11 @@ class MultiChDeterministicTiffDloader:
             img2 = rot_dic['mask'][None]
 
         target = np.concatenate(img_tuples, axis=0)
+        if self._validtarget_maxt:
+            tidx = self._get_tidx(index)
+            if tidx > self._validtarget_maxt:
+                target = np.nan * target
+
         inp, alpha = self._compute_input(img_tuples)
 
         output = [inp, target]

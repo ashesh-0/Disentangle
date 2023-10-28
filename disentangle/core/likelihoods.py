@@ -126,7 +126,8 @@ class GaussianLikelihood(LikelihoodModule):
         self.predict_logvar = predict_logvar
         self.logvar_lowerbound = logvar_lowerbound
         self.conv2d_bias = conv2d_bias
-        assert self.predict_logvar in [None, 'global', 'pixelwise', 'channelwise']
+        assert self.predict_logvar in [None, 'global', 'pixelwise', 'ch_invariant_pixelwise'
+                                       'channelwise']
         logvar_ch_needed = self.predict_logvar is not None
         self.parameter_net = nn.Conv2d(ch_in,
                                        color_channels * (1 + logvar_ch_needed),
@@ -155,6 +156,9 @@ class GaussianLikelihood(LikelihoodModule):
 
                 lv = torch.mean(lv.reshape(N, -1), dim=1)
                 lv = lv.reshape(new_shape)
+            elif self.predict_logvar == 'ch_invariant_pixelwise':
+                mean = torch.mean(mean, dim=1, keepdim=True)
+                lv = torch.mean(lv, dim=1, keepdim=True)
 
             if self.logvar_lowerbound is not None:
                 lv = torch.clip(lv, min=self.logvar_lowerbound)
