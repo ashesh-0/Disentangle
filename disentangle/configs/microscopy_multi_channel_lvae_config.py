@@ -18,7 +18,7 @@ def get_config():
     data.channel_2 = 3
 
     # from the training data, we will use only this fraction of data. This is useful for working with less supervised data.
-    data.trainig_datausage_fraction = 0.1
+    data.trainig_datausage_fraction = 0.05
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
     data.normalized_input = True
