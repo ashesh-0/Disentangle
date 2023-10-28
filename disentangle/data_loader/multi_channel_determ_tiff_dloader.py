@@ -38,6 +38,9 @@ class MultiChDeterministicTiffDloader:
         """
         self._fpath = fpath
         self._data = self.N = None
+        self._datausage_fraction = 1
+        if datasplit_type == DataSplitType.Train:
+            self._datausage_fraction = data_config.get('trainig_datausage_fraction', 1.0)
 
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
@@ -122,6 +125,10 @@ class MultiChDeterministicTiffDloader:
                                         val_fraction=val_fraction,
                                         test_fraction=test_fraction,
                                         allow_generation=allow_generation)
+        if self._datausage_fraction < 1.0:
+            cnt = int(self._data.shape[0] * self._datausage_fraction)
+            print(f'[{self.__class__.__name__}] Using only {cnt} out of {self._data.shape[0]} training data.')
+            self._data = self._data[:cnt].copy()
         self.N = len(self._data)
 
     def save_background(self, channel_idx, frame_idx, background_value):
