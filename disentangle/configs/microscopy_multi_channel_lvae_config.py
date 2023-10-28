@@ -111,7 +111,7 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
-    model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D3-M3-S0-L0/2/colorfuljug/BaselineVAECL_best.ckpt'
+    model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D3-M3-S0-L0/2/kepler/BaselineVAECL_best.ckpt'
 
     training = config.training
     training.lr = 0.001 / 2
