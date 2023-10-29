@@ -40,9 +40,11 @@ class MultiChDeterministicTiffDloader:
         self._data = self.N = None
         self._datausage_fraction = self._training_validtarget_fraction = 1
         self._validtarget_maxt = None
+        self._validtarget_rand_fract = None
         if datasplit_type == DataSplitType.Train:
             self._datausage_fraction = data_config.get('trainig_datausage_fraction', 1.0)
             self._training_validtarget_fraction = data_config.get('training_validtarget_fraction', 1.0)
+            self._validtarget_rand_fract = data_config.get('validtarget_random_fraction', None)
 
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
@@ -495,7 +497,30 @@ class MultiChDeterministicTiffDloader:
             inp = 2 * inp
         return inp, alpha
 
+    def transform_index_to_valid_target(self, index):
+        assert self._validtarget_rand_fract is not None and (self._validtarget_rand_fract >= 0.0) and (self._validtarget_rand_fract <= 1.0)
+        assert self._validtarget_maxt is not None and self._validtarget_maxt >= 0
+        if self._get_tidx(index) > self._validtarget_maxt:
+           index = index - (self._get_tidx(index) - np.random.randint(0,self._validtarget_maxt + 1))
+        
+        return index
+
+    def transform_index_to_invalid_target(self, index):
+        assert self._validtarget_rand_fract is not None and (self._validtarget_rand_fract >= 0.0) and (self._validtarget_rand_fract <= 1.0)
+        assert self._validtarget_maxt is not None and self._validtarget_maxt >= 0
+        if self._get_tidx(index) < self._validtarget_maxt:
+           index = index + (np.random.randint(self._validtarget_maxt + 1, self._data.shape[0]) - self._get_tidx(index))
+        return index
+
+
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+        if self._validtarget_maxt:
+            if self._validtarget_rand_fract is not None:
+                if np.random.rand() < self._validtarget_rand_fract:
+                    index = self.transform_index_to_valid_target(index)
+                else:
+                    index = self.transform_index_to_invalid_target(index)
+
         img_tuples = self._get_img(index)
         if self._empty_patch_replacement_enabled:
             if np.random.rand() < self._empty_patch_replacement_probab:
@@ -512,7 +537,7 @@ class MultiChDeterministicTiffDloader:
         if self._validtarget_maxt:
             tidx = self._get_tidx(index)
             if tidx > self._validtarget_maxt:
-                target = np.nan * target
+                target = 0 * target
 
         inp, alpha = self._compute_input(img_tuples)
 

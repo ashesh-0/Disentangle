@@ -429,16 +429,17 @@ class LadderVAE(pl.LightningModule):
             kl_weight = 1.0
         return kl_weight
 
-    def get_reconstruction_loss(self, reconstruction, target, input, return_predicted_img=False, likelihood_obj=None):
+    def get_reconstruction_loss(self, reconstruction, target, input, splitting_mask, return_predicted_img=False, likelihood_obj=None):
         output = self._get_reconstruction_loss_vector(reconstruction,
                                                       target,
                                                       input,
                                                       return_predicted_img=return_predicted_img,
                                                       likelihood_obj=likelihood_obj)
         loss_dict = output[0] if return_predicted_img else output
-        loss_dict['loss'] = torch.nanmean(loss_dict['loss'])
-        loss_dict['ch1_loss'] = torch.nanmean(loss_dict['ch1_loss'])
-        loss_dict['ch2_loss'] = torch.nanmean(loss_dict['ch2_loss'])
+        # print(len(target) - (torch.isnan(loss_dict['loss'])).sum())
+        loss_dict['loss'] = loss_dict['loss'][splitting_mask].mean()
+        loss_dict['ch1_loss'] = loss_dict['ch1_loss'][splitting_mask].mean()
+        loss_dict['ch2_loss'] = loss_dict['ch2_loss'][splitting_mask].mean()
 
         if 'mixed_loss' in loss_dict:
             loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'])
@@ -465,6 +466,7 @@ class LadderVAE(pl.LightningModule):
             mixed_prediction = torch.mean(pred_unorm * channel_weights, dim=1, keepdim=True)
 
         mixed_prediction = (mixed_prediction - data_mean['input'].mean()) / data_std['input'].mean()
+        
         if prediction_logvar is not None:
             var = torch.exp(prediction_logvar)
             var = var * (data_std['target'] / data_std['input'])**2
@@ -578,6 +580,7 @@ class LadderVAE(pl.LightningModule):
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         x, target = batch[:2]
+
         x_normalized = self.normalize_input(x)
         if self.reconstruction_mode:
             target_normalized = x_normalized.repeat(1, 2, 1, 1)
@@ -585,15 +588,18 @@ class LadderVAE(pl.LightningModule):
         else:
             target_normalized = self.normalize_target(target)
 
+        
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
+        mask = (target == 0).reshape(len(target),-1).all(dim=1)
+        # mask = torch.isnan(target.reshape(len(x), -1)).all(dim=1)
         recons_loss_dict, imgs = self.get_reconstruction_loss(out,
                                                               target_normalized,
                                                               x_normalized,
+                                                              ~mask,
                                                               return_predicted_img=True)
-
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
@@ -604,13 +610,13 @@ class LadderVAE(pl.LightningModule):
 
         if self.loss_type == LossType.ElboMixedReconstruction:
             recons_loss += self.mixed_rec_w * recons_loss_dict['mixed_loss']
+
             if enable_logging:
                 self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
         elif self.loss_type == LossType.ElboWithNbrConsistency:
             assert len(batch) == 4
             grid_sizes = batch[-1]
             nbr_cons_loss = self.nbr_consistency_w * self.nbr_consistency_loss.get(imgs, grid_sizes=grid_sizes)
-            # print(recons_loss, nbr_cons_loss)
             self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
             recons_loss += nbr_cons_loss
 
@@ -621,6 +627,7 @@ class LadderVAE(pl.LightningModule):
             kl_loss = self.get_kl_divergence_loss(td_data)
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
+        # print(f'rec:{recons_loss_dict["loss"]:.3f} mix: {recons_loss_dict.get("mixed_loss",0):.3f} KL: {kl_loss:.3f}')
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):
                 self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
@@ -634,7 +641,7 @@ class LadderVAE(pl.LightningModule):
 
         output = {
             'loss': net_loss,
-            'reconstruction_loss': recons_loss.detach(),
+            'reconstruction_loss': recons_loss.detach() if isinstance(recons_loss, torch.Tensor) else recons_loss,
             'kl_loss': kl_loss.detach(),
         }
         # https://github.com/openai/vdvae/blob/main/train.py#L26
@@ -688,9 +695,11 @@ class LadderVAE(pl.LightningModule):
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
+        mask = (target == 0).reshape(len(target),-1).all(dim=1)
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out,
                                                                     target_normalized,
                                                                     x_normalized,
+                                                                    ~mask,
                                                                     return_predicted_img=True)
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
@@ -1027,7 +1036,6 @@ if __name__ == '__main__':
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count + 1
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
     out, td_data = model(inp)
-    print(out.shape)
     batch = (
         torch.rand((16, mc, config.data.image_size, config.data.image_size)),
         torch.rand((16, 2, config.data.image_size, config.data.image_size)),
