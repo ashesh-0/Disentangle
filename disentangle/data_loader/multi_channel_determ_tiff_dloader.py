@@ -41,10 +41,18 @@ class MultiChDeterministicTiffDloader:
         self._datausage_fraction = self._training_validtarget_fraction = 1
         self._validtarget_maxt = None
         self._validtarget_rand_fract = None
+        self._validtarget_random_fraction_final = None
+        self._validtarget_random_fraction_stepepoch = None
+
         if datasplit_type == DataSplitType.Train:
             self._datausage_fraction = data_config.get('trainig_datausage_fraction', 1.0)
             self._training_validtarget_fraction = data_config.get('training_validtarget_fraction', 1.0)
             self._validtarget_rand_fract = data_config.get('validtarget_random_fraction', None)
+            self._validtarget_random_fraction_final = data_config.get('validtarget_random_fraction_final', None)
+            self._validtarget_random_fraction_stepepoch = data_config.get('validtarget_random_fraction_stepepoch',
+                                                                          None)
+            self._idx_count = 0
+            
 
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
@@ -514,6 +522,15 @@ class MultiChDeterministicTiffDloader:
 
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+        
+        if self._validtarget_random_fraction_final is not None:
+            self._idx_count += 1
+            self._idx_count = self._idx_count % self.__len__()
+            if self._idx_count ==0:
+                self._validtarget_rand_fract += self._validtarget_random_fraction_stepepoch
+                self._validtarget_rand_fract = min(self._validtarget_rand_fract, self._validtarget_random_fraction_final)
+                print('New step: ', self._validtarget_rand_fract)
+
         if self._validtarget_maxt:
             if self._validtarget_rand_fract is not None:
                 if np.random.rand() < self._validtarget_rand_fract:
