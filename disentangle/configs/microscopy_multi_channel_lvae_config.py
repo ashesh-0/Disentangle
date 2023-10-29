@@ -18,9 +18,9 @@ def get_config():
     data.channel_2 = 3
 
     # from the training data, we will use only this fraction of data. This is useful for working with less supervised data.
-    data.trainig_datausage_fraction = 0.03
-    # data.training_validtarget_fraction = 0.1
-    # data.validtarget_random_fraction = 0.5
+    # data.trainig_datausage_fraction = 0.03
+    data.training_validtarget_fraction = 0.03
+    data.validtarget_random_fraction = 0.7
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
     data.normalized_input = True
@@ -113,7 +113,7 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
-    model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D3-M3-S0-L0/2/kepler/BaselineVAECL_best.ckpt'
+    # model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D3-M3-S0-L0/2/kepler/BaselineVAECL_best.ckpt'
 
     training = config.training
     training.lr = 0.001 / 2
