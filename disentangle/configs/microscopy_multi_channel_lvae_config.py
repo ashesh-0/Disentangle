@@ -18,9 +18,9 @@ def get_config():
     data.channel_2 = 3
 
     # from the training data, we will use only this fraction of data. This is useful for working with less supervised data.
-    # data.trainig_datausage_fraction = 0.03
-    data.training_validtarget_fraction = 0.1
-    data.validtarget_random_fraction = 0.5
+    data.trainig_datausage_fraction = 0.03
+    # data.training_validtarget_fraction = 0.1
+    # data.validtarget_random_fraction = 0.5
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
     data.normalized_input = True
@@ -117,8 +117,8 @@ def get_config():
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = 30
-    training.max_epochs = 200
+    training.lr_scheduler_patience = 990
+    training.max_epochs = 6600
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
@@ -126,7 +126,7 @@ def get_config():
     training.val_fraction = 0.1
     training.test_fraction = 0.1
 
-    training.earlystop_patience = 100
+    training.earlystop_patience = 3300
     training.precision = 16
 
     return config
