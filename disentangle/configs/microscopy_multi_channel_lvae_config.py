@@ -20,7 +20,7 @@ def get_config():
     # from the training data, we will use only this fraction of data. This is useful for working with less supervised data.
     # data.trainig_datausage_fraction = 0.03
     data.training_validtarget_fraction = 0.03
-    data.validtarget_random_fraction = 0.7
+    data.validtarget_random_fraction = 0.3
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
     data.normalized_input = True
