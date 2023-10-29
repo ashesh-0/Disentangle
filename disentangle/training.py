@@ -359,6 +359,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
     # wandb.init(config=config)
     if torch.cuda.is_available():
         # profiler = pl.profiler.AdvancedProfiler(output_filename=os.path.join(config.workdir, 'advance_profile.txt'))
+        check_val_every_n_epoch = config.training.get('check_val_every_n_epoch', 1)
         try:
             # older version has this code
             trainer = pl.Trainer(
@@ -371,6 +372,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 # fast_dev_run=10,
                 #  profiler=profiler,
                 # overfit_batches=20,
+                check_val_every_n_epoch=check_val_every_n_epoch,
                 callbacks=callbacks,
                 precision=config.training.precision)
         except:
@@ -384,6 +386,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 # fast_dev_run=10,
                 #  profiler=profiler,
                 # overfit_batches=20,
+                check_val_every_n_epoch=check_val_every_n_epoch,
                 callbacks=callbacks,
                 precision=config.training.precision)
 

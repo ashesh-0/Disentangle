@@ -128,5 +128,6 @@ def get_config():
 
     training.earlystop_patience = 3300
     training.precision = 16
+    training.check_val_every_n_epoch = 10
 
     return config
