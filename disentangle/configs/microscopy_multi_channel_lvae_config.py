@@ -19,10 +19,10 @@ def get_config():
 
     # from the training data, we will use only this fraction of data. This is useful for working with less supervised data.
     # data.trainig_datausage_fraction = 0.1
-    data.training_validtarget_fraction = 0.03
-    data.validtarget_random_fraction = 0.3
-    data.validtarget_random_fraction_final = 0.9
-    data.validtarget_random_fraction_stepepoch = 0.005
+    data.training_validtarget_fraction = 0.5
+    data.validtarget_random_fraction = 0.7
+    # data.validtarget_random_fraction_final = 0.9
+    # data.validtarget_random_fraction_stepepoch = 0.005
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
     data.normalized_input = True
@@ -71,7 +71,7 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVAEInterleavedOptimization
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
@@ -121,7 +121,7 @@ def get_config():
     training.lr = 0.001 / 2
     training.lr_scheduler_patience = 30
     training.max_epochs = 200
-    training.batch_size = 32
+    training.batch_size = 8
     training.num_workers = 0
     training.val_repeat_factor = None
     training.train_repeat_factor = None

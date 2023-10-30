@@ -16,9 +16,9 @@ def get_config():
     data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
 
     # from the training data, we will use only this fraction of data. This is useful for working with less supervised data.
-    data.trainig_datausage_fraction = 0.02
-    # data.training_validtarget_fraction = 0.02
-    # data.validtarget_random_fraction = 0.7
+    # data.trainig_datausage_fraction = 0.02
+    data.training_validtarget_fraction = 0.02
+    data.validtarget_random_fraction = 0.7
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
     data.sampler_type = SamplerType.DefaultSampler
@@ -56,7 +56,7 @@ def get_config():
     # data.return_alpha = True
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.ElboMixedReconstruction
     loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -69,7 +69,7 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVAEInterleavedOptimization
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
@@ -86,7 +86,7 @@ def get_config():
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
 
-    model.decoder.multiscale_retain_spatial_dims = False
+    model.decoder.multiscale_retain_spatial_dims = True
     model.decoder.conv2d_bias = True
     model.reconstruction_mode = False
 
@@ -107,18 +107,18 @@ def get_config():
     model.predict_logvar = None
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
-    model.multiscale_retain_spatial_dims = True
+    # model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     model.non_stochastic_version = False
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
-    model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D7-M3-S0-L0/2/BaselineVAECL_best.ckpt'
+    # model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D7-M3-S0-L0/2/BaselineVAECL_best.ckpt'
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction)
-    training.max_epochs = int(200 / data.trainig_datausage_fraction)
+    training.lr_scheduler_patience = int(30)
+    training.max_epochs = int(200)
     training.batch_size = 32
     training.num_workers = 1
     training.val_repeat_factor = None
@@ -126,8 +126,8 @@ def get_config():
     training.val_fraction = 0.1
     training.test_fraction = 0.1
 
-    training.earlystop_patience = int(100 / data.trainig_datausage_fraction)
+    training.earlystop_patience = int(100)
     training.precision = 16
-    training.check_val_every_n_epoch = int(1 / (data.trainig_datausage_fraction * 2))
+    # training.check_val_every_n_epoch = int(1 / (data.trainig_datausage_fraction * 2))
 
     return config
