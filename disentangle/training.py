@@ -180,9 +180,16 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
     elif config.data.data_type in [
-            DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.Prevedel_EMBL,
-            DataType.AllenCellMito, DataType.SeparateTiffData, DataType.Pavia2VanillaSplitting, DataType.ShroffMitoEr,
-            DataType.HTIba1Ki67
+            DataType.OptiMEM100_014,
+            DataType.CustomSinosoid,
+            DataType.CustomSinosoidThreeCurve,
+            DataType.Prevedel_EMBL,
+            DataType.AllenCellMito,
+            DataType.SeparateTiffData,
+            DataType.Pavia2VanillaSplitting,
+            DataType.ShroffMitoEr,
+            DataType.HTIba1Ki67,
+            DataType.BioSR_MRC,
     ]:
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')

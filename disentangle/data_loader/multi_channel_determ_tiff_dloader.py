@@ -507,21 +507,24 @@ class MultiChDeterministicTiffDloader:
 
 
 if __name__ == '__main__':
-    from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+    # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+    from disentangle.configs.biosr_config import get_config
     config = get_config()
-    dset = MultiChDeterministicTiffDloader(config.data,
-                                           '/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif',
-                                           DataSplitType.Train,
-                                           val_fraction=config.training.val_fraction,
-                                           test_fraction=config.training.test_fraction,
-                                           normalized_input=config.data.normalized_input,
-                                           enable_rotation_aug=config.data.normalized_input,
-                                           enable_random_cropping=config.data.deterministic_grid is False,
-                                           use_one_mu_std=config.data.use_one_mu_std,
-                                           allow_generation=False,
-                                           max_val=None,
-                                           grid_alignment=GridAlignement.LeftTop,
-                                           overlapping_padding_kwargs=None)
+    dset = MultiChDeterministicTiffDloader(
+        config.data,
+        #    '/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif',
+        '/group/jug/ashesh/data/BioSR/',
+        DataSplitType.Train,
+        val_fraction=config.training.val_fraction,
+        test_fraction=config.training.test_fraction,
+        normalized_input=config.data.normalized_input,
+        enable_rotation_aug=config.data.normalized_input,
+        enable_random_cropping=config.data.deterministic_grid is False,
+        use_one_mu_std=config.data.use_one_mu_std,
+        allow_generation=False,
+        max_val=None,
+        grid_alignment=GridAlignement.LeftTop,
+        overlapping_padding_kwargs=None)
 
     mean, std = dset.compute_mean_std()
     dset.set_mean_std(mean, std)
