@@ -12,8 +12,9 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
+    data.enable_poisson_noise = True
 
     # from the training data, we will use only this fraction of data. This is useful for working with less supervised data.
     # data.trainig_datausage_fraction = 0.02
@@ -69,7 +70,7 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.LadderVAEInterleavedOptimization
+    model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
