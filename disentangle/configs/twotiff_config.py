@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
 
     # from the training data, we will use only this fraction of data. This is useful for working with less supervised data.
-    # data.trainig_datausage_fraction = 0.02
+    data.trainig_datausage_fraction = 0.02
     # data.training_validtarget_fraction = 0.02
     # data.validtarget_random_fraction = 0.7
     # data.validtarget_random_fraction_final = 0.9
@@ -88,7 +88,7 @@ def get_config():
 
     model.decoder.multiscale_retain_spatial_dims = False
     model.decoder.conv2d_bias = True
-    model.reconstruction_mode = True
+    model.reconstruction_mode = False
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -113,20 +113,21 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
-    # model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D3-M3-S0-L0/2/kepler/BaselineVAECL_best.ckpt'
+    model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D7-M3-S0-L0/2/BaselineVAECL_best.ckpt'
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = 30
-    training.max_epochs = 200
+    training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction)
+    training.max_epochs = int(200 / data.trainig_datausage_fraction)
     training.batch_size = 32
-    training.num_workers = 0
+    training.num_workers = 1
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
 
-    training.earlystop_patience = 100
+    training.earlystop_patience = int(100 / data.trainig_datausage_fraction)
     training.precision = 16
+    training.check_val_every_n_epoch = int(1 / (data.trainig_datausage_fraction * 2))
 
     return config
