@@ -17,9 +17,9 @@ def get_config():
     data.enable_poisson_noise = True
 
     # from the training data, we will use only this fraction of data. This is useful for working with less supervised data.
-    # data.trainig_datausage_fraction = 0.02
-    data.training_validtarget_fraction = 0.02
-    data.validtarget_random_fraction = 0.7
+    data.trainig_datausage_fraction = 0.02
+    # data.training_validtarget_fraction = 0.02
+    # data.validtarget_random_fraction = 0.7
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
     data.sampler_type = SamplerType.DefaultSampler
@@ -118,8 +118,8 @@ def get_config():
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = int(30)
-    training.max_epochs = int(200)
+    training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction)
+    training.max_epochs = int(200 / data.trainig_datausage_fraction)
     training.batch_size = 32
     training.num_workers = 1
     training.val_repeat_factor = None
@@ -127,7 +127,7 @@ def get_config():
     training.val_fraction = 0.1
     training.test_fraction = 0.1
 
-    training.earlystop_patience = int(100)
+    training.earlystop_patience = int(100 / data.trainig_datausage_fraction)
     training.precision = 16
     # training.check_val_every_n_epoch = int(1 / (data.trainig_datausage_fraction * 2))
 
