@@ -29,8 +29,8 @@ class LadderVAEInterleavedOptimization(LadderVAE):
             else:
                 if np.random.rand() > 0.5:
                     split_params.append(param)
-                else:
-                    reconstr_params.append(param)
+
+                reconstr_params.append(param)
 
         optimizer_split = optim.Adamax(split_params, lr=self.lr, weight_decay=0)
 
