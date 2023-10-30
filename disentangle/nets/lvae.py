@@ -429,13 +429,22 @@ class LadderVAE(pl.LightningModule):
             kl_weight = 1.0
         return kl_weight
 
-    def get_reconstruction_loss(self, reconstruction, target, input, splitting_mask, return_predicted_img=False, likelihood_obj=None):
+    def get_reconstruction_loss(self,
+                                reconstruction,
+                                target,
+                                input,
+                                splitting_mask=None,
+                                return_predicted_img=False,
+                                likelihood_obj=None):
         output = self._get_reconstruction_loss_vector(reconstruction,
                                                       target,
                                                       input,
                                                       return_predicted_img=return_predicted_img,
                                                       likelihood_obj=likelihood_obj)
         loss_dict = output[0] if return_predicted_img else output
+        if splitting_mask is None:
+            splitting_mask = torch.ones_like(loss_dict['loss']).bool()
+
         # print(len(target) - (torch.isnan(loss_dict['loss'])).sum())
         loss_dict['loss'] = loss_dict['loss'][splitting_mask].mean()
         loss_dict['ch1_loss'] = loss_dict['ch1_loss'][splitting_mask].mean()
@@ -466,7 +475,7 @@ class LadderVAE(pl.LightningModule):
             mixed_prediction = torch.mean(pred_unorm * channel_weights, dim=1, keepdim=True)
 
         mixed_prediction = (mixed_prediction - data_mean['input'].mean()) / data_std['input'].mean()
-        
+
         if prediction_logvar is not None:
             var = torch.exp(prediction_logvar)
             var = var * (data_std['target'] / data_std['input'])**2
@@ -581,7 +590,7 @@ class LadderVAE(pl.LightningModule):
     def training_step(self, batch, batch_idx, enable_logging=True):
         if self.current_epoch == 0 and batch_idx == 0:
             self.log('val_psnr', 1.0, on_epoch=True)
-        
+
         x, target = batch[:2]
         x_normalized = self.normalize_input(x)
         if self.reconstruction_mode:
@@ -590,12 +599,11 @@ class LadderVAE(pl.LightningModule):
         else:
             target_normalized = self.normalize_target(target)
 
-        
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        mask = (target == 0).reshape(len(target),-1).all(dim=1)
+        mask = (target == 0).reshape(len(target), -1).all(dim=1)
         # mask = torch.isnan(target.reshape(len(x), -1)).all(dim=1)
         recons_loss_dict, imgs = self.get_reconstruction_loss(out,
                                                               target_normalized,
@@ -697,7 +705,7 @@ class LadderVAE(pl.LightningModule):
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        mask = (target == 0).reshape(len(target),-1).all(dim=1)
+        mask = (target == 0).reshape(len(target), -1).all(dim=1)
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out,
                                                                     target_normalized,
                                                                     x_normalized,
