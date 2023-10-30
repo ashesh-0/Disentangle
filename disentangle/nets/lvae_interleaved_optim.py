@@ -24,13 +24,9 @@ class LadderVAEInterleavedOptimization(LadderVAE):
         reconstr_params = []
 
         for name, param in self.named_parameters():
-            if name.split('.')[0] in ['likelihood', 'final_top_down']:
+            reconstr_params.append(param)
+            if name.split('.')[0] not in ['bottom_up_layers']:
                 split_params.append(param)
-            else:
-                if np.random.rand() > 0.5:
-                    split_params.append(param)
-
-                reconstr_params.append(param)
 
         optimizer_split = optim.Adamax(split_params, lr=self.lr, weight_decay=0)
 
@@ -129,7 +125,19 @@ if __name__ == '__main__':
     config = get_config()
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
     data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
-    model = LadderVAE({'input': data_mean, 'target': data_mean}, {'input': data_std, 'target': data_std}, config)
+    model = LadderVAEInterleavedOptimization({
+        'input': data_mean,
+        'target': data_mean
+    }, {
+        'input': data_std,
+        'target': data_std
+    }, config)
+    names = []
+    for name, _ in model.named_parameters():
+        names.append(name)
+    model.configure_optimizers()
+    print(set({name.split('.')[0] for name in names}))
+
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count + 1
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
     out, td_data = model(inp)
