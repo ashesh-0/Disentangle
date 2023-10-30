@@ -25,8 +25,9 @@ class LadderVAEInterleavedOptimization(LadderVAE):
 
         for name, param in self.named_parameters():
             reconstr_params.append(param)
-            if name.split('.')[0] not in ['bottom_up_layers']:
-                split_params.append(param)
+            split_params.append(param)
+            # if name.split('.')[0] not in ['bottom_up_layers']:
+            #     split_params.append(param)
 
         optimizer_split = optim.Adamax(split_params, lr=self.lr, weight_decay=0)
 
