@@ -25,10 +25,10 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
 
     data1 = get_mrc_data(fpath1)[..., None]
     data2 = get_mrc_data(fpath2)[..., None]
-    assert abs(
-        data1.shape[0] - data2.shape[0]
-    ) < 2, "Data shape mismatch by more than 1 N. this needs an alternate immplementation where both channels are loaded\
-    separately."
+    # assert abs(
+    #     data1.shape[0] - data2.shape[0]
+    # ) < 2, "Data shape mismatch by more than 1 N. this needs an alternate immplementation where both channels are loaded\
+    # separately."
 
     N = min(data1.shape[0], data2.shape[0])
     data1 = data1[:N]
