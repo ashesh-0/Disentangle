@@ -15,11 +15,11 @@ def get_config():
     data.image_size = 128
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
-    data.channel_2 = 3
+    data.channel_2 = 0
 
     # from the training data, we will use only this fraction of data. This is useful for working with less supervised data.
     # data.trainig_datausage_fraction = 0.1
-    data.training_validtarget_fraction = 0.5
+    data.training_validtarget_fraction = 0.03
     data.validtarget_random_fraction = 0.7
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
@@ -115,7 +115,7 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
-    # model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D3-M3-S0-L0/2/kepler/BaselineVAECL_best.ckpt'
+    model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D3-M3-S0-L2/11/BaselineVAECL_best.ckpt'
 
     training = config.training
     training.lr = 0.001 / 2
