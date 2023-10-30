@@ -599,7 +599,7 @@ class LadderVAE(pl.LightningModule):
             mask = None
         else:
             target_normalized = self.normalize_target(target)
-            mask = (target == 0).reshape(len(target), -1).all(dim=1)
+            mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
 
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
@@ -609,7 +609,7 @@ class LadderVAE(pl.LightningModule):
         recons_loss_dict, imgs = self.get_reconstruction_loss(out,
                                                               target_normalized,
                                                               x_normalized,
-                                                              ~mask,
+                                                              mask,
                                                               return_predicted_img=True)
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
@@ -702,7 +702,7 @@ class LadderVAE(pl.LightningModule):
             mask = None
         else:
             target_normalized = self.normalize_target(target)
-            mask = (target == 0).reshape(len(target), -1).all(dim=1)
+            mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
 
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
@@ -711,7 +711,7 @@ class LadderVAE(pl.LightningModule):
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out,
                                                                     target_normalized,
                                                                     x_normalized,
-                                                                    ~mask,
+                                                                    mask,
                                                                     return_predicted_img=True)
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
