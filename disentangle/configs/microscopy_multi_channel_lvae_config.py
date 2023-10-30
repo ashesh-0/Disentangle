@@ -130,6 +130,6 @@ def get_config():
 
     training.earlystop_patience = int(100 / data.trainig_datausage_fraction)
     training.precision = 16
-    # training.check_val_every_n_epoch = 10
+    training.check_val_every_n_epoch = int(1 / data.trainig_datausage_fraction)
 
     return config
