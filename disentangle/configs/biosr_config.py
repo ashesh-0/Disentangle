@@ -15,9 +15,9 @@ def get_config():
     data.ch1_fname = 'ER/GT_all.mrc'
     data.ch2_fname = 'Microtubules/GT_all.mrc'
 
-    # data.trainig_datausage_fraction = 0.03
-    # data.training_validtarget_fraction = 0.03
-    # data.validtarget_random_fraction = 0.7
+    data.trainig_datausage_fraction = 1
+    data.training_validtarget_fraction = 1
+    data.validtarget_random_fraction = None
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
 
@@ -126,7 +126,7 @@ def get_config():
     training.earlystop_patience = int(100 /
                                       data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 100)
     training.precision = 16
-    training.check_val_every_n_epoch = int(1 / (data.trainig_datausage_fraction *
-                                                2) if 'trainig_datausage_fraction' in data else 1)
+    training.check_val_every_n_epoch = int(
+        1 / (data.trainig_datausage_fraction)) if 'trainig_datausage_fraction' in data else None
 
     return config
