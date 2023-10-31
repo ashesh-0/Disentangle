@@ -15,8 +15,8 @@ def get_config():
     data.ch1_fname = 'ER/GT_all.mrc'
     data.ch2_fname = 'Microtubules/GT_all.mrc'
 
-    data.trainig_datausage_fraction = 1
-    data.training_validtarget_fraction = 1
+    data.trainig_datausage_fraction = 1.0
+    data.training_validtarget_fraction = 1.0
     data.validtarget_random_fraction = None
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
