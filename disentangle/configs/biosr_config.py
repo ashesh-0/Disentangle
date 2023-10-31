@@ -15,9 +15,9 @@ def get_config():
     data.ch1_fname = 'ER/GT_all.mrc'
     data.ch2_fname = 'Microtubules/GT_all.mrc'
 
-    # data.trainig_datausage_fraction = 0.03
-    data.training_validtarget_fraction = 0.03
-    data.validtarget_random_fraction = 0.7
+    data.trainig_datausage_fraction = 0.03
+    # data.training_validtarget_fraction = 0.03
+    # data.validtarget_random_fraction = 0.7
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
 
@@ -52,7 +52,7 @@ def get_config():
     data.target_separate_normalization = False
 
     loss = config.loss
-    loss.loss_type = LossType.ElboMixedReconstruction
+    loss.loss_type = LossType.Elbo
     loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -113,8 +113,8 @@ def get_config():
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = int(30)
-    training.max_epochs = int(200)
+    training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction)
+    training.max_epochs = int(200 / data.trainig_datausage_fraction)
     training.batch_size = 32
     training.num_workers = 1
     training.val_repeat_factor = None
@@ -122,8 +122,8 @@ def get_config():
     training.val_fraction = 0.1
     training.test_fraction = 0.1
 
-    training.earlystop_patience = int(100)
+    training.earlystop_patience = int(100 / data.trainig_datausage_fraction)
     training.precision = 16
-    # training.check_val_every_n_epoch = int(1 / (data.trainig_datausage_fraction * 2))
+    training.check_val_every_n_epoch = int(1 / (data.trainig_datausage_fraction * 2))
 
     return config
