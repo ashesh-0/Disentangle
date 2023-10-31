@@ -49,10 +49,8 @@ class MultiChDeterministicTiffDloader:
             self._training_validtarget_fraction = data_config.get('training_validtarget_fraction', 1.0)
             self._validtarget_rand_fract = data_config.get('validtarget_random_fraction', None)
             self._validtarget_random_fraction_final = data_config.get('validtarget_random_fraction_final', None)
-            self._validtarget_random_fraction_stepepoch = data_config.get('validtarget_random_fraction_stepepoch',
-                                                                          None)
+            self._validtarget_random_fraction_stepepoch = data_config.get('validtarget_random_fraction_stepepoch', None)
             self._idx_count = 0
-            
 
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
@@ -506,29 +504,31 @@ class MultiChDeterministicTiffDloader:
         return inp, alpha
 
     def transform_index_to_valid_target(self, index):
-        assert self._validtarget_rand_fract is not None and (self._validtarget_rand_fract >= 0.0) and (self._validtarget_rand_fract <= 1.0)
+        assert self._validtarget_rand_fract is not None and (self._validtarget_rand_fract >=
+                                                             0.0) and (self._validtarget_rand_fract <= 1.0)
         assert self._validtarget_maxt is not None and self._validtarget_maxt >= 0
         if self._get_tidx(index) > self._validtarget_maxt:
-           index = index - (self._get_tidx(index) - np.random.randint(0,self._validtarget_maxt + 1))
-        
+            index = index - (self._get_tidx(index) - np.random.randint(0, self._validtarget_maxt + 1))
+
         return index
 
     def transform_index_to_invalid_target(self, index):
-        assert self._validtarget_rand_fract is not None and (self._validtarget_rand_fract >= 0.0) and (self._validtarget_rand_fract <= 1.0)
+        assert self._validtarget_rand_fract is not None and (self._validtarget_rand_fract >=
+                                                             0.0) and (self._validtarget_rand_fract <= 1.0)
         assert self._validtarget_maxt is not None and self._validtarget_maxt >= 0
         if self._get_tidx(index) < self._validtarget_maxt:
-           index = index + (np.random.randint(self._validtarget_maxt + 1, self._data.shape[0]) - self._get_tidx(index))
+            index = index + (np.random.randint(self._validtarget_maxt + 1, self._data.shape[0]) - self._get_tidx(index))
         return index
 
-
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
-        
+
         if self._validtarget_random_fraction_final is not None:
             self._idx_count += 1
             self._idx_count = self._idx_count % self.__len__()
-            if self._idx_count ==0:
+            if self._idx_count == 0:
                 self._validtarget_rand_fract += self._validtarget_random_fraction_stepepoch
-                self._validtarget_rand_fract = min(self._validtarget_rand_fract, self._validtarget_random_fraction_final)
+                self._validtarget_rand_fract = min(self._validtarget_rand_fract,
+                                                   self._validtarget_random_fraction_final)
                 print('New step: ', self._validtarget_rand_fract)
 
         if self._validtarget_maxt:
@@ -572,21 +572,24 @@ class MultiChDeterministicTiffDloader:
 
 
 if __name__ == '__main__':
-    from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+    # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+    from disentangle.configs.biosr_config import get_config
     config = get_config()
-    dset = MultiChDeterministicTiffDloader(config.data,
-                                           '/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif',
-                                           DataSplitType.Train,
-                                           val_fraction=config.training.val_fraction,
-                                           test_fraction=config.training.test_fraction,
-                                           normalized_input=config.data.normalized_input,
-                                           enable_rotation_aug=config.data.normalized_input,
-                                           enable_random_cropping=config.data.deterministic_grid is False,
-                                           use_one_mu_std=config.data.use_one_mu_std,
-                                           allow_generation=False,
-                                           max_val=None,
-                                           grid_alignment=GridAlignement.LeftTop,
-                                           overlapping_padding_kwargs=None)
+    dset = MultiChDeterministicTiffDloader(
+        config.data,
+        #    '/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif',
+        '/group/jug/ashesh/data/BioSR/',
+        DataSplitType.Train,
+        val_fraction=config.training.val_fraction,
+        test_fraction=config.training.test_fraction,
+        normalized_input=config.data.normalized_input,
+        enable_rotation_aug=config.data.normalized_input,
+        enable_random_cropping=config.data.deterministic_grid is False,
+        use_one_mu_std=config.data.use_one_mu_std,
+        allow_generation=False,
+        max_val=None,
+        grid_alignment=GridAlignement.LeftTop,
+        overlapping_padding_kwargs=None)
 
     mean, std = dset.compute_mean_std()
     dset.set_mean_std(mean, std)
