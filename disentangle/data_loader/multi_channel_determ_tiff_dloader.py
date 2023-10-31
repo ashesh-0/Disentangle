@@ -508,8 +508,8 @@ class MultiChDeterministicTiffDloader:
         assert self._validtarget_rand_fract is not None and (self._validtarget_rand_fract
                                                              >= 0.0) and (self._validtarget_rand_fract <= 1.0)
         assert self._validtarget_maxt is not None and self._validtarget_maxt >= 0
-        if self._get_tidx(index) > self._validtarget_maxt:
-            index = index - (self._get_tidx(index) - np.random.randint(0, self._validtarget_maxt + 1))
+        if self._get_tidx(index) >= self._validtarget_maxt:
+            index = index - (self._get_tidx(index) - np.random.randint(0, self._validtarget_maxt))
 
         return index
 
@@ -518,7 +518,7 @@ class MultiChDeterministicTiffDloader:
                                                              >= 0.0) and (self._validtarget_rand_fract <= 1.0)
         assert self._validtarget_maxt is not None and self._validtarget_maxt >= 0
         if self._get_tidx(index) < self._validtarget_maxt:
-            index = index + (np.random.randint(self._validtarget_maxt + 1, self._data.shape[0]) - self._get_tidx(index))
+            index = index + (np.random.randint(self._validtarget_maxt, self._data.shape[0]) - self._get_tidx(index))
         return index
 
     def get_index_from_valid_target_logic(self, index):

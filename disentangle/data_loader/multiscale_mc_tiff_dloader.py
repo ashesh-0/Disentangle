@@ -141,6 +141,11 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         else:
             target = np.concatenate([img[:1] for img in img_tuples], axis=0)
 
+        if self._validtarget_maxt:
+            tidx = self._get_tidx(index)
+            if tidx > self._validtarget_maxt:
+                target = 0 * target
+
         inp, alpha = self._compute_input(img_tuples)
 
         output = [inp, target]

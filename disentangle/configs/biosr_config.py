@@ -16,8 +16,8 @@ def get_config():
     data.ch2_fname = 'Microtubules/GT_all.mrc'
 
     # data.trainig_datausage_fraction = 0.03
-    # data.training_validtarget_fraction = 0.03
-    # data.validtarget_random_fraction = 0.7
+    data.training_validtarget_fraction = 0.03
+    data.validtarget_random_fraction = 0.7
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
 
@@ -84,7 +84,7 @@ def get_config():
 
     model.decoder.multiscale_retain_spatial_dims = True
     model.decoder.conv2d_bias = True
-    model.reconstruction_mode = True
+    model.reconstruction_mode = False
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -115,8 +115,8 @@ def get_config():
     training.lr = 0.001 / 2
     training.lr_scheduler_patience = int(30)
     training.max_epochs = int(200)
-    training.batch_size = 32
-    training.num_workers = 1
+    training.batch_size = 8
+    training.num_workers = 0
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
