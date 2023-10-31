@@ -126,6 +126,7 @@ def get_workdir(config, root_dir, use_max_version):
 
 def _update_config(config, key_levels, value):
     if len(key_levels) == 1:
+        assert key_levels[0] in config, f'Invalid key:{key_levels[0]}'
         config[key_levels[0]] = value
     else:
         _update_config(config[key_levels[0]], key_levels[1:], value)
