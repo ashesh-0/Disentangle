@@ -8,16 +8,16 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 128
     data.data_type = DataType.BioSR_MRC
     # data.channel_1 = 0
     # data.channel_2 = 1
     data.ch1_fname = 'ER/GT_all.mrc'
     data.ch2_fname = 'Microtubules/GT_all.mrc'
 
-    data.trainig_datausage_fraction = 0.02
-    # data.training_validtarget_fraction = 0.02
-    # data.validtarget_random_fraction = 0.7
+    # data.trainig_datausage_fraction = 0.03
+    data.training_validtarget_fraction = 0.03
+    data.validtarget_random_fraction = 0.7
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
 
@@ -25,6 +25,7 @@ def get_config():
     data.threshold = 0.02
     data.deterministic_grid = False
     data.normalized_input = True
+    data.input_is_sum = False
     data.clip_percentile = 0.995
 
     data.channelwise_quantile = True
@@ -41,15 +42,17 @@ def get_config():
     data.target_separate_normalization = True
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
-    # loss.mixed_rec_weight = 1
+    loss.loss_type = LossType.ElboMixedReconstruction
+    loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
     loss.kl_annealing = False
     loss.kl_annealtime = 10
     loss.kl_start = -1
     loss.kl_min = 1e-7
-    loss.free_bits = 1.0
+    loss.free_bits = 0.0
+    # loss.ch1_recons_w = 1
+    # loss.ch2_recons_w = 5
 
     model = config.model
     model.model_type = ModelType.LadderVae
@@ -70,9 +73,8 @@ def get_config():
     model.decoder.res_block_skip_padding = False
 
     model.decoder.multiscale_retain_spatial_dims = True
+    model.decoder.conv2d_bias = True
     model.reconstruction_mode = False
-
-    config.model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -87,24 +89,22 @@ def get_config():
     model.analytical_kl = False
     model.mode_pred = False
     model.var_clip_max = 20
-    # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'pixelwise'
+    # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise', 'ch_invariant_pixelwise]
+    model.predict_logvar = None
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-
-    model.enable_noise_model = False
-    # model.noise_model_type = 'gmm'
-    # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
-    # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
-    # model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
     model.non_stochastic_version = False
+    model.enable_noise_model = False
+    model.noise_model_ch1_fpath = None
+    model.noise_model_ch1_fpath = None
+    # model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D7-M3-S0-L0/2/BaselineVAECL_best.ckpt'
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction)
-    training.max_epochs = int(200 / data.trainig_datausage_fraction)
+    training.lr_scheduler_patience = int(30)
+    training.max_epochs = int(200)
     training.batch_size = 32
     training.num_workers = 1
     training.val_repeat_factor = None
@@ -112,8 +112,8 @@ def get_config():
     training.val_fraction = 0.1
     training.test_fraction = 0.1
 
-    training.earlystop_patience = int(100 / data.trainig_datausage_fraction)
+    training.earlystop_patience = int(100)
     training.precision = 16
-    training.check_val_every_n_epoch = int(1 / (data.trainig_datausage_fraction * 2))
+    # training.check_val_every_n_epoch = int(1 / (data.trainig_datausage_fraction * 2))
 
     return config
