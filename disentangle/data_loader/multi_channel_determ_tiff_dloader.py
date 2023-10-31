@@ -521,6 +521,15 @@ class MultiChDeterministicTiffDloader:
             index = index + (np.random.randint(self._validtarget_maxt + 1, self._data.shape[0]) - self._get_tidx(index))
         return index
 
+    def get_index_from_valid_target_logic(self, index):
+        if self._validtarget_maxt:
+            if self._validtarget_rand_fract is not None:
+                if np.random.rand() < self._validtarget_rand_fract:
+                    index = self.transform_index_to_valid_target(index)
+                else:
+                    index = self.transform_index_to_invalid_target(index)
+        return index
+
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
 
         if self._validtarget_random_fraction_final is not None:
@@ -532,12 +541,7 @@ class MultiChDeterministicTiffDloader:
                                                    self._validtarget_random_fraction_final)
                 print('New step: ', self._validtarget_rand_fract)
 
-        if self._validtarget_maxt:
-            if self._validtarget_rand_fract is not None:
-                if np.random.rand() < self._validtarget_rand_fract:
-                    index = self.transform_index_to_valid_target(index)
-                else:
-                    index = self.transform_index_to_invalid_target(index)
+        index = self.get_index_from_valid_target_logic(index)
 
         img_tuples = self._get_img(index)
         if self._empty_patch_replacement_enabled:

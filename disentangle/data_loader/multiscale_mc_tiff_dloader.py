@@ -130,6 +130,9 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         return output_img_tuples
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]):
+        assert self._validtarget_random_fraction_final is None
+        index = self.get_index_from_valid_target_logic(index)
+
         img_tuples = self._get_img(index)
         assert self._enable_rotation is False
 

@@ -594,7 +594,7 @@ class LadderVAE(pl.LightningModule):
         x, target = batch[:2]
         x_normalized = self.normalize_input(x)
         if self.reconstruction_mode:
-            target_normalized = x_normalized.repeat(1, 2, 1, 1)
+            target_normalized = x_normalized[:, :1].repeat(1, 2, 1, 1)
             target = None
             mask = None
         else:
@@ -697,7 +697,7 @@ class LadderVAE(pl.LightningModule):
         self.set_params_to_same_device_as(x)
         x_normalized = self.normalize_input(x)
         if self.reconstruction_mode:
-            target_normalized = x_normalized.repeat(1, 2, 1, 1)
+            target_normalized = x_normalized[:, :1].repeat(1, 2, 1, 1)
             target = None
             mask = None
         else:
@@ -764,6 +764,7 @@ class LadderVAE(pl.LightningModule):
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
+
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values, mode_layers=mode_layers)
@@ -1005,6 +1006,7 @@ class LadderVAE(pl.LightningModule):
 
     def get_top_prior_param_shape(self, n_imgs=1):
         # TODO num channels depends on random variable we're using
+
         if self.multiscale_decoder_retain_spatial_dims is False:
             dwnsc = self.overall_downscale_factor
         else:
@@ -1039,13 +1041,13 @@ if __name__ == '__main__':
     import numpy as np
     import torch
 
-    from disentangle.configs.twotiff_config import get_config
+    from disentangle.configs.biosr_config import get_config
 
     config = get_config()
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
     data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
-    model = LadderVAE(data_mean, data_std, config)
-    mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count + 1
+    model = LadderVAE({'input': data_mean, 'target': data_mean}, {'input': data_std, 'target': data_std}, config)
+    mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
     out, td_data = model(inp)
     batch = (

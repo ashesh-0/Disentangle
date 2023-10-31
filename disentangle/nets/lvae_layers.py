@@ -220,7 +220,8 @@ class TopDownLayer(nn.Module):
 
     def align_pparams_buvalue(self, p_params, bu_value):
         """
-        In case the padding is not used either (or both) in encoder and decoder, we could have a mismatch. Doing a centercrop to ensure that both remain aligned.
+        In case the padding is not used either (or both) in encoder and decoder, we could have a mismatch. 
+        Doing a centercrop to ensure that both remain aligned.
         """
         if bu_value.shape[-2:] != p_params.shape[-2:]:
             assert self.bottomup_no_padding_mode is True

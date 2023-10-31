@@ -43,6 +43,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
+    # if multiscale_lowres_count is 3, then there are two additional inputs other than the original input. input channel count is 3
     data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
     data.padding_value = None
