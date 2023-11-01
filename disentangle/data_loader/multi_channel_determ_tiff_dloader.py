@@ -40,28 +40,32 @@ class IndexSwitcher:
         """
 
         t = np.random.randint(0, self._validtarget_ceilT) if self._validtarget_ceilT >= 1 else 0
-        h, w = self.get_valid_target_hw()
+        h, w = self.get_valid_target_hw(t)
         index = self.idx_manager.idx_from_hwt(h, w, t)
         # print('Valid', index, h,w,t)
         return index
 
     def get_invalid_target_index(self):
-        if self._validtarget_ceilT < self._data_shape[0]:
+        if self._validtarget_ceilT == 0:
+            #TODO: There may not be enough data for this to work. The better way is to skip using 0 for invalid target.
+            t = np.random.randint(1, self._data_shape[0])
+        elif self._validtarget_ceilT < self._data_shape[0]:
             t = np.random.randint(self._validtarget_ceilT, self._data_shape[0])
         else:
             t = self._validtarget_ceilT - 1
 
-        h, w = self.get_invalid_target_hw()
+        h, w = self.get_invalid_target_hw(t)
         index = self.idx_manager.idx_from_hwt(h, w, t)
         # print('Invalid', index, h,w,t)
         return index
 
-    def get_valid_target_hw(self):
+    def get_valid_target_hw(self, t):
         """
         This is the opposite of get_invalid_target_hw. It returns a h,w which is valid for target.
         This is only valid for single frame setup.
         """
         if self._validtarget_ceilT == 0:
+            assert t == 0
             h = np.random.randint(0, self._h_validmax - self._patch_size)
             w = np.random.randint(0, self._w_validmax - self._patch_size)
         else:
@@ -69,12 +73,12 @@ class IndexSwitcher:
             w = np.random.randint(0, self._data_shape[2] - self._patch_size)
         return h, w
 
-    def get_invalid_target_hw(self):
+    def get_invalid_target_hw(self, t):
         """
         This is the opposite of get_valid_target_hw. It returns a h,w which is not valid for target.
         This is only valid for single frame setup.
         """
-        if self._validtarget_ceilT == 0:
+        if self._validtarget_ceilT == 0 and t == 0:
             h = np.random.randint(self._h_validmax, self._data_shape[1] - self._patch_size)
             w = np.random.randint(self._w_validmax, self._data_shape[2] - self._patch_size)
         else:
