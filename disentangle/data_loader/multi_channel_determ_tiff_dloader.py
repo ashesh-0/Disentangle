@@ -23,7 +23,7 @@ class IndexSwitcher:
         self.idx_manager = idx_manager
         self._data_shape = self.idx_manager.get_data_shape()
         self._training_validtarget_fraction = data_config.get('training_validtarget_fraction', 1.0)
-        self._validtarget_ceilT = int(np.ceil(self._data_shape[0] * self._training_validtarget_fraction))
+        self._validtarget_ceilT = max(1, int(self._data_shape[0] * self._training_validtarget_fraction))
         self._patch_size = patch_size
         assert data_config.deterministic_grid is True, "This only works when the dataset has deterministic grid. Needed randomness comes from this class."
         assert 'grid_size' in data_config and data_config.grid_size == 1, "We need a one to one mapping between index and h,w,t"
@@ -100,11 +100,14 @@ class IndexSwitcher:
     @staticmethod
     def get_reduced_frame_size(data_shape_nhw, fraction):
         n, h, w = data_shape_nhw
-        if n == 1:
-            return None, None
 
         framepixelcount = h * w
         pixelcount = int(n * framepixelcount * fraction)
+
+        # We are currently supporting this only when there is just one frame.
+        if np.ceil(pixelcount / framepixelcount) > 1:
+            return None, None
+
         pixelcount = pixelcount % framepixelcount
         assert data_shape_nhw[1] == data_shape_nhw[2]
         new_size = int(np.sqrt(pixelcount))
