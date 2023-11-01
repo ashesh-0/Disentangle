@@ -17,7 +17,7 @@ def get_config():
     data.ch2_fname = 'F-actin/GT_all_a.mrc'
 
     # amounnt of data (supervised and unsupervised) which you want to use for training.
-    data.trainig_datausage_fraction = 1.0
+    data.trainig_datausage_fraction = 0.05
     data.training_validtarget_fraction = 1.0
     # when creating a batch, what fraction of inputs should have target.
     data.validtarget_random_fraction = 1.0
@@ -87,7 +87,7 @@ def get_config():
 
     model.decoder.multiscale_retain_spatial_dims = True
     model.decoder.conv2d_bias = True
-    model.reconstruction_mode = True
+    model.reconstruction_mode = False
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
