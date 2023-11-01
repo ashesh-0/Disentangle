@@ -17,11 +17,11 @@ def get_config():
     data.ch2_fname = 'Microtubules/GT_all.mrc'
 
     # amounnt of data (supervised and unsupervised) which you want to use for training.
-    data.trainig_datausage_fraction = 0.01
+    data.trainig_datausage_fraction = 1
     # from the data we are using for training, how much should be used with target.
-    data.training_validtarget_fraction = 1.0
+    data.training_validtarget_fraction = 0.03
     # when creating a batch, what fraction of inputs should have target.
-    data.validtarget_random_fraction = None
+    data.validtarget_random_fraction = 0.7
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
 
@@ -56,7 +56,7 @@ def get_config():
     data.target_separate_normalization = False
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.ElboMixedReconstruction
     loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1

@@ -31,7 +31,7 @@ class IndexSwitcher:
         self._h_validmax, self._w_validmax = self.get_reduced_frame_size(self._data_shape[:3],
                                                                          self._training_validtarget_fraction)
         print(
-            f'[{self.__class__.__name__}] Target only for {self._validtarget_ceilT} out of {self._data_shape[0]} training data for valid target.'
+            f'[{self.__class__.__name__}] Target only for {self._validtarget_ceilT}-[:{self._h_validmax},:{self._w_validmax}] out of {self._data_shape[0]} training data for valid target.'
         )
 
     def get_valid_target_index(self):
@@ -100,6 +100,9 @@ class IndexSwitcher:
     @staticmethod
     def get_reduced_frame_size(data_shape_nhw, fraction):
         n, h, w = data_shape_nhw
+        if n == 1:
+            return None, None
+
         framepixelcount = h * w
         pixelcount = int(n * framepixelcount * fraction)
         pixelcount = pixelcount % framepixelcount
