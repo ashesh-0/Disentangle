@@ -15,7 +15,7 @@ def get_config():
     data.ch1_fname = 'ER/GT_all.mrc'
     data.ch2_fname = 'Microtubules/GT_all.mrc'
 
-    data.trainig_datausage_fraction = 1.0
+    data.trainig_datausage_fraction = 0.03
     data.training_validtarget_fraction = 1.0
     data.validtarget_random_fraction = None
     # data.validtarget_random_fraction_final = 0.9
@@ -84,7 +84,7 @@ def get_config():
 
     model.decoder.multiscale_retain_spatial_dims = True
     model.decoder.conv2d_bias = True
-    model.reconstruction_mode = True
+    model.reconstruction_mode = False
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -109,7 +109,7 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
-    # model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2310/D7-M3-S0-L0/2/BaselineVAECL_best.ckpt'
+    model.pretrained_weights_path = '/home/ubuntu/ashesh/training/disentangle/2311/D16-M3-S0-L0/11/BaselineVAECL_best.ckpt'
 
     training = config.training
     training.lr = 0.001 / 2
