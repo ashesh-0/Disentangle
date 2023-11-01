@@ -42,6 +42,7 @@ class IndexSwitcher:
         t = np.random.randint(0, self._validtarget_ceilT) if self._validtarget_ceilT >= 1 else 0
         h, w = self.get_valid_target_hw()
         index = self.idx_manager.idx_from_hwt(h, w, t)
+        # print('Valid', index, h,w,t)
         return index
 
     def get_invalid_target_index(self):
@@ -52,6 +53,7 @@ class IndexSwitcher:
 
         h, w = self.get_invalid_target_hw()
         index = self.idx_manager.idx_from_hwt(h, w, t)
+        # print('Invalid', index, h,w,t)
         return index
 
     def get_valid_target_hw(self):
@@ -691,4 +693,10 @@ if __name__ == '__main__':
     mean, std = dset.compute_mean_std()
     dset.set_mean_std(mean, std)
 
-    inp, target, alpha = dset[0]
+    inp, target = dset[0]
+    import matplotlib.pyplot as plt
+    _, ax = plt.subplots(figsize=(8, 4), ncols=2)
+    h = 648
+    w = 524
+    ax[0].imshow(inp[0])
+    ax[1].imshow(dset._data[36, h:h + 128, w:w + 128, 0] + dset._data[36, h:h + 128, w:w + 128, 1])
