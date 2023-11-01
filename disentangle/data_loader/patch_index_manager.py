@@ -36,6 +36,9 @@ class GridIndexManager:
         self.N = self._data_shape[0]
         self._align = grid_alignement
 
+    def get_data_shape(self):
+        return self._data_shape
+
     def use_default_grid(self, grid_size):
         return grid_size is None or grid_size < 0
 

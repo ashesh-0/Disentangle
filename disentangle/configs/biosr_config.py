@@ -9,20 +9,24 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 128
+    data.grid_size = 1
     data.data_type = DataType.BioSR_MRC
     # data.channel_1 = 0
     # data.channel_2 = 1
     data.ch1_fname = 'ER/GT_all.mrc'
     data.ch2_fname = 'Microtubules/GT_all.mrc'
 
-    data.trainig_datausage_fraction = 0.03
+    # amounnt of data (supervised and unsupervised) which you want to use for training.
+    data.trainig_datausage_fraction = 0.01
+    # from the data we are using for training, how much should be used with target.
     data.training_validtarget_fraction = 1.0
+    # when creating a batch, what fraction of inputs should have target.
     data.validtarget_random_fraction = None
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
 
     data.sampler_type = SamplerType.DefaultSampler
-    data.deterministic_grid = False
+    data.deterministic_grid = True
     data.normalized_input = True
     data.clip_percentile = 0.995
     data.background_quantile = 0.0
@@ -117,7 +121,7 @@ def get_config():
                                          data else 30)
     training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
     training.batch_size = 32
-    training.num_workers = 1
+    training.num_workers = 2
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
