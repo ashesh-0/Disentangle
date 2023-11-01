@@ -23,7 +23,7 @@ class IndexSwitcher:
         self.idx_manager = idx_manager
         self._data_shape = self.idx_manager.get_data_shape()
         self._training_validtarget_fraction = data_config.get('training_validtarget_fraction', 1.0)
-        self._validtarget_ceilT = max(1, int(self._data_shape[0] * self._training_validtarget_fraction))
+        self._validtarget_ceilT = int(self._data_shape[0] * self._training_validtarget_fraction)
         self._patch_size = patch_size
         assert data_config.deterministic_grid is True, "This only works when the dataset has deterministic grid. Needed randomness comes from this class."
         assert 'grid_size' in data_config and data_config.grid_size == 1, "We need a one to one mapping between index and h,w,t"
@@ -38,7 +38,8 @@ class IndexSwitcher:
         """
         Returns an index which corresponds to a frame which is expected to have a target.
         """
-        t = np.random.randint(0, self._validtarget_ceilT)
+
+        t = np.random.randint(0, self._validtarget_ceilT) if self._validtarget_ceilT >= 1 else 0
         h, w = self.get_valid_target_hw()
         index = self.idx_manager.idx_from_hwt(h, w, t)
         return index
@@ -58,7 +59,7 @@ class IndexSwitcher:
         This is the opposite of get_invalid_target_hw. It returns a h,w which is valid for target.
         This is only valid for single frame setup.
         """
-        if self._validtarget_ceilT == 1:
+        if self._validtarget_ceilT == 0:
             h = np.random.randint(0, self._h_validmax - self._patch_size)
             w = np.random.randint(0, self._w_validmax - self._patch_size)
         else:
@@ -71,7 +72,7 @@ class IndexSwitcher:
         This is the opposite of get_valid_target_hw. It returns a h,w which is not valid for target.
         This is only valid for single frame setup.
         """
-        if self._validtarget_ceilT == 1:
+        if self._validtarget_ceilT == 0:
             h = np.random.randint(self._h_validmax, self._data_shape[1] - self._patch_size)
             w = np.random.randint(self._w_validmax, self._data_shape[2] - self._patch_size)
         else:
@@ -88,7 +89,7 @@ class IndexSwitcher:
 
     def index_should_have_target(self, index):
         tidx = self._get_tidx(index)
-        if self._validtarget_ceilT > 1:
+        if self._validtarget_ceilT >= 1:
             if tidx < self._validtarget_ceilT:
                 return True
             elif tidx >= self._validtarget_ceilT:
