@@ -653,6 +653,7 @@ class MultiChDeterministicTiffDloader:
             rot_dic = self._rotation_transform(image=img_tuples[0][0], mask=img_tuples[1][0])
             img1 = rot_dic['image'][None]
             img2 = rot_dic['mask'][None]
+            img_tuples = (img1, img2)
 
         target = np.concatenate(img_tuples, axis=0)
         # print('Has target', self._train_index_switcher.index_should_have_target(index))
