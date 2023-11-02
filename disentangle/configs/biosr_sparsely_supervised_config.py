@@ -44,7 +44,7 @@ def get_config():
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
-    data.train_aug_rotate = True
+    data.train_aug_rotate = False
     data.randomized_channels = False
     # if multiscale_lowres_count is 3, then there are two additional inputs other than the original input. input channel count is 3
     data.multiscale_lowres_count = None
@@ -119,7 +119,7 @@ def get_config():
     training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
                                          data else 30)
     training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
-    training.batch_size = 32
+    training.batch_size = 16
     training.num_workers = 2
     training.val_repeat_factor = None
     training.train_repeat_factor = None
