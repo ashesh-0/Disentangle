@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 512
     data.grid_size = 1
     data.data_type = DataType.BioSR_MRC
     # data.channel_1 = 0
