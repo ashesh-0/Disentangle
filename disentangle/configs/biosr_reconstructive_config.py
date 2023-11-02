@@ -13,7 +13,7 @@ def get_config():
     data.data_type = DataType.BioSR_MRC
     # data.channel_1 = 0
     # data.channel_2 = 1
-    data.ch1_fname = 'CCPs/GT_all.mrc'
+    data.ch1_fname = 'Microtubules/GT_all.mrc'
     data.ch2_fname = 'F-actin/GT_all_a.mrc'
 
     # amounnt of data (supervised and unsupervised) which you want to use for training.
