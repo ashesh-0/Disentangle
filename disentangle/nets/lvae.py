@@ -1041,7 +1041,7 @@ if __name__ == '__main__':
     import numpy as np
     import torch
 
-    from disentangle.configs.biosr_config import get_config
+    from disentangle.configs.biosr_sparsely_supervised_config import get_config
 
     config = get_config()
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
