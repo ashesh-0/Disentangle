@@ -18,14 +18,14 @@ def get_config():
 
     # amounnt of data (supervised and unsupervised) which you want to use for training.
     data.trainig_datausage_fraction = 1
-    data.training_validtarget_fraction = 0.05
+    data.training_validtarget_fraction = 1.0
     # when creating a batch, what fraction of inputs should have target.
-    data.validtarget_random_fraction = 0.7
+    data.validtarget_random_fraction = 1.0
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
 
     data.sampler_type = SamplerType.DefaultSampler
-    data.deterministic_grid = True
+    data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
     data.background_quantile = 0.0
@@ -55,7 +55,7 @@ def get_config():
     data.target_separate_normalization = False
 
     loss = config.loss
-    loss.loss_type = LossType.ElboMixedReconstruction
+    loss.loss_type = LossType.Elbo
     loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
