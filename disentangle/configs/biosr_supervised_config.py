@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 512
+    data.image_size = 128
     data.grid_size = 1
     data.data_type = DataType.BioSR_MRC
     # data.channel_1 = 0
@@ -112,7 +112,7 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
-    # model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/11/BaselineVAECL_best.ckpt'
+    model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/23/BaselineVAECL_best.ckpt'
 
     training = config.training
     training.lr = 0.001 / 2
