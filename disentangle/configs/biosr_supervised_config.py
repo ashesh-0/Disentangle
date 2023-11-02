@@ -14,7 +14,7 @@ def get_config():
     # data.channel_1 = 0
     # data.channel_2 = 1
     data.ch1_fname = 'Microtubules/GT_all.mrc'
-    data.ch2_fname = 'F-actin/GT_all_a.mrc'
+    data.ch2_fname = 'ER/GT_all.mrc'
 
     # amounnt of data (supervised and unsupervised) which you want to use for training.
     data.trainig_datausage_fraction = 0.05
