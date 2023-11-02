@@ -477,17 +477,22 @@ class LadderVAE(pl.LightningModule):
         mixed_prediction = (mixed_prediction - data_mean['input'].mean()) / data_std['input'].mean()
 
         if prediction_logvar is not None:
-            var = torch.exp(prediction_logvar)
-            var = var * (data_std['target'] / data_std['input'])**2
+            if data_std['target'].shape == data_std['input'].shape and torch.all(
+                    data_std['target'] == data_std['input']):
+                assert channel_weights == 1
+                logvar = prediction_logvar
+            else:
+                var = torch.exp(prediction_logvar)
+                var = var * (data_std['target'] / data_std['input'])**2
+                if channel_weights != 1:
+                    var = var * torch.square(channel_weights)
 
-            var = var * torch.square(channel_weights)
+                # sum of variance.
+                mixed_var = 0
+                for i in range(var.shape[1]):
+                    mixed_var += var[:, i:i + 1]
 
-            # sum of variance.
-            mixed_var = 0
-            for i in range(var.shape[1]):
-                mixed_var += var[:, i:i + 1]
-
-            logvar = torch.log(mixed_var)
+                logvar = torch.log(mixed_var)
         else:
             logvar = None
         return mixed_prediction, logvar
@@ -1042,7 +1047,6 @@ if __name__ == '__main__':
     import torch
 
     from disentangle.configs.biosr_sparsely_supervised_config import get_config
-
     config = get_config()
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
     data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
