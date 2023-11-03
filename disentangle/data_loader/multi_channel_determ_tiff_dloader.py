@@ -162,6 +162,9 @@ class MultiChDeterministicTiffDloader:
             self._validtarget_random_fraction_final = data_config.get('validtarget_random_fraction_final', None)
             self._validtarget_random_fraction_stepepoch = data_config.get('validtarget_random_fraction_stepepoch', None)
             self._idx_count = 0
+        else:
+            self._datausage_fraction = data_config.get('validation_datausage_fraction', 1.0)
+
         self.load_data(data_config,
                        datasplit_type,
                        val_fraction=val_fraction,
