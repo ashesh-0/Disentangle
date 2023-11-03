@@ -18,7 +18,7 @@ def get_config():
 
     # amounnt of data (supervised and unsupervised) which you want to use for training.
     data.trainig_datausage_fraction = 1
-    data.training_validtarget_fraction = 0.01
+    data.training_validtarget_fraction = 0.05
     # when creating a batch, what fraction of inputs should have target.
     data.validtarget_random_fraction = 0.7
     # data.validtarget_random_fraction_final = 0.9
@@ -103,12 +103,12 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise', 'ch_invariant_pixelwise]
-    model.predict_logvar = 'ch_invariant_pixelwise'
+    model.predict_logvar = None  #'ch_invariant_pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = False
+    model.non_stochastic_version = True
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
