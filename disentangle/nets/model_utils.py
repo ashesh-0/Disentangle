@@ -26,7 +26,7 @@ from disentangle.nets.lvae_with_critic import LadderVAECritic
 from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
 from disentangle.nets.lvae_with_stitch_2stage import LadderVAEwithStitching2Stage
 from disentangle.nets.unet import UNet
-
+from disentangle.nets.lvae_with_classifier import LadderVAEWithClassifier
 
 def create_model(config, data_mean, data_std):
     if config.model.model_type == ModelType.LadderVae:
@@ -63,6 +63,8 @@ def create_model(config, data_mean, data_std):
         model = LVAEWithDeepEncoder(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVAEInterleavedOptimization:
         model = LadderVAEInterleavedOptimization(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVAEClassifierSupport:
+        model = LadderVAEWithClassifier(data_mean, data_std, config)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
 

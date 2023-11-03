@@ -70,7 +70,10 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVAEClassifierSupport
+    model.classifier_fpath = '/mnt/ashesh/texture_classifier.pth'
+    model.classifier_loss_weight = 0.01
+    
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
