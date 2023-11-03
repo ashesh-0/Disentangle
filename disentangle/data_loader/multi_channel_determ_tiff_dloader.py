@@ -155,7 +155,6 @@ class MultiChDeterministicTiffDloader:
         self._validtarget_rand_fract = None
         self._validtarget_random_fraction_final = None
         self._validtarget_random_fraction_stepepoch = None
-
         if datasplit_type == DataSplitType.Train:
             self._datausage_fraction = data_config.get('trainig_datausage_fraction', 1.0)
             self._validtarget_rand_fract = data_config.get('validtarget_random_fraction', None)

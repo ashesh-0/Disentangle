@@ -18,6 +18,7 @@ def get_config():
 
     # amounnt of data (supervised and unsupervised) which you want to use for training.
     data.trainig_datausage_fraction = 0.05
+    data.validation_datausage_fraction = 0.08
     data.validation_datausage_fraction = 0.1
     data.training_validtarget_fraction = 1.0
     # when creating a batch, what fraction of inputs should have target.
