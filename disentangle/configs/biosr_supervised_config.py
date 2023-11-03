@@ -17,7 +17,7 @@ def get_config():
     data.ch2_fname = 'ER/GT_all.mrc'
 
     # amounnt of data (supervised and unsupervised) which you want to use for training.
-    data.trainig_datausage_fraction = 0.05
+    data.trainig_datausage_fraction = 0.01
     data.validation_datausage_fraction = 0.08
     data.validation_datausage_fraction = 0.1
     data.training_validtarget_fraction = 1.0
