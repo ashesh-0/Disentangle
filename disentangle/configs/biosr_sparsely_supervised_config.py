@@ -49,7 +49,7 @@ def get_config():
     data.train_aug_rotate = False
     data.randomized_channels = False
     # if multiscale_lowres_count is 3, then there are two additional inputs other than the original input. input channel count is 3
-    data.multiscale_lowres_count = 2
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -123,7 +123,7 @@ def get_config():
                                          data else 30)
     training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
     training.batch_size = 32
-    training.num_workers = 2
+    training.num_workers = 0
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1

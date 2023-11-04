@@ -770,7 +770,7 @@ class LadderVAE(pl.LightningModule):
         self.label2_psnr.reset()
         if self.mixed_rec_w_step:
             self.mixed_rec_w = max(self.mixed_rec_w - self.mixed_rec_w_step, 0.0)
-            self.log('mixed_rec_w', self.mixed_rec_w, on_epoch=False)
+            self.log('mixed_rec_w', self.mixed_rec_w, on_epoch=True)
 
     def forward(self, x):
         img_size = x.size()[2:]
