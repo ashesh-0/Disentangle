@@ -130,8 +130,17 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         return output_img_tuples
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]):
-        assert self._validtarget_random_fraction_final is None
-        index = self.get_index_from_valid_target_logic(index)
+        if self._validtarget_random_fraction_final is not None:
+            self._idx_count += 1
+            self._idx_count = self._idx_count % self.__len__()
+            if self._idx_count == 0:
+                self._validtarget_rand_fract += self._validtarget_random_fraction_stepepoch
+                self._validtarget_rand_fract = min(self._validtarget_rand_fract,
+                                                   self._validtarget_random_fraction_final)
+                print('New step: ', self._validtarget_rand_fract)
+
+        if self._train_index_switcher is not None:
+            index = self._get_index_from_valid_target_logic(index)
 
         img_tuples = self._get_img(index)
         assert self._enable_rotation is False
@@ -141,10 +150,8 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         else:
             target = np.concatenate([img[:1] for img in img_tuples], axis=0)
 
-        if self._validtarget_maxt:
-            tidx = self._get_tidx(index)
-            if tidx > self._validtarget_maxt:
-                target = 0 * target
+        if self._train_index_switcher is not None and (not self._train_index_switcher.index_should_have_target(index)):
+            target = 0 * target
 
         inp, alpha = self._compute_input(img_tuples)
 
