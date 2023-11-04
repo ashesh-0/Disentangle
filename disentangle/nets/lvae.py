@@ -120,10 +120,12 @@ class LadderVAE(pl.LightningModule):
 
         # enabling reconstruction loss on mixed input
         self.mixed_rec_w = 0
+        self.mixed_rec_w_step = 0
         self.enable_mixed_rec = False
         self.nbr_consistency_w = 0
         if self.loss_type in [LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction]:
             self.mixed_rec_w = config.loss.mixed_rec_weight
+            self.mixed_rec_w_step = config.loss.get('mixed_rec_w_step', 0)
             self.enable_mixed_rec = True
             if self.loss_type not in [LossType.ElboSemiSupMixedReconstruction, LossType.ElboMixedReconstruction
                                       ] and config.data.use_one_mu_std is False:
@@ -766,6 +768,9 @@ class LadderVAE(pl.LightningModule):
         self.log('val_psnr', psnr, on_epoch=True)
         self.label1_psnr.reset()
         self.label2_psnr.reset()
+        if self.mixed_rec_w_step:
+            self.mixed_rec_w = max(self.mixed_rec_w - self.mixed_rec_w_step, 0.0)
+            self.log('mixed_rec_w', self.mixed_rec_w, on_epoch=False)
 
     def forward(self, x):
         img_size = x.size()[2:]
