@@ -200,7 +200,7 @@ class MultiChDeterministicTiffDloader:
             self._ch1_max_alpha = data_config.get('ch1_max_alpha', None)
             self.set_img_sz(data_config.image_size,
                             data_config.grid_size if 'grid_size' in data_config else data_config.image_size)
-            if self._validtarget_rand_fract is not None and self._validtarget_rand_fract < 1:
+            if self._validtarget_rand_fract is not None:
                 self._train_index_switcher = IndexSwitcher(self.idx_manager, data_config, self._img_sz)
         else:
 
