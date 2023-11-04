@@ -29,7 +29,7 @@ class IndexSwitcher:
             self._w_validmax = 0
 
         print(
-            f'[{self.__class__.__name__}] Target only for [0,{self._validtarget_ceilT})-[:{self._h_validmax},:{self._w_validmax}] out of {self._data_shape[0]} training data for valid target.'
+            f'[{self.__class__.__name__}] Target Indices: [0,{self._validtarget_ceilT-1}]. Index={self._validtarget_ceilT-1} has shape [:{self._h_validmax},:{self._w_validmax}].  Available data: {self._data_shape[0]}'
         )
 
     def get_valid_target_index(self):
@@ -68,10 +68,9 @@ class IndexSwitcher:
         if available_w < self._patch_size:
             available_w = 0
 
-        targetpixels = np.array([available_h * available_w]) + [framepixelcount] * (total_t - self._validtarget_ceilT)
-
+        targetpixels = np.array([available_h * available_w] + [framepixelcount] * (total_t - self._validtarget_ceilT))
         t_probab = targetpixels / np.sum(targetpixels)
-        t = np.random.choice(np.arange(self._validtarget_ceilT, total_t), p=t_probab)
+        t = np.random.choice(np.arange(self._validtarget_ceilT - 1, total_t), p=t_probab)
 
         h, w = self.get_invalid_target_hw(t)
         index = self.idx_manager.idx_from_hwt(h, w, t)
@@ -105,7 +104,7 @@ class IndexSwitcher:
         return h, w
 
     def _get_tidx(self, index):
-        if isinstance(index, int):
+        if isinstance(index, int) or isinstance(index, np.int64):
             idx = index
         else:
             idx = index[0]
@@ -126,17 +125,52 @@ class IndexSwitcher:
         n, h, w = data_shape_nhw
 
         framepixelcount = h * w
-        pixelcount = int(n * framepixelcount * fraction)
+        targetpixelcount = int(n * framepixelcount * fraction)
 
         # We are currently supporting this only when there is just one frame.
         # if np.ceil(pixelcount / framepixelcount) > 1:
         #     return None, None
 
-        pixelcount = pixelcount % framepixelcount
+        lastframepixelcount = targetpixelcount % framepixelcount
         assert data_shape_nhw[1] == data_shape_nhw[2]
-        if pixelcount > 0:
-            new_size = int(np.sqrt(pixelcount))
+        if lastframepixelcount > 0:
+            new_size = int(np.sqrt(lastframepixelcount))
             return new_size, new_size
         else:
-            assert pixelcount / framepixelcount >= 1, 'This is not possible in euclidean space :D (so this is a bug)'
+            assert targetpixelcount / framepixelcount >= 1, 'This is not possible in euclidean space :D (so this is a bug)'
             return h, w
+
+
+if __name__ == '__main__':
+    import pandas as pd
+
+    from disentangle.configs.biosr_sparsely_supervised_config import get_config
+    from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+
+    config = get_config()
+    data_shape = (15, 499, 499, 2)
+    config.data.training_validtarget_fraction = 0.16
+    print(config.data.training_validtarget_fraction)
+
+    grid_size = config.data.grid_size
+    patch_size = config.data.image_size
+    manager = GridIndexManager(data_shape, grid_size, patch_size, GridAlignement.LeftTop)
+    switcher = IndexSwitcher(manager, config.data, patch_size)
+
+    valid_target = []
+    for _ in range(10000):
+        idx = switcher.get_valid_target_index()
+        valid_target.append(switcher._get_tidx(idx))
+        assert switcher.index_should_have_target(idx)
+    print(pd.Series(valid_target).value_counts(normalize=True))
+
+    invalid_target = []
+    for _ in range(10000):
+        idx = switcher.get_invalid_target_index()
+        assert not switcher.index_should_have_target(idx)
+        invalid_target.append(switcher._get_tidx(idx))
+    print(pd.Series(invalid_target).value_counts(normalize=True).sort_index())
+
+# 5 ele
+# 1.5 => ceilT = 2
+# [1] + [2,3,4]
