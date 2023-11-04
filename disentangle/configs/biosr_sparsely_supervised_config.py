@@ -49,7 +49,7 @@ def get_config():
     data.train_aug_rotate = False
     data.randomized_channels = False
     # if multiscale_lowres_count is 3, then there are two additional inputs other than the original input. input channel count is 3
-    data.multiscale_lowres_count = 3
+    data.multiscale_lowres_count = 2
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
