@@ -347,7 +347,7 @@ class MultiChDeterministicTiffDloader:
         return self.N * self._repeat_factor
 
     def _get_tidx(self, index):
-        if isinstance(index, int):
+        if isinstance(index, int) or isinstance(index, np.int64):
             idx = index
         else:
             idx = index[0]
