@@ -71,18 +71,18 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128]
+    model.z_dims = [64, 64, 64, 64]
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
-    model.encoder.n_filters = 64
+    model.encoder.n_filters = 32
     model.encoder.dropout = 0.3
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
     model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1
-    model.decoder.n_filters = 64
+    model.decoder.n_filters = 32
     model.decoder.dropout = 0.3
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
