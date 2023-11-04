@@ -392,7 +392,7 @@ class MultiChDeterministicTiffDloader:
         """
         It returns the top-left corner of the patch corresponding to index.
         """
-        if isinstance(index, int):
+        if isinstance(index, int) or isinstance(index, np.int64):
             idx = index
             grid_size = self._grid_sz
         else:
@@ -559,7 +559,7 @@ class MultiChDeterministicTiffDloader:
         if self._return_alpha:
             output.append(alpha)
 
-        if isinstance(index, int):
+        if isinstance(index, int) or isinstance(index, np.int64):
             return tuple(output)
 
         _, grid_size = index
