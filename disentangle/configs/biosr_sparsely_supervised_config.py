@@ -75,7 +75,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.LadderVAEClassifierSupport
     model.classifier_fpath = '/home/ubuntu/ashesh/training/disentangle/texture_classifier.pth'
-    model.classifier_loss_weight = 0.003
+    model.classifier_loss_weight = 0.01
 
     model.z_dims = [128, 128, 128, 128]
 
