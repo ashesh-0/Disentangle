@@ -7,118 +7,8 @@ from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.core.empty_patch_fetcher import EmptyPatchFetcher
 from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+from disentangle.data_loader.target_index_switcher import IndexSwitcher
 from disentangle.data_loader.train_val_data import get_train_val_data
-
-
-class IndexSwitcher:
-    """
-    The idea is to switch from valid indices for target to invalid indices for target.
-    If index in invalid for the target, then we return all zero vector as target.
-    This combines both logic:
-    1. Using less amount of total data. 
-    2. Using less amount of target data but using full data.
-    """
-
-    def __init__(self, idx_manager, data_config, patch_size) -> None:
-        self.idx_manager = idx_manager
-        self._data_shape = self.idx_manager.get_data_shape()
-        self._training_validtarget_fraction = data_config.get('training_validtarget_fraction', 1.0)
-        self._validtarget_ceilT = int(self._data_shape[0] * self._training_validtarget_fraction)
-        self._patch_size = patch_size
-        assert data_config.deterministic_grid is True, "This only works when the dataset has deterministic grid. Needed randomness comes from this class."
-        assert 'grid_size' in data_config and data_config.grid_size == 1, "We need a one to one mapping between index and h,w,t"
-
-        self._h_validmax, self._w_validmax = self.get_reduced_frame_size(self._data_shape[:3],
-                                                                         self._training_validtarget_fraction)
-        print(
-            f'[{self.__class__.__name__}] Target only for {self._validtarget_ceilT}-[:{self._h_validmax},:{self._w_validmax}] out of {self._data_shape[0]} training data for valid target.'
-        )
-
-    def get_valid_target_index(self):
-        """
-        Returns an index which corresponds to a frame which is expected to have a target.
-        """
-
-        t = np.random.randint(0, self._validtarget_ceilT) if self._validtarget_ceilT >= 1 else 0
-        h, w = self.get_valid_target_hw(t)
-        index = self.idx_manager.idx_from_hwt(h, w, t)
-        # print('Valid', index, h,w,t)
-        return index
-
-    def get_invalid_target_index(self):
-        if self._validtarget_ceilT == 0:
-            #TODO: There may not be enough data for this to work. The better way is to skip using 0 for invalid target.
-            t = np.random.randint(1, self._data_shape[0])
-        elif self._validtarget_ceilT < self._data_shape[0]:
-            t = np.random.randint(self._validtarget_ceilT, self._data_shape[0])
-        else:
-            t = self._validtarget_ceilT - 1
-
-        h, w = self.get_invalid_target_hw(t)
-        index = self.idx_manager.idx_from_hwt(h, w, t)
-        # print('Invalid', index, h,w,t)
-        return index
-
-    def get_valid_target_hw(self, t):
-        """
-        This is the opposite of get_invalid_target_hw. It returns a h,w which is valid for target.
-        This is only valid for single frame setup.
-        """
-        if self._validtarget_ceilT == 0:
-            assert t == 0
-            h = np.random.randint(0, self._h_validmax - self._patch_size)
-            w = np.random.randint(0, self._w_validmax - self._patch_size)
-        else:
-            h = np.random.randint(0, self._data_shape[1] - self._patch_size)
-            w = np.random.randint(0, self._data_shape[2] - self._patch_size)
-        return h, w
-
-    def get_invalid_target_hw(self, t):
-        """
-        This is the opposite of get_valid_target_hw. It returns a h,w which is not valid for target.
-        This is only valid for single frame setup.
-        """
-        if self._validtarget_ceilT == 0 and t == 0:
-            h = np.random.randint(self._h_validmax, self._data_shape[1] - self._patch_size)
-            w = np.random.randint(self._w_validmax, self._data_shape[2] - self._patch_size)
-        else:
-            h = np.random.randint(0, self._data_shape[1] - self._patch_size)
-            w = np.random.randint(0, self._data_shape[2] - self._patch_size)
-        return h, w
-
-    def _get_tidx(self, index):
-        if isinstance(index, int):
-            idx = index
-        else:
-            idx = index[0]
-        return self.idx_manager.get_t(idx)
-
-    def index_should_have_target(self, index):
-        tidx = self._get_tidx(index)
-        if self._validtarget_ceilT >= 1:
-            if tidx < self._validtarget_ceilT:
-                return True
-            elif tidx >= self._validtarget_ceilT:
-                return False
-        else:
-            h, w, _ = self.idx_manager.hwt_from_idx(index)
-            return h + self._patch_size < self._h_validmax and w + self._patch_size < self._w_validmax
-
-    @staticmethod
-    def get_reduced_frame_size(data_shape_nhw, fraction):
-        n, h, w = data_shape_nhw
-
-        framepixelcount = h * w
-        pixelcount = int(n * framepixelcount * fraction)
-
-        # We are currently supporting this only when there is just one frame.
-        if np.ceil(pixelcount / framepixelcount) > 1:
-            return None, None
-
-        pixelcount = pixelcount % framepixelcount
-        assert data_shape_nhw[1] == data_shape_nhw[2]
-        new_size = int(np.sqrt(pixelcount))
-        return new_size, new_size
 
 
 class MultiChDeterministicTiffDloader:
@@ -149,7 +39,6 @@ class MultiChDeterministicTiffDloader:
         """
         self._fpath = fpath
         self._data = self.N = None
-        self._datausage_fraction = 1
         self._train_index_switcher = None
         self._datausage_fraction = self._training_validtarget_fraction = 1
         self._validtarget_rand_fract = None
@@ -157,6 +46,7 @@ class MultiChDeterministicTiffDloader:
         self._validtarget_random_fraction_stepepoch = None
         if datasplit_type == DataSplitType.Train:
             self._datausage_fraction = data_config.get('trainig_datausage_fraction', 1.0)
+            assert self._datausage_fraction == 1.0, 'Not supported. Use validtarget_random_fraction and training_validtarget_fraction to get the same effect'
             self._validtarget_rand_fract = data_config.get('validtarget_random_fraction', None)
             self._validtarget_random_fraction_final = data_config.get('validtarget_random_fraction_final', None)
             self._validtarget_random_fraction_stepepoch = data_config.get('validtarget_random_fraction_stepepoch', None)
@@ -200,7 +90,7 @@ class MultiChDeterministicTiffDloader:
             self._ch1_max_alpha = data_config.get('ch1_max_alpha', None)
             self.set_img_sz(data_config.image_size,
                             data_config.grid_size if 'grid_size' in data_config else data_config.image_size)
-            if self._validtarget_rand_fract is not None and self._validtarget_rand_fract < 1:
+            if self._validtarget_rand_fract is not None:
                 self._train_index_switcher = IndexSwitcher(self.idx_manager, data_config, self._img_sz)
         else:
 
@@ -457,7 +347,7 @@ class MultiChDeterministicTiffDloader:
         return self.N * self._repeat_factor
 
     def _get_tidx(self, index):
-        if isinstance(index, int):
+        if isinstance(index, int) or isinstance(index, np.int64):
             idx = index
         else:
             idx = index[0]
@@ -502,7 +392,7 @@ class MultiChDeterministicTiffDloader:
         """
         It returns the top-left corner of the patch corresponding to index.
         """
-        if isinstance(index, int):
+        if isinstance(index, int) or isinstance(index, np.int64):
             idx = index
             grid_size = self._grid_sz
         else:
@@ -669,7 +559,7 @@ class MultiChDeterministicTiffDloader:
         if self._return_alpha:
             output.append(alpha)
 
-        if isinstance(index, int):
+        if isinstance(index, int) or isinstance(index, np.int64):
             return tuple(output)
 
         _, grid_size = index

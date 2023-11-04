@@ -120,10 +120,12 @@ class LadderVAE(pl.LightningModule):
 
         # enabling reconstruction loss on mixed input
         self.mixed_rec_w = 0
+        self.mixed_rec_w_step = 0
         self.enable_mixed_rec = False
         self.nbr_consistency_w = 0
         if self.loss_type in [LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction]:
             self.mixed_rec_w = config.loss.mixed_rec_weight
+            self.mixed_rec_w_step = config.loss.get('mixed_rec_w_step', 0)
             self.enable_mixed_rec = True
             if self.loss_type not in [LossType.ElboSemiSupMixedReconstruction, LossType.ElboMixedReconstruction
                                       ] and config.data.use_one_mu_std is False:
@@ -446,10 +448,10 @@ class LadderVAE(pl.LightningModule):
             splitting_mask = torch.ones_like(loss_dict['loss']).bool()
 
         # print(len(target) - (torch.isnan(loss_dict['loss'])).sum())
-        
-        loss_dict['loss'] = loss_dict['loss'][splitting_mask].sum()/len(reconstruction)
-        loss_dict['ch1_loss'] = loss_dict['ch1_loss'][splitting_mask].sum()/len(reconstruction)
-        loss_dict['ch2_loss'] = loss_dict['ch2_loss'][splitting_mask].sum()/len(reconstruction)
+
+        loss_dict['loss'] = loss_dict['loss'][splitting_mask].sum() / len(reconstruction)
+        loss_dict['ch1_loss'] = loss_dict['ch1_loss'][splitting_mask].sum() / len(reconstruction)
+        loss_dict['ch2_loss'] = loss_dict['ch2_loss'][splitting_mask].sum() / len(reconstruction)
 
         if 'mixed_loss' in loss_dict:
             loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'])
@@ -553,6 +555,11 @@ class LadderVAE(pl.LightningModule):
             mixed_pred, mixed_logvar = self.get_mixed_prediction(like_dict['params']['mean'],
                                                                  like_dict['params']['logvar'], self.data_mean,
                                                                  self.data_std)
+            if self._multiscale_count is not None and self._multiscale_count > 1:
+                assert input.shape[1] == self._multiscale_count
+                input = input[:, :1]
+
+            assert input.shape == mixed_pred.shape, "No fucking room for vectorization induced bugs."
             mixed_recons_ll = self.likelihood.log_likelihood(input, {'mean': mixed_pred, 'logvar': mixed_logvar})
             output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
@@ -761,6 +768,9 @@ class LadderVAE(pl.LightningModule):
         self.log('val_psnr', psnr, on_epoch=True)
         self.label1_psnr.reset()
         self.label2_psnr.reset()
+        if self.mixed_rec_w_step:
+            self.mixed_rec_w = max(self.mixed_rec_w - self.mixed_rec_w_step, 0.0)
+            self.log('mixed_rec_w', self.mixed_rec_w, on_epoch=True)
 
     def forward(self, x):
         img_size = x.size()[2:]
