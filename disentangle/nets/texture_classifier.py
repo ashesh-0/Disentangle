@@ -14,7 +14,7 @@ class SingleBottomUpLayer(BottomUpLayer):
 
 class TextureEncoder(nn.Module):
 
-    def __init__(self):
+    def __init__(self, with_sigmoid=True):
         super().__init__()
 
         self.nonlin = nn.LeakyReLU
@@ -49,7 +49,11 @@ class TextureEncoder(nn.Module):
                                     res_block_skip_padding=self.encoder_res_block_skip_padding,
                                     gated=self.gated))
         self.encoder = nn.Sequential(*modules)
-        self.classifier = nn.Sequential(nn.Conv2d(self.encoder_n_filters, 1, 1), nn.Sigmoid())
+        self.with_sigmoid = with_sigmoid
+        if self.with_sigmoid:
+            self.classifier = nn.Sequential(nn.Conv2d(self.encoder_n_filters, 1, 1), nn.Sigmoid())
+        else:
+            self.classifier = nn.Sequential(nn.Conv2d(self.encoder_n_filters, 1, 1))
 
     def forward(self, x):
         latent = self.encoder(x)

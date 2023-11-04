@@ -25,8 +25,8 @@ def get_config():
 
     data.validation_datausage_fraction = 0.08 * 2
 
-    data.validtarget_random_fraction_final = 1
-    data.validtarget_random_fraction_stepepoch = 0.005
+    # data.validtarget_random_fraction_final = 1
+    # data.validtarget_random_fraction_stepepoch = 0.005
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = True
@@ -60,8 +60,9 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.ElboMixedReconstruction
+    loss.critic_loss_weight = 1.0
     loss.mixed_rec_weight = 1.0
-    loss.mixed_rec_w_step = 0.01
+    # loss.mixed_rec_w_step = 0.01
 
     loss.kl_weight = 1
     loss.kl_annealing = False
@@ -73,9 +74,9 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.LadderVAEClassifierSupport
-    model.classifier_fpath = '/home/ubuntu/ashesh/training/disentangle/texture_classifier.pth'
-    model.classifier_loss_weight = 0.01
+    model.model_type = ModelType.LadderVAETexDiscrim
+    # model.classifier_fpath = '/home/ubuntu/ashesh/training/disentangle/texture_classifier.pth'
+    # model.classifier_loss_weight = 0.01
 
     model.z_dims = [128, 128, 128, 128]
 
