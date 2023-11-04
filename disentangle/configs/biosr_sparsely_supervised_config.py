@@ -21,12 +21,12 @@ def get_config():
     # how much data will use the target.
     data.training_validtarget_fraction = 0.05
     # when creating a batch, what fraction of inputs should have target.
-    data.validtarget_random_fraction = 0.7
+    data.validtarget_random_fraction = 0.5
 
     data.validation_datausage_fraction = 0.08 * 2
 
-    # data.validtarget_random_fraction_final = 1
-    # data.validtarget_random_fraction_stepepoch = 0.005
+    data.validtarget_random_fraction_final = 1
+    data.validtarget_random_fraction_stepepoch = 0.005
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = True
@@ -61,7 +61,7 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.ElboMixedReconstruction
     loss.mixed_rec_weight = 1.0
-    # loss.mixed_rec_w_step = 0.01
+    loss.mixed_rec_w_step = 0.01
 
     loss.kl_weight = 1
     loss.kl_annealing = False
