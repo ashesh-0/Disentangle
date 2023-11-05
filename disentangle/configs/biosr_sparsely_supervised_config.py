@@ -25,8 +25,8 @@ def get_config():
 
     data.validation_datausage_fraction = 0.08 * 2
 
-    data.validtarget_random_fraction_final = 1
-    data.validtarget_random_fraction_stepepoch = 0.005
+    # data.validtarget_random_fraction_final = 1
+    # data.validtarget_random_fraction_stepepoch = 0.005
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = True
@@ -61,7 +61,7 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.ElboMixedReconstruction
     loss.mixed_rec_weight = 1.0
-    # loss.mixed_rec_w_step = 0.01
+    loss.mixed_rec_w_step = 0.01
     # loss.exclusion_loss_weight = 0.005
 
     loss.kl_weight = 1
