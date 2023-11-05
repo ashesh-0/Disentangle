@@ -16,13 +16,14 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.core.sampler_type import SamplerType
+from disentangle.loss.exclusive_loss import compute_exclusion_loss
 from disentangle.loss.nbr_consistency_loss import NeighborConsistencyLoss
 from disentangle.losses import free_bits_kl
 from disentangle.metrics.running_psnr import RunningPSNR
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
 from disentangle.nets.noise_model import get_noise_model
-from disentangle.loss.exclusive_loss import compute_exclusion_loss
+
 
 def torch_nanmean(inp):
     return torch.mean(inp[~inp.isnan()])
@@ -567,7 +568,7 @@ class LadderVAE(pl.LightningModule):
 
         if self._exclusion_loss_weight:
             imgs = like_dict['params']['mean']
-            exclusion_loss = compute_exclusion_loss(imgs[:,:1], imgs[:,1:])
+            exclusion_loss = compute_exclusion_loss(imgs[:, :1], imgs[:, 1:])
             output['exclusion_loss'] = exclusion_loss
 
         if return_predicted_img:
@@ -579,8 +580,11 @@ class LadderVAE(pl.LightningModule):
         # kl[i] for each i has length batch_size
         # resulting kl shape: (batch_size, layers)
         kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']], dim=1)
-        kl_loss = free_bits_kl(kl, self.free_bits).sum()
-        kl_loss = kl_loss / np.prod(self.img_shape)
+        nlayers = kl.shape[1]
+        for i in range(nlayers):
+            kl[:, i] = kl[:, i] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
+
+        kl_loss = free_bits_kl(kl, self.free_bits).mean()
         return kl_loss
 
     #   NOTE: Gradient logging has been removed because of a version issue. The issue is that
@@ -644,13 +648,13 @@ class LadderVAE(pl.LightningModule):
 
             if enable_logging:
                 self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
-        
+
         if self._exclusion_loss_weight:
             exclusion_loss = recons_loss_dict['exclusion_loss']
             recons_loss += self._exclusion_loss_weight * exclusion_loss
             if enable_logging:
                 self.log('exclusion_loss', exclusion_loss, on_epoch=True)
-            
+
         elif self.loss_type == LossType.ElboWithNbrConsistency:
             assert len(batch) == 4
             grid_sizes = batch[-1]
