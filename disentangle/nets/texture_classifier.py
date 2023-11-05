@@ -19,7 +19,7 @@ class TextureEncoder(nn.Module):
 
         self.nonlin = nn.LeakyReLU
         self.num_blocks_per_layer = 1
-        self.num_hierarchy_levels = 3
+        self.num_hierarchy_levels = 2
         self.color_ch = 1
         self.encoder_n_filters = 16
         self.encoder_res_block_kernel = 3
@@ -40,7 +40,7 @@ class TextureEncoder(nn.Module):
             modules.append(
                 SingleBottomUpLayer(n_res_blocks=self.num_blocks_per_layer,
                                     n_filters=self.encoder_n_filters,
-                                    downsampling_steps=0,
+                                    downsampling_steps=1,
                                     nonlin=self.nonlin,
                                     batchnorm=self.batchnorm,
                                     dropout=self.encoder_dropout,
