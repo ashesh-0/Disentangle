@@ -64,6 +64,7 @@ class LadderVAE(pl.LightningModule):
 
         self.encoder_dropout = config.model.encoder.dropout
         self.decoder_dropout = config.model.decoder.dropout
+        self.skip_bottomk_buvalues = config.model.get('skip_bottomk_buvalues', 0)
 
         # whether or not to have bias with Conv2D layer.
         self.topdown_conv2d_bias = config.model.decoder.conv2d_bias
@@ -798,6 +799,8 @@ class LadderVAE(pl.LightningModule):
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
+        for i in range(0, self.skip_bottomk_buvalues):
+            bu_values[i] = None
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
         # Top-down inference/generation
