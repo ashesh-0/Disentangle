@@ -22,12 +22,12 @@ def get_config():
     data.training_validtarget_fraction = 0.05
 
     # when creating a batch, what fraction of inputs should have target.
-    data.validtarget_random_fraction = 1
+    data.validtarget_random_fraction = 1.0
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
 
     data.sampler_type = SamplerType.DefaultSampler
-    data.deterministic_grid = False
+    data.deterministic_grid = True
     data.normalized_input = True
     data.clip_percentile = 0.995
     data.background_quantile = 0.0
