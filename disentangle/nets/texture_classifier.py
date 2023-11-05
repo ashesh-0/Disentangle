@@ -18,7 +18,7 @@ class TextureEncoder(nn.Module):
         super().__init__()
 
         self.nonlin = nn.LeakyReLU
-        self.num_blocks_per_layer = 2
+        self.num_blocks_per_layer = 1
         self.num_hierarchy_levels = 3
         self.color_ch = 1
         self.encoder_n_filters = 32
