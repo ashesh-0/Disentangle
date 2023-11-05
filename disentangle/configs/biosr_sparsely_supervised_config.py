@@ -62,6 +62,7 @@ def get_config():
     loss.loss_type = LossType.ElboMixedReconstruction
     loss.mixed_rec_weight = 1.0
     loss.mixed_rec_w_step = 0.015
+    loss.exclusion_loss_weight = 0.1
 
     loss.kl_weight = 1
     loss.kl_annealing = False
@@ -69,6 +70,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
+
     # loss.ch1_recons_w = 1
     # loss.ch2_recons_w = 5
 

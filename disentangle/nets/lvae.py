@@ -22,7 +22,7 @@ from disentangle.metrics.running_psnr import RunningPSNR
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
 from disentangle.nets.noise_model import get_noise_model
-
+from disentangle.loss.exclusive_loss import compute_exclusion_loss
 
 def torch_nanmean(inp):
     return torch.mean(inp[~inp.isnan()])
@@ -123,6 +123,8 @@ class LadderVAE(pl.LightningModule):
         self.mixed_rec_w_step = 0
         self.enable_mixed_rec = False
         self.nbr_consistency_w = 0
+        self._exclusion_loss_weight = config.loss.get('exclusion_loss_weight', 0)
+
         if self.loss_type in [LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction]:
             self.mixed_rec_w = config.loss.mixed_rec_weight
             self.mixed_rec_w_step = config.loss.get('mixed_rec_w_step', 0)
@@ -563,6 +565,11 @@ class LadderVAE(pl.LightningModule):
             mixed_recons_ll = self.likelihood.log_likelihood(input, {'mean': mixed_pred, 'logvar': mixed_logvar})
             output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
+        if self._exclusion_loss_weight:
+            imgs = like_dict['params']['mean']
+            exclusion_loss = compute_exclusion_loss(imgs[:,:1], imgs[:,1:])
+            output['exclusion_loss'] = exclusion_loss
+
         if return_predicted_img:
             return output, like_dict['params']['mean']
 
@@ -637,6 +644,13 @@ class LadderVAE(pl.LightningModule):
 
             if enable_logging:
                 self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
+        
+        if self._exclusion_loss_weight:
+            exclusion_loss = recons_loss_dict['exclusion_loss']
+            recons_loss += self._exclusion_loss_weight * exclusion_loss
+            if enable_logging:
+                self.log('exclusion_loss', exclusion_loss, on_epoch=True)
+            
         elif self.loss_type == LossType.ElboWithNbrConsistency:
             assert len(batch) == 4
             grid_sizes = batch[-1]
