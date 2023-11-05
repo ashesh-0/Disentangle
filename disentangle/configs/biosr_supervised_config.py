@@ -115,6 +115,7 @@ def get_config():
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
     model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/44/BaselineVAECL_best.ckpt'
+    model.pretrained_weights_skip_likelihood = True
 
     training = config.training
     training.lr = 0.001 / 2
