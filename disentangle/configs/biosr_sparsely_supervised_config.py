@@ -25,8 +25,8 @@ def get_config():
 
     data.validation_datausage_fraction = 0.08 * 2
 
-    # data.validtarget_random_fraction_final = 1
-    # data.validtarget_random_fraction_stepepoch = 0.005
+    data.validtarget_random_fraction_final = 1
+    data.validtarget_random_fraction_stepepoch = 0.005
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = True
