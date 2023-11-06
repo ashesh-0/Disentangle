@@ -66,7 +66,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.divergence_loss_w = 1.0
+    loss.divergence_loss_w = 1.2
     # loss.ch1_recons_w = 1
     # loss.ch2_recons_w = 5
 
@@ -120,9 +120,9 @@ def get_config():
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = int(90 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
-                                         data else 90)
-    training.max_epochs = int(600 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 600)
+    training.lr_scheduler_patience = int(180 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
+                                         data else 180)
+    training.max_epochs = int(1200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 1200)
     training.batch_size = 64
     training.num_workers = 2
     training.val_repeat_factor = None
@@ -130,8 +130,8 @@ def get_config():
     training.val_fraction = 0.1
     training.test_fraction = 0.1
 
-    training.earlystop_patience = int(300 /
-                                      data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 300)
+    training.earlystop_patience = int(600 /
+                                      data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 600)
     training.precision = 16
     training.check_val_every_n_epoch = int(
         1 / (data.trainig_datausage_fraction)) if 'trainig_datausage_fraction' in data else None
