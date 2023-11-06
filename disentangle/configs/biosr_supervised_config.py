@@ -78,14 +78,14 @@ def get_config():
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
-    model.encoder.dropout = 0.1
+    model.encoder.dropout = 0.0
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
     model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
-    model.decoder.dropout = 0.1
+    model.decoder.dropout = 0.0
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
 
@@ -123,7 +123,7 @@ def get_config():
     training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
                                          data else 30)
     training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
-    training.batch_size = 32
+    training.batch_size = 64
     training.num_workers = 2
     training.val_repeat_factor = None
     training.train_repeat_factor = None
