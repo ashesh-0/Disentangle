@@ -59,7 +59,7 @@ class CrutchModel(pl.LightningModule):
         self.last_psnr = self.student.on_validation_epoch_end(log_fn=self.log)
         print('\nPSNR', self.current_epoch, self.last_psnr)
         if self.best_psnr is None:
-            self.best_psnr = self.last_psnr / 2
+            self.best_psnr = self.last_psnr
             self.last_psnr = self.best_psnr
 
         # self.log('val_psnr', self.last_psnr, on_epoch=True)
