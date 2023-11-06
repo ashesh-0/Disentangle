@@ -88,9 +88,9 @@ class CrutchModel(pl.LightningModule):
             diff += torch.nn.MSELoss()(td_data_teacher['bu_values'][i], td_data_student['bu_values'][i])
             n += 1
 
-        for i in range(len(td_data_teacher['z'])):
-            diff += torch.nn.MSELoss()(td_data_teacher['z'][i], td_data_student['z'][i])
-            n += 1
+        # for i in range(len(td_data_teacher['z'])):
+        #     diff += torch.nn.MSELoss()(td_data_teacher['z'][i], td_data_student['z'][i])
+        #     n += 1
 
         diff /= n
         self.log('divergence_loss', diff, on_epoch=True)
