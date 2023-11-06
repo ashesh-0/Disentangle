@@ -119,9 +119,9 @@ def get_config():
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = int(60 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
-                                         data else 60)
-    training.max_epochs = int(400 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 400)
+    training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
+                                         data else 30)
+    training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
     training.batch_size = 32
     training.num_workers = 2
     training.val_repeat_factor = None
@@ -129,8 +129,8 @@ def get_config():
     training.val_fraction = 0.1
     training.test_fraction = 0.1
 
-    training.earlystop_patience = int(200 /
-                                      data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
+    training.earlystop_patience = int(100 /
+                                      data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 100)
     training.precision = 16
     training.check_val_every_n_epoch = int(
         1 / (data.trainig_datausage_fraction)) if 'trainig_datausage_fraction' in data else None

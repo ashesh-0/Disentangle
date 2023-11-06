@@ -95,6 +95,7 @@ def get_config():
     model.decoder.multiscale_retain_spatial_dims = True
     model.decoder.conv2d_bias = True
     model.reconstruction_mode = False
+    model.skip_bottomk_buvalues = 3
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
