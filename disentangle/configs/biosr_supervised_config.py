@@ -58,7 +58,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.mixed_rec_weight = 0.3
+    loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
     loss.kl_annealing = False
