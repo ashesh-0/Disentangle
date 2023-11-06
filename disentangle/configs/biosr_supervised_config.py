@@ -22,7 +22,7 @@ def get_config():
     data.training_validtarget_fraction = 0.05
 
     # when creating a batch, what fraction of inputs should have target.
-    data.validtarget_random_fraction = 1.0
+    data.validtarget_random_fraction = 0.5
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
 
@@ -58,7 +58,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.mixed_rec_weight = 1
+    loss.mixed_rec_weight = 0.3
 
     loss.kl_weight = 1
     loss.kl_annealing = False
@@ -66,24 +66,26 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
+    loss.divergence_loss_w = 1
     # loss.ch1_recons_w = 1
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.CrutchModel
+    model.pretrained_weights_path  = '/home/ubuntu/ashesh/training/disentangle/2311/D16-M3-S0-L2/16/BaselineVAECL_best.ckpt'
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
-    model.encoder.dropout = 0.1
+    model.encoder.dropout = 0.0
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
     model.decoder.batchnorm = True
     model.decoder.blocks_per_layer = 1
     model.decoder.n_filters = 64
-    model.decoder.dropout = 0.1
+    model.decoder.dropout = 0.0
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
 
@@ -105,16 +107,16 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise', 'ch_invariant_pixelwise]
-    model.predict_logvar = 'ch_invariant_pixelwise'
+    model.predict_logvar = None
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = False
+    model.non_stochastic_version = True
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
-    model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/44/BaselineVAECL_best.ckpt'
+    # model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/44/BaselineVAECL_best.ckpt'
 
     training = config.training
     training.lr = 0.001 / 2

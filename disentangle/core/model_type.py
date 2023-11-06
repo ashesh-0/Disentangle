@@ -26,3 +26,4 @@ class ModelType(Enum):
     LVaeDeepEncoderIntensityAug = 20
     AutoRegresiveLadderVAE = 21
     LadderVAEInterleavedOptimization = 22
+    CrutchModel = 23
