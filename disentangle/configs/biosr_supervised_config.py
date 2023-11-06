@@ -67,7 +67,7 @@ def get_config():
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
     loss.divergence_loss_w = 1.2
-    loss.critic_loss_weight = 0.0005
+    loss.critic_loss_weight = 0.005
     # loss.ch1_recons_w = 1
     # loss.ch2_recons_w = 5
 
