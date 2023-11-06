@@ -71,8 +71,8 @@ class CrutchModel(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         if self.last_psnr is not None and self.best_psnr is not None and self.last_psnr > self.best_psnr:
             self.update_teacher()
-            print('Updating teacher')
-            self.last_psnr = self.best_psnr
+            print('Updating teacher', self.last_psnr, self.best_psnr)
+            self.best_psnr = self.last_psnr
 
         student_dict = self.student.training_step(batch, batch_idx, log_fn=self.log)
         td_data_student = student_dict['td_data']
