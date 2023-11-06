@@ -72,7 +72,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.CrutchModel
-    model.pretrained_weights_path  = '/home/ubuntu/ashesh/training/disentangle/2311/D16-M3-S0-L2/16/BaselineVAECL_best.ckpt'
+    model.pretrained_weights_path  = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/43/BaselineVAECL_best.ckpt'
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
