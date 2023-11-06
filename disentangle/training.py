@@ -382,6 +382,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 # overfit_batches=20,
                 check_val_every_n_epoch=check_val_every_n_epoch,
                 callbacks=callbacks,
+                num_sanity_val_steps=-1,
                 precision=config.training.precision)
         except:
             trainer = pl.Trainer(
@@ -396,6 +397,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 # overfit_batches=20,
                 check_val_every_n_epoch=check_val_every_n_epoch,
                 callbacks=callbacks,
+                num_sanity_val_steps=-1,
                 precision=config.training.precision)
 
     else:

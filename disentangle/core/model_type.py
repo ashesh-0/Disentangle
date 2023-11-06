@@ -28,3 +28,4 @@ class ModelType(Enum):
     LadderVAEInterleavedOptimization = 22
     LadderVAEClassifierSupport = 23
     LadderVAETexDiscrim = 24
+    CrutchModel = 25

@@ -64,6 +64,7 @@ class LadderVAE(pl.LightningModule):
 
         self.encoder_dropout = config.model.encoder.dropout
         self.decoder_dropout = config.model.decoder.dropout
+        self.skip_bottomk_buvalues = config.model.get('skip_bottomk_buvalues', 0)
 
         # whether or not to have bias with Conv2D layer.
         self.topdown_conv2d_bias = config.model.decoder.conv2d_bias
@@ -611,9 +612,12 @@ class LadderVAE(pl.LightningModule):
     #     loss.backward(retain_graph=True)
     #     self.grad_norm_bottom_up, self.grad_norm_top_down = self.compute_gradient_norm()
 
-    def training_step(self, batch, batch_idx, enable_logging=True):
-        if self.current_epoch == 0 and batch_idx == 0:
-            self.log('val_psnr', 1.0, on_epoch=True)
+    def training_step(self, batch, batch_idx, enable_logging=True, log_fn=None):
+        if log_fn is None:
+            log_fn = self.log
+
+        # if self.current_epoch == 0 and batch_idx == 0:
+        #     log_fn('val_psnr', 1.0, on_epoch=True)
 
         x, target = batch[:2]
         x_normalized = self.normalize_input(x)
@@ -647,19 +651,19 @@ class LadderVAE(pl.LightningModule):
             recons_loss += self.mixed_rec_w * recons_loss_dict['mixed_loss']
 
             if enable_logging:
-                self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
+                log_fn('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
 
         if self._exclusion_loss_weight:
             exclusion_loss = recons_loss_dict['exclusion_loss']
             recons_loss += self._exclusion_loss_weight * exclusion_loss
             if enable_logging:
-                self.log('exclusion_loss', exclusion_loss, on_epoch=True)
+                log_fn('exclusion_loss', exclusion_loss, on_epoch=True)
 
         elif self.loss_type == LossType.ElboWithNbrConsistency:
             assert len(batch) == 4
             grid_sizes = batch[-1]
             nbr_cons_loss = self.nbr_consistency_w * self.nbr_consistency_loss.get(imgs, grid_sizes=grid_sizes)
-            self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
+            log_fn('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
             recons_loss += nbr_cons_loss
 
         if self.non_stochastic_version:
@@ -672,19 +676,22 @@ class LadderVAE(pl.LightningModule):
         # print(f'rec:{recons_loss_dict["loss"]:.3f} mix: {recons_loss_dict.get("mixed_loss",0):.3f} KL: {kl_loss:.3f}')
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):
-                self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
+                log_fn(f'qvar_max:{i}', x.item(), on_epoch=True)
 
-            self.log('reconstruction_loss', recons_loss_dict['loss'], on_epoch=True)
-            self.log('kl_loss', kl_loss, on_epoch=True)
-            self.log('training_loss', net_loss, on_epoch=True)
-            self.log('lr', self.lr, on_epoch=True)
-            # self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
-            # self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
+            log_fn('reconstruction_loss', recons_loss_dict['loss'], on_epoch=True)
+            log_fn('kl_loss', kl_loss, on_epoch=True)
+            log_fn('training_loss', net_loss, on_epoch=True)
+            log_fn('lr', self.lr, on_epoch=True)
+            # log_fn('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
+            # log_fn('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
 
         output = {
             'loss': net_loss,
             'reconstruction_loss': recons_loss.detach() if isinstance(recons_loss, torch.Tensor) else recons_loss,
             'kl_loss': kl_loss.detach(),
+            'td_data': td_data,
+            'x_normalized': x_normalized,
+            'out': out,
         }
         # https://github.com/openai/vdvae/blob/main/train.py#L26
         if torch.isnan(net_loss).any():
@@ -723,7 +730,10 @@ class LadderVAE(pl.LightningModule):
                     self.data_mean[k] = v.to(correct_device_tensor.device)
                     self.data_std[k] = self.data_std[k].to(correct_device_tensor.device)
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx, log_fn = None):
+        if log_fn is None:
+            log_fn = self.log
+
         x, target = batch[:2]
         self.set_params_to_same_device_as(x)
         x_normalized = self.normalize_input(x)
@@ -756,11 +766,11 @@ class LadderVAE(pl.LightningModule):
         recons_loss = recons_loss_dict['loss']
         # kl_loss = self.get_kl_divergence_loss(td_data)
         # net_loss = recons_loss + self.get_kl_weight() * kl_loss
-        self.log('val_loss', recons_loss, on_epoch=True)
+        log_fn('val_loss', recons_loss, on_epoch=True)
         val_psnr_l1 = torch_nanmean(psnr_label1).item()
         val_psnr_l2 = torch_nanmean(psnr_label2).item()
-        self.log('val_psnr_l1', val_psnr_l1, on_epoch=True)
-        self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
+        log_fn('val_psnr_l1', val_psnr_l1, on_epoch=True)
+        log_fn('val_psnr_l2', val_psnr_l2, on_epoch=True)
         # self.log('val_psnr', (val_psnr_l1 + val_psnr_l2) / 2, on_epoch=True)
 
         # if batch_idx == 0 and self.power_of_2(self.current_epoch):
@@ -779,17 +789,20 @@ class LadderVAE(pl.LightningModule):
 
         # return net_loss
 
-    def on_validation_epoch_end(self):
+    def on_validation_epoch_end(self, log_fn = None):
+        if log_fn is None:
+            log_fn = self.log
         psnrl1 = self.label1_psnr.get()
         psnrl2 = self.label2_psnr.get()
         psnr = (psnrl1 + psnrl2) / 2
-        self.log('val_psnr', psnr, on_epoch=True)
+        log_fn('val_psnr', psnr, on_epoch=True)
         self.label1_psnr.reset()
         self.label2_psnr.reset()
         if self.mixed_rec_w_step:
             self.mixed_rec_w = max(self.mixed_rec_w - self.mixed_rec_w_step, 0.0)
-            self.log('mixed_rec_w', self.mixed_rec_w, on_epoch=True)
-
+            log_fn('mixed_rec_w', self.mixed_rec_w, on_epoch=True)
+        return psnr
+    
     def forward(self, x):
         img_size = x.size()[2:]
 
@@ -798,10 +811,14 @@ class LadderVAE(pl.LightningModule):
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
+        for i in range(0, self.skip_bottomk_buvalues):
+            bu_values[i] = None
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
+        
         # Top-down inference/generation
         out, td_data = self.topdown_pass(bu_values, mode_layers=mode_layers)
+        td_data['bu_values'] = bu_values
 
         if out.shape[-1] > img_size[-1]:
             # Restore original image size
