@@ -67,6 +67,7 @@ def get_config():
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
     loss.divergence_loss_w = 1.2
+    loss.critic_loss_weight = 0.0005
     # loss.ch1_recons_w = 1
     # loss.ch2_recons_w = 5
 
@@ -116,7 +117,7 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
-    model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/44/BaselineVAECL_best.ckpt'
+    # model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/44/BaselineVAECL_best.ckpt'
 
     training = config.training
     training.lr = 0.001 / 2
