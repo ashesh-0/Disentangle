@@ -66,13 +66,13 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    loss.divergence_loss_w = 1
+    loss.divergence_loss_w = 1.0
     # loss.ch1_recons_w = 1
     # loss.ch2_recons_w = 5
 
     model = config.model
     model.model_type = ModelType.CrutchModel
-    model.pretrained_weights_path  = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/43/BaselineVAECL_best.ckpt'
+    model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/43/BaselineVAECL_best.ckpt'
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
