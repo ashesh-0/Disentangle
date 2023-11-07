@@ -140,6 +140,8 @@ def main(
             data_dir = f'{DATA_ROOT}/allencell/2017_03_08_Struct_First_Pass_Seg/AICS-11/'
         elif dtype == DataType.SeparateTiffData:
             data_dir = f'{DATA_ROOT}/ventura_gigascience'
+        elif dtype == DataType.BioSR_MRC:
+            data_dir = f'{DATA_ROOT}/BioSR/'
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -251,6 +253,10 @@ def main(
     ## Disentanglement setup.
     ####
     ####
+    if 'validtarget_random_fraction' in config.data:
+        with config.unlocked():
+            config.data.validtarget_random_fraction = None
+
     grid_alignment = GridAlignement.Center
     if image_size_for_grid_centers is not None:
         old_grid_size = config.data.get('grid_size', "grid_size not present")
@@ -284,6 +290,8 @@ def main(
         datapath = os.path.join(data_dir, 'OptiMEM100x014.tif')
     elif config.data.data_type == DataType.Prevedel_EMBL:
         datapath = os.path.join(data_dir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
+    else:
+        datapath = data_dir
 
     normalized_input = config.data.normalized_input
     use_one_mu_std = config.data.use_one_mu_std
@@ -324,7 +332,7 @@ def main(
 
     if evaluate_train:
         val_dset = train_dset
-    data_mean, data_std = train_dset.get_mean_std()
+    # data_mean, data_std = train_dset.get_mean_std()
 
     with config.unlocked():
         if config.data.data_type in [
@@ -333,10 +341,25 @@ def main(
         ] and old_image_size is not None:
             config.data.image_size = old_image_size
 
+    # mean std
+    mean_dict = {'input': None, 'target': None}
+    std_dict = {'input': None, 'target': None}
+    inp_mean, inp_std = train_dset.get_mean_std()
+    mean_dict['input'] = inp_mean
+    std_dict['input'] = inp_std
+
     if config.data.target_separate_normalization is True:
-        model = create_model(config, *train_dset.compute_individual_mean_std())
+        data_mean, data_std = train_dset.compute_individual_mean_std()
     else:
-        model = create_model(config, *train_dset.get_mean_std())
+        data_mean, data_std = train_dset.get_mean_std()
+
+    mean_dict['target'] = data_mean
+    std_dict['target'] = data_std
+
+    if config.data.target_separate_normalization is True:
+        model = create_model(config, mean_dict, std_dict)
+    else:
+        model = create_model(config, mean_dict, std_dict)
 
     ckpt_fpath = get_best_checkpoint(ckpt_dir)
     checkpoint = torch.load(ckpt_fpath)
@@ -344,9 +367,10 @@ def main(
     _ = model.load_state_dict(checkpoint['state_dict'])
     model.eval()
     _ = model.cuda()
+    model.set_params_to_same_device_as(torch.Tensor([1]).cuda())
 
-    model.data_mean = model.data_mean.cuda()
-    model.data_std = model.data_std.cuda()
+    # model.data_mean = model.data_mean.cuda()
+    # model.data_std = model.data_std.cuda()
     print('Loading from epoch', checkpoint['epoch'])
 
     def count_parameters(model):
@@ -370,7 +394,11 @@ def main(
 
     def print_ignored_pixels():
         ignored_pixels = 1
-        while (pred[0, -ignored_pixels:, -ignored_pixels:, ].std() == 0):
+        while (pred[
+                0,
+                -ignored_pixels:,
+                -ignored_pixels:,
+        ].std() == 0):
             ignored_pixels += 1
         ignored_pixels -= 1
         # print(f'In {pred.shape}, {ignored_pixels} many rows and columns are all zero.')
@@ -389,7 +417,7 @@ def main(
     pred = ignore_pixels(pred)
     tar = ignore_pixels(tar)
 
-    sep_mean, sep_std = model.data_mean, model.data_std
+    sep_mean, sep_std = model.data_mean['target'], model.data_std['target']
     sep_mean = sep_mean.squeeze()[None, None, None]
     sep_std = sep_std.squeeze()[None, None, None]
 
@@ -474,8 +502,8 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2303/D7-M10-S0-L3/0',
-        '/home/ashesh.ashesh/training/disentangle/2301/D3-M10-S0-L3/43',
+        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/63',
+        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L2/100',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -487,11 +515,18 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    patchsz_gridsz_tuples = [(64, 32)]
+    patchsz_gridsz_tuples = [(128, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
-                ignored_last_pixels = 32 if os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:] == '3' else 0
+                data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
+                if data_type == DataType.BioSR_MRC:
+                    ignored_last_pixels = 108
+                elif data_type == DataType.OptiMEM100_014:
+                    ignored_last_pixels = 32
+                else:
+                    ignored_last_pixels = 0
+
                 handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
                                               image_size_for_grid_centers, mmse_count, ignored_last_pixels)
                 data = main(
