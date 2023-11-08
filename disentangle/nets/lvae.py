@@ -200,6 +200,14 @@ class LadderVAE(pl.LightningModule):
         # PSNR computation on validation.
         self.label1_psnr = RunningPSNR()
         self.label2_psnr = RunningPSNR()
+
+        logvar_ch_needed = self.predict_logvar is not None
+        self.output_layer = self.parameter_net = nn.Conv2d(self.decoder_n_filters,
+                                                           self.target_ch * (1 + logvar_ch_needed),
+                                                           kernel_size=3,
+                                                           padding=1,
+                                                           bias=self.topdown_conv2d_bias)
+
         print(f'[{self.__class__.__name__}] Enc [ResKSize{self.encoder_res_block_kernel}',
               f'SkipPadding:{self.encoder_res_block_skip_padding}]',
               f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]',
@@ -818,7 +826,7 @@ class LadderVAE(pl.LightningModule):
             # Restore original image size
             out = crop_img_tensor(out, img_size)
 
-        return out, td_data
+        return self.output_layer(out), td_data
 
     def bottomup_pass(self, inp):
         return self._bottomup_pass(inp, self.first_bottom_up, self.lowres_first_bottom_ups, self.bottom_up_layers)

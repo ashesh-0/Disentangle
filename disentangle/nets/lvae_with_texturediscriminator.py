@@ -5,25 +5,27 @@ import torch
 import torch.optim as optim
 from torch import nn
 
+from disentangle.core.loss_type import LossType
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.texture_classifier import TextureEncoder
-from disentangle.core.loss_type import LossType
+
 
 class LadderVAETexDiscrim(LadderVAE):
-    def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
+
+    def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=1):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
         self.D1 = TextureEncoder(with_sigmoid=False)
         self.D2 = TextureEncoder(with_sigmoid=False)
         self.automatic_optimization = False
 
-
         self.critic_loss_weight = config.loss.critic_loss_weight
         self.critic_loss_fn = nn.BCEWithLogitsLoss()
+        assert self.predict_logvar is None, "predict_logvar is not None. This is not supported for this model."
 
     def configure_optimizers(self):
         params1 = list(self.first_bottom_up.parameters()) + list(self.bottom_up_layers.parameters()) + list(
             self.top_down_layers.parameters()) + list(self.final_top_down.parameters()) + list(
-            self.likelihood.parameters())
+                self.likelihood.parameters())
 
         optimizer1 = optim.Adamax(params1, lr=self.lr, weight_decay=0)
         params2 = list(self.D1.parameters()) + list(self.D2.parameters())
@@ -87,6 +89,15 @@ class LadderVAETexDiscrim(LadderVAE):
         loss = loss_0 + loss_1
         return loss, {'generated': torch.sigmoid(pred_label).mean(), 'actual': torch.sigmoid(tar_label).mean()}
 
+    def get_other_channel(self, ch1, input):
+        assert self.data_std['target'].squeeze().shape == (1, )
+        assert self.data_mean['target'].squeeze().shape == (1, )
+        ch1_un = ch1[:, :1] * self.data_std['target'] + self.data_mean['target']
+        input_un = input * self.data_std['input'] + self.data_mean['input']
+        ch2_un = input_un - ch1_un
+        ch2 = (ch2_un - self.data_mean['target']) / self.data_std['target']
+        return ch2
+
     def training_step(self, batch: tuple, batch_idx: int):
         optimizer_g, optimizer_d = self.optimizers()
 
@@ -96,14 +107,18 @@ class LadderVAETexDiscrim(LadderVAE):
         mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
 
         optimizer_g.zero_grad()
-        out, td_data = self.forward(x_normalized)
-        recons_loss_dict, pred_nimg = self.get_reconstruction_loss(out, target_normalized,
-                                                                   x_normalized, 
-                                                                   splitting_mask=mask, return_predicted_img=True)
+        out1, td_data = self.forward(x_normalized)
+        ch2 = self.get_other_channel(out, x_normalized)
+        out = torch.cat([ch2, out1], dim=1)
+
+        recons_loss_dict, pred_nimg = self.get_reconstruction_loss(out,
+                                                                   target_normalized,
+                                                                   x_normalized,
+                                                                   splitting_mask=mask,
+                                                                   return_predicted_img=True)
         recons_loss = recons_loss_dict['loss']
         if self.loss_type == LossType.ElboMixedReconstruction:
             recons_loss += self.mixed_rec_w * recons_loss_dict['mixed_loss']
-
 
         if self.non_stochastic_version:
             kl_loss = torch.Tensor([0.0]).cuda()
@@ -111,7 +126,7 @@ class LadderVAETexDiscrim(LadderVAE):
             kl_loss = self.get_kl_divergence_loss(td_data)
 
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
-        
+
         if mask.sum() > 0:
             critic_dict = self.get_critic_loss_stats(pred_nimg, target_normalized[mask])
             D_loss = critic_dict['loss']
@@ -135,6 +150,49 @@ class LadderVAETexDiscrim(LadderVAE):
         self.log('L2_actual_probab', critic_dict['avg_Label2']['actual'], on_epoch=True)
         if mask.sum() > 0:
             optimizer_d.zero_grad()
-            D_loss = self.critic_loss_weight * self.get_critic_loss_stats(pred_nimg.detach(), target_normalized[mask])['loss']
+            D_loss = self.critic_loss_weight * self.get_critic_loss_stats(pred_nimg.detach(),
+                                                                          target_normalized[mask])['loss']
             self.manual_backward(D_loss)
             optimizer_d.step()
+
+    def validation_step(self, batch, batch_idx):
+        x, target = batch[:2]
+        self.set_params_to_same_device_as(x)
+        x_normalized = self.normalize_input(x)
+        if self.reconstruction_mode:
+            target_normalized = x_normalized[:, :1].repeat(1, 2, 1, 1)
+            target = None
+            mask = None
+        else:
+            target_normalized = self.normalize_target(target)
+            mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
+
+        out1, td_data = self.forward(x_normalized)
+        ch2 = self.get_other_channel(out, x_normalized)
+        out = torch.cat([ch2, out1], dim=1)
+
+        if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
+            target_normalized = F.center_crop(target_normalized, out.shape[-2:])
+
+        recons_loss_dict, recons_img = self.get_reconstruction_loss(out,
+                                                                    target_normalized,
+                                                                    x_normalized,
+                                                                    mask,
+                                                                    return_predicted_img=True)
+        if self.skip_nboundary_pixels_from_loss:
+            pad = self.skip_nboundary_pixels_from_loss
+            target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
+
+        self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
+        self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
+
+        psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0].clone(), recons_img[:, 0].clone())
+        psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1].clone(), recons_img[:, 1].clone())
+        recons_loss = recons_loss_dict['loss']
+        # kl_loss = self.get_kl_divergence_loss(td_data)
+        # net_loss = recons_loss + self.get_kl_weight() * kl_loss
+        self.log('val_loss', recons_loss, on_epoch=True)
+        val_psnr_l1 = torch_nanmean(psnr_label1).item()
+        val_psnr_l2 = torch_nanmean(psnr_label2).item()
+        self.log('val_psnr_l1', val_psnr_l1, on_epoch=True)
+        self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
