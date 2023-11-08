@@ -64,6 +64,7 @@ class LadderVAE(pl.LightningModule):
 
         self.encoder_dropout = config.model.encoder.dropout
         self.decoder_dropout = config.model.decoder.dropout
+        self.skip_bottomk_buvalues = config.model.get('skip_bottomk_buvalues', 0)
 
         # whether or not to have bias with Conv2D layer.
         self.topdown_conv2d_bias = config.model.decoder.conv2d_bias
@@ -587,6 +588,14 @@ class LadderVAE(pl.LightningModule):
         kl_loss = free_bits_kl(kl, self.free_bits).mean()
         return kl_loss
 
+    # def get_kl_divergence_loss(self, topdown_layer_data_dict):
+    #     # kl[i] for each i has length batch_size
+    #     # resulting kl shape: (batch_size, layers)
+    #     kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']], dim=1)
+    #     kl_loss = free_bits_kl(kl, self.free_bits).sum()
+    #     kl_loss = kl_loss / np.prod(self.img_shape)
+    #     return kl_loss
+
     #   NOTE: Gradient logging has been removed because of a version issue. The issue is that
     #   def backward() function arguments have changed. in one version, one needs to pass
     #   optimizer_idx and optimizer as additional arguments. In other version, that is not neeeded.
@@ -798,6 +807,8 @@ class LadderVAE(pl.LightningModule):
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
+        for i in range(0, self.skip_bottomk_buvalues):
+            bu_values[i] = None
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
         # Top-down inference/generation

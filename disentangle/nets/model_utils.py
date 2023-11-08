@@ -22,12 +22,13 @@ from disentangle.nets.lvae_multiple_encoders import LadderVAEMultipleEncoders
 from disentangle.nets.lvae_multires_target import LadderVAEMultiTarget
 from disentangle.nets.lvae_semi_supervised import LadderVAESemiSupervised
 from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
+from disentangle.nets.lvae_with_classifier import LadderVAEWithClassifier
 from disentangle.nets.lvae_with_critic import LadderVAECritic
 from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
 from disentangle.nets.lvae_with_stitch_2stage import LadderVAEwithStitching2Stage
-from disentangle.nets.unet import UNet
-from disentangle.nets.lvae_with_classifier import LadderVAEWithClassifier
 from disentangle.nets.lvae_with_texturediscriminator import LadderVAETexDiscrim
+from disentangle.nets.unet import UNet
+
 
 def create_model(config, data_mean, data_std):
     if config.model.model_type == ModelType.LadderVae:
@@ -74,6 +75,11 @@ def create_model(config, data_mean, data_std):
     if config.model.get('pretrained_weights_path', None):
         ckpt_fpath = config.model.pretrained_weights_path
         checkpoint = torch.load(ckpt_fpath)
+        skip_likelihood = config.model.get('pretrained_weights_skip_likelihood', False)
+        if skip_likelihood:
+            checkpoint['state_dict'].pop('likelihood.parameter_net.weight')
+            checkpoint['state_dict'].pop('likelihood.parameter_net.bias')
+
         _ = model.load_state_dict(checkpoint['state_dict'], strict=False)
         print('Loaded model from ckpt dir', ckpt_fpath, f' at epoch:{checkpoint["epoch"]}')
 

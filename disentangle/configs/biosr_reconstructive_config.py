@@ -18,9 +18,9 @@ def get_config():
 
     # amounnt of data (supervised and unsupervised) which you want to use for training.
     data.trainig_datausage_fraction = 1
-    data.training_validtarget_fraction = 1.0
+    data.training_validtarget_fraction = None
     # when creating a batch, what fraction of inputs should have target.
-    data.validtarget_random_fraction = 1.0
+    data.validtarget_random_fraction = None
     # data.validtarget_random_fraction_final = 0.9
     # data.validtarget_random_fraction_stepepoch = 0.005
 
@@ -70,6 +70,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
+    model.skip_bottomk_buvalues = 3
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
@@ -103,7 +104,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise', 'ch_invariant_pixelwise]
-    model.predict_logvar = 'ch_invariant_pixelwise'
+    model.predict_logvar = None
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
@@ -116,9 +117,9 @@ def get_config():
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
-                                         data else 30)
-    training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
+    training.lr_scheduler_patience = int(60 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
+                                         data else 60)
+    training.max_epochs = int(400 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 400)
     training.batch_size = 32
     training.num_workers = 2
     training.val_repeat_factor = None
@@ -126,8 +127,8 @@ def get_config():
     training.val_fraction = 0.1
     training.test_fraction = 0.1
 
-    training.earlystop_patience = int(100 /
-                                      data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 100)
+    training.earlystop_patience = int(200 /
+                                      data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
     training.precision = 16
     training.check_val_every_n_epoch = int(
         1 / (data.trainig_datausage_fraction)) if 'trainig_datausage_fraction' in data else None
