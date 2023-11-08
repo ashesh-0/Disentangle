@@ -6,7 +6,7 @@ import torch.optim as optim
 from torch import nn
 
 from disentangle.core.loss_type import LossType
-from disentangle.nets.lvae import LadderVAE
+from disentangle.nets.lvae import LadderVAE, RangeInvariantPsnr, torch_nanmean
 from disentangle.nets.texture_classifier import TextureEncoder
 
 
@@ -90,12 +90,12 @@ class LadderVAETexDiscrim(LadderVAE):
         return loss, {'generated': torch.sigmoid(pred_label).mean(), 'actual': torch.sigmoid(tar_label).mean()}
 
     def get_other_channel(self, ch1, input):
-        assert self.data_std['target'].squeeze().shape == (1, )
-        assert self.data_mean['target'].squeeze().shape == (1, )
-        ch1_un = ch1[:, :1] * self.data_std['target'] + self.data_mean['target']
+        assert self.data_std['target'].squeeze().shape == (2, )
+        assert self.data_mean['target'].squeeze().shape == (2, )
+        ch1_un = ch1[:, :1] * self.data_std['target'][:, :1] + self.data_mean['target'][:, :1]
         input_un = input * self.data_std['input'] + self.data_mean['input']
         ch2_un = input_un - ch1_un
-        ch2 = (ch2_un - self.data_mean['target']) / self.data_std['target']
+        ch2 = (ch2_un - self.data_mean['target'][:, -1:]) / self.data_std['target'][:, -1:]
         return ch2
 
     def training_step(self, batch: tuple, batch_idx: int):
@@ -107,10 +107,9 @@ class LadderVAETexDiscrim(LadderVAE):
         mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
 
         optimizer_g.zero_grad()
-        out1, td_data = self.forward(x_normalized)
-        ch2 = self.get_other_channel(out1, x_normalized)
-        out = torch.cat([ch2, out1], dim=1)
-
+        ch1, td_data = self.forward(x_normalized)
+        ch2 = self.get_other_channel(ch1, x_normalized)
+        out = torch.cat([ch1[:, :1], ch2, ch1[:, 1:]], dim=1)
         recons_loss_dict, pred_nimg = self.get_reconstruction_loss(out,
                                                                    target_normalized,
                                                                    x_normalized,
@@ -167,10 +166,11 @@ class LadderVAETexDiscrim(LadderVAE):
             target_normalized = self.normalize_target(target)
             mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
 
-        out1, td_data = self.forward(x_normalized)
-        ch2 = self.get_other_channel(out1, x_normalized)
-        out = torch.cat([ch2, out1], dim=1)
-
+        ch1, td_data = self.forward(x_normalized)
+        ch2 = self.get_other_channel(ch1, x_normalized)
+        out = torch.cat([ch1[:, :1], ch2, ch1[:, 1:]], dim=1)
+        import pdb
+        pdb.set_trace()
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
@@ -196,3 +196,35 @@ class LadderVAETexDiscrim(LadderVAE):
         val_psnr_l2 = torch_nanmean(psnr_label2).item()
         self.log('val_psnr_l1', val_psnr_l1, on_epoch=True)
         self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
+
+
+if __name__ == '__main__':
+    import numpy as np
+    import torch
+
+    from disentangle.configs.biosr_sparsely_supervised_config import get_config
+    config = get_config()
+    data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
+    data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
+    model = LadderVAETexDiscrim({
+        'input': data_mean,
+        'target': data_mean
+    }, {
+        'input': data_std,
+        'target': data_std
+    }, config)
+    mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count
+    inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
+    out, td_data = model(inp)
+    batch = (
+        torch.rand((16, mc, config.data.image_size, config.data.image_size)),
+        torch.rand((16, 2, config.data.image_size, config.data.image_size)),
+    )
+    model.validation_step(batch, 0)
+    model.training_step(batch, 0)
+
+    ll = torch.ones((12, 2, 32, 32))
+    ll_new = model._get_weighted_likelihood(ll)
+    print(ll_new[:, 0].mean(), ll_new[:, 0].std())
+    print(ll_new[:, 1].mean(), ll_new[:, 1].std())
+    print('mar')

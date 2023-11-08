@@ -10,6 +10,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import torch
 import torchvision
 from torch.utils.cpp_extension import CUDA_HOME
@@ -172,8 +173,10 @@ def main(argv):
         mean_dict = {'input': None, 'target': None}
         std_dict = {'input': None, 'target': None}
         inp_mean, inp_std = train_data.get_mean_std()
-        mean_dict['input'] = inp_mean
-        std_dict['input'] = inp_std
+        assert np.all(inp_mean[:, :1] == inp_mean[:, 1:])
+        assert np.all(inp_std[:, :1] == inp_std[:, 1:])
+        mean_dict['input'] = inp_mean[:, :1]
+        std_dict['input'] = inp_std[:, :1]
 
         if config.data.target_separate_normalization is True:
             data_mean, data_std = train_data.compute_individual_mean_std()
