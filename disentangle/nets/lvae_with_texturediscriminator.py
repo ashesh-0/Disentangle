@@ -108,7 +108,7 @@ class LadderVAETexDiscrim(LadderVAE):
 
         optimizer_g.zero_grad()
         out1, td_data = self.forward(x_normalized)
-        ch2 = self.get_other_channel(out, x_normalized)
+        ch2 = self.get_other_channel(out1, x_normalized)
         out = torch.cat([ch2, out1], dim=1)
 
         recons_loss_dict, pred_nimg = self.get_reconstruction_loss(out,
@@ -168,7 +168,7 @@ class LadderVAETexDiscrim(LadderVAE):
             mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
 
         out1, td_data = self.forward(x_normalized)
-        ch2 = self.get_other_channel(out, x_normalized)
+        ch2 = self.get_other_channel(out1, x_normalized)
         out = torch.cat([ch2, out1], dim=1)
 
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
