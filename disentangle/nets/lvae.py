@@ -51,7 +51,7 @@ class LadderVAE(pl.LightningModule):
         self.z_dims = config.model.z_dims
         self.encoder_blocks_per_layer = config.model.encoder.blocks_per_layer
         self.decoder_blocks_per_layer = config.model.decoder.blocks_per_layer
-        self.kl_loss_formulation = config.model.get('kl_loss_formulation', None)
+        self.kl_loss_formulation = config.loss.get('kl_loss_formulation', None)
 
         self.n_layers = len(self.z_dims)
         self.stochastic_skip = config.model.stochastic_skip
