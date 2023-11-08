@@ -44,6 +44,7 @@ def get_config():
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 1.0
+    loss.kl_loss_formulation = 'usplit'
 
     model = config.model
     model.model_type = ModelType.LadderVae

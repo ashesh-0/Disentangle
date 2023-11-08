@@ -51,6 +51,7 @@ class LadderVAE(pl.LightningModule):
         self.z_dims = config.model.z_dims
         self.encoder_blocks_per_layer = config.model.encoder.blocks_per_layer
         self.decoder_blocks_per_layer = config.model.decoder.blocks_per_layer
+        self.kl_loss_formulation = config.model.get('kl_loss_formulation', None)
 
         self.n_layers = len(self.z_dims)
         self.stochastic_skip = config.model.stochastic_skip
@@ -515,6 +516,15 @@ class LadderVAE(pl.LightningModule):
 
         return output
 
+    def get_kl_divergence_loss_usplit(self, topdown_layer_data_dict):
+        kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']], dim=1)
+        nlayers = kl.shape[1]
+        for i in range(nlayers):
+            kl[:, i] = kl[:, i] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
+
+        kl_loss = free_bits_kl(kl, self.free_bits).mean()
+        return kl_loss
+
     def get_kl_divergence_loss(self, topdown_layer_data_dict):
         # kl[i] for each i has length batch_size
         # resulting kl shape: (batch_size, layers)
@@ -579,7 +589,8 @@ class LadderVAE(pl.LightningModule):
             kl_loss = torch.Tensor([0.0]).cuda()
             net_loss = recons_loss
         else:
-            kl_loss = self.get_kl_divergence_loss(td_data)
+            kl_loss = self.get_kl_divergence_loss(
+                td_data) if self.kl_loss_formulation != 'usplit' else self.get_kl_divergence_loss_usplit(td_data)
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
         if enable_logging:
