@@ -169,8 +169,6 @@ class LadderVAETexDiscrim(LadderVAE):
         ch1, td_data = self.forward(x_normalized)
         ch2 = self.get_other_channel(ch1, x_normalized)
         out = torch.cat([ch1[:, :1], ch2, ch1[:, 1:]], dim=1)
-        import pdb
-        pdb.set_trace()
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
