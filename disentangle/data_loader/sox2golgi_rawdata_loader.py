@@ -13,40 +13,10 @@ from disentangle.data_loader.multifile_raw_dloader import get_train_val_data as 
 
 
 def get_two_channel_files():
-    arr = [
-        71,
-        89,
-        92,
-        93,
-        94,
-        95,
-    ]  #96,97,98,99,100, 1752, 1757, 1758, 1760, 1761]
+    arr = [71, 89, 92, 93, 94, 95, 96, 97, 98, 99, 100, 1752, 1757, 1758, 1760, 1761]
     sox2 = [f'SOX2/C2-Experiment-{i}.tif' for i in arr]
     golgi = [f'GOLGI/C1-Experiment-{i}.tif' for i in arr]
     return sox2, golgi
-
-
-# def get_shape_info(datadir, fpaths):
-#     shapefpath = os.path.join(datadir, 'shape_info.txt')
-#     if not os.path.exists(shapefpath):
-#         print(f'Writing shape of each file to {shapefpath}')
-
-#         with open(shapefpath, 'w') as f:
-#             for fpath in fpaths:
-#                 data = load_tiff(os.path.join(datadir,fpath))
-#                 f.write(f'{fpath}:{data.shape}\n')
-
-#     with open(shapefpath,'r') as f:
-#         lines = f.readlines()
-#     shape_info = {}
-#     for line in lines:
-#         line = line.strip()
-#         if line == '':
-#             continue
-#         key, val = line.split(':')
-#         shape_info[key] = make_tuple(val)
-
-#     return [shape_info[fpath] for fpath in fpaths]
 
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
