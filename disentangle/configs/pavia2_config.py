@@ -1,10 +1,11 @@
+import numpy as np
+
 from disentangle.configs.default_config import get_default_config
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
 from disentangle.data_loader.pavia2_enums import Pavia2DataSetChannels
-import numpy as np
 
 
 def get_config():
@@ -13,7 +14,9 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.Pavia2
     data.dset_type = None  # This will be filled in the dataloader
-    data.channel_idx_list = [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ,Pavia2DataSetChannels.TUBULIN]
+    data.channel_idx_list = [
+        Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN
+    ]
     data.channelwise_quantile = True
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -40,8 +43,8 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.ElboMixedReconstruction
     loss.mixed_rec_weight = 0.1
-    loss.rec_loss_channel_weights = [5,1,1]
-    
+    loss.rec_loss_channel_weights = [5, 1, 1]
+
     loss.kl_weight = 0.001
     loss.kl_annealing = False
     loss.kl_annealtime = 10
@@ -64,7 +67,7 @@ def get_config():
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-    model.decoder.multiscale_retain_spatial_dims = False
+    #False
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'

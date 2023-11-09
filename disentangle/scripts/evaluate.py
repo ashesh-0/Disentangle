@@ -191,8 +191,8 @@ def main(
             config.model.encoder.n_filters = config.model.n_filters
             config.model.decoder.n_filters = config.model.n_filters
 
-        if 'multiscale_retain_spatial_dims' not in config.model.decoder:
-            config.model.decoder.multiscale_retain_spatial_dims = False
+        if 'multiscale_retain_spatial_dims' not in config.model:
+            config.multiscale_retain_spatial_dims = False
 
         if 'res_block_kernel' not in config.model.encoder:
             config.model.encoder.res_block_kernel = 3
@@ -370,7 +370,11 @@ def main(
 
     def print_ignored_pixels():
         ignored_pixels = 1
-        while (pred[0, -ignored_pixels:, -ignored_pixels:, ].std() == 0):
+        while (pred[
+                0,
+                -ignored_pixels:,
+                -ignored_pixels:,
+        ].std() == 0):
             ignored_pixels += 1
         ignored_pixels -= 1
         # print(f'In {pred.shape}, {ignored_pixels} many rows and columns are all zero.')

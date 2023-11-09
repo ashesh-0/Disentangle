@@ -1,9 +1,10 @@
+import math
+
 from disentangle.configs.default_config import get_default_config
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
-import math
 
 
 def get_config():
@@ -62,7 +63,7 @@ def get_config():
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-    model.decoder.multiscale_retain_spatial_dims = False
+    #False
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
