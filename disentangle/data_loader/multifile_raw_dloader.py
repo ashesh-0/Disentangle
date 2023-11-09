@@ -21,7 +21,8 @@ class TwoChannelData(Sequence):
         self._data = []
         for i in range(len(data_arr1)):
             assert data_arr1[i].shape == data_arr2[i].shape
-            assert len(data_arr1[i].shape) == 3, 'Each element in data arrays should be a N*H*W'
+            assert len(
+                data_arr1[i].shape) == 3, f'Each element in data arrays should be a N*H*W, but {data_arr1[i].shape}'
             self._data.append(np.concatenate([data_arr1[i][..., None], data_arr2[i][..., None]], axis=-1))
 
     def __len__(self):
@@ -86,19 +87,23 @@ def get_train_val_data(datadir,
         assert dataA[i].shape == dataB[
             i].shape, f'{dataA[i].shape} != {dataB[i].shape}, {fpathssox[i]} != {fpathsgolgi[i]} in shape'
 
+        if len(dataA[i].shape) == 2:
+            dataA[i] = dataA[i][None]
+            dataB[i] = dataB[i][None]
+
     count = np.sum([x.shape[0] for x in dataA])
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, count)
 
     if datasplit_type == DataSplitType.All:
         pass
     elif datasplit_type == DataSplitType.Train:
-        print(train_idx)
+        # print(train_idx)
         dataA, dataB = subset_data(dataA, dataB, train_idx)
     elif datasplit_type == DataSplitType.Val:
-        print(val_idx)
+        # print(val_idx)
         dataA, dataB = subset_data(dataA, dataB, val_idx)
     elif datasplit_type == DataSplitType.Test:
-        print(test_idx)
+        # print(test_idx)
         dataA, dataB = subset_data(dataA, dataB, test_idx)
     else:
         raise Exception("invalid datasplit")

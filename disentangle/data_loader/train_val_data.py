@@ -15,6 +15,7 @@ from disentangle.data_loader.raw_mrc_dloader import get_train_val_data as _loadm
 from disentangle.data_loader.schroff_rawdata_loader import get_train_val_data as _loadschroff_mito_er
 from disentangle.data_loader.sinosoid_dloader import train_val_data as _loadsinosoid
 from disentangle.data_loader.sinosoid_threecurve_dloader import train_val_data as _loadsinosoid3curve
+from disentangle.data_loader.sox2golgi_rawdata_loader import get_train_val_data as _loadsox2golgi
 from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data as _loadseparatetiff
 
 
@@ -91,6 +92,12 @@ def get_train_val_data(data_config,
                                   test_fraction=test_fraction)
     elif data_config.data_type == DataType.BioSR_MRC:
         return _loadmrc(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
+    elif data_config.data_type == DataType.TavernaSox2Golgi:
+        return _loadsox2golgi(fpath,
+                              data_config,
+                              datasplit_type,
+                              val_fraction=val_fraction,
+                              test_fraction=test_fraction)
 
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')

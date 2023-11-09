@@ -25,7 +25,8 @@ class MultiChDeterministicTiffDloader:
                  allow_generation=False,
                  max_val=None,
                  grid_alignment=GridAlignement.LeftTop,
-                 overlapping_padding_kwargs=None):
+                 overlapping_padding_kwargs=None,
+                 print_vars=True):
         """
         Here, an image is split into grids of size img_sz.
         Args:
@@ -109,8 +110,9 @@ class MultiChDeterministicTiffDloader:
         if self._enable_rotation:
             self._rotation_transform = A.Compose([A.Flip(), A.RandomRotate90()])
 
-        msg = self._init_msg()
-        print(msg)
+        if print_vars:
+            msg = self._init_msg()
+            print(msg)
 
     def get_data_shape(self):
         return self._data.shape
@@ -181,8 +183,9 @@ class MultiChDeterministicTiffDloader:
             return np.quantile(self._data, self._quantile)
 
     def set_max_val(self, max_val, datasplit_type):
-        if datasplit_type == DataSplitType.Train:
-            assert max_val is None
+
+        if max_val is None:
+            assert datasplit_type == DataSplitType.Train
             self.max_val = self.compute_max_val()
         else:
             assert max_val is not None
