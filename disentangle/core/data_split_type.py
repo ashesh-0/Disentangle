@@ -1,6 +1,8 @@
-from disentangle.core.custom_enum import Enum
-import numpy as np
 from typing import List
+
+import numpy as np
+
+from disentangle.core.custom_enum import Enum
 
 
 class DataSplitType(Enum):

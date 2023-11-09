@@ -19,3 +19,4 @@ class DataType(Enum):
     HTIba1Ki67 = 14
     BSD68 = 15
     BioSR_MRC = 16
+    TavernaSox2Golgi = 17
