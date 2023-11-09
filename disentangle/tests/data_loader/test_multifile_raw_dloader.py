@@ -124,6 +124,10 @@ def test_multifile_raw_dloader(mock_load_tiff):
     assert abs(len(data_train) - int(cnt * 0.75)) < 2
     assert abs(len(data_val) - int(cnt * 0.15)) < 2
 
+    # make sure that the values of the two channels are in sync
+    for i in range(len(data_train)):
+        assert np.all(data_train[i][..., 0] == -1 * data_train[i][..., 1])
+
     train_unique = [np.unique(data_train[i][..., 0]).tolist() for i in range(len(data_train))]
     train_vals = []
     for elem in train_unique:
