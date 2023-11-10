@@ -49,6 +49,10 @@ class SingleFileLCDset(MultiScaleTiffDloader):
                          overlapping_padding_kwargs=overlapping_padding_kwargs,
                          print_vars=print_vars)
 
+    @property
+    def data_path(self):
+        return self._fpath
+
     def rm_bkground_set_max_val_and_upperclip_data(self, max_val, datasplit_type):
         pass
 
@@ -94,6 +98,10 @@ class SingleFileDset(MultiChDeterministicTiffDloader):
     def rm_bkground_set_max_val_and_upperclip_data(self, max_val, datasplit_type):
         pass
 
+    @property
+    def data_path(self):
+        return self._fpath
+
     def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
         self._data = self._preloaded_data
         self.N = len(self._data)
@@ -129,11 +137,13 @@ class MultiFileDset:
         self.dsets = []
 
         for i in range(len(data)):
+            prefetched_data, fpath_tuple = data[i]
             if data_config.multiscale_lowres_count is not None and data_config.multiscale_lowres_count > 1:
+
                 self.dsets.append(
-                    SingleFileLCDset(data[i][None],
+                    SingleFileLCDset(prefetched_data[None],
                                      data_config,
-                                     '',
+                                     fpath_tuple,
                                      datasplit_type=datasplit_type,
                                      val_fraction=val_fraction,
                                      test_fraction=test_fraction,
@@ -151,9 +161,9 @@ class MultiFileDset:
 
             else:
                 self.dsets.append(
-                    SingleFileDset(data[i][None],
+                    SingleFileDset(prefetched_data[None],
                                    data_config,
-                                   '',
+                                   fpath_tuple,
                                    datasplit_type=datasplit_type,
                                    val_fraction=val_fraction,
                                    test_fraction=test_fraction,

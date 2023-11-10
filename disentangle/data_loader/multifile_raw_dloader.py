@@ -16,8 +16,11 @@ class TwoChannelData(Sequence):
     each element in data_arr should be a N*H*W array
     """
 
-    def __init__(self, data_arr1, data_arr2):
+    def __init__(self, data_arr1, data_arr2, paths_data1=None, paths_data2=None):
         assert len(data_arr1) == len(data_arr2)
+        self.paths1 = paths_data1
+        self.paths2 = paths_data2
+
         self._data = []
         for i in range(len(data_arr1)):
             assert data_arr1[i].shape == data_arr2[i].shape
@@ -33,9 +36,12 @@ class TwoChannelData(Sequence):
 
     def __getitem__(self, idx):
         n = 0
-        for x in self._data:
+        for dataidx, x in enumerate(self._data):
             if idx < n + x.shape[0]:
-                return x[idx - n]
+                if self.paths1 is None:
+                    return x[idx - n], None
+                else:
+                    return x[idx - n], (self.paths1[dataidx], self.paths2[dataidx])
             n += x.shape[0]
         raise IndexError('Index out of range')
 
@@ -74,24 +80,35 @@ def get_train_val_data(datadir,
     dset_subtype = data_config.subdset_type
 
     if dset_subtype == SubDsetType.TwoChannel:
-        fnamessox, fnamesgolgi = get_two_channel_files_fn()
+        fnamesA, fnamesB = get_two_channel_files_fn()
+        fpathsA = [os.path.join(datadir, x) for x in fnamesA]
+        fpathsB = [os.path.join(datadir, x) for x in fnamesB]
+        dataA = [load_tiff(fpath) for fpath in fpathsA]
+        dataB = [load_tiff(fpath) for fpath in fpathsB]
     else:
-        raise NotImplementedError('Only TwoChannel is implemented')
+        fnamesmixed = get_two_channel_files_fn()
+        fpathsmixed = [os.path.join(datadir, x) for x in fnamesmixed]
+        fpathsA = fpathsB = fpathsmixed
+        dataA = [load_tiff(fpath) for fpath in fpathsmixed]
+        dataB = [x.copy() for x in dataA]
 
-    fpathssox = [os.path.join(datadir, x) for x in fnamessox]
-    fpathsgolgi = [os.path.join(datadir, x) for x in fnamesgolgi]
-    dataA = [load_tiff(fpath) for fpath in fpathssox]
-    dataB = [load_tiff(fpath) for fpath in fpathsgolgi]
     assert len(dataA) == len(dataB)
     for i in range(len(dataA)):
         assert dataA[i].shape == dataB[
-            i].shape, f'{dataA[i].shape} != {dataB[i].shape}, {fpathssox[i]} != {fpathsgolgi[i]} in shape'
+            i].shape, f'{dataA[i].shape} != {dataB[i].shape}, {fpathsA[i]} != {fpathsB[i]} in shape'
 
         if len(dataA[i].shape) == 2:
             dataA[i] = dataA[i][None]
             dataB[i] = dataB[i][None]
 
     count = np.sum([x.shape[0] for x in dataA])
+    framewise_fpathsA = []
+    for onedata_A, onepath_A in zip(dataA, fpathsA):
+        framewise_fpathsA += [onepath_A] * onedata_A.shape[0]
+    framewise_fpathsB = []
+    for onedata_B, onepath_B in zip(dataB, fpathsB):
+        framewise_fpathsB += [onepath_B] * onedata_B.shape[0]
+
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, count)
 
     if datasplit_type == DataSplitType.All:
@@ -99,15 +116,21 @@ def get_train_val_data(datadir,
     elif datasplit_type == DataSplitType.Train:
         # print(train_idx)
         dataA, dataB = subset_data(dataA, dataB, train_idx)
+        framewise_fpathsA = [framewise_fpathsA[i] for i in train_idx]
+        framewise_fpathsB = [framewise_fpathsB[i] for i in train_idx]
     elif datasplit_type == DataSplitType.Val:
         # print(val_idx)
         dataA, dataB = subset_data(dataA, dataB, val_idx)
+        framewise_fpathsA = [framewise_fpathsA[i] for i in val_idx]
+        framewise_fpathsB = [framewise_fpathsB[i] for i in val_idx]
     elif datasplit_type == DataSplitType.Test:
         # print(test_idx)
         dataA, dataB = subset_data(dataA, dataB, test_idx)
+        framewise_fpathsA = [framewise_fpathsA[i] for i in test_idx]
+        framewise_fpathsB = [framewise_fpathsB[i] for i in test_idx]
     else:
         raise Exception("invalid datasplit")
 
-    data = TwoChannelData(dataA, dataB)
+    data = TwoChannelData(dataA, dataB, paths_data1=framewise_fpathsA, paths_data2=framewise_fpathsB)
     print('Loaded from', SubDsetType.name(dset_subtype), datadir, len(data))
     return data
