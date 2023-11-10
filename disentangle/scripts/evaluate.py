@@ -140,6 +140,8 @@ def main(
             data_dir = f'{DATA_ROOT}/allencell/2017_03_08_Struct_First_Pass_Seg/AICS-11/'
         elif dtype == DataType.SeparateTiffData:
             data_dir = f'{DATA_ROOT}/ventura_gigascience'
+        elif dtype == DataType.BioSR_MRC:
+            data_dir = f'{DATA_ROOT}/BioSR/'
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -277,7 +279,7 @@ def main(
         data_class = MultiChDeterministicTiffDloader
     if config.data.data_type in [
             DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.AllenCellMito,
-            DataType.SeparateTiffData, DataType.SemiSupBloodVesselsEMBL
+            DataType.SeparateTiffData, DataType.SemiSupBloodVesselsEMBL, DataType.BioSR_MRC
     ]:
         datapath = data_dir
     elif config.data.data_type == DataType.OptiMEM100_014:
@@ -478,8 +480,8 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2303/D7-M10-S0-L3/0',
-        '/home/ashesh.ashesh/training/disentangle/2301/D3-M10-S0-L3/43',
+        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/81',
+        # '/home/ashesh.ashesh/training/disentangle/2301/D3-M10-S0-L3/43',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -495,7 +497,18 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
-                ignored_last_pixels = 32 if os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:] == '3' else 0
+                data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
+                if data_type in [
+                        DataType.OptiMEM100_014, DataType.SemiSupBloodVesselsEMBL, DataType.Pavia2VanillaSplitting,
+                        DataType.ExpansionMicroscopyMitoTub, DataType.ShroffMitoEr, DataType.HTIba1Ki67
+                ]:
+                    ignored_last_pixels = 32
+                elif data_type == DataType.BioSR_MRC:
+                    ignored_last_pixels = 44
+                    assert custom_image_size == 64, '44 is only valid when custom_image_size is 64'
+                else:
+                    ignored_last_pixels = 0
+
                 handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
                                               image_size_for_grid_centers, mmse_count, ignored_last_pixels)
                 data = main(
