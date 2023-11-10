@@ -1,5 +1,7 @@
 import numpy as np
 
+from disentangle.data_loader.multifile_dset import MultiFileDset
+
 
 class PatchLocation:
     """
@@ -168,37 +170,46 @@ def stitch_predictions(predictions, dset, smoothening_pixelcount=0):
         smoothening_pixelcount: number of pixels which can be interpolated
     """
     assert smoothening_pixelcount >= 0 and isinstance(smoothening_pixelcount, int)
+    if isinstance(dset, MultiFileDset):
+        cum_count = 0
+        output = []
+        for dset in dset.dsets:
+            cnt = dset.idx_manager.grid_count()
+            output.append(stitch_predictions(predictions[cum_count:cum_count + cnt], dset, smoothening_pixelcount))
+            cum_count += cnt
+        return output
 
-    extra_padding = dset.per_side_overlap_pixelcount()
-    # if there are more channels, use all of them.
-    shape = list(dset.get_data_shape())
-    shape[-1] = max(shape[-1], predictions.shape[1])
+    else:
+        extra_padding = dset.per_side_overlap_pixelcount()
+        # if there are more channels, use all of them.
+        shape = list(dset.get_data_shape())
+        shape[-1] = max(shape[-1], predictions.shape[1])
 
-    output = np.zeros(shape, dtype=predictions.dtype)
-    frame_shape = dset.get_data_shape()[1:3]
-    for dset_input_idx in range(predictions.shape[0]):
-        loc = get_location_from_idx(dset, dset_input_idx, predictions.shape[-2], predictions.shape[-1])
+        output = np.zeros(shape, dtype=predictions.dtype)
+        frame_shape = dset.get_data_shape()[1:3]
+        for dset_input_idx in range(predictions.shape[0]):
+            loc = get_location_from_idx(dset, dset_input_idx, predictions.shape[-2], predictions.shape[-1])
 
-        mask = None
-        cropped_pred_list = []
-        for ch_idx in range(predictions.shape[1]):
-            # class i
-            cropped_pred_i = remove_pad(predictions[dset_input_idx, ch_idx], loc, extra_padding, smoothening_pixelcount,
-                                        frame_shape)
+            mask = None
+            cropped_pred_list = []
+            for ch_idx in range(predictions.shape[1]):
+                # class i
+                cropped_pred_i = remove_pad(predictions[dset_input_idx, ch_idx], loc, extra_padding,
+                                            smoothening_pixelcount, frame_shape)
 
-            if mask is None:
-                # NOTE: don't need to compute it for every patch.
-                assert smoothening_pixelcount == 0, "For smoothing,enable the get_smoothing_mask. It is disabled since I don't use it and it needs modification to work with non-square images"
-                mask = 1
-                # mask = _get_smoothing_mask(cropped_pred_i.shape, smoothening_pixelcount, loc, frame_size)
+                if mask is None:
+                    # NOTE: don't need to compute it for every patch.
+                    assert smoothening_pixelcount == 0, "For smoothing,enable the get_smoothing_mask. It is disabled since I don't use it and it needs modification to work with non-square images"
+                    mask = 1
+                    # mask = _get_smoothing_mask(cropped_pred_i.shape, smoothening_pixelcount, loc, frame_size)
 
-            cropped_pred_list.append(cropped_pred_i)
+                cropped_pred_list.append(cropped_pred_i)
 
-        loc = update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount)
-        for ch_idx in range(predictions.shape[1]):
-            output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, ch_idx] += cropped_pred_list[ch_idx] * mask
+            loc = update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount)
+            for ch_idx in range(predictions.shape[1]):
+                output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, ch_idx] += cropped_pred_list[ch_idx] * mask
 
-    return output
+        return output
 
 
 if __name__ == '__main__':

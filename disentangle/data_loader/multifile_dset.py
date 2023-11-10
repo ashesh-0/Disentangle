@@ -213,6 +213,9 @@ class MultiFileDset:
     def get_max_val(self):
         return self.dsets[0].get_max_val()
 
+    def get_img_sz(self):
+        return self.dsets[0].get_img_sz()
+
     def compute_mean_std(self):
         cum_mean = 0
         cum_std = 0
