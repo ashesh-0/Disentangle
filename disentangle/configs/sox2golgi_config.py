@@ -47,8 +47,9 @@ def get_config():
     data.target_separate_normalization = False
 
     # This is for intensity augmentation
-    # data.ch1_min_alpha = 0.4
-    # data.ch1_max_alpha = 0.55
+    data.ch1_min_alpha = 0.4
+    data.ch1_max_alpha = 0.6
+    data.alpha_weighted_target = True
     # data.return_alpha = True
 
     loss = config.loss
@@ -114,7 +115,7 @@ def get_config():
     training.lr_scheduler_patience = 30
     training.max_epochs = 400
     training.batch_size = 128
-    training.num_workers = 4
+    training.num_workers = 0
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1

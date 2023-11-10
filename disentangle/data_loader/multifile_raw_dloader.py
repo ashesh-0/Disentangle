@@ -85,11 +85,13 @@ def get_train_val_data(datadir,
         fpathsB = [os.path.join(datadir, x) for x in fnamesB]
         dataA = [load_tiff(fpath) for fpath in fpathsA]
         dataB = [load_tiff(fpath) for fpath in fpathsB]
-    else:
+    elif dset_subtype == SubDsetType.OneChannel:
         fnamesmixed = get_two_channel_files_fn()
         fpathsmixed = [os.path.join(datadir, x) for x in fnamesmixed]
         fpathsA = fpathsB = fpathsmixed
         dataA = [load_tiff(fpath) for fpath in fpathsmixed]
+        # Note that this is important. We need to ensure that the sum of the two channels is the same as sum of these two channels.
+        dataA = [x / 2 for x in dataA]
         dataB = [x.copy() for x in dataA]
 
     assert len(dataA) == len(dataB)

@@ -68,12 +68,14 @@ class MultiChDeterministicTiffDloader:
 
         # input = alpha * ch1 + (1-alpha)*ch2.
         # alpha is sampled randomly between these two extremes
-        self._ch1_max_alpha = self._ch1_min_alpha = self._return_alpha = None
+        self._ch1_max_alpha = self._ch1_min_alpha = self._return_alpha = self._alpha_weighted_target = None
 
         self._img_sz = self._grid_sz = self._repeat_factor = self.idx_manager = None
         if self._is_train:
             self._ch1_min_alpha = data_config.get('ch1_min_alpha', None)
             self._ch1_max_alpha = data_config.get('ch1_max_alpha', None)
+            self._alpha_weighted_target = data_config.get('alpha_weighted_target', False)
+
             self.set_img_sz(data_config.image_size,
                             data_config.grid_size if 'grid_size' in data_config else data_config.image_size)
         else:
@@ -493,8 +495,12 @@ class MultiChDeterministicTiffDloader:
             img1 = rot_dic['image'][None]
             img2 = rot_dic['mask'][None]
 
-        target = np.concatenate(img_tuples, axis=0)
         inp, alpha = self._compute_input(img_tuples)
+
+        if self._alpha_weighted_target:
+            target = np.concatenate([img_tuples[0] * alpha, img_tuples[1] * (1 - alpha)], axis=0)
+        else:
+            target = np.concatenate(img_tuples, axis=0)
 
         output = [inp, target]
 
