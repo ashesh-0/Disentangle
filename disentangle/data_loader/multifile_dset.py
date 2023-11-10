@@ -4,8 +4,57 @@ from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.core.empty_patch_fetcher import EmptyPatchFetcher
 from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
+from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
 from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 from disentangle.data_loader.train_val_data import get_train_val_data
+
+
+class SingleFileLCDset(MultiScaleTiffDloader):
+
+    def __init__(self,
+                 preloaded_data,
+                 data_config,
+                 fpath: str,
+                 datasplit_type: DataSplitType = None,
+                 val_fraction=None,
+                 test_fraction=None,
+                 normalized_input=None,
+                 enable_rotation_aug: bool = False,
+                 use_one_mu_std=None,
+                 num_scales: int = None,
+                 enable_random_cropping=False,
+                 padding_kwargs: dict = None,
+                 allow_generation: bool = False,
+                 lowres_supervision=None,
+                 max_val=None,
+                 grid_alignment=GridAlignement.LeftTop,
+                 overlapping_padding_kwargs=None,
+                 print_vars=True):
+        self._preloaded_data = preloaded_data
+        super().__init__(data_config,
+                         fpath,
+                         datasplit_type=datasplit_type,
+                         val_fraction=val_fraction,
+                         test_fraction=test_fraction,
+                         normalized_input=normalized_input,
+                         enable_rotation_aug=enable_rotation_aug,
+                         use_one_mu_std=use_one_mu_std,
+                         num_scales=num_scales,
+                         enable_random_cropping=enable_random_cropping,
+                         padding_kwargs=padding_kwargs,
+                         allow_generation=allow_generation,
+                         lowres_supervision=lowres_supervision,
+                         max_val=max_val,
+                         grid_alignment=grid_alignment,
+                         overlapping_padding_kwargs=overlapping_padding_kwargs,
+                         print_vars=print_vars)
+
+    def rm_bkground_set_max_val_and_upperclip_data(self, max_val, datasplit_type):
+        pass
+
+    def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
+        self._data = self._preloaded_data
+        self.N = len(self._data)
 
 
 class SingleFileDset(MultiChDeterministicTiffDloader):
@@ -52,7 +101,7 @@ class SingleFileDset(MultiChDeterministicTiffDloader):
 
 class MultiFileDset:
     """
-    Here, we have multiple files, each file can have a different spatial dimension and number of frames (Z stack).
+    Here, we handle dataset having multiple files. Each file can have a different spatial dimension and number of frames (Z stack).
     """
 
     def __init__(self,
@@ -67,6 +116,7 @@ class MultiFileDset:
                  use_one_mu_std=None,
                  max_val=None,
                  grid_alignment=GridAlignement.LeftTop,
+                 padding_kwargs=None,
                  overlapping_padding_kwargs=None):
 
         self._fpath = fpath
@@ -79,22 +129,43 @@ class MultiFileDset:
         self.dsets = []
 
         for i in range(len(data)):
-            self.dsets.append(
-                SingleFileDset(data[i][None],
-                               data_config,
-                               '',
-                               datasplit_type=datasplit_type,
-                               val_fraction=val_fraction,
-                               test_fraction=test_fraction,
-                               normalized_input=normalized_input,
-                               enable_rotation_aug=enable_rotation_aug,
-                               enable_random_cropping=enable_random_cropping,
-                               use_one_mu_std=use_one_mu_std,
-                               allow_generation=False,
-                               max_val=max_val,
-                               grid_alignment=grid_alignment,
-                               overlapping_padding_kwargs=overlapping_padding_kwargs,
-                               print_vars=i == len(data) - 1))
+            if data_config.multiscale_lowres_count is not None and data_config.multiscale_lowres_count > 1:
+                self.dsets.append(
+                    SingleFileLCDset(data[i][None],
+                                     data_config,
+                                     '',
+                                     datasplit_type=datasplit_type,
+                                     val_fraction=val_fraction,
+                                     test_fraction=test_fraction,
+                                     normalized_input=normalized_input,
+                                     enable_rotation_aug=enable_rotation_aug,
+                                     enable_random_cropping=enable_random_cropping,
+                                     use_one_mu_std=use_one_mu_std,
+                                     allow_generation=False,
+                                     num_scales=data_config.multiscale_lowres_count,
+                                     max_val=max_val,
+                                     grid_alignment=grid_alignment,
+                                     padding_kwargs=padding_kwargs,
+                                     overlapping_padding_kwargs=overlapping_padding_kwargs,
+                                     print_vars=i == len(data) - 1))
+
+            else:
+                self.dsets.append(
+                    SingleFileDset(data[i][None],
+                                   data_config,
+                                   '',
+                                   datasplit_type=datasplit_type,
+                                   val_fraction=val_fraction,
+                                   test_fraction=test_fraction,
+                                   normalized_input=normalized_input,
+                                   enable_rotation_aug=enable_rotation_aug,
+                                   enable_random_cropping=enable_random_cropping,
+                                   use_one_mu_std=use_one_mu_std,
+                                   allow_generation=False,
+                                   max_val=max_val,
+                                   grid_alignment=grid_alignment,
+                                   overlapping_padding_kwargs=overlapping_padding_kwargs,
+                                   print_vars=i == len(data) - 1))
 
         self.rm_bkground_set_max_val_and_upperclip_data(max_val, datasplit_type)
         count = 0
@@ -118,6 +189,9 @@ class MultiFileDset:
     def set_mean_std(self, mean_val, std_val):
         for dset in self.dsets:
             dset.set_mean_std(mean_val, std_val)
+
+    def get_mean_std(self):
+        return self.dsets[0].get_mean_std()
 
     def compute_max_val(self):
         max_val_arr = []

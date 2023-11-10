@@ -32,6 +32,7 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
         max_val=None,
         grid_alignment=GridAlignement.LeftTop,
         overlapping_padding_kwargs=None,
+        print_vars=True,
     ):
         """
         Args:
@@ -58,7 +59,8 @@ class MultiScaleTiffDloader(MultiChDeterministicTiffDloader):
                          allow_generation=allow_generation,
                          max_val=max_val,
                          grid_alignment=grid_alignment,
-                         overlapping_padding_kwargs=overlapping_padding_kwargs)
+                         overlapping_padding_kwargs=overlapping_padding_kwargs,
+                         print_vars=print_vars)
         self.num_scales = num_scales
         assert self.num_scales is not None
         self._scaled_data = [self._data]
