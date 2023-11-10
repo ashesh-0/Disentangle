@@ -14,7 +14,7 @@ from disentangle.data_loader.multifile_raw_dloader import get_train_val_data as 
 
 
 def get_two_channel_files():
-    arr = [71, 89, 92, 93, 94, 95]  #, 96, 97, 98, 99, 100, 1752, 1757, 1758, 1760, 1761]
+    arr = [71, 89, 92, 93, 94, 95, 96, 97, 98, 99, 100, 1752, 1757, 1758, 1760, 1761]
     sox2 = [f'SOX2/C2-Experiment-{i}.tif' for i in arr]
     golgi = [f'GOLGI/C1-Experiment-{i}.tif' for i in arr]
     return sox2, golgi
@@ -37,7 +37,7 @@ def get_one_channel_files():
         'SOX2-Golgi/C2-SVZ-Experiment-1282-Substack-9-12.tif', 'SOX2-Golgi/C2-SVZ-Experiment-1283-Substack-8-20.tif',
         'SOX2-Golgi/C2-SVZ-Experiment-1285-Substack-13-32.tif'
     ]
-    return fpaths[:5]
+    return fpaths
 
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
