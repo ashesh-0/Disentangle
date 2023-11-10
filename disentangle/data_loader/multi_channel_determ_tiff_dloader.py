@@ -498,7 +498,8 @@ class MultiChDeterministicTiffDloader:
         inp, alpha = self._compute_input(img_tuples)
 
         if self._alpha_weighted_target:
-            target = np.concatenate([img_tuples[0] * alpha, img_tuples[1] * (1 - alpha)], axis=0)
+            assert self._input_is_sum is False
+            target = np.concatenate([img_tuples[0] * alpha / 0.5, img_tuples[1] * (1 - alpha) / 0.5], axis=0)
         else:
             target = np.concatenate(img_tuples, axis=0)
 
