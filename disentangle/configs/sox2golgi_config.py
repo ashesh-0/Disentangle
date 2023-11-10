@@ -15,7 +15,7 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.TavernaSox2Golgi
-    data.subdset_type = SubDsetType.OneChannel
+    data.subdset_type = SubDsetType.TwoChannel
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
