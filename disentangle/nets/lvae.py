@@ -958,19 +958,23 @@ class LadderVAE(pl.LightningModule):
         return top_layer_shape
 
     def log_images_for_tensorboard(self, pred, target, img_mmse, label):
-        clamped_pred = torch.clamp((pred - pred.min()) / (pred.max() - pred.min()), 0, 1)
-        clamped_mmse = torch.clamp((img_mmse - img_mmse.min()) / (img_mmse.max() - img_mmse.min()), 0, 1)
+        pred = pred.cpu().numpy()
+        img_mmse = img_mmse.cpu().numpy()
+        target = target.cpu().numpy() if target is not None else None
+
+        clamped_pred = np.clip((pred - pred.min()) / (pred.max() - pred.min()), 0, 1)
+        clamped_mmse = np.clip((img_mmse - img_mmse.min()) / (img_mmse.max() - img_mmse.min()), 0, 1)
         if target is not None:
-            clamped_input = torch.clamp((target - target.min()) / (target.max() - target.min()), 0, 1)
-            img = wandb.Image(clamped_input[None].cpu().numpy())
+            clamped_input = np.clip((target - target.min()) / (target.max() - target.min()), 0, 1)
+            img = wandb.Image(clamped_input[None])
             self.logger.experiment.log({f'target_for{label}': img})
             # self.trainer.logger.experiment.add_image(f'target_for{label}', clamped_input[None], self.current_epoch)
         for i in range(3):
             # self.trainer.logger.experiment.add_image(f'{label}/sample_{i}', clamped_pred[i:i + 1], self.current_epoch)
-            img = wandb.Image(clamped_pred[i:i + 1].cpu().numpy())
+            img = wandb.Image(clamped_pred[i:i + 1])
             self.logger.experiment.log({f'{label}/sample_{i}': img})
 
-        img = wandb.Image(clamped_mmse[None].cpu().numpy())
+        img = wandb.Image(clamped_mmse[None])
         self.trainer.logger.experiment.log({f'{label}/mmse (100 samples)': img})
 
 
