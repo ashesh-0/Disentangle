@@ -54,6 +54,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
+    loss.kl_loss_formulation = 'usplit'
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -105,7 +106,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = True
+    model.non_stochastic_version = False
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
