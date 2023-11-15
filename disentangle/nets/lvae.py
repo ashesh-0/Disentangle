@@ -493,13 +493,19 @@ class LadderVAE(pl.LightningModule):
             ll = ll[:, :, pad:-pad, pad:-pad]
             like_dict['params']['mean'] = like_dict['params']['mean'][:, :, pad:-pad, pad:-pad]
 
-        assert ll.shape[1] == 2, f"Change the code below to handle >2 channels first. ll.shape {ll.shape}"
         output = {
             'loss': compute_batch_mean(-1 * ll),
-            'ch1_loss': compute_batch_mean(-ll[:, 0]),
-            'ch2_loss': compute_batch_mean(-ll[:, 1]),
         }
+        if ll.shape[1] == 2:
+            output['ch1_loss'] = compute_batch_mean(-ll[:, 0])
+            output['ch2_loss'] = compute_batch_mean(-ll[:, 1])
+        else:
+            assert ll.shape[1] == 1
+            output['ch1_loss'] = output['loss']
+            output['ch2_loss'] = output['loss']
+
         if self.channel_1_w is not None or self.channel_2_w is not None:
+            assert ll.shape[1] == 2, "Only 2 channels are supported for now."
             output['loss'] = (self.channel_1_w * output['ch1_loss'] +
                               self.channel_2_w * output['ch2_loss']) / (self.channel_1_w + self.channel_2_w)
 
@@ -567,7 +573,6 @@ class LadderVAE(pl.LightningModule):
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
         recons_loss_dict, imgs = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
-
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
@@ -657,10 +662,14 @@ class LadderVAE(pl.LightningModule):
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
-        self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
-
         psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0].clone(), recons_img[:, 0].clone())
-        psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1].clone(), recons_img[:, 1].clone())
+        if recons_img.shape[1] == 2:
+            self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
+            psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1].clone(), recons_img[:, 1].clone())
+        else:
+            self.label2_psnr.update(recons_img[:, 0], target_normalized[:, 0])
+            psnr_label2 = psnr_label1
+
         recons_loss = recons_loss_dict['loss']
         # kl_loss = self.get_kl_divergence_loss(td_data)
         # net_loss = recons_loss + self.get_kl_weight() * kl_loss
@@ -683,7 +692,8 @@ class LadderVAE(pl.LightningModule):
             all_samples = all_samples.cpu()
             img_mmse = torch.mean(all_samples, dim=0)[0]
             self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
-            self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
+            if target.shape[1] == 2:
+                self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
 
         # return net_loss
 
