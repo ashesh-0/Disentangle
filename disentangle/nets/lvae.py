@@ -35,7 +35,7 @@ def compute_batch_mean(x):
 
 class LadderVAE(pl.LightningModule):
 
-    def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
+    def __init__(self, data_mean_dict, data_std_dict, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__()
         self.lr = config.training.lr
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
@@ -77,8 +77,11 @@ class LadderVAE(pl.LightningModule):
         self.decoder_res_block_skip_padding = config.model.decoder.res_block_skip_padding
 
         self.gated = config.model.gated
-        self.data_mean = torch.Tensor(data_mean) if isinstance(data_mean, np.ndarray) else data_mean
-        self.data_std = torch.Tensor(data_std) if isinstance(data_std, np.ndarray) else data_std
+        self.data_mean = data_mean_dict
+        self.data_std = data_std_dict
+        for key in ['input', 'target']:
+            self.data_mean[key] = torch.Tensor(self.data_mean[key])
+            self.data_std[key] = torch.Tensor(self.data_std[key])
 
         self.noiseModel = get_noise_model(config.model)
         self.merge_type = config.model.merge_type
@@ -173,8 +176,8 @@ class LadderVAE(pl.LightningModule):
         # Final top-down layer
         self.final_top_down = self.create_final_topdown_layer(not self.no_initial_downscaling)
 
-        self.channel_1_w = config.loss.get('channel_1_w', 1)
-        self.channel_2_w = config.loss.get('channel_2_w', 1)
+        self.channel_1_w = config.loss.get('channel_1_w', None)
+        self.channel_2_w = config.loss.get('channel_2_w', None)
 
         self.likelihood = self.create_likelihood_module()
         # gradient norms. updated while training. this is also logged.
@@ -623,10 +626,10 @@ class LadderVAE(pl.LightningModule):
     def normalize_input(self, x):
         if self.normalized_input:
             return x
-        return (x - self.data_mean.mean()) / self.data_std.mean()
+        return (x - self.data_mean['input']) / self.data_std['input']
 
     def normalize_target(self, target, batch=None):
-        return (target - self.data_mean) / self.data_std
+        return (target - self.data_mean['target']) / self.data_std['target']
 
     def power_of_2(self, x):
         assert isinstance(x, int)
@@ -640,11 +643,11 @@ class LadderVAE(pl.LightningModule):
         return self.power_of_2(x // 2)
 
     def set_params_to_same_device_as(self, correct_device_tensor):
-        if isinstance(self.data_mean, torch.Tensor):
-            if self.data_mean.device != correct_device_tensor.device:
-                self.data_mean = self.data_mean.to(correct_device_tensor.device)
-                self.data_std = self.data_std.to(correct_device_tensor.device)
-                self.likelihood.set_params_to_same_device_as(correct_device_tensor)
+        assert isinstance(self.data_mean, dict)
+        for key in ['input', 'target']:
+            if self.data_mean[key].device != correct_device_tensor.device:
+                self.data_mean[key] = self.data_mean[key].to(correct_device_tensor.device)
+                self.data_std[key] = self.data_std[key].to(correct_device_tensor.device)
 
     def validation_step(self, batch, batch_idx):
         x, target = batch[:2]

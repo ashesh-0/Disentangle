@@ -10,6 +10,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import torch
 import torchvision
 from torch.utils.cpp_extension import CUDA_HOME
@@ -167,6 +168,25 @@ def main(argv):
         log_config(config, cur_workdir)
 
         train_data, val_data = create_dataset(config, FLAGS.datadir, raw_data_dict=raw_data_dict)
+
+        mean_dict = {'input': None, 'target': None}
+        std_dict = {'input': None, 'target': None}
+        inp_mean, inp_std = train_data.get_mean_std()
+        mean_sq = inp_mean.squeeze()
+        std_sq = inp_std.squeeze()
+        assert mean_sq[0] == mean_sq[1] and len(mean_sq) == 2
+        assert std_sq[0] == std_sq[1] and len(std_sq) == 2
+        mean_dict['input'] = np.mean(inp_mean, axis=1, keepdims=True)
+        std_dict['input'] = np.mean(inp_std, axis=1, keepdims=True)
+
+        if config.data.target_separate_normalization is True:
+            data_mean, data_std = train_data.compute_individual_mean_std()
+        else:
+            data_mean, data_std = train_data.get_mean_std()
+
+        mean_dict['target'] = data_mean
+        std_dict['target'] = data_std
+
         if config.data.target_separate_normalization is True:
             data_mean, data_std = train_data.compute_individual_mean_std()
         else:
@@ -224,7 +244,7 @@ def main(argv):
                                      batch_sampler=val_sampler,
                                      num_workers=config.training.num_workers)
 
-        train_network(train_dloader, val_dloader, data_mean, data_std, config, 'BaselineVAECL', FLAGS.logdir)
+        train_network(train_dloader, val_dloader, mean_dict, std_dict, config, 'BaselineVAECL', FLAGS.logdir)
 
     elif FLAGS.mode == "eval":
         pass

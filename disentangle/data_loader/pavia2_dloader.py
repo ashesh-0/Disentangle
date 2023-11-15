@@ -3,7 +3,7 @@ import torch
 
 import ml_collections
 from disentangle.core.data_split_type import DataSplitType
-from disentangle.data_loader.multiscale_mc_tiff_dloader import LCMultiChDloader
+from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.patch_index_manager import GridIndexManager
 from disentangle.data_loader.pavia2_enums import Pavia2BleedthroughType
 from disentangle.data_loader.pavia2_rawdata_loader import Pavia2DataSetChannels, Pavia2DataSetType
