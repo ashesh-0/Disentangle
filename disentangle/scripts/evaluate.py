@@ -29,9 +29,9 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.psnr import PSNR, RangeInvariantPsnr
 from disentangle.core.tiff_reader import load_tiff
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
-from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
+from disentangle.data_loader.multiscale_mc_tiff_dloader import LCMultiChDloader
 from disentangle.data_loader.patch_index_manager import GridAlignement
+from disentangle.data_loader.vanilla_dloader import MultiChDloader
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.training import create_dataset, create_model
 
@@ -270,13 +270,13 @@ def main(
     dloader_kwargs = {'overlapping_padding_kwargs': padding_kwargs, 'grid_alignment': grid_alignment}
 
     if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
-        data_class = MultiScaleTiffDloader
+        data_class = LCMultiChDloader
         dloader_kwargs['num_scales'] = config.data.multiscale_lowres_count
         dloader_kwargs['padding_kwargs'] = padding_kwargs
     elif config.data.data_type == DataType.SemiSupBloodVesselsEMBL:
         data_class = SingleChannelDloader
     else:
-        data_class = MultiChDeterministicTiffDloader
+        data_class = MultiChDloader
     if config.data.data_type in [
             DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.AllenCellMito,
             DataType.SeparateTiffData, DataType.SemiSupBloodVesselsEMBL, DataType.BioSR_MRC
@@ -372,11 +372,7 @@ def main(
 
     def print_ignored_pixels():
         ignored_pixels = 1
-        while (pred[
-                0,
-                -ignored_pixels:,
-                -ignored_pixels:,
-        ].std() == 0):
+        while (pred[0, -ignored_pixels:, -ignored_pixels:, ].std() == 0):
             ignored_pixels += 1
         ignored_pixels -= 1
         # print(f'In {pred.shape}, {ignored_pixels} many rows and columns are all zero.')

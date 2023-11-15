@@ -1,22 +1,26 @@
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from typing import Union
+
 import numpy as np
+
 from disentangle.core.mixed_input_type import MixedInputType
+from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 
-class SemiSupDloader(MultiChDeterministicTiffDloader):
-    def __init__(self,
-                 data_config,
-                 fpath: str,
-                 is_train: Union[None, bool] = None,
-                 val_fraction=None,
-                 normalized_input=None,
-                 enable_rotation_aug: bool = False,
-                 use_one_mu_std=None,
-                 mixed_input_type=None,
-                 supervised_data_fraction=0.0,
-                 allow_generation=False,
-                 ):
+class SemiSupDloader(MultiChDloader):
+
+    def __init__(
+        self,
+        data_config,
+        fpath: str,
+        is_train: Union[None, bool] = None,
+        val_fraction=None,
+        normalized_input=None,
+        enable_rotation_aug: bool = False,
+        use_one_mu_std=None,
+        mixed_input_type=None,
+        supervised_data_fraction=0.0,
+        allow_generation=False,
+    ):
         super().__init__(data_config,
                          fpath,
                          is_train=is_train,

@@ -1,13 +1,13 @@
-import torch
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
-from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
-from disentangle.core.data_split_type import DataSplitType
-from disentangle.data_loader.pavia2_rawdata_loader import Pavia2DataSetType, Pavia2DataSetChannels
-from disentangle.data_loader.pavia2_enums import Pavia2BleedthroughType
-from disentangle.data_loader.patch_index_manager import GridIndexManager
-
 import numpy as np
+import torch
+
 import ml_collections
+from disentangle.core.data_split_type import DataSplitType
+from disentangle.data_loader.multiscale_mc_tiff_dloader import LCMultiChDloader
+from disentangle.data_loader.patch_index_manager import GridIndexManager
+from disentangle.data_loader.pavia2_enums import Pavia2BleedthroughType
+from disentangle.data_loader.pavia2_rawdata_loader import Pavia2DataSetChannels, Pavia2DataSetType
+from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 
 class Pavia2V1Dloader:
@@ -36,7 +36,7 @@ class Pavia2V1Dloader:
         # We don't normalalize inside the self._dloader_clean or bleedthrough. We normalize in this class.
         normalized_input = False
         use_LC = 'multiscale_lowres_count' in data_config and data_config.multiscale_lowres_count is not None
-        data_class = MultiScaleTiffDloader if use_LC else MultiChDeterministicTiffDloader
+        data_class = LCMultiChDloader if use_LC else MultiChDloader
 
         kwargs = {
             'normalized_input': normalized_input,

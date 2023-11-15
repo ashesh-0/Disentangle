@@ -1,14 +1,16 @@
 import enum
+from copy import deepcopy
+from typing import Tuple, Union
+
+import numpy as np
+
 from disentangle.core import data_split_type
 from disentangle.core.data_split_type import DataSplitType
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.train_val_data import get_train_val_data
-import numpy as np
-from typing import Union, Tuple
-from copy import deepcopy
+from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 
-class SingleChannelDloader(MultiChDeterministicTiffDloader):
+class SingleChannelDloader(MultiChDloader):
 
     def __init__(self,
                  data_config,

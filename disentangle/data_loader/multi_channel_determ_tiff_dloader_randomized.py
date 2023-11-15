@@ -1,12 +1,14 @@
 """
 Here, the two images are not from same location of the same time point.
 """
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from typing import Union
+
 import numpy as np
 
+from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
-class MultiChDeterministicTiffRandDloader(MultiChDeterministicTiffDloader):
+
+class MultiChDeterministicTiffRandDloader(MultiChDloader):
 
     def _get_img(self, index: int):
         """

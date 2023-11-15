@@ -10,7 +10,7 @@ from disentangle.data_loader.patch_index_manager import GridAlignement, GridInde
 from disentangle.data_loader.train_val_data import get_train_val_data
 
 
-class MultiChDeterministicTiffDloader:
+class MultiChDloader:
 
     def __init__(self,
                  data_config,
@@ -520,7 +520,7 @@ if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
     from disentangle.configs.biosr_config import get_config
     config = get_config()
-    dset = MultiChDeterministicTiffDloader(
+    dset = MultiChDloader(
         config.data,
         #    '/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif',
         '/group/jug/ashesh/data/BioSR/',

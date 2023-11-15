@@ -3,10 +3,12 @@ Multi channel deterministic tiff data loader which takes as input two indices: o
 """
 
 import numpy as np
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
+
+from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 
-class TwinIndexDloader(MultiChDeterministicTiffDloader):
+class TwinIndexDloader(MultiChDloader):
+
     def __getitem__(self, idx):
         idx1, idx2 = idx
         img1, _ = self._get_img(idx1)

@@ -6,10 +6,10 @@ from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.loss_type import LossType
 from disentangle.data_loader.base_data_loader import BaseDataLoader
 from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import SubDsetType
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
-from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
+from disentangle.data_loader.multiscale_mc_tiff_dloader import LCMultiChDloader
 from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 from disentangle.data_loader.pavia2_enums import Pavia2BleedthroughType
+from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 
 class MultiDsetDloader(BaseDataLoader):
@@ -39,7 +39,7 @@ class MultiDsetDloader(BaseDataLoader):
         self._std = None
         assert normalized_input is True, "We are doing the normalization in this dataloader.So you better pass it as True"
         use_LC = 'multiscale_lowres_count' in data_config and data_config.multiscale_lowres_count is not None
-        data_class = MultiScaleTiffDloader if use_LC else MultiChDeterministicTiffDloader
+        data_class = LCMultiChDloader if use_LC else MultiChDloader
 
         kwargs = {
             'normalized_input': normalized_input,

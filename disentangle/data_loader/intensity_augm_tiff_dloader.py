@@ -6,7 +6,7 @@ from typing import List, Tuple, Union
 import numpy as np
 
 from disentangle.core.data_split_type import DataSplitType
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
+from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 
 class Interval:
@@ -50,7 +50,7 @@ class AlphaClasses:
             return self._intervals[class_idx].sample(), class_idx
 
 
-class IntensityAugTiffDloader(MultiChDeterministicTiffDloader):
+class IntensityAugTiffDloader(MultiChDloader):
 
     def __init__(self,
                  data_config,

@@ -3,13 +3,13 @@ import numpy as np
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.core.empty_patch_fetcher import EmptyPatchFetcher
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
-from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
+from disentangle.data_loader.multiscale_mc_tiff_dloader import LCMultiChDloader
 from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 from disentangle.data_loader.train_val_data import get_train_val_data
+from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 
-class SingleFileLCDset(MultiScaleTiffDloader):
+class SingleFileLCDset(LCMultiChDloader):
 
     def __init__(self,
                  preloaded_data,
@@ -61,7 +61,7 @@ class SingleFileLCDset(MultiScaleTiffDloader):
         self.N = len(self._data)
 
 
-class SingleFileDset(MultiChDeterministicTiffDloader):
+class SingleFileDset(MultiChDloader):
 
     def __init__(self,
                  preloaded_data,

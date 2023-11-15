@@ -18,17 +18,17 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.model_type import ModelType
 from disentangle.data_loader.intensity_augm_tiff_dloader import IntensityAugCLTiffDloader
-from disentangle.data_loader.multi_channel_determ_tiff_dloader import MultiChDeterministicTiffDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
 from disentangle.data_loader.multi_channel_tiff_dloader import MultiChTiffDloader
 from disentangle.data_loader.multi_dset_dloader import IBA1Ki67DataLoader
 from disentangle.data_loader.multifile_dset import MultiFileDset
-from disentangle.data_loader.multiscale_mc_tiff_dloader import MultiScaleTiffDloader
+from disentangle.data_loader.multiscale_mc_tiff_dloader import LCMultiChDloader
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
 from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
 from disentangle.data_loader.places_dloader import PlacesLoader
 from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
 from disentangle.data_loader.single_channel.multi_dataset_dloader import SingleChannelMultiDatasetDloader
+from disentangle.data_loader.vanilla_dloader import MultiChDloader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
 
@@ -209,7 +209,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             if 'padding_value' in config.data and config.data.padding_value is not None:
                 padding_kwargs['constant_values'] = config.data.padding_value
 
-            train_data = None if skip_train_dataset else MultiScaleTiffDloader(
+            train_data = None if skip_train_dataset else LCMultiChDloader(
                 config.data,
                 datapath,
                 datasplit_type=DataSplitType.Train,
@@ -225,7 +225,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 allow_generation=True)
             max_val = train_data.get_max_val()
 
-            val_data = MultiScaleTiffDloader(
+            val_data = LCMultiChDloader(
                 config.data,
                 datapath,
                 datasplit_type=DataSplitType.Val,
@@ -258,7 +258,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
                 train_data_kwargs['enable_random_cropping'] = enable_random_cropping
                 val_data_kwargs['enable_random_cropping'] = False
                 data_class = (MultiChDeterministicTiffRandDloader
-                              if config.data.randomized_channels else MultiChDeterministicTiffDloader)
+                              if config.data.randomized_channels else MultiChDloader)
 
             train_data = None if skip_train_dataset else data_class(config.data,
                                                                     datapath,
