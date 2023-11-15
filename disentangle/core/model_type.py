@@ -27,3 +27,4 @@ class ModelType(Enum):
     AutoRegresiveLadderVAE = 21
     LadderVAEInterleavedOptimization = 22
     Denoiser = 23
+    DenoiserSplitter = 24
