@@ -69,7 +69,8 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.Denoiser
-    model.denoise_channel = 'all'
+    # 4 values for denoise_channel {'Ch1', 'Ch2', 'input','all'}
+    model.denoise_channel = 'input'
     model.kl_loss_formulation = ''
     model.z_dims = [128, 128, 128, 128]
 
