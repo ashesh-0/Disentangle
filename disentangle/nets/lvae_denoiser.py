@@ -9,13 +9,19 @@ class LadderVAEDenoiser(LadderVAE):
         # since input is the target, we don't need to normalize it at all.
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=1)
         self._denoise_channel = config.model.denoise_channel
-        assert self._denoise_channel in ['input', 'Ch1', 'Ch2']
-        if self._denoise_channel == 'input':
+        assert self._denoise_channel in ['input', 'Ch1', 'Ch2', 'all']
+        if self._denoise_channel in ['input', 'all']:
             msg = 'For target, we expect it to be unnormalized. For such reasons, we expect same normalization for input and target.'
             assert len(self.data_mean['target'].squeeze()[:1]) == 2, msg
             assert self.data_mean['input'].squeeze() == self.data_mean['target'].squeeze()[:1], msg
+            assert self.data_mean['input'].squeeze() == self.data_mean['target'].squeeze()[1:], msg
+
             assert len(self.data_std['target'].squeeze()[:1]) == 2, msg
             assert self.data_std['input'].squeeze() == self.data_std['target'].squeeze()[:1], msg
+            assert self.data_std['input'].squeeze() == self.data_std['target'].squeeze()[1:], msg
+            self.data_mean['target'] = self.data_mean['target'][:, :1]
+            self.data_std['target'] = self.data_std['target'][:, :1]
+
         elif self._denoise_channel == 'Ch1':
             self.data_mean['target'] = self.data_mean['target'][:, :1]
             self.data_std['target'] = self.data_std['target'][:, :1]
@@ -37,6 +43,10 @@ class LadderVAEDenoiser(LadderVAE):
         elif self._denoise_channel == 'Ch2':
             new_target = target[:, 1:]
             # Input is normalized, but target is not. So we need to normalize it.
+            x = self.normalize_target(new_target)
+        elif self._denoise_channel == 'all':
+            x = x * self.data_std['input'] + self.data_mean['input']
+            new_target = torch.cat([x[:, :1], target[:, :1], target[:, 1:]], dim=0)
             x = self.normalize_target(new_target)
         return x, new_target
 
