@@ -19,7 +19,7 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
 
     data = np.concatenate([data1, data2], axis=3)
     data = data[::3].copy()
-    if data_config.get('enable_poisson_noise', True):
+    if data_config.get('enable_poisson_noise', False):
         data = np.random.poisson(data)
 
     if datasplit_type == DataSplitType.All:
