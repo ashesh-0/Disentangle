@@ -171,6 +171,17 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                                                                        return_predicted_img=True)
                         imgs = torch.cat(imgs, dim=1)
                         rec_loss = {'loss': rec_loss}
+                    elif model_type == ModelType.Denoiser:
+                        assert model._denoise_channel in [
+                            'Ch1', 'Ch2', 'input'
+                        ], '"all" denoise channel not supported for evaluation. Pick one of "Ch1", "Ch2", "input"'
+
+                        x_normalized, tar = model.get_new_input_target((inp, tar, *batch[2:]))
+                        tar_normalized = model.normalize_target(tar)
+                        recon_normalized, _ = model(x_normalized)
+                        rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
+                                                                       tar_normalized,
+                                                                       return_predicted_img=True)
                     else:
                         x_normalized = model.normalize_input(inp)
                         tar_normalized = model.normalize_target(tar)
@@ -195,12 +206,17 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                             losses.append(rec_loss['loss'])
 
                 patch_psnr_ch1.update(imgs[:, 0], tar_normalized[:, 0])
-                patch_psnr_ch2.update(imgs[:, 1], tar_normalized[:, 1])
+                if imgs.shape[1] > 1:
+                    patch_psnr_ch2.update(imgs[:, 1], tar_normalized[:, 1])
+
                 recon_img_list.append(imgs.cpu()[None])
 
             mmse_imgs = torch.mean(torch.cat(recon_img_list, dim=0), dim=0)
             predictions.append(mmse_imgs.cpu().numpy())
 
     psnrl1 = patch_psnr_ch1.get()
-    psnrl2 = patch_psnr_ch2.get()
+    psnrl2 = None
+    if imgs.shape[1] > 1:
+        psnrl2 = patch_psnr_ch2.get()
+
     return np.concatenate(predictions, axis=0), np.array(losses), np.concatenate(logvar_arr), (psnrl1, psnrl2)
