@@ -172,7 +172,7 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                         imgs = torch.cat(imgs, dim=1)
                         rec_loss = {'loss': rec_loss}
                     elif model_type == ModelType.Denoiser:
-                        assert model._denoise_channel in [
+                        assert model.denoise_channel in [
                             'Ch1', 'Ch2', 'input'
                         ], '"all" denoise channel not supported for evaluation. Pick one of "Ch1", "Ch2", "input"'
 
