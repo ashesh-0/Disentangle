@@ -101,7 +101,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
-    training.batch_size = 16
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
