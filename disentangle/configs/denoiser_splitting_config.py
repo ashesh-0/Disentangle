@@ -24,7 +24,6 @@ def get_config():
     data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
-    data.background_quantile = 0.0
     # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
     # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
     # the background noise is also a distribution. So, some amount of background noise will remain.
@@ -56,7 +55,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.kl_loss_formulation = 'usplit'
+    # loss.kl_loss_formulation = 'usplit'
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -116,7 +115,7 @@ def get_config():
     model.noise_model_ch1_fpath = None
 
     training = config.training
-    training.lr = 0.001 / 2
+    training.lr = 0.001
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
     training.batch_size = 32
