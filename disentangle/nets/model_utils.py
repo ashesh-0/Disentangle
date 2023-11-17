@@ -10,6 +10,7 @@ from disentangle.config_utils import get_updated_config
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.nets.brave_net import BraveNetPL
+from disentangle.nets.denoiser_splitter import DenoiserSplitter
 from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_bleedthrough import LadderVAEWithMixedRecons
 from disentangle.nets.lvae_deepencoder import LVAEWithDeepEncoder
@@ -63,6 +64,8 @@ def create_model(config, data_mean, data_std):
         model = LVAEWithDeepEncoder(data_mean, data_std, config)
     elif config.model.model_type == ModelType.Denoiser:
         model = LadderVAEDenoiser(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.DenoiserSplitter:
+        model = DenoiserSplitter(data_mean, data_std, config)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
     return model
