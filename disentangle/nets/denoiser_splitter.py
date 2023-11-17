@@ -1,7 +1,9 @@
 import os
+from copy import deepcopy
 
 import torch
 
+import ml_collections
 from disentangle.config_utils import load_config
 from disentangle.core.loss_type import LossType
 from disentangle.nets.lvae import LadderVAE, RangeInvariantPsnr, torch_nanmean
@@ -11,7 +13,10 @@ from disentangle.nets.lvae_denoiser import LadderVAEDenoiser
 class DenoiserSplitter(LadderVAE):
 
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
-        super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
+        new_config = deepcopy(ml_collections.ConfigDict(config))
+        with new_config.unlocked():
+            new_config.data.image_size = new_config.data.image_size // 2
+        super().__init__(data_mean, data_std, new_config, use_uncond_mode_at, target_ch)
 
         self._denoiser_ch1 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch1', None))
         self._denoiser_ch2 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch2', None))
@@ -58,7 +63,15 @@ class DenoiserSplitter(LadderVAE):
         ch2 = target_normalized[:, 1:]
         ch1_denoised = self.denoise_one_channel(ch1, self._denoiser_ch1)
         ch2_denoised = self.denoise_one_channel(ch2, self._denoiser_ch2)
+        H = ch1_denoised.shape[-1] // 2
+        ch1_denoised = ch1_denoised[:, :, H // 2:-H // 2, H // 2:-H // 2]
+        ch2_denoised = ch2_denoised[:, :, H // 2:-H // 2, H // 2:-H // 2]
         return torch.cat([ch1_denoised, ch2_denoised], dim=1)
+
+    def denoise_input(self, x_normalized):
+        x_normalized = self.denoise_one_channel(x_normalized, self._denoiser_input)
+        H = x_normalized.shape[-1] // 2
+        return x_normalized[:, :, H // 2:-H // 2, H // 2:-H // 2]
 
     def compute_input(self, target_normalized):
         return torch.mean(target_normalized, dim=1, keepdim=True)
@@ -70,7 +83,7 @@ class DenoiserSplitter(LadderVAE):
         if self._denoiser_input is None:
             x_normalized = self.compute_input(target_normalized)
         else:
-            x_normalized = self.denoise_one_channel(x, self._denoiser_input)
+            x_normalized = self.denoise_input(x)
 
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
@@ -133,7 +146,7 @@ class DenoiserSplitter(LadderVAE):
         if self._denoiser_input is None:
             x_normalized = self.compute_input(target_normalized)
         else:
-            x_normalized = self.denoise_one_channel(x, self._denoiser_input)
+            x_normalized = self.denoise_input(x)
 
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
