@@ -66,9 +66,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.DenoiserSplitter
-    model.pre_trained_ckpt_fpath_ch1 = '/home/ubuntu/ashesh/training/disentangle/2311/D7-M23-S0-L0/13/BaselineVAECL_best.ckpt'
-    model.pre_trained_ckpt_fpath_ch2 = '/home/ubuntu/ashesh/training/disentangle/2311/D7-M23-S0-L0/13/BaselineVAECL_best.ckpt'
-    # model.pre_trained_ckpt_fpath_input = '/home/ubuntu/ashesh/training/disentangle/2311/D7-M23-S0-L0/13/BaselineVAECL_best.ckpt'
+    model.pre_trained_ckpt_fpath_all = '/home/ashesh.ashesh/training/disentangle/2311/D7-M23-S0-L0/10/BaselineVAECL_best.ckpt'
 
     model.z_dims = [128, 128, 128, 128]
 

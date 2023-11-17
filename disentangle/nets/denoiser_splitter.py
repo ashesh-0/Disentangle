@@ -16,11 +16,16 @@ class DenoiserSplitter(LadderVAE):
         self._denoiser_ch1 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch1', None))
         self._denoiser_ch2 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch2', None))
         self._denoiser_input = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_input', None))
+        self._denoiser_all = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_all', None))
+        if self._denoiser_all is not None:
+            self._denoiser_ch1 = self._denoiser_all
+            self._denoiser_ch2 = self._denoiser_all
+            self._denoiser_input = self._denoiser_all
 
         den_ch1 = self._denoiser_ch1 is not None
         den_ch2 = self._denoiser_ch2 is not None
         den_input = self._denoiser_input is not None
-        print(f'[{self.__class__}] Denoisers Ch1:{den_ch1}, Ch2:{den_ch2}, Input:{den_input}')
+        print(f'[{self.__class__}] Denoisers Ch1:{den_ch1}, Ch2:{den_ch2}, Input:{den_input} All:{den_input}')
 
     def load_data_mean_std(self, checkpoint):
         # TODO: save the mean and std in the checkpoint.
@@ -36,7 +41,7 @@ class DenoiserSplitter(LadderVAE):
         config_fpath = os.path.join(os.path.dirname(pre_trained_ckpt_fpath), 'config.pkl')
         config = load_config(config_fpath)
         data_mean, data_std = self.load_data_mean_std(checkpoint)
-        model = DenoiserSplitter(data_mean, data_std, config)
+        model = LadderVAEDenoiser(data_mean, data_std, config)
         _ = model.load_state_dict(checkpoint['state_dict'], strict=True)
         print('Loaded model from ckpt dir', pre_trained_ckpt_fpath, f' at epoch:{checkpoint["epoch"]}')
 
@@ -53,10 +58,6 @@ class DenoiserSplitter(LadderVAE):
         ch2 = target_normalized[:, 1:]
         ch1_denoised = self.denoise_one_channel(ch1, self._denoiser_ch1)
         ch2_denoised = self.denoise_one_channel(ch2, self._denoiser_ch2)
-        # TODO: remove this. this should not be needed.
-        ch1_denoised = torch.mean(ch1_denoised, dim=1, keepdim=True)
-        ch2_denoised = torch.mean(ch2_denoised, dim=1, keepdim=True)
-
         return torch.cat([ch1_denoised, ch2_denoised], dim=1)
 
     def compute_input(self, target_normalized):
@@ -66,7 +67,6 @@ class DenoiserSplitter(LadderVAE):
         x, noisy_target = batch[:2]
         noisy_target_normalized = self.normalize_target(noisy_target)
         target_normalized = self.denoise_target(noisy_target_normalized)
-
         if self._denoiser_input is None:
             x_normalized = self.compute_input(target_normalized)
         else:
@@ -167,7 +167,7 @@ class DenoiserSplitter(LadderVAE):
                 all_samples.append(sample[None])
 
             all_samples = torch.cat(all_samples, dim=0)
-            all_samples = all_samples * self.data_std + self.data_mean
+            all_samples = all_samples * self.data_std['target'] + self.data_mean['target']
             all_samples = all_samples.cpu()
             img_mmse = torch.mean(all_samples, dim=0)[0]
             self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], noisy_target[0, 0, ...], img_mmse[0], 'label1')
@@ -181,8 +181,8 @@ if __name__ == '__main__':
     from disentangle.configs.denoiser_splitting_config import get_config
 
     config = get_config()
-    data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
-    data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
+    data_mean = {'input': np.array([0]).reshape(1, 1, 1, 1), 'target': np.array([0, 0]).reshape(1, 2, 1, 1)}
+    data_std = {'input': np.array([1]).reshape(1, 1, 1, 1), 'target': np.array([1, 1]).reshape(1, 2, 1, 1)}
     model = DenoiserSplitter(data_mean, data_std, config)
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count + 1
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))

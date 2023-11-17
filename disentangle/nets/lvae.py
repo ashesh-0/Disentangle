@@ -998,8 +998,8 @@ if __name__ == '__main__':
     from disentangle.configs.twotiff_config import get_config
 
     config = get_config()
-    data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
-    data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
+    data_mean = {'input': np.array([0]).reshape(1, 1, 1, 1), 'target': np.array([0, 0]).reshape(1, 2, 1, 1)}
+    data_std = {'input': np.array([1]).reshape(1, 1, 1, 1), 'target': np.array([1, 1]).reshape(1, 2, 1, 1)}
     model = LadderVAE(data_mean, data_std, config)
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count + 1
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
