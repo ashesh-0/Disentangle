@@ -52,6 +52,8 @@ class LadderVAE(pl.LightningModule):
         self.encoder_blocks_per_layer = config.model.encoder.blocks_per_layer
         self.decoder_blocks_per_layer = config.model.decoder.blocks_per_layer
         self.kl_loss_formulation = config.loss.get('kl_loss_formulation', None)
+        assert self.kl_loss_formulation in [None, '',
+                                            'usplit'], f'Invalid kl_loss_formulation. {self.kl_loss_formulation}'
 
         self.n_layers = len(self.z_dims)
         self.stochastic_skip = config.model.stochastic_skip
