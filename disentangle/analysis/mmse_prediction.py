@@ -176,9 +176,9 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                             'Ch1', 'Ch2', 'input'
                         ], '"all" denoise channel not supported for evaluation. Pick one of "Ch1", "Ch2", "input"'
 
-                        x_normalized, tar = model.get_new_input_target((inp, tar, *batch[2:]))
-                        tar_normalized = model.normalize_target(tar)
-                        recon_normalized, _ = model(x_normalized)
+                        x_normalized_new, tar_new = model.get_new_input_target((inp, tar, *batch[2:]))
+                        tar_normalized = model.normalize_target(tar_new)
+                        recon_normalized, _ = model(x_normalized_new)
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
                                                                        tar_normalized,
                                                                        return_predicted_img=True)
