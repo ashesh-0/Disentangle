@@ -23,6 +23,7 @@ class DenoiserSplitter(LadderVAE):
         self._denoiser_input = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_input', None))
         self._denoiser_all = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_all', None))
         self._denoiser_mmse = config.model.get('denoiser_mmse', 1)
+        self._synchronized_input_target = config.model.get('synchronized_input_target', False)
 
         if self._denoiser_all is not None:
             self._denoiser_ch1 = self._denoiser_all
@@ -85,7 +86,9 @@ class DenoiserSplitter(LadderVAE):
         x, noisy_target = batch[:2]
         noisy_target_normalized = self.normalize_target(noisy_target)
         target_normalized = self.denoise_target(noisy_target_normalized)
-        if self._denoiser_input is None:
+        if self._synchronized_input_target:
+            x_normalized = torch.mean(target_normalized, dim=1, keepdim=True)
+        elif self._denoiser_input is None:
             x_normalized = self.compute_input(target_normalized)
         else:
             x_normalized = self.denoise_input(x)
@@ -148,7 +151,9 @@ class DenoiserSplitter(LadderVAE):
         self.set_params_to_same_device_as(noisy_target)
         noisy_target_normalized = self.normalize_target(noisy_target)
         target_normalized = self.denoise_target(noisy_target_normalized)
-        if self._denoiser_input is None:
+        if self._synchronized_input_target:
+            x_normalized = torch.mean(target_normalized, dim=1, keepdim=True)
+        elif self._denoiser_input is None:
             x_normalized = self.compute_input(target_normalized)
         else:
             x_normalized = self.denoise_input(x)

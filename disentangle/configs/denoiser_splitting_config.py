@@ -71,6 +71,7 @@ def get_config():
     model.model_type = ModelType.DenoiserSplitter
     model.pre_trained_ckpt_fpath_all = '/home/ashesh.ashesh/training/disentangle/2311/D7-M23-S0-L0/13/BaselineVAECL_best.ckpt'
     model.denoiser_mmse = 2
+    model.synchronized_input_target = True
 
     model.z_dims = [128, 128, 128, 128]
 
