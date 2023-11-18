@@ -22,6 +22,8 @@ class DenoiserSplitter(LadderVAE):
         self._denoiser_ch2 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch2', None))
         self._denoiser_input = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_input', None))
         self._denoiser_all = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_all', None))
+        self._denoiser_mmse = config.model.get('denoiser_mmse', 1)
+
         if self._denoiser_all is not None:
             self._denoiser_ch1 = self._denoiser_all
             self._denoiser_ch2 = self._denoiser_all
@@ -55,8 +57,11 @@ class DenoiserSplitter(LadderVAE):
         return model
 
     def denoise_one_channel(self, normalized_x, denoiser):
-        out, _ = denoiser(normalized_x)
-        return denoiser.likelihood.distr_params(out)['mean']
+        output = 0
+        for i in range(self._denoiser_mmse):
+            out, _ = denoiser(normalized_x)
+            output += denoiser.likelihood.distr_params(out)['mean']
+        return output / self._denoiser_mmse
 
     def denoise_target(self, target_normalized):
         ch1 = target_normalized[:, :1]
