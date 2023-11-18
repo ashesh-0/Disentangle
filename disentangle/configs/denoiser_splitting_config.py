@@ -12,7 +12,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 256
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
@@ -69,7 +69,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.DenoiserSplitter
-    model.pre_trained_ckpt_fpath_all = '/home/ashesh.ashesh/training/disentangle/2311/D7-M23-S0-L0/10/BaselineVAECL_best.ckpt'
+    model.pre_trained_ckpt_fpath_all = '/home/ashesh.ashesh/training/disentangle/2311/D7-M23-S0-L0/13/BaselineVAECL_best.ckpt'
 
     model.z_dims = [128, 128, 128, 128]
 
@@ -118,7 +118,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
-    training.batch_size = 32
+    training.batch_size = 8
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
