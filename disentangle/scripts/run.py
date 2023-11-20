@@ -174,8 +174,9 @@ def main(argv):
         inp_mean, inp_std = train_data.get_mean_std()
         mean_sq = inp_mean.squeeze()
         std_sq = inp_std.squeeze()
-        assert mean_sq[0] == mean_sq[1] and len(mean_sq) == 2
-        assert std_sq[0] == std_sq[1] and len(std_sq) == 2
+        for i in range(1, config.data.get('num_channels', 2)):
+            assert mean_sq[0] == mean_sq[i]
+            assert std_sq[0] == std_sq[i]
         mean_dict['input'] = np.mean(inp_mean, axis=1, keepdims=True)
         std_dict['input'] = np.mean(inp_std, axis=1, keepdims=True)
 

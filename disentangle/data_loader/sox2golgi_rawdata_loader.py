@@ -10,7 +10,7 @@ from disentangle.core.custom_enum import Enum
 from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
 from disentangle.core.tiff_reader import load_tiff
 from disentangle.data_loader.multifile_raw_dloader import SubDsetType
-from disentangle.data_loader.multifile_raw_dloader import get_train_val_data as get_train_val_data_twofiles
+from disentangle.data_loader.multifile_raw_dloader import get_train_val_data as get_train_val_data_twochannels
 
 
 def get_two_channel_files():
@@ -46,12 +46,12 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
     elif data_config.subdset_type == SubDsetType.TwoChannel:
         files_fn = get_two_channel_files
 
-    return get_train_val_data_twofiles(datadir,
-                                       data_config,
-                                       datasplit_type,
-                                       files_fn,
-                                       val_fraction=val_fraction,
-                                       test_fraction=test_fraction)
+    return get_train_val_data_twochannels(datadir,
+                                          data_config,
+                                          datasplit_type,
+                                          files_fn,
+                                          val_fraction=val_fraction,
+                                          test_fraction=test_fraction)
 
 
 if __name__ == '__main__':

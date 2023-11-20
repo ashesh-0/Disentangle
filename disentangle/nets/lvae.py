@@ -186,8 +186,7 @@ class LadderVAE(pl.LightningModule):
         self.grad_norm_bottom_up = 0.0
         self.grad_norm_top_down = 0.0
         # PSNR computation on validation.
-        self.label1_psnr = RunningPSNR()
-        self.label2_psnr = RunningPSNR()
+        self.channels_psnr = [RunningPSNR() for _ in range(target_ch)]
         print(f'[{self.__class__.__name__}] Enc [ResKSize{self.encoder_res_block_kernel}',
               f'SkipPadding:{self.encoder_res_block_skip_padding}]',
               f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]',
@@ -428,10 +427,12 @@ class LadderVAE(pl.LightningModule):
                                                       input,
                                                       return_predicted_img=return_predicted_img,
                                                       likelihood_obj=likelihood_obj)
+
         loss_dict = output[0] if return_predicted_img else output
         loss_dict['loss'] = torch.mean(loss_dict['loss'])
-        loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'])
-        loss_dict['ch2_loss'] = torch.mean(loss_dict['ch2_loss'])
+        for i in range(1, 1 + input.shape[1]):
+            loss_dict['ch{}_loss'.format(i)] = torch.mean(loss_dict['ch{}_loss'.format(i)])
+
         if 'mixed_loss' in loss_dict:
             loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'])
         if return_predicted_img:
@@ -475,6 +476,7 @@ class LadderVAE(pl.LightningModule):
         """
         if self.ch1_recons_w == 1 and self.ch2_recons_w == 1:
             return ll
+        assert ll.shape[1] == 2, "This function is only for 2 channel images"
         mask1 = torch.zeros((len(ll), ll.shape[1], 1, 1), device=ll.device)
         mask1[:, 0] = 1
 
@@ -501,9 +503,9 @@ class LadderVAE(pl.LightningModule):
         output = {
             'loss': compute_batch_mean(-1 * ll),
         }
-        if ll.shape[1] == 2:
-            output['ch1_loss'] = compute_batch_mean(-ll[:, 0])
-            output['ch2_loss'] = compute_batch_mean(-ll[:, 1])
+        if ll.shape[1] > 1:
+            for i in range(ll.shape[1]):
+                output[f'ch{i+1}_loss'] = compute_batch_mean(-ll[:, i])
         else:
             assert ll.shape[1] == 1
             output['ch1_loss'] = output['loss']
@@ -666,24 +668,18 @@ class LadderVAE(pl.LightningModule):
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
-        self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
-        psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0].clone(), recons_img[:, 0].clone())
-        if recons_img.shape[1] == 2:
-            self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
-            psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1].clone(), recons_img[:, 1].clone())
-        else:
-            self.label2_psnr.update(recons_img[:, 0], target_normalized[:, 0])
-            psnr_label2 = psnr_label1
+        channels_rinvpsnr = []
+        for i in range(recons_img.shape[1]):
+            self.channels_psnr[i].update(recons_img[:, i], target_normalized[:, i])
+            psnr = RangeInvariantPsnr(target_normalized[:, i].clone(), recons_img[:, i].clone())
+            channels_rinvpsnr.append(psnr)
+            psnr = torch_nanmean(psnr).item()
+            self.log(f'val_psnr_l{i}', psnr, on_epoch=True)
 
         recons_loss = recons_loss_dict['loss']
         # kl_loss = self.get_kl_divergence_loss(td_data)
         # net_loss = recons_loss + self.get_kl_weight() * kl_loss
         self.log('val_loss', recons_loss, on_epoch=True)
-        val_psnr_l1 = torch_nanmean(psnr_label1).item()
-        val_psnr_l2 = torch_nanmean(psnr_label2).item()
-        self.log('val_psnr_l1', val_psnr_l1, on_epoch=True)
-        self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
-        # self.log('val_psnr', (val_psnr_l1 + val_psnr_l2) / 2, on_epoch=True)
 
         if batch_idx == 0 and self.power_of_2(self.current_epoch):
             all_samples = []
@@ -696,19 +692,21 @@ class LadderVAE(pl.LightningModule):
             all_samples = all_samples * self.data_std['target'] + self.data_mean['target']
             all_samples = all_samples.cpu()
             img_mmse = torch.mean(all_samples, dim=0)[0]
-            self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
-            if target.shape[1] == 2:
-                self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
+            for i in target.shape[1]:
+                self.log_images_for_tensorboard(all_samples[:, 0, i, ...], target[0, i, ...], img_mmse[i], f'label{i}')
 
         # return net_loss
 
     def on_validation_epoch_end(self):
-        psnrl1 = self.label1_psnr.get()
-        psnrl2 = self.label2_psnr.get()
-        psnr = (psnrl1 + psnrl2) / 2
+        psnr_arr = []
+        for i in range(len(self.channels_psnr)):
+            psnr = self.channels_psnr[i].get()
+            psnr_arr.append(psnr.cpu().numpy())
+            self.channels_psnr[i].reset()
+
+        psnr = np.mean(psnr_arr)
+
         self.log('val_psnr', psnr, on_epoch=True)
-        self.label1_psnr.reset()
-        self.label2_psnr.reset()
 
     def forward(self, x):
         img_size = x.size()[2:]

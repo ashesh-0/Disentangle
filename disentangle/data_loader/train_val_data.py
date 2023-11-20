@@ -6,6 +6,7 @@ from typing import Union
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.data_loader.allencell_rawdata_loader import get_train_val_data as _loadallencellmito
+from disentangle.data_loader.dao_3ch_rawdata_loader import get_train_val_data as _loaddao3ch
 from disentangle.data_loader.embl_semisup_rawdata_loader import get_train_val_data as _loadembl2_semisup
 from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import get_train_val_data as _load_ht_iba1_ki67
 from disentangle.data_loader.multi_channel_train_val_data import train_val_data as _load_tiff_train_val
@@ -98,6 +99,8 @@ def get_train_val_data(data_config,
                               datasplit_type,
                               val_fraction=val_fraction,
                               test_fraction=test_fraction)
+    elif data_config.data_type == DataType.Dao3Channel:
+        return _loaddao3ch(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
 
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')

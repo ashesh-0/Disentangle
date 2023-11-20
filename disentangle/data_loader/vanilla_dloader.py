@@ -42,6 +42,7 @@ class MultiChDloader:
 
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
+        self._num_channels = data_config.get('num_channels', 2)
 
         self.load_data(data_config,
                        datasplit_type,
@@ -68,12 +69,12 @@ class MultiChDloader:
 
         # input = alpha * ch1 + (1-alpha)*ch2.
         # alpha is sampled randomly between these two extremes
-        self._ch1_max_alpha = self._ch1_min_alpha = self._return_alpha = self._alpha_weighted_target = None
+        self._start_alpha_arr = self._end_alpha_arr = self._return_alpha = self._alpha_weighted_target = None
 
         self._img_sz = self._grid_sz = self._repeat_factor = self.idx_manager = None
         if self._is_train:
-            self._ch1_min_alpha = data_config.get('ch1_min_alpha', None)
-            self._ch1_max_alpha = data_config.get('ch1_max_alpha', None)
+            self._start_alpha_arr = data_config.get('start_alpha', None)
+            self._end_alpha_arr = data_config.get('end_alpha', None)
             self._alpha_weighted_target = data_config.get('alpha_weighted_target', False)
 
             self.set_img_sz(data_config.image_size,
@@ -127,6 +128,7 @@ class MultiChDloader:
                                         test_fraction=test_fraction,
                                         allow_generation=allow_generation)
         self.N = len(self._data)
+        assert self._data.shape[-1] == self._num_channels, 'Number of channels in data and config do not match.'
 
     def save_background(self, channel_idx, frame_idx, background_value):
         self._background_values[frame_idx, channel_idx] = background_value
@@ -245,8 +247,8 @@ class MultiChDloader:
             msg += f'-{self._empty_patch_replacement_channel_idx}-{self._empty_patch_replacement_probab}'
 
         msg += f' BckQ:{self._background_quantile}'
-        if self._ch1_min_alpha is not None:
-            msg += f' Alpha:[{self._ch1_min_alpha},{self._ch1_max_alpha}]'
+        if self._start_alpha_arr is not None:
+            msg += f' Alpha:[{self._start_alpha_arr},{self._end_alpha_arr}]'
         return msg
 
     def _crop_imgs(self, index, *img_tuples: np.ndarray):
@@ -415,16 +417,16 @@ class MultiChDloader:
         assert self._is_train is True or allow_for_validation_data, 'This is just allowed for training data'
         if self._use_one_mu_std is True:
             if self._input_is_sum:
-                mean = [np.mean(self._data[..., k:k + 1], keepdims=True) for k in range(self._data.shape[-1])]
+                mean = [np.mean(self._data[..., k:k + 1], keepdims=True) for k in range(self._num_channels)]
                 mean = np.sum(mean, keepdims=True)[0]
                 std = np.linalg.norm(
-                    [np.std(self._data[..., k:k + 1], keepdims=True) for k in range(self._data.shape[-1])],
+                    [np.std(self._data[..., k:k + 1], keepdims=True) for k in range(self._num_channels)],
                     keepdims=True)[0]
             else:
                 mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
                 std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
-            mean = np.repeat(mean, 2, axis=1)
-            std = np.repeat(std, 2, axis=1)
+            mean = np.repeat(mean, self._num_channels, axis=1)
+            std = np.repeat(std, self._num_channels, axis=1)
 
             if self._skip_normalization_using_mean:
                 mean = np.zeros_like(mean)
@@ -435,7 +437,8 @@ class MultiChDloader:
             return self.compute_individual_mean_std()
 
         elif self._use_one_mu_std is None:
-            return np.array([0.0, 0.0]).reshape(1, 2, 1, 1), np.array([1.0, 1.0]).reshape(1, 2, 1, 1)
+            return (np.array([0.0, 0.0]).reshape(1, self._num_channels, 1,
+                                                 1), np.array([1.0, 1.0]).reshape(1, self._num_channels, 1, 1))
 
     def _get_random_hw(self, h: int, w: int):
         """
@@ -470,32 +473,38 @@ class MultiChDloader:
         return tuple(final_img_tuples)
 
     def _compute_input_with_alpha(self, img_tuples, alpha):
-        assert len(img_tuples) == 2
         assert self._normalized_input is True, "normalization should happen here"
+        inp = 0
+        for alpha, img in zip(alpha, img_tuples):
+            inp += img * alpha
 
-        inp = img_tuples[0] * alpha + img_tuples[1] * (1 - alpha)
         mean, std = self.get_mean_std()
         mean = mean.squeeze()
         std = std.squeeze()
-        assert mean[0] == mean[1] and len(mean) == 2
-        assert std[0] == std[1] and len(std) == 2
+        assert len(mean) == len(img_tuples)
+        for i in range(len(mean)):
+            assert mean[0] == mean[i]
+            assert std[0] == std[i]
 
         inp = (inp - mean[0]) / std[0]
         return inp.astype(np.float32)
 
     def _sample_alpha(self):
-        alpha_width = self._ch1_max_alpha - self._ch1_min_alpha
-        alpha = np.random.rand() * (alpha_width) + self._ch1_min_alpha
-        return alpha
+        alpha_pos = np.random.rand()
+        alpha_arr = []
+        for i in range(self._num_channels):
+            alpha = self._start_alpha_arr[i] + alpha_pos * (self._end_alpha_arr[i] - self._start_alpha_arr[i])
+            alpha_arr.append(alpha)
+        return alpha_arr
 
     def _compute_input(self, img_tuples):
-        alpha = 0.5
-        if self._ch1_min_alpha is not None:
+        alpha = [1 / len(img_tuples) for _ in range(len(img_tuples))]
+        if self._start_alpha_arr is not None:
             alpha = self._sample_alpha()
 
         inp = self._compute_input_with_alpha(img_tuples, alpha)
         if self._input_is_sum:
-            inp = 2 * inp
+            inp = len(img_tuples) * inp
         return inp, alpha
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
@@ -515,7 +524,10 @@ class MultiChDloader:
 
         if self._alpha_weighted_target:
             assert self._input_is_sum is False
-            target = np.concatenate([img_tuples[0] * alpha / 0.5, img_tuples[1] * (1 - alpha) / 0.5], axis=0)
+            target = []
+            for i in range(len(img_tuples)):
+                target.append(img_tuples[i] * alpha[i])
+            target = np.concatenate(target, axis=0)
         else:
             target = np.concatenate(img_tuples, axis=0)
 

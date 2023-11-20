@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 
 from disentangle.config_utils import get_updated_config
+from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.nets.brave_net import BraveNetPL
@@ -31,7 +32,8 @@ from disentangle.nets.unet import UNet
 
 def create_model(config, data_mean, data_std):
     if config.model.model_type == ModelType.LadderVae:
-        model = LadderVAE(data_mean, data_std, config)
+        target_ch = config.data.get('num_channels', 2)
+        model = LadderVAE(data_mean, data_std, config, target_ch=target_ch)
     elif config.model.model_type == ModelType.LadderVaeTwinDecoder:
         model = LadderVAETwinDecoder(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVAECritic:

@@ -20,3 +20,4 @@ class DataType(Enum):
     BSD68 = 15
     BioSR_MRC = 16
     TavernaSox2Golgi = 17
+    Dao3Channel = 18
