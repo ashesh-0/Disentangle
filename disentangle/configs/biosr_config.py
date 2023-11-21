@@ -14,6 +14,8 @@ def get_config():
     # data.channel_2 = 1
     data.ch1_fname = 'ER/GT_all.mrc'
     data.ch2_fname = 'Microtubules/GT_all.mrc'
+    data.ch3_fname = 'CCPs/GT_all.mrc'
+    data.num_channels = 3
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
