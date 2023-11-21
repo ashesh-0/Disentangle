@@ -17,24 +17,28 @@ def get_mrc_data(fpath):
 
 def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_fraction):
     # actin-60x-noise2-highsnr.tif  mito-60x-noise2-highsnr.tif
-    fpath1 = os.path.join(dirname, data_config.ch1_fname)
-    fpath2 = os.path.join(dirname, data_config.ch2_fname)
+    num_channels = data_config.get('num_channels', 2)
+    fpaths = []
+    data_list = []
+    for i in range(num_channels):
+        fpath1 = os.path.join(dirname, data_config.get(f'ch{i + 1}_fname'))
+        fpaths.append(fpath1)
+        data = get_mrc_data(fpath1)[..., None]
+        data_list.append(data)
 
-    print(f'Loading from {dirname} Channel1: '
-          f'{fpath1},{fpath2}, Mode:{DataSplitType.name(datasplit_type)}')
+    dirname = os.path.dirname(os.path.dirname(fpaths[0])) + '/'
 
-    data1 = get_mrc_data(fpath1)[..., None]
-    data2 = get_mrc_data(fpath2)[..., None]
-    # assert abs(
-    #     data1.shape[0] - data2.shape[0]
-    # ) < 2, "Data shape mismatch by more than 1 N. this needs an alternate immplementation where both channels are loaded\
-    # separately."
+    msg = ','.join([x[len(dirname):] for x in fpaths])
+    print(f'Loaded from {dirname} Channels:{len(fpaths)} {msg} Mode:{DataSplitType.name(datasplit_type)}')
+    N = data_list[0].shape[0]
+    for data in data_list:
+        N = min(N, data.shape[0])
 
-    N = min(data1.shape[0], data2.shape[0])
-    data1 = data1[:N]
-    data2 = data2[:N]
+    cropped_data = []
+    for data in data_list:
+        cropped_data.append(data[:N])
 
-    data = np.concatenate([data1, data2], axis=3)
+    data = np.concatenate(cropped_data, axis=3)
 
     if datasplit_type == DataSplitType.All:
         return data.astype(np.float32)
@@ -46,3 +50,15 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
         return data[val_idx].astype(np.float32)
     elif datasplit_type == DataSplitType.Test:
         return data[test_idx].astype(np.float32)
+
+
+if __name__ == '__main__':
+    from ml_collections.config_dict import ConfigDict
+    data_config = ConfigDict()
+    data_config.num_channels = 3
+    data_config.ch1_fname = 'CCPs/GT_all.mrc'
+    data_config.ch2_fname = 'ER/GT_all.mrc'
+    data_config.ch3_fname = 'Microtubules/GT_all.mrc'
+    datadir = '/group/jug/ashesh/data/BioSR/'
+    data = get_train_val_data(datadir, data_config, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
+    print(data.shape)
