@@ -75,8 +75,7 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
     predictions = []
     losses = []
     logvar_arr = []
-    patch_psnr_ch1 = RunningPSNR()
-    patch_psnr_ch2 = RunningPSNR()
+    patch_psnr_channels = [RunningPSNR() for _ in range(dset[0][1].shape[0])]
     with torch.no_grad():
         for batch in tqdm(dloader):
             inp, tar = batch[:2]
@@ -215,18 +214,13 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                         except:
                             losses.append(rec_loss['loss'])
 
-                patch_psnr_ch1.update(imgs[:, 0], tar_normalized[:, 0])
-                if imgs.shape[1] > 1:
-                    patch_psnr_ch2.update(imgs[:, 1], tar_normalized[:, 1])
+                for i in range(len(patch_psnr_channels)):
+                    patch_psnr_channels[i].update(imgs[:, i], tar_normalized[:, i])
 
                 recon_img_list.append(imgs.cpu()[None])
 
             mmse_imgs = torch.mean(torch.cat(recon_img_list, dim=0), dim=0)
             predictions.append(mmse_imgs.cpu().numpy())
 
-    psnrl1 = patch_psnr_ch1.get()
-    psnrl2 = None
-    if imgs.shape[1] > 1:
-        psnrl2 = patch_psnr_ch2.get()
-
-    return np.concatenate(predictions, axis=0), np.array(losses), np.concatenate(logvar_arr), (psnrl1, psnrl2)
+    psnr = [x.get() for x in patch_psnr_channels]
+    return np.concatenate(predictions, axis=0), np.array(losses), np.concatenate(logvar_arr), psnr
