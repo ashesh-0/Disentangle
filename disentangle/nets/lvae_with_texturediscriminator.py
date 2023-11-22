@@ -20,12 +20,13 @@ class LadderVAETexDiscrim(LadderVAE):
         self.D1 = TextureEncoder(num_blocks_per_layer, num_hierarchy_levels, with_sigmoid=False)
         self.D2 = TextureEncoder(num_blocks_per_layer, num_hierarchy_levels, with_sigmoid=False)
         self.automatic_optimization = False
+        self._D_epsilon = config.loss.get('D_epsilon', 0.0)
 
         self.critic_loss_weight = config.loss.critic_loss_weight
         self.critic_loss_fn = nn.BCEWithLogitsLoss()
         assert self.predict_logvar is None, "predict_logvar is not None. This is not supported for this model."
         print(
-            f'[{self.__class__.__name__}] Critic loss weight: {self.critic_loss_weight} NumBlk:{num_blocks_per_layer} NumHier:{num_hierarchy_levels}'
+            f'[{self.__class__.__name__}] Critic loss weight: {self.critic_loss_weight} NumBlk:{num_blocks_per_layer} NumHier:{num_hierarchy_levels} D_eps:{self._D_epsilon}'
         )
 
     def configure_optimizers(self):
@@ -94,8 +95,8 @@ class LadderVAETexDiscrim(LadderVAE):
         """
         pred_label = D(pred)
         tar_label = D(tar)
-        loss_0 = self.critic_loss_fn(pred_label, torch.zeros_like(pred_label))
-        loss_1 = self.critic_loss_fn(tar_label, torch.ones_like(tar_label))
+        loss_0 = self.critic_loss_fn(pred_label, torch.zeros_like(pred_label) + self._D_epsilon)
+        loss_1 = self.critic_loss_fn(tar_label, torch.ones_like(tar_label) - self._D_epsilon)
 
         loss = loss_0 + loss_1
         return loss, {'generated': torch.sigmoid(pred_label).mean(), 'actual': torch.sigmoid(tar_label).mean()}
