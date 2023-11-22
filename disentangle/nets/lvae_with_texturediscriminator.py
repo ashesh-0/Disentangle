@@ -12,7 +12,7 @@ from disentangle.nets.texture_classifier import TextureEncoder
 
 class LadderVAETexDiscrim(LadderVAE):
 
-    def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=1):
+    def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
         self.D1 = TextureEncoder(with_sigmoid=False)
         self.D2 = TextureEncoder(with_sigmoid=False)
@@ -161,6 +161,7 @@ class LadderVAETexDiscrim(LadderVAE):
             mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
 
         out, td_data = self.forward(x_normalized)
+
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
