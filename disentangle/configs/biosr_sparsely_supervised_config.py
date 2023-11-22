@@ -61,7 +61,7 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.Elbo
     loss.D_epsilon = 0.1
-    loss.critic_loss_weight = 0.005
+    loss.critic_loss_weight = 0.001
     loss.mixed_rec_weight = 0.3
     # loss.mixed_rec_w_step = 0.01
     # loss.exclusion_loss_weight = 0.005
