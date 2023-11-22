@@ -81,6 +81,8 @@ def get_config():
     # model.classifier_loss_weight = 0.01
 
     model.z_dims = [128, 128, 128, 128]
+    model.tethered_to_input = True
+    model.tethered_learnable_scalar = True
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
