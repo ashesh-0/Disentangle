@@ -14,13 +14,19 @@ class LadderVAETexDiscrim(LadderVAE):
 
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
-        self.D1 = TextureEncoder(with_sigmoid=False)
-        self.D2 = TextureEncoder(with_sigmoid=False)
+        num_blocks_per_layer = config.model.get('D_num_blocks_per_layer', 1)
+        num_hierarchy_levels = config.model.get('D_num_hierarchy_levels', 1)
+
+        self.D1 = TextureEncoder(num_blocks_per_layer, num_hierarchy_levels, with_sigmoid=False)
+        self.D2 = TextureEncoder(num_blocks_per_layer, num_hierarchy_levels, with_sigmoid=False)
         self.automatic_optimization = False
 
         self.critic_loss_weight = config.loss.critic_loss_weight
         self.critic_loss_fn = nn.BCEWithLogitsLoss()
         assert self.predict_logvar is None, "predict_logvar is not None. This is not supported for this model."
+        print(
+            f'[{self.__class__.__name__}] Critic loss weight: {self.critic_loss_weight} NumBlk:{num_blocks_per_layer} NumHier:{num_hierarchy_levels}'
+        )
 
     def configure_optimizers(self):
         params1 = list(self.first_bottom_up.parameters()) + list(self.bottom_up_layers.parameters()) + list(
@@ -90,6 +96,7 @@ class LadderVAETexDiscrim(LadderVAE):
         tar_label = D(tar)
         loss_0 = self.critic_loss_fn(pred_label, torch.zeros_like(pred_label))
         loss_1 = self.critic_loss_fn(tar_label, torch.ones_like(tar_label))
+
         loss = loss_0 + loss_1
         return loss, {'generated': torch.sigmoid(pred_label).mean(), 'actual': torch.sigmoid(tar_label).mean()}
 
@@ -141,6 +148,10 @@ class LadderVAETexDiscrim(LadderVAE):
         self.log('L1_actual_probab', critic_dict['avg_Label1']['actual'], on_epoch=True)
         self.log('L2_generated_probab', critic_dict['avg_Label2']['generated'], on_epoch=True)
         self.log('L2_actual_probab', critic_dict['avg_Label2']['actual'], on_epoch=True)
+        if self._tethered_ch2_scalar is not None:
+            self.log('tethered_ch2_scalar', self._tethered_ch2_scalar, on_epoch=True)
+            self.log('tethered_ch1_scalar', self._tethered_ch1_scalar, on_epoch=True)
+
         if mask.sum() > 0:
             optimizer_d.zero_grad()
             D_loss = self.critic_loss_weight * self.get_critic_loss_stats(pred_nimg[~mask].detach(),

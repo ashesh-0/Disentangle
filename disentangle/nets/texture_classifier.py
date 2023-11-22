@@ -14,12 +14,12 @@ class SingleBottomUpLayer(BottomUpLayer):
 
 class TextureEncoder(nn.Module):
 
-    def __init__(self, with_sigmoid=True):
+    def __init__(self, num_blocks_per_layer, num_hierarchy_levels, with_sigmoid=True):
         super().__init__()
 
         self.nonlin = nn.LeakyReLU
-        self.num_blocks_per_layer = 2
-        self.num_hierarchy_levels = 2
+        self.num_blocks_per_layer = num_blocks_per_layer
+        self.num_hierarchy_levels = num_hierarchy_levels
         self.color_ch = 1
         self.encoder_n_filters = 32
         self.encoder_res_block_kernel = 3

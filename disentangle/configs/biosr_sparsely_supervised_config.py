@@ -83,6 +83,8 @@ def get_config():
     model.z_dims = [128, 128, 128, 128]
     model.tethered_to_input = True
     model.tethered_learnable_scalar = True
+    model.D_num_blocks_per_layer = 1
+    model.D_num_hierarchy_levels = 1
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
