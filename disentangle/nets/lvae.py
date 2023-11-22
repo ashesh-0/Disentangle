@@ -50,11 +50,10 @@ class LadderVAE(pl.LightningModule):
         self._tethered_to_input = config.model.get('tethered_to_input', False)
         if self._tethered_to_input:
             target_ch = 1
+            requires_grad = config.model.get('tethered_learnable_scalar', False)
             # a learnable scalar that is multiplied with one channel prediction.
-            self._tethered_ch1_scalar = nn.Parameter(torch.ones(1) * 0.5,
-                                                     requires_grad=config.model.tethered_learnable_scalar)
-            self._tethered_ch2_scalar = nn.Parameter(torch.ones(1) * 2.0,
-                                                     requires_grad=config.model.tethered_learnable_scalar)
+            self._tethered_ch1_scalar = nn.Parameter(torch.ones(1) * 0.5, requires_grad=requires_grad)
+            self._tethered_ch2_scalar = nn.Parameter(torch.ones(1) * 2.0, requires_grad=requires_grad)
 
         # disentangling two grayscale images.
         self.target_ch = target_ch
