@@ -59,8 +59,8 @@ def get_config():
     data.target_separate_normalization = False
 
     loss = config.loss
-    loss.loss_type = LossType.ElboMixedReconstruction
-    loss.critic_loss_weight = 0.0005
+    loss.loss_type = LossType.Elbo
+    loss.critic_loss_weight = 0.005
     loss.mixed_rec_weight = 0.3
     # loss.mixed_rec_w_step = 0.01
     # loss.exclusion_loss_weight = 0.005
