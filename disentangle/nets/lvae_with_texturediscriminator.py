@@ -27,6 +27,10 @@ class LadderVAETexDiscrim(LadderVAE):
             self.top_down_layers.parameters()) + list(self.final_top_down.parameters()) + list(
                 self.likelihood.parameters())
 
+        if self._tethered_ch2_scalar is not None:
+            params1.append(self._tethered_ch2_scalar)
+            params1.append(self._tethered_ch1_scalar)
+
         optimizer1 = optim.Adamax(params1, lr=self.lr, weight_decay=0)
         params2 = list(self.D1.parameters()) + list(self.D2.parameters())
         optimizer2 = optim.Adamax(params2, lr=self.lr, weight_decay=0)
@@ -98,9 +102,8 @@ class LadderVAETexDiscrim(LadderVAE):
         mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
 
         optimizer_g.zero_grad()
-        ch1, td_data = self.forward(x_normalized)
-        ch2 = self.get_other_channel(ch1, x_normalized)
-        out = torch.cat([ch1[:, :1], ch2, ch1[:, 1:]], dim=1)
+        out, td_data = self.forward(x_normalized)
+
         recons_loss_dict, pred_nimg = self.get_reconstruction_loss(out,
                                                                    target_normalized,
                                                                    x_normalized,
@@ -157,9 +160,7 @@ class LadderVAETexDiscrim(LadderVAE):
             target_normalized = self.normalize_target(target)
             mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
 
-        ch1, td_data = self.forward(x_normalized)
-        ch2 = self.get_other_channel(ch1, x_normalized)
-        out = torch.cat([ch1[:, :1], ch2, ch1[:, 1:]], dim=1)
+        out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
@@ -191,17 +192,19 @@ if __name__ == '__main__':
     import numpy as np
     import torch
 
-    from disentangle.configs.biosr_sparsely_supervised_config import get_config
+    from disentangle.configs.biosr_supervised_config import get_config
     config = get_config()
+    config.loss.critic_loss_weight = 0.0
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
     data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
     model = LadderVAETexDiscrim({
         'input': data_mean,
-        'target': data_mean
+        'target': data_mean.repeat(1, 2, 1, 1)
     }, {
         'input': data_std,
-        'target': data_std
+        'target': data_std.repeat(1, 2, 1, 1)
     }, config)
+    model.configure_optimizers()
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
     out, td_data = model(inp)

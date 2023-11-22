@@ -46,10 +46,13 @@ class LadderVAE(pl.LightningModule):
         self._input_is_sum = config.data.input_is_sum
         # grayscale input
         self.color_ch = config.data.get('color_ch', 1)
-
+        self._tethered_ch1_scalar = self._tethered_ch2_scalar = None
         self._tethered_to_input = config.model.get('tethered_to_input', False)
         if self._tethered_to_input:
             target_ch = 1
+            # a learnable scalar that is multiplied with one channel prediction.
+            self._tethered_ch1_scalar = nn.Parameter(torch.ones(1) * 0.5)
+            self._tethered_ch2_scalar = nn.Parameter(torch.ones(1) * 2.0)
 
         # disentangling two grayscale images.
         self.target_ch = target_ch
@@ -270,7 +273,7 @@ class LadderVAE(pl.LightningModule):
         assert self.data_mean['target'].squeeze().shape == (2, )
         ch1_un = ch1[:, :1] * self.data_std['target'][:, :1] + self.data_mean['target'][:, :1]
         input_un = input * self.data_std['input'] + self.data_mean['input']
-        ch2_un = input_un - ch1_un
+        ch2_un = self._tethered_ch2_scalar * (input_un - ch1_un * self._tethered_ch1_scalar)
         ch2 = (ch2_un - self.data_mean['target'][:, -1:]) / self.data_std['target'][:, -1:]
         return ch2
 
@@ -707,6 +710,10 @@ class LadderVAE(pl.LightningModule):
             self.log('kl_loss', kl_loss, on_epoch=True)
             self.log('training_loss', net_loss, on_epoch=True)
             self.log('lr', self.lr, on_epoch=True)
+            if self._tethered_ch2_scalar is not None:
+                self.log('tethered_ch2_scalar', self._tethered_ch2_scalar, on_epoch=True)
+                self.log('tethered_ch1_scalar', self._tethered_ch1_scalar, on_epoch=True)
+
             # self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
             # self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
 
@@ -1112,7 +1119,8 @@ if __name__ == '__main__':
     import numpy as np
     import torch
 
-    from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+    # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+    from disentangle.configs.biosr_supervised_config import get_config
     config = get_config()
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
     # copy twice along 2nd dimensiion
