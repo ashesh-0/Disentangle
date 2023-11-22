@@ -23,7 +23,7 @@ def get_config():
     # when creating a batch, what fraction of inputs should have target.
     data.validtarget_random_fraction = 0.7
 
-    data.validation_datausage_fraction = 0.08 * 2
+    data.validation_datausage_fraction = 0.08
 
     # data.validtarget_random_fraction_final = 1
     # data.validtarget_random_fraction_stepepoch = 0.005

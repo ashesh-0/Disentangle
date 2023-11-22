@@ -89,15 +89,6 @@ class LadderVAETexDiscrim(LadderVAE):
         loss = loss_0 + loss_1
         return loss, {'generated': torch.sigmoid(pred_label).mean(), 'actual': torch.sigmoid(tar_label).mean()}
 
-    def get_other_channel(self, ch1, input):
-        assert self.data_std['target'].squeeze().shape == (2, )
-        assert self.data_mean['target'].squeeze().shape == (2, )
-        ch1_un = ch1[:, :1] * self.data_std['target'][:, :1] + self.data_mean['target'][:, :1]
-        input_un = input * self.data_std['input'] + self.data_mean['input']
-        ch2_un = input_un - ch1_un
-        ch2 = (ch2_un - self.data_mean['target'][:, -1:]) / self.data_std['target'][:, -1:]
-        return ch2
-
     def training_step(self, batch: tuple, batch_idx: int):
         optimizer_g, optimizer_d = self.optimizers()
 
@@ -127,7 +118,7 @@ class LadderVAETexDiscrim(LadderVAE):
         net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
         if mask.sum() > 0:
-            critic_dict = self.get_critic_loss_stats(pred_nimg, target_normalized[mask])
+            critic_dict = self.get_critic_loss_stats(pred_nimg[~mask], pred_nimg[mask].detach())
             D_loss = critic_dict['loss']
 
             # Note the negative here. It will aim to maximize the discriminator loss.
@@ -149,8 +140,8 @@ class LadderVAETexDiscrim(LadderVAE):
         self.log('L2_actual_probab', critic_dict['avg_Label2']['actual'], on_epoch=True)
         if mask.sum() > 0:
             optimizer_d.zero_grad()
-            D_loss = self.critic_loss_weight * self.get_critic_loss_stats(pred_nimg.detach(),
-                                                                          target_normalized[mask])['loss']
+            D_loss = self.critic_loss_weight * self.get_critic_loss_stats(pred_nimg[~mask].detach(),
+                                                                          pred_nimg[mask].detach())['loss']
             self.manual_backward(D_loss)
             optimizer_d.step()
 

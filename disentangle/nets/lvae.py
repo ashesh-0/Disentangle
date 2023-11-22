@@ -47,6 +47,10 @@ class LadderVAE(pl.LightningModule):
         # grayscale input
         self.color_ch = config.data.get('color_ch', 1)
 
+        self._tethered_to_input = config.model.get('tethered_to_input', False)
+        if self._tethered_to_input:
+            target_ch = 1
+
         # disentangling two grayscale images.
         self.target_ch = target_ch
 
@@ -208,10 +212,9 @@ class LadderVAE(pl.LightningModule):
                                                            padding=1,
                                                            bias=self.topdown_conv2d_bias)
 
-        print(f'[{self.__class__.__name__}] Enc [ResKSize{self.encoder_res_block_kernel}',
-              f'SkipPadding:{self.encoder_res_block_skip_padding}]',
-              f' Dec [ResKSize{self.decoder_res_block_kernel} SkipPadding:{self.encoder_res_block_skip_padding}]',
-              f'Stoc:{not self.non_stochastic_version} RecMode:{self.reconstruction_mode}')
+        print(
+            f'[{self.__class__.__name__}] Stoc:{not self.non_stochastic_version} RecMode:{self.reconstruction_mode} TethInput:{self._tethered_to_input}'
+        )
 
     def create_top_down_layers(self):
         top_down_layers = nn.ModuleList([])
@@ -222,7 +225,7 @@ class LadderVAE(pl.LightningModule):
             #    p_params = output of top-down layer above
             #    bu = inferred bottom-up value at this layer
             #    q_params = merge(bu, p_params)
-            #    z = stochastic_layer(q_params)
+            #    z = stochastic_layer(q_params):
             #    possibly get skip connection from previous top-down layer
             #    top-down deterministic ResNet
             #
@@ -261,6 +264,15 @@ class LadderVAE(pl.LightningModule):
                     normalize_latent_factor=normalize_latent_factor,
                     conv2d_bias=self.topdown_conv2d_bias))
         return top_down_layers
+
+    def get_other_channel(self, ch1, input):
+        assert self.data_std['target'].squeeze().shape == (2, )
+        assert self.data_mean['target'].squeeze().shape == (2, )
+        ch1_un = ch1[:, :1] * self.data_std['target'][:, :1] + self.data_mean['target'][:, :1]
+        input_un = input * self.data_std['input'] + self.data_mean['input']
+        ch2_un = input_un - ch1_un
+        ch2 = (ch2_un - self.data_mean['target'][:, -1:]) / self.data_std['target'][:, -1:]
+        return ch2
 
     def create_bottom_up_layers(self, lowres_separate_branch):
         bottom_up_layers = nn.ModuleList([])
@@ -826,7 +838,13 @@ class LadderVAE(pl.LightningModule):
             # Restore original image size
             out = crop_img_tensor(out, img_size)
 
-        return self.output_layer(out), td_data
+        out = self.output_layer(out)
+        if self._tethered_to_input:
+            assert out.shape[1] == 1
+            ch2 = self.get_other_channel(out, x_pad)
+            out = torch.cat([out, ch2], dim=1)
+
+        return out, td_data
 
     def bottomup_pass(self, inp):
         return self._bottomup_pass(inp, self.first_bottom_up, self.lowres_first_bottom_ups, self.bottom_up_layers)
@@ -1094,11 +1112,18 @@ if __name__ == '__main__':
     import numpy as np
     import torch
 
-    from disentangle.configs.biosr_sparsely_supervised_config import get_config
+    from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
     config = get_config()
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
+    # copy twice along 2nd dimensiion
     data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
-    model = LadderVAE({'input': data_mean, 'target': data_mean}, {'input': data_std, 'target': data_std}, config)
+    model = LadderVAE({
+        'input': data_mean,
+        'target': data_mean.repeat(1, 2, 1, 1)
+    }, {
+        'input': data_std,
+        'target': data_std.repeat(1, 2, 1, 1)
+    }, config)
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
     out, td_data = model(inp)

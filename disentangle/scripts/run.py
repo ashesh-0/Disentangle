@@ -173,10 +173,13 @@ def main(argv):
         mean_dict = {'input': None, 'target': None}
         std_dict = {'input': None, 'target': None}
         inp_mean, inp_std = train_data.get_mean_std()
-        assert np.all(inp_mean[:, :1] == inp_mean[:, 1:])
-        assert np.all(inp_std[:, :1] == inp_std[:, 1:])
-        mean_dict['input'] = inp_mean[:, :1]
-        std_dict['input'] = inp_std[:, :1]
+        mean_sq = inp_mean.squeeze()
+        std_sq = inp_std.squeeze()
+        for i in range(1, config.data.get('num_channels', 2)):
+            assert mean_sq[0] == mean_sq[i]
+            assert std_sq[0] == std_sq[i]
+        mean_dict['input'] = np.mean(inp_mean, axis=1, keepdims=True)
+        std_dict['input'] = np.mean(inp_std, axis=1, keepdims=True)
 
         if config.data.target_separate_normalization is True:
             data_mean, data_std = train_data.compute_individual_mean_std()

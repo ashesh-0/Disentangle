@@ -18,7 +18,7 @@ def get_config():
 
     # amounnt of data (supervised and unsupervised) which you want to use for training.
     data.trainig_datausage_fraction = 1
-    data.validation_datausage_fraction = 0.08 * 2
+    data.validation_datausage_fraction = 0.08
     data.training_validtarget_fraction = 0.01
 
     # when creating a batch, what fraction of inputs should have target.
@@ -114,7 +114,7 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
-    model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/58/BaselineVAECL_best.ckpt'
+    # model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/58/BaselineVAECL_best.ckpt'
     # model.pretrained_weights_skip_likelihood = True
 
     training = config.training
