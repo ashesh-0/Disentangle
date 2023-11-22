@@ -103,13 +103,13 @@ class LadderVAETexDiscrim(LadderVAE):
 
     def training_step(self, batch: tuple, batch_idx: int):
         optimizer_g, optimizer_d = self.optimizers()
+        self.toggle_optimizer(optimizer_g)
 
         x, target = batch
         x_normalized = self.normalize_input(x)
         target_normalized = self.normalize_target(target)
         mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
 
-        optimizer_g.zero_grad()
         out, td_data = self.forward(x_normalized)
 
         recons_loss_dict, pred_nimg = self.get_reconstruction_loss(out,
@@ -137,6 +137,8 @@ class LadderVAETexDiscrim(LadderVAE):
 
         self.manual_backward(net_loss)
         optimizer_g.step()
+        optimizer_g.zero_grad()
+        self.untoggle_optimizer(optimizer_g)
 
         # for i, x in enumerate(td_data['debug_qvar_max']):
         #     self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
@@ -154,11 +156,13 @@ class LadderVAETexDiscrim(LadderVAE):
             self.log('tethered_ch1_scalar', self._tethered_ch1_scalar, on_epoch=True)
 
         if mask.sum() > 0:
-            optimizer_d.zero_grad()
+            self.toggle_optimizer(optimizer_d)
             D_loss = self.critic_loss_weight * self.get_critic_loss_stats(pred_nimg[~mask].detach(),
                                                                           pred_nimg[mask].detach())['loss']
             self.manual_backward(D_loss)
             optimizer_d.step()
+            optimizer_d.zero_grad()
+            self.untoggle_optimizer(optimizer_d)
 
     def validation_step(self, batch, batch_idx):
         x, target = batch[:2]

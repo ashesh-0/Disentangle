@@ -27,7 +27,7 @@ class TextureEncoder(nn.Module):
         self.encoder_dropout = 0.0
         self.res_block_type = 'bacdbacd'
         self.batchnorm = True
-        self.input_avg_pool = nn.AvgPool2d(2, stride=2)
+        # self.input_avg_pool = nn.AvgPool2d(2, stride=2)
         self.gated = False
         modules = [
             nn.Conv2d(self.color_ch,
@@ -57,8 +57,8 @@ class TextureEncoder(nn.Module):
             self.classifier = nn.Sequential(nn.Conv2d(self.encoder_n_filters, 1, 1))
 
     def forward(self, x):
-        x = self.input_avg_pool(x)
-        x = self.input_avg_pool(x)
+        # x = self.input_avg_pool(x)
+        # x = self.input_avg_pool(x)
         latent = self.encoder(x)
         return self.classifier(latent)
 
