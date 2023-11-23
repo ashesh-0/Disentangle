@@ -14,7 +14,7 @@ class SingleBottomUpLayer(BottomUpLayer):
 
 class TextureEncoder(nn.Module):
 
-    def __init__(self, num_blocks_per_layer, num_hierarchy_levels, with_sigmoid=True):
+    def __init__(self, num_blocks_per_layer, num_hierarchy_levels, input_downsampling_count=0, with_sigmoid=True):
         super().__init__()
 
         self.nonlin = nn.LeakyReLU
@@ -27,7 +27,8 @@ class TextureEncoder(nn.Module):
         self.encoder_dropout = 0.0
         self.res_block_type = 'bacdbacd'
         self.batchnorm = True
-        # self.input_avg_pool = nn.AvgPool2d(2, stride=2)
+        self.input_downsampling_count = input_downsampling_count
+        self.input_avg_pool = nn.AvgPool2d(2, stride=2)
         self.gated = False
         modules = [
             nn.Conv2d(self.color_ch,
@@ -57,8 +58,8 @@ class TextureEncoder(nn.Module):
             self.classifier = nn.Sequential(nn.Conv2d(self.encoder_n_filters, 1, 1))
 
     def forward(self, x):
-        # x = self.input_avg_pool(x)
-        # x = self.input_avg_pool(x)
+        for _ in range(self.input_downsampling_count):
+            x = self.input_avg_pool(x)
         latent = self.encoder(x)
         return self.classifier(latent)
 

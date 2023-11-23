@@ -16,9 +16,15 @@ class LadderVAETexDiscrim(LadderVAE):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=target_ch)
         num_blocks_per_layer = config.model.get('D_num_blocks_per_layer', 1)
         num_hierarchy_levels = config.model.get('D_num_hierarchy_levels', 1)
-
-        self.D1 = TextureEncoder(num_blocks_per_layer, num_hierarchy_levels, with_sigmoid=False)
-        self.D2 = TextureEncoder(num_blocks_per_layer, num_hierarchy_levels, with_sigmoid=False)
+        input_downsampling_count = config.model.get('D_input_downsampling_count', 0)
+        self.D1 = TextureEncoder(num_blocks_per_layer,
+                                 num_hierarchy_levels,
+                                 input_downsampling_count=input_downsampling_count,
+                                 with_sigmoid=False)
+        self.D2 = TextureEncoder(num_blocks_per_layer,
+                                 num_hierarchy_levels,
+                                 input_downsampling_count=input_downsampling_count,
+                                 with_sigmoid=False)
         self.automatic_optimization = False
         self._D_epsilon = config.loss.get('D_epsilon', 0.0)
 

@@ -86,6 +86,7 @@ def get_config():
     model.tethered_learnable_scalar = True
     model.D_num_blocks_per_layer = 1
     model.D_num_hierarchy_levels = 1
+    model.D_input_downsampling_count = 2
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
