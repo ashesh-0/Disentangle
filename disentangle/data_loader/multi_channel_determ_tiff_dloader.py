@@ -508,7 +508,7 @@ class MultiChDeterministicTiffDloader:
                 assert self._variable_intensity_bright_spot_count == 1, 'Only 1 bright spot makes sense'
                 f_size = patch_size * 5
                 mask = get_weight_mask((f_size, f_size),
-                                       foreground_mask,
+                                       None,
                                        kernel_size=f_size - 1,
                                        scale_factor=self._variable_intensity_aug_scale_factor,
                                        sigma=self._variable_intensity_aug_sigma,
@@ -516,7 +516,10 @@ class MultiChDeterministicTiffDloader:
 
                 h = np.random.randint(0, mask.shape[0] - patch_size)
                 w = np.random.randint(0, mask.shape[1] - patch_size)
-                mask = mask[h:h + patch_size, w:w + patch_size]
+                mask = mask[h:h + patch_size, w:w + patch_size].copy()
+                mask = mask * foreground_mask
+                mask[mask == 0] = 1
+
                 aug_img = img * mask[None]
                 aug_tuples.append(aug_img)
 

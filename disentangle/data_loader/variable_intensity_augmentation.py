@@ -34,8 +34,10 @@ def get_weight_mask(shape, foreground_mask, kernel_size=200, scale_factor=3, sig
     for i in range(bright_spot_count):
         h = np.random.randint(0, shape[0] - kernel_size)
         w = np.random.randint(0, shape[1] - kernel_size)
-        factor[h:h + kernel_size,
-               w:w + kernel_size] += gaus_focus * foreground_mask[h:h + kernel_size, w:w + kernel_size]
-
+        if foreground_mask is not None:
+            factor[h:h + kernel_size,
+                   w:w + kernel_size] += gaus_focus * foreground_mask[h:h + kernel_size, w:w + kernel_size]
+        else:
+            factor[h:h + kernel_size, w:w + kernel_size] += gaus_focus
     factor[factor < 1] = 1
     return factor
