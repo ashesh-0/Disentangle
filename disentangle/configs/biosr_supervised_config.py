@@ -55,11 +55,13 @@ def get_config():
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = False
-    data.variable_intensity_aug = True
-    data.variable_intensity_aug_scale_factor = 2
-    data.variable_intensity_aug_sigma = 0.3
-    data.variable_intensity_aug_quantile = 0.0
-    data.variable_intensity_bright_spot_count = 1
+    data.ch1_min_alpha = 0.4
+    data.ch1_max_alpha = 0.6
+    data.variable_intensity_aug = False
+    # data.variable_intensity_aug_scale_factor = 2
+    # data.variable_intensity_aug_sigma = 0.3
+    # data.variable_intensity_aug_quantile = 0.0
+    # data.variable_intensity_bright_spot_count = 1
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
@@ -76,8 +78,8 @@ def get_config():
     model = config.model
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
-    model.tethered_to_input = True
-    model.tethered_learnable_scalar = False
+    model.tethered_to_input = False
+    model.tethered_learnable_scalar = True
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
