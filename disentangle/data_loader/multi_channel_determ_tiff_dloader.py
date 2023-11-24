@@ -133,6 +133,7 @@ class MultiChDeterministicTiffDloader:
             self._variable_intensity_aug_scale_factor = data_config.variable_intensity_aug_scale_factor
             self._variable_intensity_aug_sigma = data_config.variable_intensity_aug_sigma
             self._variable_intensity_aug_quantile = data_config.variable_intensity_aug_quantile
+            self._variable_intensity_bright_spot_count = data_config.variable_intensity_bright_spot_count
             self._foreground_threshold = [
                 np.quantile(self._data[..., i], self._variable_intensity_aug_quantile)
                 for i in range(self._data.shape[-1])
@@ -272,7 +273,7 @@ class MultiChDeterministicTiffDloader:
             msg += f' Alpha:[{self._ch1_min_alpha},{self._ch1_max_alpha}]'
 
         if self._variable_intensity_aug:
-            msg += f' VarIntAug:{self._variable_intensity_aug_scale_factor}-{self._variable_intensity_aug_sigma}-{self._variable_intensity_aug_quantile}'
+            msg += f' VarIntAug:{self._variable_intensity_aug_scale_factor}-{self._variable_intensity_aug_sigma}-{self._variable_intensity_aug_quantile}-{self._variable_intensity_bright_spot_count}'
         return msg
 
     def _crop_imgs(self, index, *img_tuples: np.ndarray):
@@ -492,7 +493,8 @@ class MultiChDeterministicTiffDloader:
                 mask = get_weight_mask(img.shape[-2:],
                                        foreground_mask,
                                        scale_factor=self._variable_intensity_aug_scale_factor,
-                                       sigma=self._variable_intensity_aug_sigma)
+                                       sigma=self._variable_intensity_aug_sigma,
+                                       bright_spot_count=self._variable_intensity_bright_spot_count)
                 aug_img = img * mask[None]
                 aug_tuples.append(aug_img)
             img_tuples = tuple(aug_tuples)
