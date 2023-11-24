@@ -486,20 +486,42 @@ class MultiChDeterministicTiffDloader:
         """
         img_tuples = self._load_img(index)
         # variable augmentations
-        if self._variable_intensity_aug:
-            aug_tuples = []
-            for idx, img in enumerate(img_tuples):
-                foreground_mask = img[0] > self._foreground_threshold[idx]
-                mask = get_weight_mask(img.shape[-2:],
-                                       foreground_mask,
-                                       scale_factor=self._variable_intensity_aug_scale_factor,
-                                       sigma=self._variable_intensity_aug_sigma,
-                                       bright_spot_count=self._variable_intensity_bright_spot_count)
-                aug_img = img * mask[None]
-                aug_tuples.append(aug_img)
-            img_tuples = tuple(aug_tuples)
+        # if self._variable_intensity_aug:
+        #     aug_tuples = []
+        #     for idx, img in enumerate(img_tuples):
+        #         foreground_mask = img[0] > self._foreground_threshold[idx]
+        #         mask = get_weight_mask(img.shape[-2:],
+        #                                foreground_mask,
+        #                                scale_factor=self._variable_intensity_aug_scale_factor,
+        #                                sigma=self._variable_intensity_aug_sigma,
+        #                                bright_spot_count=self._variable_intensity_bright_spot_count)
+        #         aug_img = img * mask[None]
+        #         aug_tuples.append(aug_img)
+        #     img_tuples = tuple(aug_tuples)
 
         cropped_img_tuples = self._crop_imgs(index, *img_tuples)[:-1]
+        if self._variable_intensity_aug:
+            aug_tuples = []
+            for idx, img in enumerate(cropped_img_tuples):
+                patch_size = img.shape[-1]
+                foreground_mask = img[0] > self._foreground_threshold[idx]
+                assert self._variable_intensity_bright_spot_count == 1, 'Only 1 bright spot makes sense'
+                f_size = patch_size * 5
+                mask = get_weight_mask((f_size, f_size),
+                                       foreground_mask,
+                                       kernel_size=f_size - 1,
+                                       scale_factor=self._variable_intensity_aug_scale_factor,
+                                       sigma=self._variable_intensity_aug_sigma,
+                                       bright_spot_count=1)
+
+                h = np.random.randint(0, mask.shape[0] - patch_size)
+                w = np.random.randint(0, mask.shape[1] - patch_size)
+                mask = mask[h:h + patch_size, w:w + patch_size]
+                aug_img = img * mask[None]
+                aug_tuples.append(aug_img)
+
+            img_tuples = tuple(aug_tuples)
+
         return cropped_img_tuples
 
     def replace_with_empty_patch(self, img_tuples):
