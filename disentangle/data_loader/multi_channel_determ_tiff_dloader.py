@@ -9,6 +9,7 @@ from disentangle.core.empty_patch_fetcher import EmptyPatchFetcher
 from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 from disentangle.data_loader.target_index_switcher import IndexSwitcher
 from disentangle.data_loader.train_val_data import get_train_val_data
+from disentangle.data_loader.variable_intensity_augmentation import get_weight_mask
 
 
 class MultiChDeterministicTiffDloader:
@@ -125,6 +126,17 @@ class MultiChDeterministicTiffDloader:
         self._rotation_transform = None
         if self._enable_rotation:
             self._rotation_transform = A.Compose([A.Flip(), A.RandomRotate90()])
+
+        self._foreground_threshold = self._variable_intensity_aug_scale_factor = self._variable_intensity_aug_sigma = self._variable_intensity_aug_quantile = None
+        self._variable_intensity_aug = data_config.get('variable_intensity_aug', False) and self._is_train
+        if self._variable_intensity_aug:
+            self._variable_intensity_aug_scale_factor = data_config.variable_intensity_aug_scale_factor
+            self._variable_intensity_aug_sigma = data_config.variable_intensity_aug_sigma
+            self._variable_intensity_aug_quantile = data_config.variable_intensity_aug_quantile
+            self._foreground_threshold = [
+                np.quantile(self._data[..., i], self._variable_intensity_aug_quantile)
+                for i in range(self._data.shape[-1])
+            ]
 
         msg = self._init_msg()
         print(msg)
@@ -258,6 +270,9 @@ class MultiChDeterministicTiffDloader:
         msg += f' BckQ:{self._background_quantile}'
         if self._ch1_min_alpha is not None:
             msg += f' Alpha:[{self._ch1_min_alpha},{self._ch1_max_alpha}]'
+
+        if self._variable_intensity_aug:
+            msg += f' VarIntAug:{self._variable_intensity_aug_scale_factor}-{self._variable_intensity_aug_sigma}-{self._variable_intensity_aug_quantile}'
         return msg
 
     def _crop_imgs(self, index, *img_tuples: np.ndarray):
@@ -469,6 +484,19 @@ class MultiChDeterministicTiffDloader:
         Crops the image such that cropped image has content.
         """
         img_tuples = self._load_img(index)
+        # variable augmentations
+        if self._variable_intensity_aug:
+            aug_tuples = []
+            for idx, img in enumerate(img_tuples):
+                foreground_mask = img[0] > self._foreground_threshold[idx]
+                mask = get_weight_mask(img.shape[-2:],
+                                       foreground_mask,
+                                       scale_factor=self._variable_intensity_aug_scale_factor,
+                                       sigma=self._variable_intensity_aug_sigma)
+                aug_img = img * mask[None]
+                aug_tuples.append(aug_img)
+            img_tuples = tuple(aug_tuples)
+
         cropped_img_tuples = self._crop_imgs(index, *img_tuples)[:-1]
         return cropped_img_tuples
 
