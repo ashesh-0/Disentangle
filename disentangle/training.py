@@ -328,7 +328,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         mean_val, std_val = train_data.compute_mean_std()
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
-    elif config.data.data_type in [DataType.TavernaSox2Golgi, DataType.Dao3Channel]:
+    elif config.data.data_type in [DataType.TavernaSox2Golgi, DataType.Dao3Channel, DataType.ExpMicroscopyV2]:
         datapath = datadir
         normalized_input = config.data.normalized_input
         use_one_mu_std = config.data.use_one_mu_std
