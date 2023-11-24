@@ -56,9 +56,10 @@ def get_config():
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = False
     data.variable_intensity_aug = True
-    data.variable_intensity_aug_scale_factor = 3
+    data.variable_intensity_aug_scale_factor = 2
     data.variable_intensity_aug_sigma = 1
     data.variable_intensity_aug_quantile = 0.5
+    data.variable_intensity_bright_spot_count = 10
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
