@@ -21,3 +21,4 @@ class DataType(Enum):
     BioSR_MRC = 16
     TavernaSox2Golgi = 17
     Dao3Channel = 18
+    ExpMicroscopyV2 = 19

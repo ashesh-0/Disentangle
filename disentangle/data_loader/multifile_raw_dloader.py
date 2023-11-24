@@ -105,28 +105,31 @@ def get_train_val_data(datadir,
                        data_config,
                        datasplit_type: DataSplitType,
                        get_multi_channel_files_fn,
+                       load_data_fn=None,
                        val_fraction=None,
                        test_fraction=None):
     dset_subtype = data_config.subdset_type
+    if load_data_fn is None:
+        load_data_fn = load_tiff
 
     if dset_subtype == SubDsetType.TwoChannel:
         fnamesA, fnamesB = get_multi_channel_files_fn()
         fpathsA = [os.path.join(datadir, x) for x in fnamesA]
         fpathsB = [os.path.join(datadir, x) for x in fnamesB]
-        dataA = [load_tiff(fpath) for fpath in fpathsA]
-        dataB = [load_tiff(fpath) for fpath in fpathsB]
+        dataA = [load_data_fn(fpath) for fpath in fpathsA]
+        dataB = [load_data_fn(fpath) for fpath in fpathsB]
     elif dset_subtype == SubDsetType.OneChannel:
         fnamesmixed = get_multi_channel_files_fn()
         fpathsmixed = [os.path.join(datadir, x) for x in fnamesmixed]
         fpathsA = fpathsB = fpathsmixed
-        dataA = [load_tiff(fpath) for fpath in fpathsmixed]
+        dataA = [load_data_fn(fpath) for fpath in fpathsmixed]
         # Note that this is important. We need to ensure that the sum of the two channels is the same as sum of these two channels.
         dataA = [x / 2 for x in dataA]
         dataB = [x.copy() for x in dataA]
     elif dset_subtype == SubDsetType.MultiChannel:
         fnamesA = get_multi_channel_files_fn()
         fpathsA = [os.path.join(datadir, x) for x in fnamesA]
-        dataA = [load_tiff(fpath) for fpath in fpathsA]
+        dataA = [load_data_fn(fpath) for fpath in fpathsA]
         fnamesB = None
         fpathsB = None
         dataB = None
