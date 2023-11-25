@@ -40,7 +40,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 2
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -55,7 +55,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = ''
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1.0
