@@ -355,11 +355,7 @@ def main(
 
     mean_dict['target'] = data_mean
     std_dict['target'] = data_std
-
-    if config.data.target_separate_normalization is True:
-        model = create_model(config, mean_dict, std_dict)
-    else:
-        model = create_model(config, mean_dict, std_dict)
+    model = create_model(config, mean_dict, std_dict)
 
     ckpt_fpath = get_best_checkpoint(ckpt_dir)
     checkpoint = torch.load(ckpt_fpath)
@@ -416,6 +412,7 @@ def main(
 
     pred = ignore_pixels(pred)
     tar = ignore_pixels(tar)
+    print('Stitched predictions shape after trimming edges', pred.shape)
 
     sep_mean, sep_std = model.data_mean['target'], model.data_std['target']
     sep_mean = sep_mean.squeeze()[None, None, None]
@@ -502,8 +499,7 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L2/103',
-        # '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L2/100',
+        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/129',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
