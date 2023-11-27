@@ -602,12 +602,16 @@ class MultiChDeterministicTiffDloader:
             img2 = rot_dic['mask'][None]
             img_tuples = (img1, img2)
 
+        inp, alpha = self._compute_input(img_tuples)
+
+        if alpha != 0.5:
+            assert len(img_tuples) == 2
+            img_tuples = [img_tuples[0] * alpha / 0.5, img_tuples[1] * (1 - alpha) / 0.5]
+
         target = np.concatenate(img_tuples, axis=0)
         # print('Has target', self._train_index_switcher.index_should_have_target(index))
         if self._train_index_switcher is not None and (not self._train_index_switcher.index_should_have_target(index)):
             target = 0 * target
-
-        inp, alpha = self._compute_input(img_tuples)
 
         output = [inp, target]
 
