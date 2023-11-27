@@ -59,8 +59,8 @@ def get_config():
     # data.ch1_max_alpha = 0.52
     data.variable_intensity_aug = True
     data.variable_intensity_aug_scale_factor = 2
-    data.variable_intensity_aug_sigma = 0.3
-    data.variable_intensity_aug_quantile = 0.0
+    data.variable_intensity_aug_sigma = 0.2
+    data.variable_intensity_aug_quantile = 0.5
     data.variable_intensity_bright_spot_count = 1
 
     loss = config.loss
