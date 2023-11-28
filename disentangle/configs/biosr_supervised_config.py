@@ -55,13 +55,13 @@ def get_config():
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = False
-    # data.ch1_min_alpha = 0.47
-    # data.ch1_max_alpha = 0.53
-    data.variable_intensity_aug = True
-    data.variable_intensity_aug_scale_factor = 2
-    data.variable_intensity_aug_sigma = 0.2
-    data.variable_intensity_aug_quantile = 0.5
-    data.variable_intensity_bright_spot_count = 1
+    data.ch1_min_alpha = 0.4
+    data.ch1_max_alpha = 0.6
+    data.variable_intensity_aug = False
+    # data.variable_intensity_aug_scale_factor = 2
+    # data.variable_intensity_aug_sigma = 0.2
+    # data.variable_intensity_aug_quantile = 0.5
+    # data.variable_intensity_bright_spot_count = 1
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
