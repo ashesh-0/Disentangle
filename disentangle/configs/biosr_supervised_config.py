@@ -55,8 +55,8 @@ def get_config():
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = False
-    data.ch1_min_alpha = 0.4
-    data.ch1_max_alpha = 0.6
+    data.ch1_min_alpha = 0.3
+    data.ch1_max_alpha = 0.7
     data.variable_intensity_aug = False
     # data.variable_intensity_aug_scale_factor = 2
     # data.variable_intensity_aug_sigma = 0.2
@@ -130,7 +130,7 @@ def get_config():
     training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
                                          data else 30)
     training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
-    training.batch_size = 64
+    training.batch_size = 128
     training.num_workers = 2
     training.val_repeat_factor = None
     training.train_repeat_factor = None
