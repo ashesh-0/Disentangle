@@ -130,7 +130,7 @@ def get_config():
     training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
                                          data else 30)
     training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
-    training.batch_size = 32
+    training.batch_size = 64
     training.num_workers = 2
     training.val_repeat_factor = None
     training.train_repeat_factor = None
