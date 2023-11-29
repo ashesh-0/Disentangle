@@ -138,7 +138,7 @@ def get_config():
                                          data else 30)
     training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
     training.batch_size = 128
-    training.num_workers = 0
+    training.num_workers = 2
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
