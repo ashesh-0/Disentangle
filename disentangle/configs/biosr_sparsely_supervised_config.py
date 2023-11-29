@@ -21,7 +21,7 @@ def get_config():
     # how much data will use the target.
     data.training_validtarget_fraction = 0.01
     # when creating a batch, what fraction of inputs should have target.
-    data.validtarget_random_fraction = 0.25
+    data.validtarget_random_fraction = 0.5
 
     data.validation_datausage_fraction = 0.08
 
@@ -48,7 +48,7 @@ def get_config():
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
-    data.train_aug_rotate = False
+    data.train_aug_rotate = True
     data.randomized_channels = False
     # if multiscale_lowres_count is 3, then there are two additional inputs other than the original input. input channel count is 3
     data.multiscale_lowres_count = None
@@ -59,9 +59,9 @@ def get_config():
     data.target_separate_normalization = False
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
-    loss.D_epsilon = 0.1
-    loss.critic_loss_weight = 0.001
+    loss.loss_type = LossType.ElboMixedReconstruction
+    # loss.D_epsilon = 0.1
+    # loss.critic_loss_weight = 0.001
     loss.mixed_rec_weight = 0.3
     # loss.mixed_rec_w_step = 0.01
     # loss.exclusion_loss_weight = 0.005
@@ -77,16 +77,16 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.LadderVAETexDiscrim
+    model.model_type = ModelType.LadderVAEInterleavedOptimization
     # model.classifier_fpath = '/home/ubuntu/ashesh/training/disentangle/texture_classifier.pth'
     # model.classifier_loss_weight = 0.01
 
     model.z_dims = [128, 128, 128, 128]
-    model.tethered_to_input = True
-    model.tethered_learnable_scalar = True
-    model.D_num_blocks_per_layer = 1
-    model.D_num_hierarchy_levels = 1
-    model.D_input_downsampling_count = 2
+    model.tethered_to_input = False
+    # model.tethered_learnable_scalar = True
+    # model.D_num_blocks_per_layer = 1
+    # model.D_num_hierarchy_levels = 1
+    # model.D_input_downsampling_count = 2
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
@@ -137,7 +137,7 @@ def get_config():
     training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
                                          data else 30)
     training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
-    training.batch_size = 128
+    training.batch_size = 64
     training.num_workers = 0
     training.val_repeat_factor = None
     training.train_repeat_factor = None

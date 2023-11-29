@@ -3,10 +3,12 @@ from typing import Union
 
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.optim as optim
 from torch import Tensor
 
 from disentangle.core.loss_type import LossType
+from disentangle.nets.learned_param_utils import get_params_of_type
 from disentangle.nets.lvae import LadderVAE
 
 
@@ -20,17 +22,14 @@ class LadderVAEInterleavedOptimization(LadderVAE):
         self.automatic_optimization = False
 
     def configure_optimizers(self):
-        split_params = []
-        reconstr_params = []
+        reconstr_params = get_params_of_type(self, pytorch_type=nn.BatchNorm2d)
+        reconstr_params += get_params_of_type(self, just_bias=True, except_pytorch_type=nn.BatchNorm2d)
 
-        for name, param in self.named_parameters():
-            reconstr_params.append(param)
+        split_params = []
+        for _, param in self.named_parameters():
             split_params.append(param)
-            # if name.split('.')[0] not in ['bottom_up_layers']:
-            #     split_params.append(param)
 
         optimizer_split = optim.Adamax(split_params, lr=self.lr, weight_decay=0)
-
         optimizer_reconst = optim.Adamax(reconstr_params, lr=self.lr, weight_decay=0)
 
         scheduler0 = self.get_scheduler(optimizer_split)
@@ -58,7 +57,7 @@ class LadderVAEInterleavedOptimization(LadderVAE):
         assert self.skip_nboundary_pixels_from_loss is None
 
         target_normalized = self.normalize_target(target)
-        out_recons, td_data_recons = self.forward(x_normalized)
+        out_recons, _ = self.forward(x_normalized)
         recons_loss_dict = self.get_reconstruction_loss(out_recons,
                                                         target_normalized,
                                                         x_normalized,
@@ -70,13 +69,7 @@ class LadderVAEInterleavedOptimization(LadderVAE):
         if enable_logging:
             self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
 
-        if self.non_stochastic_version:
-            recons_kl_loss = torch.Tensor([0.0]).cuda()
-            net_loss = recons_loss
-        else:
-            recons_kl_loss = self.get_kl_divergence_loss(td_data_recons)
-            net_loss = recons_loss + self.get_kl_weight() * recons_kl_loss
-
+        net_loss = recons_loss
         optimizer_reconst.zero_grad()
         self.manual_backward(net_loss)
         optimizer_reconst.step()
@@ -103,14 +96,11 @@ class LadderVAEInterleavedOptimization(LadderVAE):
         self.manual_backward(net_loss)
         optimizer_split.step()
 
-        kl_loss = (recons_kl_loss + split_kl_loss) / 2
+        kl_loss = split_kl_loss
         # print(f'rec:{split_loss_dict["loss"]:.3f} mix: {split_loss_dict.get("mixed_loss",0):.3f} KL: {kl_loss:.3f}')
         if enable_logging:
-
             self.log('reconstruction_loss', split_loss_dict['loss'], on_epoch=True)
             self.log('kl_loss', kl_loss, on_epoch=True)
-            self.log('kl_loss_split', split_kl_loss, on_epoch=True)
-            self.log('kl_loss_recons', recons_kl_loss, on_epoch=True)
             # self.log('training_loss', net_loss, on_epoch=True)
             # self.log('lr', self.lr, on_epoch=True)
             # self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
