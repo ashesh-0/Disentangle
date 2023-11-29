@@ -21,7 +21,7 @@ def get_config():
     # how much data will use the target.
     data.training_validtarget_fraction = 0.01
     # when creating a batch, what fraction of inputs should have target.
-    data.validtarget_random_fraction = 0.25
+    data.validtarget_random_fraction = 0.5
 
     data.validation_datausage_fraction = 0.08
 
@@ -137,7 +137,7 @@ def get_config():
     training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
                                          data else 30)
     training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
-    training.batch_size = 128
+    training.batch_size = 64
     training.num_workers = 2
     training.val_repeat_factor = None
     training.train_repeat_factor = None
