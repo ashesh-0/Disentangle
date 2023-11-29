@@ -62,7 +62,7 @@ def get_config():
     loss.loss_type = LossType.ElboMixedReconstruction
     # loss.D_epsilon = 0.1
     # loss.critic_loss_weight = 0.001
-    loss.mixed_rec_weight = 0.3
+    loss.mixed_rec_weight = 0.0
     # loss.mixed_rec_w_step = 0.01
     # loss.exclusion_loss_weight = 0.005
 
@@ -134,9 +134,9 @@ def get_config():
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = int(20 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
-                                         data else 20)
-    training.max_epochs = int(300 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 300)
+    training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
+                                         data else 30)
+    training.max_epochs = int(400 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 400)
     training.batch_size = 64
     training.num_workers = 2
     training.val_repeat_factor = None
@@ -144,8 +144,8 @@ def get_config():
     training.val_fraction = 0.1
     training.test_fraction = 0.1
 
-    training.earlystop_patience = int(150 /
-                                      data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 150)
+    training.earlystop_patience = int(200 /
+                                      data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
     training.precision = 16
     training.check_val_every_n_epoch = int(
         1 / (data.trainig_datausage_fraction)) if 'trainig_datausage_fraction' in data else None
