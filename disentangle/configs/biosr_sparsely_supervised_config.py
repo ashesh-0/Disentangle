@@ -134,8 +134,8 @@ def get_config():
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
-                                         data else 30)
+    training.lr_scheduler_patience = int(10 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
+                                         data else 10)
     training.max_epochs = int(400 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 400)
     training.batch_size = 64
     training.num_workers = 2

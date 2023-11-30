@@ -24,7 +24,7 @@ class LadderVAEInterleavedOptimization(LadderVAE):
     def configure_optimizers(self):
         # reconstr_params = get_params_of_type(self, just_bias=True)
         reconstr_params = get_params_of_type(self, pytorch_type=nn.BatchNorm2d)
-        # reconstr_params += get_params_of_type(self, just_bias=True, except_pytorch_type=nn.BatchNorm2d)
+        reconstr_params += get_params_of_type(self, just_bias=True, except_pytorch_type=nn.BatchNorm2d)
 
         split_params = []
         for _, param in self.named_parameters():
