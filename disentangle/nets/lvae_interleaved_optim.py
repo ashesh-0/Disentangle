@@ -97,6 +97,9 @@ class LadderVAEInterleavedOptimization(LadderVAE):
         self.manual_backward(net_loss)
         optimizer_split.step()
 
+        sch1, sch2 = self.lr_schedulers()
+        sch1.step()
+        sch2.step()
         kl_loss = split_kl_loss
         # print(f'rec:{split_loss_dict["loss"]:.3f} mix: {split_loss_dict.get("mixed_loss",0):.3f} KL: {kl_loss:.3f}')
         if enable_logging:
