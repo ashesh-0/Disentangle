@@ -97,9 +97,6 @@ class LadderVAEInterleavedOptimization(LadderVAE):
         self.manual_backward(net_loss)
         optimizer_split.step()
 
-        sch1, sch2 = self.lr_schedulers()
-        sch1.step()
-        sch2.step()
         kl_loss = split_kl_loss
         # print(f'rec:{split_loss_dict["loss"]:.3f} mix: {split_loss_dict.get("mixed_loss",0):.3f} KL: {kl_loss:.3f}')
         if enable_logging:
@@ -109,6 +106,21 @@ class LadderVAEInterleavedOptimization(LadderVAE):
             # self.log('lr', self.lr, on_epoch=True)
             # self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
             # self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
+
+    def on_validation_epoch_end(self):
+        psnrl1 = self.label1_psnr.get()
+        psnrl2 = self.label2_psnr.get()
+        psnr = (psnrl1 + psnrl2) / 2
+        self.log('val_psnr', psnr, on_epoch=True)
+        sch1, sch2 = self.lr_schedulers()
+        sch1.step(psnr)
+        sch2.step(psnr)
+
+        self.label1_psnr.reset()
+        self.label2_psnr.reset()
+        if self.mixed_rec_w_step:
+            self.mixed_rec_w = max(self.mixed_rec_w - self.mixed_rec_w_step, 0.0)
+            self.log('mixed_rec_w', self.mixed_rec_w, on_epoch=True)
 
 
 if __name__ == '__main__':
