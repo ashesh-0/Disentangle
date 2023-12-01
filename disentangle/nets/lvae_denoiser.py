@@ -4,6 +4,9 @@ from disentangle.nets.lvae import LadderVAE
 
 
 class LadderVAEDenoiser(LadderVAE):
+    """
+    It denoises input/target. This is the first step in the pipeline of denoise=>split. 
+    """
 
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[]):
         # since input is the target, we don't need to normalize it at all.

@@ -531,8 +531,11 @@ class LadderVAE(pl.LightningModule):
 
     def get_kl_divergence_loss_usplit(self, topdown_layer_data_dict):
         kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']], dim=1)
+        # kl.shape = (16,4) 16 is batch size. 4 is number of layers. Values are sum() and so are of the order 30000
+        # Example values: 30626.6758, 31028.8145, 29509.8809, 29945.4922, 28919.1875, 29075.2988
         nlayers = kl.shape[1]
         for i in range(nlayers):
+            # topdown_layer_data_dict['z'][2].shape[-3:] = 128 * 32 * 32
             kl[:, i] = kl[:, i] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
 
         kl_loss = free_bits_kl(kl, self.free_bits).mean()
@@ -542,7 +545,14 @@ class LadderVAE(pl.LightningModule):
         # kl[i] for each i has length batch_size
         # resulting kl shape: (batch_size, layers)
         kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']], dim=1)
+        # As compared to uSplit kl divergence,
+        # more by a factor of 4 just because we do sum and not mean.
         kl_loss = free_bits_kl(kl, self.free_bits).sum()
+        # at each hierarchy, it is more by a factor of 128/i**2).
+        # 128/(2*2) = 32 (bottommost layer)
+        # 128/(4*4) = 8
+        # 128/(8*8) = 2
+        # 128/(16*16) = 0.5 (topmost layer)
         kl_loss = kl_loss / np.prod(self.img_shape)
         return kl_loss
 
