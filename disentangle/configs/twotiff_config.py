@@ -84,7 +84,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None  #'pixelwise'
+    model.predict_logvar = 'pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
@@ -95,7 +95,7 @@ def get_config():
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
     # model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
-    model.non_stochastic_version = True
+    model.non_stochastic_version = False
 
     training = config.training
     training.lr = 0.001
