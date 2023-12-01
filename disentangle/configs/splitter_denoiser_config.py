@@ -69,7 +69,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.SplitterDenoiser
-    model.pre_trained_ckpt_fpath_splitter = '/home/ashesh.ashesh/training/disentangle/2312/D7-M3-S0-L0/1/BaselineVAECL_best.ckpt'
+    model.pre_trained_ckpt_fpath_splitter = '/home/ashesh.ashesh/training/disentangle/2312/D7-M3-S0-L0/0/BaselineVAECL_best.ckpt'
 
     model.z_dims = [128, 128, 128, 128]
 
