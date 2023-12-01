@@ -58,7 +58,7 @@ def get_config():
     loss.kl_loss_formulation = 'usplit'
     # loss.mixed_rec_weight = 1
 
-    loss.kl_weight = 2.0
+    loss.kl_weight = 50.0
     loss.kl_annealing = False
     loss.kl_annealtime = 10
     loss.kl_start = -1
