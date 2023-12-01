@@ -28,3 +28,4 @@ class ModelType(Enum):
     LadderVAEInterleavedOptimization = 22
     Denoiser = 23
     DenoiserSplitter = 24
+    SplitterDenoiser = 25

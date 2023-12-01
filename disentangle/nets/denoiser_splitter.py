@@ -11,6 +11,9 @@ from disentangle.nets.lvae_denoiser import LadderVAEDenoiser
 
 
 class DenoiserSplitter(LadderVAE):
+    """
+    It denoises the input and optionally the target. And then it splits the denoised input.
+    """
 
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         new_config = deepcopy(ml_collections.ConfigDict(config))

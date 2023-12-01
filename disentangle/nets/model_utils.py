@@ -27,6 +27,7 @@ from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
 from disentangle.nets.lvae_with_critic import LadderVAECritic
 from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
 from disentangle.nets.lvae_with_stitch_2stage import LadderVAEwithStitching2Stage
+from disentangle.nets.splitter_denoiser import SplitterDenoiser
 from disentangle.nets.unet import UNet
 
 
@@ -68,6 +69,8 @@ def create_model(config, data_mean, data_std):
         model = LadderVAEDenoiser(data_mean, data_std, config)
     elif config.model.model_type == ModelType.DenoiserSplitter:
         model = DenoiserSplitter(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.SplitterDenoiser:
+        model = SplitterDenoiser(data_mean, data_std, config)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
     return model
