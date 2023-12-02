@@ -21,6 +21,11 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
     data = data[::3].copy()
     if data_config.get('enable_poisson_noise', False):
         data = np.random.poisson(data)
+    if data_config.get('enable_gaussian_noise', False):
+        synthetic_scale = data_config.get('synthetic_gaussian_scale', 0.1)
+        print('Adding Gaussian noise with scale', synthetic_scale)
+        noise = np.random.normal(0, synthetic_scale, data.shape)
+        data = data + noise
 
     if datasplit_type == DataSplitType.All:
         return data.astype(np.float32)
@@ -32,3 +37,23 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
         return data[val_idx].astype(np.float32)
     elif datasplit_type == DataSplitType.Test:
         return data[test_idx].astype(np.float32)
+
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+
+    from disentangle.configs.twotiff_config import get_config
+    from disentangle.core.data_type import DataType
+    from disentangle.core.loss_type import LossType
+    from disentangle.core.model_type import ModelType
+    from disentangle.core.sampler_type import SamplerType
+
+    config = get_config()
+    config.data.enable_gaussian_noise = True
+    config.data.synthetic_gaussian_scale = 1000
+    data = get_train_val_data('/group/jug/ashesh/data/ventura_gigascience/', config.data, DataSplitType.Train,
+                              config.training.val_fraction, config.training.test_fraction)
+
+    _, ax = plt.subplots(figsize=(6, 3), ncols=2)
+    ax[0].imshow(data[0, ..., 0])
+    ax[1].imshow(data[0, ..., 1])
