@@ -110,10 +110,10 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
     model.non_stochastic_version = False
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    # model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/N2V/2312/18/GMMNoiseModel_ventura_gigascience-actin_10_3_Clip0.5-100_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/N2V/2312/17/GMMNoiseModel_ventura_gigascience-mito_10_3_Clip0.5-100_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/N2V/2312/18/GMMNoiseModel_ventura_gigascience-actin_10_3_Clip0.5-100_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/N2V/2312/17/GMMNoiseModel_ventura_gigascience-mito_10_3_Clip0.5-100_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     training = config.training
     training.lr = 0.001
