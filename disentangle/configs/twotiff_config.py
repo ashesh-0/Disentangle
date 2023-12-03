@@ -12,11 +12,11 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
     data.enable_poisson_noise = False
-    config.data.enable_gaussian_noise = True
-    config.data.synthetic_gaussian_scale = 2000
+    config.data.enable_gaussian_noise = False
+    # config.data.synthetic_gaussian_scale = 2000
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
