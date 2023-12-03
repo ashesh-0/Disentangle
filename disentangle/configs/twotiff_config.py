@@ -12,11 +12,11 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
     data.enable_poisson_noise = False
-    config.data.enable_gaussian_noise = False
-    # config.data.synthetic_gaussian_scale = 2000
+    config.data.enable_gaussian_noise = True
+    config.data.synthetic_gaussian_scale = 2000
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -92,11 +92,11 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
-    # model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/N2V/2312/18/GMMNoiseModel_ventura_gigascience-actin_10_3_Clip0.5-100_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/N2V/2312/17/GMMNoiseModel_ventura_gigascience-mito_10_3_Clip0.5-100_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/N2V/2312/20/GMMNoiseModel_ventura_gigascience-actin_3_3_Clip0.5-100_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/N2V/2312/21/GMMNoiseModel_ventura_gigascience-mito_3_3_Clip0.5-100_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
     # model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
