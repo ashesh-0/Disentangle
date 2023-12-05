@@ -20,6 +20,7 @@ from disentangle.nets.lvae_multidset_multi_optim import LadderVaeMultiDatasetMul
 from disentangle.nets.lvae_multiple_encoder_single_opt import LadderVAEMulEncoder1Optim
 from disentangle.nets.lvae_multiple_encoders import LadderVAEMultipleEncoders
 from disentangle.nets.lvae_multires_target import LadderVAEMultiTarget
+from disentangle.nets.lvae_restricted_reconstruction import LadderVAERestrictedReconstruction
 from disentangle.nets.lvae_semi_supervised import LadderVAESemiSupervised
 from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
 from disentangle.nets.lvae_with_classifier import LadderVAEWithClassifier
@@ -69,6 +70,8 @@ def create_model(config, data_mean, data_std):
         model = LadderVAEWithClassifier(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVAETexDiscrim:
         model = LadderVAETexDiscrim(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVAERestrictedReconstruction:
+        model = LadderVAERestrictedReconstruction(data_mean, data_std, config)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
 

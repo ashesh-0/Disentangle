@@ -59,7 +59,7 @@ def get_config():
     data.target_separate_normalization = False
 
     loss = config.loss
-    loss.loss_type = LossType.ElboMixedReconstruction
+    loss.loss_type = LossType.ElboRestrictedReconstruction
     # loss.D_epsilon = 0.1
     # loss.critic_loss_weight = 0.001
     loss.mixed_rec_weight = 1.0
@@ -77,7 +77,7 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.LadderVAEInterleavedOptimization
+    model.model_type = ModelType.LadderVAERestrictedReconstruction
     # model.classifier_fpath = '/home/ubuntu/ashesh/training/disentangle/texture_classifier.pth'
     # model.classifier_loss_weight = 0.01
 
