@@ -41,6 +41,11 @@ class RestrictedReconstruction:
             incor_c1_comp = torch.dot(unsup_grad.view(-1, ), incorrect_c1.view(-1, ))
             incor_c2_comp = torch.dot(unsup_grad.view(-1, ), incorrect_c2.view(-1, ))
             unsup_grad_corrected = unsup_grad - incor_c1_comp * incorrect_c1 - incor_c2_comp * incorrect_c2
+            # ug = f'{torch.norm(unsup_grad).item():.5f}'
+            # ucg = f'{torch.norm(unsup_grad_corrected).item():.5f}'
+            # ic1 = f'{incor_c1_comp.item():.5f}'
+            # ic2 = f'{incor_c2_comp.item():.5f}'
+            # print(f'{torch.norm(unsup_grad).item()/(torch.norm(unsup_grad_corrected).item() + 1e-5)} unsup_grad: {ug}, unsup_grad_corrected: {ucg}, ic1: {ic1}, ic2: {ic2}')
             corrected_unsup_grad_all.append(unsup_grad_corrected)
         return corrected_unsup_grad_all, unsup_reconstruction_loss
 
@@ -51,6 +56,11 @@ class RestrictedReconstruction:
 
     def update_gradients(self, params, normalized_input, normalized_target, normalized_target_prediction,
                          normalized_input_prediction):
+
+        if len(normalized_target) == 0:
+            print('No target, hence skipping input reconstruction loss')
+            return {'input_reconstruction_loss': torch.tensor(0.0)}
+
         corrected_unsup_grad_all, input_reconstruction_loss = self.get_correct_grad(params, normalized_input,
                                                                                     normalized_target,
                                                                                     normalized_target_prediction,
@@ -59,8 +69,15 @@ class RestrictedReconstruction:
         for param, corrected_unsup_grad in zip(params, corrected_unsup_grad_all):
             if corrected_unsup_grad is None:
                 continue
-
+            # import pdb; pdb.set_trace()
+            # gn = f'split: {torch.norm(param.grad).item():.5f}'
+            # gnc = f'recons: {torch.norm(self._w_recons*corrected_unsup_grad).item():.5f}'
+            # ratio = f'{torch.norm(param.grad).item()/(torch.norm(self._w_recons*corrected_unsup_grad).item() + 1e-5):.5f}'
+            # print(ratio, gn,gnc)
+            # if corrected_unsup_grad.isnan().any():
+            #     import pdb;
+            #     pdb.set_trace()
             # we assume that split_loss.backward() has been called before.
-            param.grad = self._w_split * param.grad - self._w_recons * corrected_unsup_grad
+            param.grad = self._w_split * param.grad + self._w_recons * corrected_unsup_grad
 
         return {'input_reconstruction_loss': input_reconstruction_loss}

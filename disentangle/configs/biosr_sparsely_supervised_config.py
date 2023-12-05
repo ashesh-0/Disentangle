@@ -146,7 +146,7 @@ def get_config():
 
     training.earlystop_patience = int(100 /
                                       data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 100)
-    training.precision = 16
+    training.precision = 32
     training.check_val_every_n_epoch = int(
         1 / (data.trainig_datausage_fraction)) if 'trainig_datausage_fraction' in data else None
 
