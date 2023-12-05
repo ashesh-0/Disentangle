@@ -33,13 +33,25 @@ class LadderVAERestrictedReconstruction(LadderVAE):
                                                       out[mask], pred_x_normalized)
         optim.step()
         assert self.non_stochastic_version == True
-        sch = self.lr_schedulers()
-        sch.step()
         if enable_logging:
             training_loss = split_loss + self.mixed_rec_w * loss_dict['input_reconstruction_loss']
             self.log('training_loss', training_loss, on_epoch=True)
             self.log('reconstruction_loss', split_loss, on_epoch=True)
             self.log('input_reconstruction_loss', loss_dict['input_reconstruction_loss'], on_epoch=True)
+
+    def on_validation_epoch_end(self):
+        psnrl1 = self.label1_psnr.get()
+        psnrl2 = self.label2_psnr.get()
+        psnr = (psnrl1 + psnrl2) / 2
+        self.log('val_psnr', psnr, on_epoch=True)
+        sch1 = self.lr_schedulers()
+        sch1.step(psnr)
+
+        self.label1_psnr.reset()
+        self.label2_psnr.reset()
+        if self.mixed_rec_w_step:
+            self.mixed_rec_w = max(self.mixed_rec_w - self.mixed_rec_w_step, 0.0)
+            self.log('mixed_rec_w', self.mixed_rec_w, on_epoch=True)
 
 
 if __name__ == '__main__':
