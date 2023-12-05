@@ -26,14 +26,17 @@ class LadderVAERestrictedReconstruction(LadderVAE):
         pred_x_normalized, _ = self.get_mixed_prediction(out, None, self.data_mean, self.data_std)
         optim = self.optimizers()
         optim.zero_grad()
-        loss_dict = self.grad_setter.set_gradients(self.parameters(), x_normalized, target_normalized, out,
-                                                   pred_x_normalized)
+        split_loss = self.grad_setter.loss_fn(target_normalized[mask], out[mask])
+        self.manual_backward(split_loss, retain_graph=True)
+        # add input reconstruction loss compoenent to the gradient.
+        loss_dict = self.grad_setter.update_gradients(list(self.parameters()), x_normalized, target_normalized[mask],
+                                                      out[mask], pred_x_normalized)
         optim.step()
-
         assert self.non_stochastic_version == True
         if enable_logging:
-            self.log('training_loss', loss_dict['loss'], on_epoch=True)
-            self.log('reconstruction_loss', loss_dict['split_loss'], on_epoch=True)
+            training_loss = split_loss + self.mixed_rec_w * loss_dict['input_reconstruction_loss']
+            self.log('training_loss', training_loss, on_epoch=True)
+            self.log('reconstruction_loss', split_loss, on_epoch=True)
             self.log('input_reconstruction_loss', loss_dict['input_reconstruction_loss'], on_epoch=True)
 
 

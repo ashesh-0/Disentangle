@@ -126,7 +126,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = False
+    model.non_stochastic_version = True
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
@@ -137,8 +137,8 @@ def get_config():
     training.lr_scheduler_patience = int(40 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
                                          data else 40)
     training.max_epochs = int(400 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 400)
-    training.batch_size = 64
-    training.num_workers = 2
+    training.batch_size = 32
+    training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
