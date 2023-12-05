@@ -55,8 +55,8 @@ def get_config():
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = False
-    data.ch1_min_alpha = 0.3
-    data.ch1_max_alpha = 0.7
+    # data.ch1_min_alpha = 0.3
+    # data.ch1_max_alpha = 0.7
     data.variable_intensity_aug = False
     # data.variable_intensity_aug_scale_factor = 2
     # data.variable_intensity_aug_sigma = 0.5
@@ -78,8 +78,8 @@ def get_config():
     model = config.model
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
-    model.tethered_to_input = True
-    model.tethered_learnable_scalar = True
+    model.tethered_to_input = False
+    # model.tethered_learnable_scalar = True
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
@@ -118,7 +118,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = False
+    model.non_stochastic_version = True
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
@@ -131,7 +131,7 @@ def get_config():
                                          data else 30)
     training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
     training.batch_size = 16
-    training.num_workers = 2
+    training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
