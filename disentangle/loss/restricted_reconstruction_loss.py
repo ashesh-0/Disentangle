@@ -61,6 +61,6 @@ class RestrictedReconstruction:
                 continue
 
             # we assume that split_loss.backward() has been called before.
-            param.grad = self._w_split * param.grad + self._w_recons * corrected_unsup_grad
+            param.grad = self._w_split * param.grad - self._w_recons * corrected_unsup_grad
 
         return {'input_reconstruction_loss': input_reconstruction_loss}
