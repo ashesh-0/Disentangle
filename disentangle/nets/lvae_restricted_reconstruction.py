@@ -10,7 +10,8 @@ class LadderVAERestrictedReconstruction(LadderVAE):
         self.automatic_optimization = False
         assert self.loss_type == LossType.ElboRestrictedReconstruction
         self.mixed_rec_w = config.loss.mixed_rec_weight
-        self.grad_setter = RestrictedReconstruction(1, self.mixed_rec_w)
+        self.split_w = config.loss.get('split_weight', 1.0)
+        self.grad_setter = RestrictedReconstruction(self.split_w, self.mixed_rec_w)
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         if self.current_epoch == 0 and batch_idx == 0:
@@ -34,7 +35,7 @@ class LadderVAERestrictedReconstruction(LadderVAE):
         optim.step()
         assert self.non_stochastic_version == True
         if enable_logging:
-            training_loss = split_loss + self.mixed_rec_w * loss_dict['input_reconstruction_loss']
+            training_loss = self.split_w * split_loss + self.mixed_rec_w * loss_dict['input_reconstruction_loss']
             self.log('training_loss', training_loss, on_epoch=True)
             self.log('reconstruction_loss', split_loss, on_epoch=True)
             self.log('input_reconstruction_loss', loss_dict['input_reconstruction_loss'], on_epoch=True)

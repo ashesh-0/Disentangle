@@ -8,6 +8,7 @@ class RestrictedReconstruction:
         self._w_split = w_split
         self._w_recons = w_recons
         self._finegrained_restriction = finegrained_restriction
+        print(f'[{self.__class__.__name__}] w_split: {self._w_split}, w_recons: {self._w_recons}')
 
     @staticmethod
     def get_grad_direction(score, params):
