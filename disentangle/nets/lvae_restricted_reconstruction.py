@@ -11,7 +11,7 @@ class LadderVAERestrictedReconstruction(LadderVAE):
         assert self.loss_type == LossType.ElboRestrictedReconstruction
         self.mixed_rec_w = config.loss.mixed_rec_weight
         self.split_w = config.loss.get('split_weight', 1.0)
-        self.grad_setter = RestrictedReconstruction(self.split_w, self.mixed_rec_w)
+        self.grad_setter = RestrictedReconstruction(1, self.mixed_rec_w)
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         if self.current_epoch == 0 and batch_idx == 0:
@@ -28,7 +28,7 @@ class LadderVAERestrictedReconstruction(LadderVAE):
         optim = self.optimizers()
         optim.zero_grad()
         split_loss = self.grad_setter.loss_fn(target_normalized[mask], out[mask])
-        self.manual_backward(split_loss, retain_graph=True)
+        self.manual_backward(self.split_w * split_loss, retain_graph=True)
         # add input reconstruction loss compoenent to the gradient.
         loss_dict = self.grad_setter.update_gradients(list(self.parameters()), x_normalized, target_normalized[mask],
                                                       out[mask], pred_x_normalized)
