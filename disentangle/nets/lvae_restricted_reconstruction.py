@@ -11,6 +11,7 @@ class LadderVAERestrictedReconstruction(LadderVAE):
         assert self.loss_type == LossType.ElboRestrictedReconstruction
         self.mixed_rec_w = config.loss.mixed_rec_weight
         self.split_w = config.loss.get('split_weight', 1.0)
+        self._virtual_batch_size = config.training.get('virtual_batch_size')
         # note that split_s is directly multipled with the loss and not with the gradient.
         self.grad_setter = RestrictedReconstruction(1, self.mixed_rec_w)
 
@@ -23,17 +24,25 @@ class LadderVAERestrictedReconstruction(LadderVAE):
         assert self.reconstruction_mode != True
         target_normalized = self.normalize_target(target)
         mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
-        out, td_data = self.forward(x_normalized)
-        assert self.loss_type == LossType.ElboRestrictedReconstruction
-        pred_x_normalized, _ = self.get_mixed_prediction(out, None, self.data_mean, self.data_std)
+        virtualN = self._virtual_batch_size if self._virtual_batch_size is not None else len(x_normalized)
         optim = self.optimizers()
         optim.zero_grad()
-        split_loss = self.grad_setter.loss_fn(target_normalized[mask], out[mask])
-        self.manual_backward(self.split_w * split_loss, retain_graph=True)
-        # add input reconstruction loss compoenent to the gradient.
-        loss_dict = self.grad_setter.update_gradients(list(self.parameters()), x_normalized, target_normalized[mask],
-                                                      out[mask], pred_x_normalized)
+        for i in range(0, len(x_normalized), virtualN):
+            vmask = mask[i:i + virtualN]
+            vtar = target_normalized[i:i + virtualN]
+            vx = x_normalized[i:i + virtualN]
+
+            out, td_data = self.forward(vx)
+            assert self.loss_type == LossType.ElboRestrictedReconstruction
+            pred_x_normalized, _ = self.get_mixed_prediction(out, None, self.data_mean, self.data_std)
+            split_loss = self.grad_setter.loss_fn(vtar[vmask], out[vmask])
+            self.manual_backward(self.split_w * split_loss, retain_graph=True)
+            # add input reconstruction loss compoenent to the gradient.
+            loss_dict = self.grad_setter.update_gradients(list(self.parameters()), vx, vtar[vmask], out[vmask],
+                                                          pred_x_normalized)
+
         optim.step()
+
         assert self.non_stochastic_version == True
         if enable_logging:
             training_loss = self.split_w * split_loss + self.mixed_rec_w * loss_dict['input_reconstruction_loss']

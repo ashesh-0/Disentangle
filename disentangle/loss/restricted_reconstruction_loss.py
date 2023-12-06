@@ -11,8 +11,8 @@ class RestrictedReconstruction:
         print(f'[{self.__class__.__name__}] w_split: {self._w_split}, w_recons: {self._w_recons}')
 
     @staticmethod
-    def get_grad_direction(score, params):
-        grad_all = torch.autograd.grad(score, params, create_graph=True, allow_unused=True)
+    def get_grad_direction(score, params, retain_graph=True):
+        grad_all = torch.autograd.grad(score, params, retain_graph=retain_graph, allow_unused=True)
         grad_direction = []
         for grad in grad_all:
             if grad is None:
@@ -59,7 +59,7 @@ class RestrictedReconstruction:
             incorrect_c1_all = self.get_grad_component(incorrect_c1_all, correct_grad_all, orthogonal_direction=True)
             incorrect_c2_all = self.get_grad_component(incorrect_c2_all, correct_grad_all, orthogonal_direction=True)
 
-        unsup_grad_all = torch.autograd.grad(unsup_reconstruction_loss, params, create_graph=True, allow_unused=True)
+        unsup_grad_all = torch.autograd.grad(unsup_reconstruction_loss, params, retain_graph=False, allow_unused=True)
         corrected_unsup_grad_all = []
         for unsup_grad, incorrect_c1, incorrect_c2 in zip(unsup_grad_all, incorrect_c1_all, incorrect_c2_all):
             if unsup_grad is None:
