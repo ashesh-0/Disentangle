@@ -63,7 +63,7 @@ def get_config():
     # loss.D_epsilon = 0.1
     # loss.critic_loss_weight = 0.001
     loss.mixed_rec_weight = 10.0
-    loss.split_weight = 2.0
+    loss.split_weight = 1.0
     # loss.mixed_rec_w_step = 0.01
     # loss.exclusion_loss_weight = 0.005
 
