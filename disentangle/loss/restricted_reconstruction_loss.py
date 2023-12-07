@@ -8,11 +8,13 @@ class RestrictedReconstruction:
                  w_split,
                  w_recons,
                  finegrained_restriction=True,
-                 finegrained_restriction_not_positively_correlated=True) -> None:
+                 finegrained_restriction_retain_positively_correlated=True,
+                 correct_grad_retain_negatively_correlated=True) -> None:
         self._w_split = w_split
         self._w_recons = w_recons
         self._finegrained_restriction = finegrained_restriction
-        self._finegrained_restriction_not_positively_correlated = finegrained_restriction_not_positively_correlated
+        self._finegrained_restriction_retain_positively_correlated = finegrained_restriction_retain_positively_correlated
+        self._correct_grad_retain_negatively_correlated = correct_grad_retain_negatively_correlated
         print(f'[{self.__class__.__name__}] w_split: {self._w_split}, w_recons: {self._w_recons}')
 
     @staticmethod
@@ -31,14 +33,14 @@ class RestrictedReconstruction:
                            reference_grad_directions,
                            along_direction=False,
                            orthogonal_direction=False,
-                           not_positively_correlated=False):
+                           retain_positively_correlated=False,
+                           retain_negatively_correlated=False):
         grad_components = []
-        assert int(along_direction) + int(orthogonal_direction) + int(
-            not_positively_correlated
-        ) == 1, 'Donot be lazy. Set either along_direction or orthogonal_direction to True.'
+        assert int(along_direction) + int(orthogonal_direction) + int(retain_positively_correlated) + int(
+            retain_negatively_correlated) == 1, 'Donot be lazy. Set one of the booleans to True.'
         assert isinstance(along_direction, bool)
         assert isinstance(orthogonal_direction, bool)
-        assert isinstance(not_positively_correlated, bool)
+        assert isinstance(retain_positively_correlated, bool)
         neg_corr_count = 0
         for grad_vector, grad_direction in zip(grad_vectors, reference_grad_directions):
             if grad_vector is None:
@@ -49,7 +51,13 @@ class RestrictedReconstruction:
                     grad_components.append(grad_direction * component)
                 elif orthogonal_direction:
                     grad_components.append(grad_vector - grad_direction * component)
-                elif not_positively_correlated:
+                elif retain_positively_correlated:
+                    if component < 0:
+                        grad_components.append(grad_vector - grad_direction * component)
+                    else:
+                        neg_corr_count += 1
+                        grad_components.append(grad_vector)
+                elif retain_negatively_correlated:
                     if component > 0:
                         grad_components.append(grad_vector - grad_direction * component)
                     else:
@@ -80,13 +88,13 @@ class RestrictedReconstruction:
             incorrect_c1_all = self.get_grad_component(
                 incorrect_c1_all,
                 correct_grad_all,
-                not_positively_correlated=self._finegrained_restriction_not_positively_correlated,
-                orthogonal_direction=not self._finegrained_restriction_not_positively_correlated)
+                retain_positively_correlated=self._finegrained_restriction_retain_positively_correlated,
+                orthogonal_direction=not self._finegrained_restriction_retain_positively_correlated)
             incorrect_c2_all = self.get_grad_component(
                 incorrect_c2_all,
                 correct_grad_all,
-                not_positively_correlated=self._finegrained_restriction_not_positively_correlated,
-                orthogonal_direction=not self._finegrained_restriction_not_positively_correlated)
+                retain_positively_correlated=self._finegrained_restriction_retain_positively_correlated,
+                orthogonal_direction=not self._finegrained_restriction_retain_positively_correlated)
 
         unsup_grad_all = torch.autograd.grad(unsup_reconstruction_loss,
                                              params,
@@ -95,10 +103,16 @@ class RestrictedReconstruction:
                                              allow_unused=True)
 
         incorrect_c2_all = self.get_grad_component(incorrect_c2_all, incorrect_c1_all, orthogonal_direction=True)
-        corrected_unsup_grad_all = self.get_grad_component(unsup_grad_all, incorrect_c1_all, orthogonal_direction=True)
-        corrected_unsup_grad_all = self.get_grad_component(corrected_unsup_grad_all,
-                                                           incorrect_c2_all,
-                                                           orthogonal_direction=True)
+        corrected_unsup_grad_all = self.get_grad_component(
+            unsup_grad_all,
+            incorrect_c1_all,
+            orthogonal_direction=not self._correct_grad_retain_negatively_correlated,
+            retain_positively_correlated=self._correct_grad_retain_negatively_correlated)
+        corrected_unsup_grad_all = self.get_grad_component(
+            corrected_unsup_grad_all,
+            incorrect_c2_all,
+            orthogonal_direction=not self._correct_grad_retain_negatively_correlated,
+            retain_positively_correlated=self._correct_grad_retain_negatively_correlated)
         return corrected_unsup_grad_all, unsup_reconstruction_loss
 
     def update_gradients(self, params, normalized_input, normalized_target, normalized_target_prediction,
