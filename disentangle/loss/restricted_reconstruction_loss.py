@@ -88,12 +88,12 @@ class RestrictedReconstruction:
             incorrect_c1_all = self.get_grad_component(
                 incorrect_c1_all,
                 correct_grad_all,
-                retain_positively_correlated=self._finegrained_restriction_retain_positively_correlated,
+                retain_negatively_correlated=self._finegrained_restriction_retain_positively_correlated,
                 orthogonal_direction=not self._finegrained_restriction_retain_positively_correlated)
             incorrect_c2_all = self.get_grad_component(
                 incorrect_c2_all,
                 correct_grad_all,
-                retain_positively_correlated=self._finegrained_restriction_retain_positively_correlated,
+                retain_negatively_correlated=self._finegrained_restriction_retain_positively_correlated,
                 orthogonal_direction=not self._finegrained_restriction_retain_positively_correlated)
 
         unsup_grad_all = torch.autograd.grad(unsup_reconstruction_loss,
