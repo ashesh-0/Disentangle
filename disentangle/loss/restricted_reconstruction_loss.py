@@ -4,10 +4,15 @@ import torch.nn as nn
 
 class RestrictedReconstruction:
 
-    def __init__(self, w_split, w_recons, finegrained_restriction=True) -> None:
+    def __init__(self,
+                 w_split,
+                 w_recons,
+                 finegrained_restriction=True,
+                 finegrained_restriction_not_positively_correlated=True) -> None:
         self._w_split = w_split
         self._w_recons = w_recons
         self._finegrained_restriction = finegrained_restriction
+        self._finegrained_restriction_not_positively_correlated = finegrained_restriction_not_positively_correlated
         print(f'[{self.__class__.__name__}] w_split: {self._w_split}, w_recons: {self._w_recons}')
 
     @staticmethod
@@ -22,11 +27,19 @@ class RestrictedReconstruction:
         return grad_direction
 
     @staticmethod
-    def get_grad_component(grad_vectors, reference_grad_directions, along_direction=False, orthogonal_direction=False):
+    def get_grad_component(grad_vectors,
+                           reference_grad_directions,
+                           along_direction=False,
+                           orthogonal_direction=False,
+                           not_positively_correlated=False):
         grad_components = []
-        assert along_direction != orthogonal_direction, 'Donot be lazy. Set either along_direction or orthogonal_direction to True.'
+        assert int(along_direction) + int(orthogonal_direction) + int(
+            not_positively_correlated
+        ) == 1, 'Donot be lazy. Set either along_direction or orthogonal_direction to True.'
         assert isinstance(along_direction, bool)
         assert isinstance(orthogonal_direction, bool)
+        assert isinstance(not_positively_correlated, bool)
+        neg_corr_count = 0
         for grad_vector, grad_direction in zip(grad_vectors, reference_grad_directions):
             if grad_vector is None:
                 grad_components.append(None)
@@ -36,6 +49,14 @@ class RestrictedReconstruction:
                     grad_components.append(grad_direction * component)
                 elif orthogonal_direction:
                     grad_components.append(grad_vector - grad_direction * component)
+                elif not_positively_correlated:
+                    if component > 0:
+                        grad_components.append(grad_vector - grad_direction * component)
+                    else:
+                        neg_corr_count += 1
+                        grad_components.append(grad_vector)
+
+        # print('Retained neg corr fraction', neg_corr_count / len(grad_vectors))
 
         # check one grad for norm
         assert torch.norm(grad_direction) - 1 < 1e-6
@@ -56,8 +77,16 @@ class RestrictedReconstruction:
         if self._finegrained_restriction:
             correct_loss = self.loss_fn(normalized_target, normalized_target_prediction)
             correct_grad_all = self.get_grad_direction(correct_loss, params)
-            incorrect_c1_all = self.get_grad_component(incorrect_c1_all, correct_grad_all, orthogonal_direction=True)
-            incorrect_c2_all = self.get_grad_component(incorrect_c2_all, correct_grad_all, orthogonal_direction=True)
+            incorrect_c1_all = self.get_grad_component(
+                incorrect_c1_all,
+                correct_grad_all,
+                not_positively_correlated=self._finegrained_restriction_not_positively_correlated,
+                orthogonal_direction=not self._finegrained_restriction_not_positively_correlated)
+            incorrect_c2_all = self.get_grad_component(
+                incorrect_c2_all,
+                correct_grad_all,
+                not_positively_correlated=self._finegrained_restriction_not_positively_correlated,
+                orthogonal_direction=not self._finegrained_restriction_not_positively_correlated)
 
         unsup_grad_all = torch.autograd.grad(unsup_reconstruction_loss,
                                              params,
