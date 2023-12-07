@@ -107,12 +107,12 @@ class RestrictedReconstruction:
             unsup_grad_all,
             incorrect_c1_all,
             orthogonal_direction=not self._correct_grad_retain_negatively_correlated,
-            retain_positively_correlated=self._correct_grad_retain_negatively_correlated)
+            retain_negatively_correlated=self._correct_grad_retain_negatively_correlated)
         corrected_unsup_grad_all = self.get_grad_component(
             corrected_unsup_grad_all,
             incorrect_c2_all,
             orthogonal_direction=not self._correct_grad_retain_negatively_correlated,
-            retain_positively_correlated=self._correct_grad_retain_negatively_correlated)
+            retain_negatively_correlated=self._correct_grad_retain_negatively_correlated)
         return corrected_unsup_grad_all, unsup_reconstruction_loss
 
     def update_gradients(self, params, normalized_input, normalized_target, normalized_target_prediction,
