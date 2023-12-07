@@ -24,6 +24,12 @@ class LadderVAERestrictedReconstruction(LadderVAE):
         assert self.reconstruction_mode != True
         target_normalized = self.normalize_target(target)
         mask = ~((target == 0).reshape(len(target), -1).all(dim=1))
+        out, _ = self.forward(x_normalized[mask])
+        incorrect_gradients = self.grad_setter.get_incorrect_grad(list(self.parameters()),
+                                                                  target_normalized[mask],
+                                                                  out,
+                                                                  retain_graph=False)
+
         virtualN = self._virtual_batch_size if self._virtual_batch_size is not None else len(x_normalized)
         optim = self.optimizers()
         optim.zero_grad()
@@ -38,8 +44,12 @@ class LadderVAERestrictedReconstruction(LadderVAE):
             split_loss = self.grad_setter.loss_fn(vtar[vmask], out[vmask])
             self.manual_backward(self.split_w * split_loss, retain_graph=True)
             # add input reconstruction loss compoenent to the gradient.
-            loss_dict = self.grad_setter.update_gradients(list(self.parameters()), vx, vtar[vmask], out[vmask],
-                                                          pred_x_normalized)
+            loss_dict = self.grad_setter.update_gradients(list(self.parameters()),
+                                                          vx,
+                                                          vtar[vmask],
+                                                          out[vmask],
+                                                          pred_x_normalized,
+                                                          incorrect_gradients=incorrect_gradients)
 
         optim.step()
 
