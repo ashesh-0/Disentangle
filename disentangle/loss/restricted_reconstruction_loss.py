@@ -23,7 +23,7 @@ def sample_from_gmm(count, mean=0.3, std_dev=0.1):
         else:
             samples.append(sample_from_neg())
 
-    return samples
+    return np.array(samples).tolist()
 
 
 class RestrictedReconstruction:
