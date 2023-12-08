@@ -1,13 +1,15 @@
 import torch
 import torch.nn as nn
 
+from torchmetrics.regression import PearsonCorrCoef
+
 
 class RestrictedReconstruction:
 
     def __init__(self,
                  w_split,
                  w_recons,
-                 finegrained_restriction=False,
+                 finegrained_restriction=True,
                  finegrained_restriction_retain_positively_correlated=False,
                  correct_grad_retain_negatively_correlated=False) -> None:
         self._w_split = w_split
@@ -41,6 +43,7 @@ class RestrictedReconstruction:
         assert isinstance(along_direction, bool)
         assert isinstance(orthogonal_direction, bool)
         assert isinstance(retain_positively_correlated, bool)
+        assert orthogonal_direction == True, 'For now, only orthogonal direction is supported.'
         neg_corr_count = 0
         for grad_vector, grad_direction in zip(grad_vectors, reference_grad_directions):
             if grad_vector is None:
@@ -76,9 +79,37 @@ class RestrictedReconstruction:
 
     def get_correct_grad(self, params, normalized_input, normalized_target, normalized_target_prediction,
                          normalized_input_prediction):
+        tar = normalized_target.detach().cpu().numpy()
+        pred = normalized_target_prediction.detach().cpu().numpy()
+        # import numpy as np
+        # tar1 = tar[:, 0].reshape(-1,)
+        # tar2 = tar[:, 1].reshape(-1,)
+        # pred1 = pred[:, 0].reshape(-1,)
+        # pred2 = pred[:, 1].reshape(-1,)
+        # c0 = np.round(np.corrcoef(tar1, tar2), 2)[0,1]
+        # c1 = np.round(np.corrcoef(tar1, pred2), 2)[0,1]
+        # c2 = np.round(np.corrcoef(tar2, pred1), 2)[0,1]
+        # c1_res = np.round(np.corrcoef(tar1, (pred2 - tar2)) , 2)[0,1]
+        # c2_res = np.round(np.corrcoef(tar2, (pred1 - tar1)), 2)[0,1]
+        # print(f'c0: {c0} c1: {c1}, c2: {c2}, c1_res: {c1_res}, c2_res: {c2_res}')
+
         unsup_reconstruction_loss = self.loss_fn(normalized_input, normalized_input_prediction)
-        incorrect_c1loss = self.loss_fn(normalized_target[:, 0], normalized_target_prediction[:, 1])
-        incorrect_c2loss = self.loss_fn(normalized_target[:, 1], normalized_target_prediction[:, 0])
+        samech_alphas = [0.5, 0.8, 0.8, 0.5]
+        othrch_alphas = [0.5, 0.2, -0.2 - 0.5]
+
+        incorrect_c1loss = 0
+        for alpha1, alpha2 in zip(othrch_alphas, samech_alphas):
+            tar = normalized_target[:, 0] * alpha1 + normalized_target[:, 1] * alpha2
+            incorrect_c1loss += self.loss_fn(tar, normalized_target_prediction[:, 1])
+        incorrect_c1loss /= len(samech_alphas)
+
+        incorrect_c2loss = 0
+        for alpha1, alpha2 in zip(samech_alphas, othrch_alphas):
+            tar = normalized_target[:, 0] * alpha1 + normalized_target[:, 1] * alpha2
+            incorrect_c2loss += self.loss_fn(tar, normalized_target_prediction[:, 0])
+        incorrect_c2loss /= len(samech_alphas)
+
+        # incorrect_c2loss = self.loss_fn(normalized_target[:, 1], normalized_target_prediction[:, 0])
 
         incorrect_c1_all = self.get_grad_direction(incorrect_c1loss, params)
         incorrect_c2_all = self.get_grad_direction(incorrect_c2loss, params)
