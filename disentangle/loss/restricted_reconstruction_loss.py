@@ -8,6 +8,7 @@ from torchmetrics.regression import PearsonCorrCoef
 def sample_from_gmm(count, mean=0.3, std_dev=0.1):
     # Set the parameters of the GMM
     mean1, mean2 = mean, -1 * mean
+    np.random.seed(42)
 
     def sample_from_pos():
         return np.random.normal(mean1, std_dev, 1)
@@ -34,7 +35,7 @@ class RestrictedReconstruction:
                  finegrained_restriction_retain_positively_correlated=False,
                  correct_grad_retain_negatively_correlated=False,
                  randomize_alpha=True,
-                 randomize_numcount=8) -> None:
+                 randomize_numcount=16) -> None:
         self._w_split = w_split
         self._w_recons = w_recons
         self._finegrained_restriction = finegrained_restriction
@@ -126,11 +127,11 @@ class RestrictedReconstruction:
             othrch_alphas = self._incorrect_othrch_alphas
             samech_alphas = self._incorrect_samech_alphas
         elif self._randomize_alpha:
-            # othrch_alphas = sample_from_gmm(self._randomize_numcount)
-            othrch_alphas = [
-                torch.Tensor(sample_from_gmm(len(normalized_target))).view(-1, 1, 1).type(normalized_input.dtype).to(
-                    normalized_input.device) for _ in range(self._randomize_numcount)
-            ]
+            othrch_alphas = sample_from_gmm(self._randomize_numcount)
+            # othrch_alphas = [
+            #     torch.Tensor(sample_from_gmm(len(normalized_target))).view(-1, 1, 1).type(normalized_input.dtype).to(
+            #         normalized_input.device) for _ in range(self._randomize_numcount)
+            # ]
             samech_alphas = [1] * self._randomize_numcount
 
         unsup_reconstruction_loss = self.loss_fn(normalized_input, normalized_input_prediction)
