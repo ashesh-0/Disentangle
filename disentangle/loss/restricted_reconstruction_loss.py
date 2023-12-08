@@ -8,8 +8,8 @@ class RestrictedReconstruction:
                  w_split,
                  w_recons,
                  finegrained_restriction=False,
-                 finegrained_restriction_retain_positively_correlated=True,
-                 correct_grad_retain_negatively_correlated=True) -> None:
+                 finegrained_restriction_retain_positively_correlated=False,
+                 correct_grad_retain_negatively_correlated=False) -> None:
         self._w_split = w_split
         self._w_recons = w_recons
         self._finegrained_restriction = finegrained_restriction
