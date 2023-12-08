@@ -11,10 +11,10 @@ def sample_from_gmm(count, mean=0.3, std_dev=0.1):
     np.random.seed(42)
 
     def sample_from_pos():
-        return np.random.normal(mean1, std_dev, 1)
+        return np.random.normal(mean1, std_dev, 1)[0]
 
     def sample_from_neg():
-        return np.random.normal(mean2, std_dev, 1)
+        return np.random.normal(mean2, std_dev, 1)[0]
 
     samples = []
     for i in range(count):
@@ -23,7 +23,7 @@ def sample_from_gmm(count, mean=0.3, std_dev=0.1):
         else:
             samples.append(sample_from_neg())
 
-    return np.array(samples).tolist()
+    return samples
 
 
 class RestrictedReconstruction:
