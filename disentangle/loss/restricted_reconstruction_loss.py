@@ -77,24 +77,24 @@ class RestrictedReconstruction:
     def get_correct_grad(self, params, normalized_input, normalized_target, normalized_target_prediction,
                          normalized_input_prediction):
         unsup_reconstruction_loss = self.loss_fn(normalized_input, normalized_input_prediction)
-        # incorrect_c1loss = self.loss_fn(normalized_target[:, 0], normalized_target_prediction[:, 1])
-        # incorrect_c2loss = self.loss_fn(normalized_target[:, 1], normalized_target_prediction[:, 0])
+        incorrect_c1loss = self.loss_fn(normalized_target[:, 0], normalized_target_prediction[:, 1])
+        incorrect_c2loss = self.loss_fn(normalized_target[:, 1], normalized_target_prediction[:, 0])
 
-        # incorrect_c1_all = self.get_grad_direction(incorrect_c1loss, params)
-        # incorrect_c2_all = self.get_grad_direction(incorrect_c2loss, params)
-        # if self._finegrained_restriction:
-        #     correct_loss = self.loss_fn(normalized_target, normalized_target_prediction)
-        #     correct_grad_all = self.get_grad_direction(correct_loss, params)
-        #     incorrect_c1_all = self.get_grad_component(
-        #         incorrect_c1_all,
-        #         correct_grad_all,
-        #         retain_negatively_correlated=self._finegrained_restriction_retain_positively_correlated,
-        #         orthogonal_direction=not self._finegrained_restriction_retain_positively_correlated)
-        #     incorrect_c2_all = self.get_grad_component(
-        #         incorrect_c2_all,
-        #         correct_grad_all,
-        #         retain_negatively_correlated=self._finegrained_restriction_retain_positively_correlated,
-        #         orthogonal_direction=not self._finegrained_restriction_retain_positively_correlated)
+        incorrect_c1_all = self.get_grad_direction(incorrect_c1loss, params)
+        incorrect_c2_all = self.get_grad_direction(incorrect_c2loss, params)
+        if self._finegrained_restriction:
+            correct_loss = self.loss_fn(normalized_target, normalized_target_prediction)
+            correct_grad_all = self.get_grad_direction(correct_loss, params)
+            incorrect_c1_all = self.get_grad_component(
+                incorrect_c1_all,
+                correct_grad_all,
+                retain_negatively_correlated=self._finegrained_restriction_retain_positively_correlated,
+                orthogonal_direction=not self._finegrained_restriction_retain_positively_correlated)
+            incorrect_c2_all = self.get_grad_component(
+                incorrect_c2_all,
+                correct_grad_all,
+                retain_negatively_correlated=self._finegrained_restriction_retain_positively_correlated,
+                orthogonal_direction=not self._finegrained_restriction_retain_positively_correlated)
 
         unsup_grad_all = torch.autograd.grad(unsup_reconstruction_loss,
                                              params,
@@ -102,7 +102,6 @@ class RestrictedReconstruction:
                                              retain_graph=True,
                                              allow_unused=True)
 
-        return unsup_grad_all, unsup_reconstruction_loss
         incorrect_c2_all = self.get_grad_component(incorrect_c2_all, incorrect_c1_all, orthogonal_direction=True)
         corrected_unsup_grad_all = self.get_grad_component(
             unsup_grad_all,
