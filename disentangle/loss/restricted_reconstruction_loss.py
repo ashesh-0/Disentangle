@@ -122,13 +122,14 @@ class RestrictedReconstruction:
             othrch_alphas = self._incorrect_othrch_alphas
             samech_alphas = self._incorrect_samech_alphas
         elif self._randomize_alpha:
-            othrch_alphas = sample_from_gmm(self._randomize_numcount)
-            # othrch_alphas = [torch.Tensor(sample_from_gmm(len(normalized_target))).view(-1,1,1).type(normalized_input.dtype).to(
-            #     normalized_input.device) for _ in range(self._randomize_numcount)]
+            # othrch_alphas = sample_from_gmm(self._randomize_numcount)
+            othrch_alphas = [
+                torch.Tensor(sample_from_gmm(len(normalized_target))).view(-1, 1, 1).type(normalized_input.dtype).to(
+                    normalized_input.device) for _ in range(self._randomize_numcount)
+            ]
             samech_alphas = [1] * self._randomize_numcount
 
         unsup_reconstruction_loss = self.loss_fn(normalized_input, normalized_input_prediction)
-
         incorrect_c1loss = 0
         for alpha1, alpha2 in zip(othrch_alphas, samech_alphas):
             tar = normalized_target[:, 0] * alpha1 + normalized_target[:, 1] * alpha2
