@@ -94,8 +94,8 @@ class RestrictedReconstruction:
         # print(f'c0: {c0} c1: {c1}, c2: {c2}, c1_res: {c1_res}, c2_res: {c2_res}')
 
         unsup_reconstruction_loss = self.loss_fn(normalized_input, normalized_input_prediction)
-        samech_alphas = [0]
-        othrch_alphas = [1]
+        samech_alphas = [0.5, 0.8, 0.8, 0.5]
+        othrch_alphas = [0.5, 0.2, -0.2 - 0.5]
 
         incorrect_c1loss = 0
         for alpha1, alpha2 in zip(othrch_alphas, samech_alphas):
