@@ -11,7 +11,6 @@ def sample_from_gmm(count, mean=0.3, std_dev=0.1):
     weights = [0.5, 0.5]  # Equal weights for both components
 
     # Generate samples from the GMM
-    np.random.seed(42)  # Set a seed for reproducibility
     samples = np.concatenate([
         np.random.normal(mean1, std_dev, int(count * weights[0])),
         np.random.normal(mean2, std_dev, int(count * weights[1]))
@@ -124,6 +123,8 @@ class RestrictedReconstruction:
             samech_alphas = self._incorrect_samech_alphas
         elif self._randomize_alpha:
             othrch_alphas = sample_from_gmm(self._randomize_numcount)
+            # othrch_alphas = [torch.Tensor(sample_from_gmm(len(normalized_target))).view(-1,1,1).type(normalized_input.dtype).to(
+            #     normalized_input.device) for _ in range(self._randomize_numcount)]
             samech_alphas = [1] * self._randomize_numcount
 
         unsup_reconstruction_loss = self.loss_fn(normalized_input, normalized_input_prediction)
