@@ -31,7 +31,7 @@ class RestrictedReconstruction:
                  finegrained_restriction_retain_positively_correlated=False,
                  correct_grad_retain_negatively_correlated=False,
                  randomize_alpha=True,
-                 randomize_numcount=4) -> None:
+                 randomize_numcount=8) -> None:
         self._w_split = w_split
         self._w_recons = w_recons
         self._finegrained_restriction = finegrained_restriction
