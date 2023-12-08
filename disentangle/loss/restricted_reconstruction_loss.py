@@ -79,8 +79,8 @@ class RestrictedReconstruction:
 
     def get_correct_grad(self, params, normalized_input, normalized_target, normalized_target_prediction,
                          normalized_input_prediction):
-        tar = normalized_target.detach().cpu().numpy()
-        pred = normalized_target_prediction.detach().cpu().numpy()
+        # tar = normalized_target.detach().cpu().numpy()
+        # pred = normalized_target_prediction.detach().cpu().numpy()
         # import numpy as np
         # tar1 = tar[:, 0].reshape(-1,)
         # tar2 = tar[:, 1].reshape(-1,)
