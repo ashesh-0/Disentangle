@@ -1,7 +1,25 @@
+import numpy as np
 import torch
 import torch.nn as nn
 
 from torchmetrics.regression import PearsonCorrCoef
+
+
+def sample_from_gmm(count, mean=0.3, std_dev=0.1):
+    # Set the parameters of the GMM
+    mean1, mean2 = mean, -1 * mean
+    weights = [0.5, 0.5]  # Equal weights for both components
+
+    # Generate samples from the GMM
+    np.random.seed(42)  # Set a seed for reproducibility
+    samples = np.concatenate([
+        np.random.normal(mean1, std_dev, int(count * weights[0])),
+        np.random.normal(mean2, std_dev, int(count * weights[1]))
+    ])
+
+    # Shuffle the samples to make the order random
+    np.random.shuffle(samples)
+    return list(samples)
 
 
 class RestrictedReconstruction:
@@ -11,12 +29,19 @@ class RestrictedReconstruction:
                  w_recons,
                  finegrained_restriction=True,
                  finegrained_restriction_retain_positively_correlated=False,
-                 correct_grad_retain_negatively_correlated=False) -> None:
+                 correct_grad_retain_negatively_correlated=False,
+                 randomize_alpha=True,
+                 randomize_numcount=4) -> None:
         self._w_split = w_split
         self._w_recons = w_recons
         self._finegrained_restriction = finegrained_restriction
         self._finegrained_restriction_retain_positively_correlated = finegrained_restriction_retain_positively_correlated
         self._correct_grad_retain_negatively_correlated = correct_grad_retain_negatively_correlated
+        self._incorrect_samech_alphas = None  #[0.5, 0.8, 0.8, 0.5]
+        self._incorrect_othrch_alphas = None  #[0.5, 0.2, -0.2 - 0.5]
+        self._randomize_alpha = randomize_alpha
+        self._randomize_numcount = randomize_numcount
+
         print(f'[{self.__class__.__name__}] w_split: {self._w_split}, w_recons: {self._w_recons}')
 
     @staticmethod
@@ -92,10 +117,16 @@ class RestrictedReconstruction:
         # c1_res = np.round(np.corrcoef(tar1, (pred2 - tar2)) , 2)[0,1]
         # c2_res = np.round(np.corrcoef(tar2, (pred1 - tar1)), 2)[0,1]
         # print(f'c0: {c0} c1: {c1}, c2: {c2}, c1_res: {c1_res}, c2_res: {c2_res}')
+        othrch_alphas = [1]
+        samech_alphas = [0]
+        if self._incorrect_othrch_alphas is not None:
+            othrch_alphas = self._incorrect_othrch_alphas
+            samech_alphas = self._incorrect_samech_alphas
+        elif self._randomize_alpha:
+            othrch_alphas = sample_from_gmm(self._randomize_numcount)
+            samech_alphas = [1] * self._randomize_numcount
 
         unsup_reconstruction_loss = self.loss_fn(normalized_input, normalized_input_prediction)
-        samech_alphas = [0.5, 0.8, 0.8, 0.5]
-        othrch_alphas = [0.5, 0.2, -0.2 - 0.5]
 
         incorrect_c1loss = 0
         for alpha1, alpha2 in zip(othrch_alphas, samech_alphas):
