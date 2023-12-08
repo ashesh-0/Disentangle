@@ -8,17 +8,21 @@ from torchmetrics.regression import PearsonCorrCoef
 def sample_from_gmm(count, mean=0.3, std_dev=0.1):
     # Set the parameters of the GMM
     mean1, mean2 = mean, -1 * mean
-    weights = [0.5, 0.5]  # Equal weights for both components
 
-    # Generate samples from the GMM
-    samples = np.concatenate([
-        np.random.normal(mean1, std_dev, int(count * weights[0])),
-        np.random.normal(mean2, std_dev, int(count * weights[1]))
-    ])
+    def sample_from_pos():
+        return np.random.normal(mean1, std_dev, 1)
 
-    # Shuffle the samples to make the order random
-    np.random.shuffle(samples)
-    return list(samples)
+    def sample_from_neg():
+        return np.random.normal(mean2, std_dev, 1)
+
+    samples = []
+    for i in range(count):
+        if np.random.rand() < 0.5:
+            samples.append(sample_from_pos())
+        else:
+            samples.append(sample_from_neg())
+
+    return samples
 
 
 class RestrictedReconstruction:
