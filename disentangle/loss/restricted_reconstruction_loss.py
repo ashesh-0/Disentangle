@@ -34,7 +34,7 @@ class RestrictedReconstruction:
                  w_recons,
                  finegrained_restriction=True,
                  finegrained_restriction_retain_positively_correlated=False,
-                 correct_grad_retain_negatively_correlated=False,
+                 correct_grad_retain_negatively_correlated=True,
                  randomize_alpha=True,
                  randomize_numcount=8) -> None:
         self._w_split = w_split
@@ -73,7 +73,7 @@ class RestrictedReconstruction:
         assert isinstance(along_direction, bool)
         assert isinstance(orthogonal_direction, bool)
         assert isinstance(retain_positively_correlated, bool)
-        assert orthogonal_direction == True, 'For now, only orthogonal direction is supported.'
+        # assert orthogonal_direction == True, 'For now, only orthogonal direction is supported.'
         neg_corr_count = 0
         for grad_vector, grad_direction in zip(grad_vectors, reference_grad_directions):
             if grad_vector is None:

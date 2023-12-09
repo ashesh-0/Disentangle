@@ -21,7 +21,7 @@ def get_config():
     # how much data will use the target.
     data.training_validtarget_fraction = 0.01
     # when creating a batch, what fraction of inputs should have target.
-    data.validtarget_random_fraction = 0.25
+    data.validtarget_random_fraction = 0.5
 
     data.validation_datausage_fraction = 0.08
 
