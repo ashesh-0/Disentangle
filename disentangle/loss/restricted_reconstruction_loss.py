@@ -107,6 +107,22 @@ class RestrictedReconstruction:
     def loss_fn(self, tar, pred):
         return torch.mean((tar - pred)**2)
 
+    def get_incorrect_loss_v2(self, normalized_target, normalized_target_prediction):
+        assert self._randomize_alpha == True
+        ch1_alphas = sample_from_gmm(self._randomize_numcount, mean=0.25)
+        ch2_alphas = sample_from_gmm(self._randomize_numcount, mean=0.25)
+        incorrect_c1loss = 0
+        incorrect_c2loss = 0
+        # import pdb; pdb.set_trace()
+        for ch1_alpha, ch2_alpha in zip(ch1_alphas, ch2_alphas):
+            tar1 = normalized_target[:, 0, :, :] * (1 - ch1_alpha) + normalized_target[:, 1, :, :] * ch2_alpha
+            tar2 = normalized_target[:, 1, :, :] * ch1_alpha + normalized_target[:, 0, :, :] * (1 - ch2_alpha)
+            incorrect_c1loss += self.loss_fn(tar1, normalized_target_prediction[:, 0, :, :])
+            incorrect_c2loss += self.loss_fn(tar2, normalized_target_prediction[:, 1, :, :])
+        incorrect_c1loss /= self._randomize_numcount
+        incorrect_c2loss /= self._randomize_numcount
+        return incorrect_c1loss, incorrect_c2loss
+
     def get_incorrect_loss(self, normalized_target, normalized_target_prediction):
         othrch_alphas = [1]
         samech_alphas = [0]
@@ -151,7 +167,7 @@ class RestrictedReconstruction:
         # print(f'c0: {c0} c1: {c1}, c2: {c2}, c1_res: {c1_res}, c2_res: {c2_res}')
 
         # incorrect_c2loss = self.loss_fn(normalized_target[:, 1], normalized_target_prediction[:, 0])
-        incorrect_c1loss, incorrect_c2loss = self.get_incorrect_loss(normalized_target, normalized_target_prediction)
+        incorrect_c1loss, incorrect_c2loss = self.get_incorrect_loss_v2(normalized_target, normalized_target_prediction)
         incorrect_c1_all = self.get_grad_direction(incorrect_c1loss, params)
         incorrect_c2_all = self.get_grad_direction(incorrect_c2loss, params)
 
