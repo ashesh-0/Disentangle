@@ -8,7 +8,8 @@ from torchmetrics.regression import PearsonCorrCoef
 def sample_from_gmm(count, mean=0.3, std_dev=0.1):
     # Set the parameters of the GMM
     mean1, mean2 = mean, -1 * mean
-    np.random.seed(42)
+
+    # np.random.seed(42)
 
     def sample_from_pos():
         return np.random.normal(mean1, std_dev, 1)[0]
@@ -106,6 +107,33 @@ class RestrictedReconstruction:
     def loss_fn(self, tar, pred):
         return torch.mean((tar - pred)**2)
 
+    def get_incorrect_loss(self, normalized_target, normalized_target_prediction):
+        othrch_alphas = [1]
+        samech_alphas = [0]
+        if self._incorrect_othrch_alphas is not None:
+            othrch_alphas = self._incorrect_othrch_alphas
+            samech_alphas = self._incorrect_samech_alphas
+        elif self._randomize_alpha:
+            othrch_alphas = sample_from_gmm(self._randomize_numcount)
+            # othrch_alphas = [
+            #     torch.Tensor(sample_from_gmm(len(normalized_target))).view(-1, 1, 1).type(normalized_input.dtype).to(
+            #         normalized_input.device) for _ in range(self._randomize_numcount)
+            # ]
+            samech_alphas = [1] * self._randomize_numcount
+
+        incorrect_c1loss = 0
+        for alpha1, alpha2 in zip(othrch_alphas, samech_alphas):
+            tar = normalized_target[:, 0] * alpha1 + normalized_target[:, 1] * alpha2
+            incorrect_c1loss += self.loss_fn(tar, normalized_target_prediction[:, 1])
+        incorrect_c1loss /= len(samech_alphas)
+
+        incorrect_c2loss = 0
+        for alpha1, alpha2 in zip(samech_alphas, othrch_alphas):
+            tar = normalized_target[:, 0] * alpha1 + normalized_target[:, 1] * alpha2
+            incorrect_c2loss += self.loss_fn(tar, normalized_target_prediction[:, 0])
+        incorrect_c2loss /= len(samech_alphas)
+        return incorrect_c1loss, incorrect_c2loss
+
     def get_correct_grad(self, params, normalized_input, normalized_target, normalized_target_prediction,
                          normalized_input_prediction):
         # tar = normalized_target.detach().cpu().numpy()
@@ -121,36 +149,12 @@ class RestrictedReconstruction:
         # c1_res = np.round(np.corrcoef(tar1, (pred2 - tar2)) , 2)[0,1]
         # c2_res = np.round(np.corrcoef(tar2, (pred1 - tar1)), 2)[0,1]
         # print(f'c0: {c0} c1: {c1}, c2: {c2}, c1_res: {c1_res}, c2_res: {c2_res}')
-        othrch_alphas = [1]
-        samech_alphas = [0]
-        if self._incorrect_othrch_alphas is not None:
-            othrch_alphas = self._incorrect_othrch_alphas
-            samech_alphas = self._incorrect_samech_alphas
-        elif self._randomize_alpha:
-            othrch_alphas = sample_from_gmm(self._randomize_numcount)
-            # othrch_alphas = [
-            #     torch.Tensor(sample_from_gmm(len(normalized_target))).view(-1, 1, 1).type(normalized_input.dtype).to(
-            #         normalized_input.device) for _ in range(self._randomize_numcount)
-            # ]
-            samech_alphas = [1] * self._randomize_numcount
-
-        unsup_reconstruction_loss = self.loss_fn(normalized_input, normalized_input_prediction)
-        incorrect_c1loss = 0
-        for alpha1, alpha2 in zip(othrch_alphas, samech_alphas):
-            tar = normalized_target[:, 0] * alpha1 + normalized_target[:, 1] * alpha2
-            incorrect_c1loss += self.loss_fn(tar, normalized_target_prediction[:, 1])
-        incorrect_c1loss /= len(samech_alphas)
-
-        incorrect_c2loss = 0
-        for alpha1, alpha2 in zip(samech_alphas, othrch_alphas):
-            tar = normalized_target[:, 0] * alpha1 + normalized_target[:, 1] * alpha2
-            incorrect_c2loss += self.loss_fn(tar, normalized_target_prediction[:, 0])
-        incorrect_c2loss /= len(samech_alphas)
 
         # incorrect_c2loss = self.loss_fn(normalized_target[:, 1], normalized_target_prediction[:, 0])
-
+        incorrect_c1loss, incorrect_c2loss = self.get_incorrect_loss(normalized_target, normalized_target_prediction)
         incorrect_c1_all = self.get_grad_direction(incorrect_c1loss, params)
         incorrect_c2_all = self.get_grad_direction(incorrect_c2loss, params)
+
         if self._finegrained_restriction:
             correct_loss = self.loss_fn(normalized_target, normalized_target_prediction)
             correct_grad_all = self.get_grad_direction(correct_loss, params)
@@ -165,6 +169,7 @@ class RestrictedReconstruction:
                 retain_negatively_correlated=self._finegrained_restriction_retain_positively_correlated,
                 orthogonal_direction=not self._finegrained_restriction_retain_positively_correlated)
 
+        unsup_reconstruction_loss = self.loss_fn(normalized_input, normalized_input_prediction)
         unsup_grad_all = torch.autograd.grad(unsup_reconstruction_loss,
                                              params,
                                              create_graph=False,
