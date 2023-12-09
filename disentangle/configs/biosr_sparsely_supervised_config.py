@@ -63,7 +63,7 @@ def get_config():
     # loss.D_epsilon = 0.1
     # loss.critic_loss_weight = 0.001
     loss.mixed_rec_weight = 100.0
-    loss.split_weight = 0.0
+    loss.split_weight = 1.0
     # loss.mixed_rec_w_step = 0.01
     # loss.exclusion_loss_weight = 0.005
 
@@ -138,7 +138,7 @@ def get_config():
     training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
                                          data else 30)
     training.max_epochs = int(400 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 400)
-    training.batch_size = 64
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
