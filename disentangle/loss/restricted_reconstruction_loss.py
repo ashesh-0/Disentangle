@@ -117,13 +117,15 @@ class RestrictedReconstruction:
         # assert len(tensor1.shape) == 4
         # assert tensor1.shape[1] == 1
         # assert tensor2.shape[1] == 1
-
         tensor1 = tensor1.reshape(tensor1.shape[0], -1)
         tensor2 = tensor2.reshape(tensor2.shape[0], -1)
-
-        pearson_corr = PearsonCorrCoef(num_outputs=tensor1.shape[0]).cuda()
-        corr = pearson_corr(tensor1.T, tensor2.T)
-
+        if tensor1.shape[0] == 1:
+            pearson_corr = PearsonCorrCoef().cuda()
+            corr = pearson_corr(tensor1.reshape(-1,), tensor2.reshape(-1,)).reshape(-1,)
+        else:
+            pearson_corr = PearsonCorrCoef(num_outputs=tensor1.shape[0]).cuda()
+            corr = pearson_corr(tensor1.T, tensor2.T)
+        
         return corr
 
     def exp_moving_avg(self, new_val, old_val, beta=0.9):
@@ -159,11 +161,11 @@ class RestrictedReconstruction:
                                                                                                                1, :, :])
         cross_channel_corr = self.get_pearson_corr(normalized_target[:, 0, :, :], normalized_target[:, 1, :, :])
         self._crosschannel_corr = self.exp_moving_avg(torch.mean(cross_channel_corr).item(), self._crosschannel_corr)
-        assert self._crosschannel_corr >= 0
-        ch1_excess_pos_corr = ch1_incorrect_corr > self._crosschannel_corr
-        ch2_excess_pos_corr = ch2_incorrect_corr > self._crosschannel_corr
-        ch1_excess_neg_corr = ch1_incorrect_corr < -self._crosschannel_corr / 2
-        ch2_excess_neg_corr = ch2_incorrect_corr < -self._crosschannel_corr / 2
+        eps = 1e-2
+        ch1_excess_pos_corr = ch1_incorrect_corr > self._crosschannel_corr + eps
+        ch2_excess_pos_corr = ch2_incorrect_corr > self._crosschannel_corr + eps
+        ch1_excess_neg_corr = ch1_incorrect_corr < self._crosschannel_corr -1*eps
+        ch2_excess_neg_corr = ch2_incorrect_corr < self._crosschannel_corr -1*eps
         # if ch1_excess_pos_corr is set, then ch2 is more in the predicted ch1. so, we need +ve ch2 alpha.
         # similarly, if ch1_excess_neg_corr is set, then ch2 is more in the predicted ch2 in negative way. so, we need -ve ch2 alpha.
         # important point is pos_corr and neg_corr of one channel are used to set alpha of the other channel.
