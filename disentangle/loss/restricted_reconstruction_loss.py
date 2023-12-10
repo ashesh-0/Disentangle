@@ -33,8 +33,8 @@ class RestrictedReconstruction:
                  w_split,
                  w_recons,
                  finegrained_restriction=True,
-                 finegrained_restriction_retain_positively_correlated=False,
-                 correct_grad_retain_negatively_correlated=False,
+                 finegrained_restriction_retain_positively_correlated=True,
+                 correct_grad_retain_negatively_correlated=True,
                  randomize_alpha=True,
                  randomize_numcount=8) -> None:
         self._w_split = w_split
@@ -114,16 +114,17 @@ class RestrictedReconstruction:
         These tensors are of shape (batch, channels, height, width).
         """
         assert tensor1.shape == tensor2.shape
-        assert len(tensor1.shape) == 4
-        assert tensor1.shape[1] == 1
-        assert tensor2.shape[1] == 1
+        # assert len(tensor1.shape) == 4
+        # assert tensor1.shape[1] == 1
+        # assert tensor2.shape[1] == 1
 
         tensor1 = tensor1.reshape(tensor1.shape[0], -1)
         tensor2 = tensor2.reshape(tensor2.shape[0], -1)
 
-        pearson_corr = PearsonCorrCoef()(tensor1.T, tensor2.T)
+        pearson_corr = PearsonCorrCoef(num_outputs=tensor1.shape[0]).cuda()
+        corr = pearson_corr(tensor1.T, tensor2.T)
 
-        return pearson_corr
+        return corr
 
     def exp_moving_avg(self, new_val, old_val, beta=0.9):
         if old_val is None:
@@ -157,20 +158,31 @@ class RestrictedReconstruction:
         ch2_incorrect_corr = self.get_pearson_corr(normalized_target[:, 0, :, :], normalized_target_prediction[:,
                                                                                                                1, :, :])
         cross_channel_corr = self.get_pearson_corr(normalized_target[:, 0, :, :], normalized_target[:, 1, :, :])
-        self._crosschannel_corr = self.exp_moving_avg(cross_channel_corr, self._crosschannel_corr)
+        self._crosschannel_corr = self.exp_moving_avg(torch.mean(cross_channel_corr).item(), self._crosschannel_corr)
         assert self._crosschannel_corr >= 0
         ch1_excess_pos_corr = ch1_incorrect_corr > self._crosschannel_corr
         ch2_excess_pos_corr = ch2_incorrect_corr > self._crosschannel_corr
         ch1_excess_neg_corr = ch1_incorrect_corr < -self._crosschannel_corr / 2
         ch2_excess_neg_corr = ch2_incorrect_corr < -self._crosschannel_corr / 2
-
         # if ch1_excess_pos_corr is set, then ch2 is more in the predicted ch1. so, we need +ve ch2 alpha.
         # similarly, if ch1_excess_neg_corr is set, then ch2 is more in the predicted ch2 in negative way. so, we need -ve ch2 alpha.
         # important point is pos_corr and neg_corr of one channel are used to set alpha of the other channel.
         ch2_bled_alphas = self.get_corr_based_alphas(ch1_excess_pos_corr, ch1_excess_neg_corr, self._randomize_numcount)
         ch1_bled_alphas = self.get_corr_based_alphas(ch2_excess_pos_corr, ch2_excess_neg_corr, self._randomize_numcount)
+        # ch2_frac_pos = torch.mean(ch1_excess_pos_corr.type(torch.float32)).item()
+        # ch2_frac_neg = torch.mean(ch1_excess_neg_corr.type(torch.float32)).item()
+        # ch1_frac_pos = torch.mean(ch2_excess_pos_corr.type(torch.float32)).item()
+        # ch1_frac_neg = torch.mean(ch2_excess_neg_corr.type(torch.float32)).item()
+        # print(f'Ch1 pos:{ch1_frac_pos:.1f} neg:{ch1_frac_neg:.1f} avg:{torch.mean(ch1_incorrect_corr).item():.1f} \t Ch2 pos:{ch2_frac_pos:.1f} neg:{ch2_frac_neg:.1f}')
+        incorrect_c1loss = 0
+        incorrect_c2loss = 0
         for ch1_alpha, ch2_alpha in zip(ch1_bled_alphas, ch2_bled_alphas):
-            tar1 = normalized_target[:, 0, :, :](1 - ch1_alpha) + normalized_target[:, 1, :, :] * ch2_alpha
+            ch1_alpha = torch.tensor(ch1_alpha, dtype=normalized_target.dtype).to(normalized_target.device)
+            ch2_alpha = torch.tensor(ch2_alpha, dtype=normalized_target.dtype).to(normalized_target.device)
+            ch1_alpha = ch1_alpha.reshape(-1, 1, 1)
+            ch2_alpha = ch2_alpha.reshape(-1, 1, 1)
+
+            tar1 = normalized_target[:, 0, :, :]*(1 - ch1_alpha) + normalized_target[:, 1, :, :] * ch2_alpha
             tar2 = normalized_target[:, 1, :, :] * ch1_alpha + normalized_target[:, 0, :, :] * (1 - ch2_alpha)
             incorrect_c1loss += self.loss_fn(tar1, normalized_target_prediction[:, 0, :, :])
             incorrect_c2loss += self.loss_fn(tar2, normalized_target_prediction[:, 1, :, :])
@@ -253,7 +265,7 @@ class RestrictedReconstruction:
         # print(f'c0: {c0} c1: {c1}, c2: {c2}, c1_res: {c1_res}, c2_res: {c2_res}')
 
         # incorrect_c2loss = self.loss_fn(normalized_target[:, 1], normalized_target_prediction[:, 0])
-        incorrect_c1loss, incorrect_c2loss = self.get_incorrect_loss_v2(normalized_target, normalized_target_prediction)
+        incorrect_c1loss, incorrect_c2loss = self.get_incorrect_loss_v3(normalized_target, normalized_target_prediction)
         incorrect_c1_all = self.get_grad_direction(incorrect_c1loss, params)
         incorrect_c2_all = self.get_grad_direction(incorrect_c2loss, params)
 
