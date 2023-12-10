@@ -46,7 +46,7 @@ class RestrictedReconstruction:
         self._incorrect_othrch_alphas = None  #[0.5, 0.2, -0.2 - 0.5]
         self._randomize_alpha = randomize_alpha
         self._randomize_numcount = randomize_numcount
-
+        self._crosschannel_corr = None
         print(f'[{self.__class__.__name__}] w_split: {self._w_split}, w_recons: {self._w_recons}')
 
     @staticmethod
@@ -107,8 +107,94 @@ class RestrictedReconstruction:
     def loss_fn(self, tar, pred):
         return torch.mean((tar - pred)**2)
 
+    @staticmethod
+    def get_pearson_corr(tensor1, tensor2):
+        """
+        Computes the pearson correlation between two torch tensors.
+        These tensors are of shape (batch, channels, height, width).
+        """
+        assert tensor1.shape == tensor2.shape
+        assert len(tensor1.shape) == 4
+        assert tensor1.shape[1] == 1
+        assert tensor2.shape[1] == 1
+
+        tensor1 = tensor1.reshape(tensor1.shape[0], -1)
+        tensor2 = tensor2.reshape(tensor2.shape[0], -1)
+
+        pearson_corr = PearsonCorrCoef()(tensor1.T, tensor2.T)
+
+        return pearson_corr
+
+    def exp_moving_avg(self, new_val, old_val, beta=0.9):
+        if old_val is None:
+            return new_val
+        return beta * old_val + (1 - beta) * new_val
+
+    def get_corr_based_alphas(self, excess_pos_corr, excess_neg_corr, count):
+        """
+        Returns a list of size count, with each element being an N sized array of alphas. 
+        Here, N is the length of excess_pos_corr and excess_neg_corr, ie, the batch size.
+        """
+        alpha_arr = []
+        for i in range(len(excess_pos_corr)):
+            assert (excess_pos_corr[i] != excess_neg_corr[i]) or (excess_neg_corr[i] == excess_pos_corr[i] == False)
+            if excess_pos_corr[i]:
+                alpha = np.random.normal(0.25, 0.1, count).tolist()
+            elif excess_neg_corr[i]:
+                alpha = np.random.normal(-0.25, 0.1, count).tolist()
+            else:
+                alpha = sample_from_gmm(count, 0.25)
+            alpha_arr.append(alpha)
+        return [x for x in np.array(alpha_arr).T]
+
+    def get_incorrect_loss_v3(self, normalized_target, normalized_target_prediction):
+        """
+        Here, we take into account the correlation between the prediction and the target to account for which direction is incorrect.
+        """
+        assert self._randomize_alpha == True
+        ch1_incorrect_corr = self.get_pearson_corr(normalized_target[:, 1, :, :], normalized_target_prediction[:,
+                                                                                                               0, :, :])
+        ch2_incorrect_corr = self.get_pearson_corr(normalized_target[:, 0, :, :], normalized_target_prediction[:,
+                                                                                                               1, :, :])
+        cross_channel_corr = self.get_pearson_corr(normalized_target[:, 0, :, :], normalized_target[:, 1, :, :])
+        self._crosschannel_corr = self.exp_moving_avg(cross_channel_corr, self._crosschannel_corr)
+        assert self._crosschannel_corr >= 0
+        ch1_excess_pos_corr = ch1_incorrect_corr > self._crosschannel_corr
+        ch2_excess_pos_corr = ch2_incorrect_corr > self._crosschannel_corr
+        ch1_excess_neg_corr = ch1_incorrect_corr < -self._crosschannel_corr / 2
+        ch2_excess_neg_corr = ch2_incorrect_corr < -self._crosschannel_corr / 2
+
+        # if ch1_excess_pos_corr is set, then ch2 is more in the predicted ch1. so, we need +ve ch2 alpha.
+        # similarly, if ch1_excess_neg_corr is set, then ch2 is more in the predicted ch2 in negative way. so, we need -ve ch2 alpha.
+        # important point is pos_corr and neg_corr of one channel are used to set alpha of the other channel.
+        ch2_bled_alphas = self.get_corr_based_alphas(ch1_excess_pos_corr, ch1_excess_neg_corr, self._randomize_numcount)
+        ch1_bled_alphas = self.get_corr_based_alphas(ch2_excess_pos_corr, ch2_excess_neg_corr, self._randomize_numcount)
+        for ch1_alpha, ch2_alpha in zip(ch1_bled_alphas, ch2_bled_alphas):
+            tar1 = normalized_target[:, 0, :, :](1 - ch1_alpha) + normalized_target[:, 1, :, :] * ch2_alpha
+            tar2 = normalized_target[:, 1, :, :] * ch1_alpha + normalized_target[:, 0, :, :] * (1 - ch2_alpha)
+            incorrect_c1loss += self.loss_fn(tar1, normalized_target_prediction[:, 0, :, :])
+            incorrect_c2loss += self.loss_fn(tar2, normalized_target_prediction[:, 1, :, :])
+        incorrect_c1loss /= self._randomize_numcount
+        incorrect_c2loss /= self._randomize_numcount
+        return incorrect_c1loss, incorrect_c2loss
+
+        # ch1_alphas = sample_from_gmm(self._randomize_numcount, mean=0.25)
+        # ch2_alphas = sample_from_gmm(self._randomize_numcount, mean=0.25)
+        # incorrect_c1loss = 0
+        # incorrect_c2loss = 0
+        # # import pdb; pdb.set_trace()
+        # for ch1_alpha, ch2_alpha in zip(ch1_alphas, ch2_alphas):
+        #     tar1 = normalized_target[:, 0, :, :] * (1 - ch1_alpha) + normalized_target[:, 1, :, :] * ch2_alpha
+        #     tar2 = normalized_target[:, 1, :, :] * ch1_alpha + normalized_target[:, 0, :, :] * (1 - ch2_alpha)
+        #     incorrect_c1loss += self.loss_fn(tar1, normalized_target_prediction[:, 0, :, :])
+        #     incorrect_c2loss += self.loss_fn(tar2, normalized_target_prediction[:, 1, :, :])
+        # incorrect_c1loss /= self._randomize_numcount
+        # incorrect_c2loss /= self._randomize_numcount
+        # return incorrect_c1loss, incorrect_c2loss
+
     def get_incorrect_loss_v2(self, normalized_target, normalized_target_prediction):
         assert self._randomize_alpha == True
+
         ch1_alphas = sample_from_gmm(self._randomize_numcount, mean=0.25)
         ch2_alphas = sample_from_gmm(self._randomize_numcount, mean=0.25)
         incorrect_c1loss = 0
