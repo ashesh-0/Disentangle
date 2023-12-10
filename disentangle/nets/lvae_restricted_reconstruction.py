@@ -40,6 +40,8 @@ class LadderVAERestrictedReconstruction(LadderVAE):
             self.log('training_loss', training_loss, on_epoch=True)
             self.log('reconstruction_loss', split_loss, on_epoch=True)
             self.log('input_reconstruction_loss', loss_dict['input_reconstruction_loss'], on_epoch=True)
+            for key in loss_dict['log']:
+                self.log(key, loss_dict['log'][key], on_epoch=True)
 
     def on_validation_epoch_end(self):
         psnrl1 = self.label1_psnr.get()

@@ -171,10 +171,10 @@ class RestrictedReconstruction:
         # important point is pos_corr and neg_corr of one channel are used to set alpha of the other channel.
         ch2_bled_alphas = self.get_corr_based_alphas(ch1_excess_pos_corr, ch1_excess_neg_corr, self._randomize_numcount)
         ch1_bled_alphas = self.get_corr_based_alphas(ch2_excess_pos_corr, ch2_excess_neg_corr, self._randomize_numcount)
-        # ch2_frac_pos = torch.mean(ch1_excess_pos_corr.type(torch.float32)).item()
-        # ch2_frac_neg = torch.mean(ch1_excess_neg_corr.type(torch.float32)).item()
-        # ch1_frac_pos = torch.mean(ch2_excess_pos_corr.type(torch.float32)).item()
-        # ch1_frac_neg = torch.mean(ch2_excess_neg_corr.type(torch.float32)).item()
+        ch2_frac_pos = torch.mean(ch1_excess_pos_corr.type(torch.float32)).item()
+        ch2_frac_neg = torch.mean(ch1_excess_neg_corr.type(torch.float32)).item()
+        ch1_frac_pos = torch.mean(ch2_excess_pos_corr.type(torch.float32)).item()
+        ch1_frac_neg = torch.mean(ch2_excess_neg_corr.type(torch.float32)).item()
         # print(f'Ch1 pos:{ch1_frac_pos:.1f} neg:{ch1_frac_neg:.1f} avg:{torch.mean(ch1_incorrect_corr).item():.1f} \t Ch2 pos:{ch2_frac_pos:.1f} neg:{ch2_frac_neg:.1f}')
         incorrect_c1loss = 0
         incorrect_c2loss = 0
@@ -190,7 +190,10 @@ class RestrictedReconstruction:
             incorrect_c2loss += self.loss_fn(tar2, normalized_target_prediction[:, 1, :, :])
         incorrect_c1loss /= self._randomize_numcount
         incorrect_c2loss /= self._randomize_numcount
-        return incorrect_c1loss, incorrect_c2loss
+        return incorrect_c1loss, incorrect_c2loss, {'ch1_frac_pos': ch1_frac_pos, 
+                                                    'ch1_frac_neg': ch1_frac_neg, 
+                                                    'ch2_frac_pos': ch2_frac_pos, 
+                                                    'ch2_frac_neg': ch2_frac_neg}
 
         # ch1_alphas = sample_from_gmm(self._randomize_numcount, mean=0.25)
         # ch2_alphas = sample_from_gmm(self._randomize_numcount, mean=0.25)
@@ -267,7 +270,7 @@ class RestrictedReconstruction:
         # print(f'c0: {c0} c1: {c1}, c2: {c2}, c1_res: {c1_res}, c2_res: {c2_res}')
 
         # incorrect_c2loss = self.loss_fn(normalized_target[:, 1], normalized_target_prediction[:, 0])
-        incorrect_c1loss, incorrect_c2loss = self.get_incorrect_loss_v3(normalized_target, normalized_target_prediction)
+        incorrect_c1loss, incorrect_c2loss, log_dict = self.get_incorrect_loss_v3(normalized_target, normalized_target_prediction)
         incorrect_c1_all = self.get_grad_direction(incorrect_c1loss, params)
         incorrect_c2_all = self.get_grad_direction(incorrect_c2loss, params)
 
@@ -305,7 +308,7 @@ class RestrictedReconstruction:
             orthogonal_direction=not self._correct_grad_retain_negatively_correlated,
             retain_negatively_correlated=self._correct_grad_retain_negatively_correlated)
 
-        return corrected_unsup_grad_all, unsup_reconstruction_loss
+        return corrected_unsup_grad_all, unsup_reconstruction_loss, log_dict
 
     def update_gradients(self, params, normalized_input, normalized_target, normalized_target_prediction,
                          normalized_input_prediction):
@@ -314,7 +317,7 @@ class RestrictedReconstruction:
             print('No target, hence skipping input reconstruction loss')
             return {'input_reconstruction_loss': torch.tensor(0.0)}
 
-        corrected_unsup_grad_all, input_reconstruction_loss = self.get_correct_grad(params, normalized_input,
+        corrected_unsup_grad_all, input_reconstruction_loss, log_dict = self.get_correct_grad(params, normalized_input,
                                                                                     normalized_target,
                                                                                     normalized_target_prediction,
                                                                                     normalized_input_prediction)
@@ -325,4 +328,4 @@ class RestrictedReconstruction:
 
             param.grad = self._w_split * param.grad + self._w_recons * corrected_unsup_grad
 
-        return {'input_reconstruction_loss': input_reconstruction_loss}
+        return {'input_reconstruction_loss': input_reconstruction_loss, 'log': log_dict}
