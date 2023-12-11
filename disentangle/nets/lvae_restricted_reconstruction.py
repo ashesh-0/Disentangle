@@ -11,12 +11,19 @@ class LadderVAERestrictedReconstruction(LadderVAE):
         assert self.loss_type == LossType.ElboRestrictedReconstruction
         self.mixed_rec_w = config.loss.mixed_rec_weight
         self.split_w = config.loss.get('split_weight', 1.0)
+        self._switch_to_nonorthogonal_epoch = config.loss.get('switch_to_nonorthogonal_epoch', 100000)
+
         # note that split_s is directly multipled with the loss and not with the gradient.
         self.grad_setter = RestrictedReconstruction(1, self.mixed_rec_w)
+        self._nonorthogonal_epoch_enabled = False
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         if self.current_epoch == 0 and batch_idx == 0:
             self.log('val_psnr', 1.0, on_epoch=True)
+
+        if self.current_epoch == self._switch_to_nonorthogonal_epoch and self._nonorthogonal_epoch_enabled == False:
+            self.grad_setter.enable_nonorthogonal()
+            self._nonorthogonal_epoch_enabled = True
 
         x, target = batch[:2]
         x_normalized = self.normalize_input(x)

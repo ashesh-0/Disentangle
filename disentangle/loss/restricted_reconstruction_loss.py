@@ -33,8 +33,8 @@ class RestrictedReconstruction:
                  w_split,
                  w_recons,
                  finegrained_restriction=True,
-                 finegrained_restriction_retain_positively_correlated=True,
-                 correct_grad_retain_negatively_correlated=True,
+                 finegrained_restriction_retain_positively_correlated=False,
+                 correct_grad_retain_negatively_correlated=False,
                  randomize_alpha=True,
                  randomize_numcount=8) -> None:
         self._w_split = w_split
@@ -48,6 +48,14 @@ class RestrictedReconstruction:
         self._randomize_numcount = randomize_numcount
         self._crosschannel_corr = None
         print(f'[{self.__class__.__name__}] w_split: {self._w_split}, w_recons: {self._w_recons}')
+
+    def enable_nonorthogonal(self):
+        print(f'[{self.__class__.__name__}] Enabling non-orthogonal loss computations.')
+        assert self._finegrained_restriction_retain_positively_correlated == False
+        assert self._correct_grad_retain_negatively_correlated == False
+
+        self._finegrained_restriction_retain_positively_correlated = True
+        self._correct_grad_retain_negatively_correlated = True
 
     @staticmethod
     def get_grad_direction(score, params):
@@ -121,11 +129,11 @@ class RestrictedReconstruction:
         tensor2 = tensor2.reshape(tensor2.shape[0], -1)
         if tensor1.shape[0] == 1:
             pearson_corr = PearsonCorrCoef().cuda()
-            corr = pearson_corr(tensor1.reshape(-1,), tensor2.reshape(-1,)).reshape(-1,)
+            corr = pearson_corr(tensor1.reshape(-1, ), tensor2.reshape(-1, )).reshape(-1, )
         else:
             pearson_corr = PearsonCorrCoef(num_outputs=tensor1.shape[0]).cuda()
             corr = pearson_corr(tensor1.T, tensor2.T)
-        
+
         return corr
 
     def exp_moving_avg(self, new_val, old_val, beta=0.9):
@@ -164,8 +172,8 @@ class RestrictedReconstruction:
         eps = 1e-2
         ch1_excess_pos_corr = ch1_incorrect_corr > self._crosschannel_corr + eps
         ch2_excess_pos_corr = ch2_incorrect_corr > self._crosschannel_corr + eps
-        ch1_excess_neg_corr = ch1_incorrect_corr < self._crosschannel_corr -1*eps
-        ch2_excess_neg_corr = ch2_incorrect_corr < self._crosschannel_corr -1*eps
+        ch1_excess_neg_corr = ch1_incorrect_corr < self._crosschannel_corr - 1 * eps
+        ch2_excess_neg_corr = ch2_incorrect_corr < self._crosschannel_corr - 1 * eps
         # if ch1_excess_pos_corr is set, then ch2 is more in the predicted ch1. so, we need +ve ch2 alpha.
         # similarly, if ch1_excess_neg_corr is set, then ch2 is more in the predicted ch2 in negative way. so, we need -ve ch2 alpha.
         # important point is pos_corr and neg_corr of one channel are used to set alpha of the other channel.
@@ -184,16 +192,18 @@ class RestrictedReconstruction:
             ch1_alpha = ch1_alpha.reshape(-1, 1, 1)
             ch2_alpha = ch2_alpha.reshape(-1, 1, 1)
 
-            tar1 = normalized_target[:, 0, :, :]*(1 - ch1_alpha) + normalized_target[:, 1, :, :] * ch2_alpha
+            tar1 = normalized_target[:, 0, :, :] * (1 - ch1_alpha) + normalized_target[:, 1, :, :] * ch2_alpha
             tar2 = normalized_target[:, 1, :, :] * ch1_alpha + normalized_target[:, 0, :, :] * (1 - ch2_alpha)
             incorrect_c1loss += self.loss_fn(tar1, normalized_target_prediction[:, 0, :, :])
             incorrect_c2loss += self.loss_fn(tar2, normalized_target_prediction[:, 1, :, :])
         incorrect_c1loss /= self._randomize_numcount
         incorrect_c2loss /= self._randomize_numcount
-        return incorrect_c1loss, incorrect_c2loss, {'ch1_frac_pos': ch1_frac_pos, 
-                                                    'ch1_frac_neg': ch1_frac_neg, 
-                                                    'ch2_frac_pos': ch2_frac_pos, 
-                                                    'ch2_frac_neg': ch2_frac_neg}
+        return incorrect_c1loss, incorrect_c2loss, {
+            'ch1_frac_pos': ch1_frac_pos,
+            'ch1_frac_neg': ch1_frac_neg,
+            'ch2_frac_pos': ch2_frac_pos,
+            'ch2_frac_neg': ch2_frac_neg
+        }
 
         # ch1_alphas = sample_from_gmm(self._randomize_numcount, mean=0.25)
         # ch2_alphas = sample_from_gmm(self._randomize_numcount, mean=0.25)
@@ -270,7 +280,8 @@ class RestrictedReconstruction:
         # print(f'c0: {c0} c1: {c1}, c2: {c2}, c1_res: {c1_res}, c2_res: {c2_res}')
 
         # incorrect_c2loss = self.loss_fn(normalized_target[:, 1], normalized_target_prediction[:, 0])
-        incorrect_c1loss, incorrect_c2loss, log_dict = self.get_incorrect_loss_v3(normalized_target, normalized_target_prediction)
+        incorrect_c1loss, incorrect_c2loss, log_dict = self.get_incorrect_loss_v3(normalized_target,
+                                                                                  normalized_target_prediction)
         incorrect_c1_all = self.get_grad_direction(incorrect_c1loss, params)
         incorrect_c2_all = self.get_grad_direction(incorrect_c2loss, params)
 
@@ -315,12 +326,10 @@ class RestrictedReconstruction:
 
         if len(normalized_target) == 0:
             print('No target, hence skipping input reconstruction loss')
-            return {'input_reconstruction_loss': torch.tensor(0.0)}
+            return {'input_reconstruction_loss': torch.tensor(0.0), 'log': {}}
 
-        corrected_unsup_grad_all, input_reconstruction_loss, log_dict = self.get_correct_grad(params, normalized_input,
-                                                                                    normalized_target,
-                                                                                    normalized_target_prediction,
-                                                                                    normalized_input_prediction)
+        corrected_unsup_grad_all, input_reconstruction_loss, log_dict = self.get_correct_grad(
+            params, normalized_input, normalized_target, normalized_target_prediction, normalized_input_prediction)
         # split_grad_all, split_loss = self.get_split_grad(params, normalized_target, normalized_target_prediction)
         for param, corrected_unsup_grad in zip(params, corrected_unsup_grad_all):
             if corrected_unsup_grad is None:
