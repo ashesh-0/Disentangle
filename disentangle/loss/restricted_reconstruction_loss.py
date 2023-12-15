@@ -175,7 +175,7 @@ class RestrictedReconstruction:
         Here, we take into account the correlation between the prediction and the target to account for which direction is incorrect.
         """
         assert self._randomize_alpha == True
-        assert self._similarity_mode != 'dot', 'it was not working'
+        assert self._similarity_mode != 'dot', 'dot was not working'
         # ch1_incorrect_corr = self.get_dotprod(normalized_target[:, 1, :, :], normalized_target_prediction[:,
         #                                                                                                     0, :, :])
         # ch2_incorrect_corr = self.get_dotprod(normalized_target[:, 0, :, :], normalized_target_prediction[:,
