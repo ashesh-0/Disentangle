@@ -47,6 +47,8 @@ class RestrictedReconstruction:
         self._randomize_alpha = randomize_alpha
         self._randomize_numcount = randomize_numcount
         self._crosschannel_corr = None
+        self._similarity_mode = 'dot'
+
         print(f'[{self.__class__.__name__}] w_split: {self._w_split}, w_recons: {self._w_recons}')
 
     def enable_nonorthogonal(self):
@@ -136,6 +138,16 @@ class RestrictedReconstruction:
 
         return corr
 
+    @staticmethod
+    def get_dotprod(tensor1, tensor2):
+        assert tensor1.shape == tensor2.shape
+        dims = tuple(range(1, len(tensor1.shape)))
+        out = tensor1 * tensor2
+        out = torch.mean(out, dim=dims)
+        out = out / torch.norm(tensor1, dim=dims)
+        out = out / torch.norm(tensor2, dim=dims)
+        return out
+
     def exp_moving_avg(self, new_val, old_val, beta=0.9):
         if old_val is None:
             return new_val
@@ -163,11 +175,21 @@ class RestrictedReconstruction:
         Here, we take into account the correlation between the prediction and the target to account for which direction is incorrect.
         """
         assert self._randomize_alpha == True
-        ch1_incorrect_corr = self.get_pearson_corr(normalized_target[:, 1, :, :], normalized_target_prediction[:,
-                                                                                                               0, :, :])
-        ch2_incorrect_corr = self.get_pearson_corr(normalized_target[:, 0, :, :], normalized_target_prediction[:,
-                                                                                                               1, :, :])
-        cross_channel_corr = self.get_pearson_corr(normalized_target[:, 0, :, :], normalized_target[:, 1, :, :])
+        if self._similarity_mode == 'dot':
+            ch1_incorrect_corr = self.get_dotprod(normalized_target[:, 1, :, :], normalized_target_prediction[:,
+                                                                                                              0, :, :])
+            ch2_incorrect_corr = self.get_dotprod(normalized_target[:, 0, :, :], normalized_target_prediction[:,
+                                                                                                              1, :, :])
+            cross_channel_corr = self.get_dotprod(normalized_target[:, 0, :, :], normalized_target[:, 1, :, :])
+            import pdb
+            pdb.set_trace()
+        else:
+            ch1_incorrect_corr = self.get_pearson_corr(normalized_target[:, 1, :, :],
+                                                       normalized_target_prediction[:, 0, :, :])
+            ch2_incorrect_corr = self.get_pearson_corr(normalized_target[:, 0, :, :],
+                                                       normalized_target_prediction[:, 1, :, :])
+            cross_channel_corr = self.get_pearson_corr(normalized_target[:, 0, :, :], normalized_target[:, 1, :, :])
+
         self._crosschannel_corr = self.exp_moving_avg(torch.mean(cross_channel_corr).item(), self._crosschannel_corr)
         eps = 1e-2
         ch1_excess_pos_corr = ch1_incorrect_corr > self._crosschannel_corr + eps
