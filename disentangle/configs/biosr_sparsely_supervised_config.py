@@ -24,6 +24,7 @@ def get_config():
     data.validtarget_random_fraction = 0.5
 
     data.validation_datausage_fraction = 0.08
+    data.return_index = True
 
     # data.validtarget_random_fraction_final = 1
     # data.validtarget_random_fraction_stepepoch = 0.005
@@ -145,6 +146,7 @@ def get_config():
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
+    training.dump_kth_frame_prediction = 0
 
     training.earlystop_patience = int(100 /
                                       data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 100)

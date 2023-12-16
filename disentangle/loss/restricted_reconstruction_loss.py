@@ -47,7 +47,7 @@ class RestrictedReconstruction:
         self._randomize_alpha = randomize_alpha
         self._randomize_numcount = randomize_numcount
         self._crosschannel_corr = None
-        self._similarity_mode = 'dot'
+        self._similarity_mode = None #'dot'
 
         print(f'[{self.__class__.__name__}] w_split: {self._w_split}, w_recons: {self._w_recons}')
 

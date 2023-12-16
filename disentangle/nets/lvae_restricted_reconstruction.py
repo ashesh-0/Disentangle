@@ -5,8 +5,8 @@ from disentangle.nets.lvae import LadderVAE
 
 class LadderVAERestrictedReconstruction(LadderVAE):
 
-    def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
-        super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
+    def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2, val_idx_manager=None):
+        super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch, val_idx_manager=val_idx_manager)
         self.automatic_optimization = False
         assert self.loss_type == LossType.ElboRestrictedReconstruction
         self.mixed_rec_w = config.loss.mixed_rec_weight
@@ -60,6 +60,12 @@ class LadderVAERestrictedReconstruction(LadderVAE):
 
         self.label1_psnr.reset()
         self.label2_psnr.reset()
+        if self._dump_kth_frame_prediction is not None:
+            self._val_frame_creator.dump(self.current_epoch)
+            self._val_frame_creator.reset()
+            if self.current_epoch == 1:
+                self._val_frame_creator.dump_target()
+
         if self.mixed_rec_w_step:
             self.mixed_rec_w = max(self.mixed_rec_w - self.mixed_rec_w_step, 0.0)
             self.log('mixed_rec_w', self.mixed_rec_w, on_epoch=True)

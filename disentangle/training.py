@@ -339,7 +339,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
     for filename in glob.glob(config.workdir + "/*.ckpt"):
         os.remove(filename)
 
-    model = create_model(config, data_mean, data_std)
+    model = create_model(config, data_mean, data_std, val_idx_manager=val_loader.dataset.idx_manager)
     if config.model.model_type == ModelType.LadderVaeStitch2Stage:
         assert config.training.pre_trained_ckpt_fpath and os.path.exists(config.training.pre_trained_ckpt_fpath)
 
@@ -379,7 +379,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 logger=logger,
                 # fast_dev_run=10,
                 #  profiler=profiler,
-                # overfit_batches=20,
+                # overfit_batches=10,
                 check_val_every_n_epoch=check_val_every_n_epoch,
                 callbacks=callbacks,
                 precision=config.training.precision)
@@ -393,7 +393,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 logger=logger,
                 # fast_dev_run=10,
                 #  profiler=profiler,
-                # overfit_batches=20,
+                # overfit_batches=10,
                 check_val_every_n_epoch=check_val_every_n_epoch,
                 callbacks=callbacks,
                 precision=config.training.precision)

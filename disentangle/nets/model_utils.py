@@ -31,9 +31,9 @@ from disentangle.nets.lvae_with_texturediscriminator import LadderVAETexDiscrim
 from disentangle.nets.unet import UNet
 
 
-def create_model(config, data_mean, data_std):
+def create_model(config, data_mean, data_std, val_idx_manager=None):
     if config.model.model_type == ModelType.LadderVae:
-        model = LadderVAE(data_mean, data_std, config)
+        model = LadderVAE(data_mean, data_std, config, val_idx_manager=val_idx_manager)
     elif config.model.model_type == ModelType.LadderVaeTwinDecoder:
         model = LadderVAETwinDecoder(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVAECritic:
@@ -71,7 +71,7 @@ def create_model(config, data_mean, data_std):
     elif config.model.model_type == ModelType.LadderVAETexDiscrim:
         model = LadderVAETexDiscrim(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVAERestrictedReconstruction:
-        model = LadderVAERestrictedReconstruction(data_mean, data_std, config)
+        model = LadderVAERestrictedReconstruction(data_mean, data_std, config, val_idx_manager=val_idx_manager)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
 

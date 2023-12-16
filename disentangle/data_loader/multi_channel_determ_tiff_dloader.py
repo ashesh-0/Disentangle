@@ -99,6 +99,7 @@ class MultiChDeterministicTiffDloader:
                             data_config.val_grid_size if 'val_grid_size' in data_config else data_config.image_size)
 
         self._return_alpha = data_config.get('return_alpha', False)
+        self._return_index = data_config.get('return_index', False)
 
         self._empty_patch_replacement_enabled = data_config.get("empty_patch_replacement_enabled",
                                                                 False) and self._is_train
@@ -618,6 +619,9 @@ class MultiChDeterministicTiffDloader:
         if self._return_alpha:
             output.append(alpha)
 
+        if self._return_index:
+            output.append(index)
+        
         if isinstance(index, int) or isinstance(index, np.int64):
             return tuple(output)
 
