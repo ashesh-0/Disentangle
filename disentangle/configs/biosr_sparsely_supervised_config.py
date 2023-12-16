@@ -65,7 +65,7 @@ def get_config():
     # loss.critic_loss_weight = 0.001
     loss.mixed_rec_weight = 100.0
     loss.split_weight = 0.0
-    loss.switch_to_nonorthogonal_epoch = -1
+    loss.switch_to_nonorthogonal_epoch = 0
     # loss.mixed_rec_w_step = 0.01
     # loss.exclusion_loss_weight = 0.005
 
