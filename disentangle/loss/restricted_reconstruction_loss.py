@@ -47,7 +47,7 @@ class RestrictedReconstruction:
         self._randomize_alpha = randomize_alpha
         self._randomize_numcount = randomize_numcount
         self._crosschannel_corr = None
-        self._similarity_mode = None #'dot'
+        self._similarity_mode = None  #'dot'
 
         print(f'[{self.__class__.__name__}] w_split: {self._w_split}, w_recons: {self._w_recons}')
 
@@ -115,7 +115,8 @@ class RestrictedReconstruction:
         return grad_components
 
     def loss_fn(self, tar, pred):
-        return torch.mean((tar - pred)**2)
+        # return torch.mean((tar - pred)**2)
+        return torch.mean(torch.abs(tar - pred))
 
     @staticmethod
     def get_pearson_corr(tensor1, tensor2):
@@ -181,12 +182,12 @@ class RestrictedReconstruction:
         # ch2_incorrect_corr = self.get_dotprod(normalized_target[:, 0, :, :], normalized_target_prediction[:,
         #                                                                                                     1, :, :])
         # cross_channel_corr = self.get_dotprod(normalized_target[:, 0, :, :], normalized_target[:, 1, :, :])
-        # print(torch.max(cross_channel_corr).item(), 
+        # print(torch.max(cross_channel_corr).item(),
         #         torch.max(ch1_incorrect_corr).item(), torch.max(ch2_incorrect_corr).item())
-        ch1_incorrect_corr = self.get_pearson_corr(normalized_target[:, 1, :, :],
-                                                    normalized_target_prediction[:, 0, :, :])
-        ch2_incorrect_corr = self.get_pearson_corr(normalized_target[:, 0, :, :],
-                                                    normalized_target_prediction[:, 1, :, :])
+        ch1_incorrect_corr = self.get_pearson_corr(normalized_target[:, 1, :, :], normalized_target_prediction[:,
+                                                                                                               0, :, :])
+        ch2_incorrect_corr = self.get_pearson_corr(normalized_target[:, 0, :, :], normalized_target_prediction[:,
+                                                                                                               1, :, :])
         cross_channel_corr = self.get_pearson_corr(normalized_target[:, 0, :, :], normalized_target[:, 1, :, :])
 
         self._crosschannel_corr = self.exp_moving_avg(torch.mean(cross_channel_corr).item(), self._crosschannel_corr)
