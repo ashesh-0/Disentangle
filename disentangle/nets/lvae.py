@@ -801,7 +801,7 @@ class LadderVAE(pl.LightningModule):
             if self.current_epoch == 0:
                 self._val_frame_creator.update_target(target.cpu().numpy().astype(np.int32),
                                                       batch[-1].cpu().numpy().astype(np.int32))
-            if self.current_epoch == 0 or self._dump_epoch_interval % self.current_epoch == 0:
+            if self.current_epoch == 0 or self.current_epoch % self._dump_epoch_interval == 0:
                 imgs = self.unnormalize_target(recons_img).cpu().numpy().astype(np.int32)
                 self._val_frame_creator.update(imgs, batch[-1].cpu().numpy().astype(np.int32))
 
@@ -850,7 +850,7 @@ class LadderVAE(pl.LightningModule):
         if self._dump_kth_frame_prediction is not None:
             if self.current_epoch == 1:
                 self._val_frame_creator.dump_target()
-            if self.current_epoch == 0 or self._dump_epoch_interval % self.current_epoch == 0:
+            if self.current_epoch == 0 or self.current_epoch % self._dump_epoch_interval == 0:
                 self._val_frame_creator.dump(self.current_epoch)
                 self._val_frame_creator.reset()
 

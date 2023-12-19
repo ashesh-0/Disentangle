@@ -61,7 +61,7 @@ class LadderVAERestrictedReconstruction(LadderVAE):
         self.label1_psnr.reset()
         self.label2_psnr.reset()
         if self._dump_kth_frame_prediction is not None:
-            if self.current_epoch == 0 or self._dump_epoch_interval % self.current_epoch == 0:
+            if self.current_epoch == 0 or self.current_epoch % self._dump_epoch_interval == 0:
                 self._val_frame_creator.dump(self.current_epoch)
                 self._val_frame_creator.reset()
             if self.current_epoch == 1:
