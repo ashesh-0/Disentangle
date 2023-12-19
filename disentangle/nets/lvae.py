@@ -1,6 +1,8 @@
 """
 Ladder VAE. Adapted from from https://github.com/juglab/HDN/blob/main/models/lvae.py
 """
+import os
+
 import numpy as np
 import pytorch_lightning as pl
 import torch
@@ -9,9 +11,8 @@ import torchvision.transforms.functional as F
 import wandb
 from torch import nn
 from torch.autograd import Variable
-import numpy as np
-import os
 
+from disentangle.analysis.pred_frame_creator import PredFrameCreator
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
 from disentangle.core.loss_type import LossType
@@ -25,7 +26,7 @@ from disentangle.metrics.running_psnr import RunningPSNR
 from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
                                           TopDownLayer)
 from disentangle.nets.noise_model import get_noise_model
-from disentangle.analysis.pred_frame_creator import PredFrameCreator
+
 
 def torch_nanmean(inp):
     return torch.mean(inp[~inp.isnan()])
@@ -44,7 +45,7 @@ class LadderVAE(pl.LightningModule):
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
         self.ch1_recons_w = config.loss.get('ch1_recons_w', 1)
         self.ch2_recons_w = config.loss.get('ch2_recons_w', 1)
-        # can be used to tile the validation predictions 
+        # can be used to tile the validation predictions
         self._val_idx_manager = val_idx_manager
         self._val_frame_creator = None
         self._dump_kth_frame_prediction = config.training.get('dump_kth_frame_prediction')
@@ -52,8 +53,8 @@ class LadderVAE(pl.LightningModule):
             assert self._val_idx_manager is not None
             dir = os.path.join(config.workdir, 'pred_frames')
             os.mkdir(dir)
+            self._dump_epoch_interval = config.training.get('dump_epoch_interval', 1)
             self._val_frame_creator = PredFrameCreator(self._val_idx_manager, self._dump_kth_frame_prediction, dir)
-
 
         self._input_is_sum = config.data.input_is_sum
         # grayscale input
@@ -751,7 +752,7 @@ class LadderVAE(pl.LightningModule):
 
     def unnormalize_target(self, target_normalized):
         return target_normalized * self.data_std['target'] + self.data_mean['target']
-    
+
     def power_of_2(self, x):
         assert isinstance(x, int)
         if x == 1:
@@ -765,6 +766,8 @@ class LadderVAE(pl.LightningModule):
 
     def set_params_to_same_device_as(self, correct_device_tensor):
         self.likelihood.set_params_to_same_device_as(correct_device_tensor)
+        import pdb
+        pdb.set_trace()
         if isinstance(self.data_mean, torch.Tensor):
             if self.data_mean.device != correct_device_tensor.device:
                 self.data_mean = self.data_mean.to(correct_device_tensor.device)
@@ -797,12 +800,12 @@ class LadderVAE(pl.LightningModule):
                                                                     mask,
                                                                     return_predicted_img=True)
         if self._dump_kth_frame_prediction is not None:
-            imgs = self.unnormalize_target(recons_img).cpu().numpy().astype(np.int32)
-            self._val_frame_creator.update(imgs, batch[-1].cpu().numpy().astype(np.int32))                    
             if self.current_epoch == 0:
-                self._val_frame_creator.update_target(target.cpu().numpy().astype(np.int32), 
+                self._val_frame_creator.update_target(target.cpu().numpy().astype(np.int32),
                                                       batch[-1].cpu().numpy().astype(np.int32))
-            
+            if self.current_epoch == 0 or self._dump_epoch_interval % self.current_epoch == 0:
+                imgs = self.unnormalize_target(recons_img).cpu().numpy().astype(np.int32)
+                self._val_frame_creator.update(imgs, batch[-1].cpu().numpy().astype(np.int32))
 
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
@@ -847,11 +850,12 @@ class LadderVAE(pl.LightningModule):
         self.label1_psnr.reset()
         self.label2_psnr.reset()
         if self._dump_kth_frame_prediction is not None:
-            self._val_frame_creator.dump(self.current_epoch)
-            self._val_frame_creator.reset()
             if self.current_epoch == 1:
                 self._val_frame_creator.dump_target()
-        
+            if self.current_epoch == 0 or self._dump_epoch_interval % self.current_epoch == 0:
+                self._val_frame_creator.dump(self.current_epoch)
+                self._val_frame_creator.reset()
+
         if self.mixed_rec_w_step:
             self.mixed_rec_w = max(self.mixed_rec_w - self.mixed_rec_w_step, 0.0)
             self.log('mixed_rec_w', self.mixed_rec_w, on_epoch=True)
