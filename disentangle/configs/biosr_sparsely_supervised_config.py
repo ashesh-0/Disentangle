@@ -146,6 +146,7 @@ def get_config():
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
+    training.dump_epoch_interval = 10
     training.dump_kth_frame_prediction = 0
 
     training.earlystop_patience = int(100 /
