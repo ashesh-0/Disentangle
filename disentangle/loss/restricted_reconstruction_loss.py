@@ -115,8 +115,8 @@ class RestrictedReconstruction:
         return grad_components
 
     def loss_fn(self, tar, pred):
-        # return torch.mean((tar - pred)**2)
-        return torch.mean(torch.abs(tar - pred))
+        return torch.mean((tar - pred)**2)
+        # return torch.mean(torch.abs(tar - pred))
 
     @staticmethod
     def get_pearson_corr(tensor1, tensor2):
