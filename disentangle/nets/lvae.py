@@ -766,8 +766,6 @@ class LadderVAE(pl.LightningModule):
 
     def set_params_to_same_device_as(self, correct_device_tensor):
         self.likelihood.set_params_to_same_device_as(correct_device_tensor)
-        import pdb
-        pdb.set_trace()
         if isinstance(self.data_mean, torch.Tensor):
             if self.data_mean.device != correct_device_tensor.device:
                 self.data_mean = self.data_mean.to(correct_device_tensor.device)
