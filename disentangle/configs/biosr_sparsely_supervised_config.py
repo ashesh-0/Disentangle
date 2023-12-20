@@ -57,7 +57,7 @@ def get_config():
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
-    data.target_separate_normalization = False
+    data.target_separate_normalization = True
 
     loss = config.loss
     loss.loss_type = LossType.ElboRestrictedReconstruction
@@ -136,10 +136,10 @@ def get_config():
     # model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/11/BaselineVAECL_best.ckpt'
 
     training = config.training
-    training.lr = 0.001 / 2
+    training.lr = 0.001
     training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
                                          data else 30)
-    training.max_epochs = int(400 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 400)
+    training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
     training.batch_size = 16
     training.num_workers = 4
     training.val_repeat_factor = None
