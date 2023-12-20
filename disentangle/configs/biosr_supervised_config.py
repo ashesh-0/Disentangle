@@ -126,7 +126,7 @@ def get_config():
     # model.pretrained_weights_skip_likelihood = True
 
     training = config.training
-    training.lr = 0.001 / 2
+    training.lr = 0.001
     training.lr_scheduler_patience = int(30 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in
                                          data else 30)
     training.max_epochs = int(200 / data.trainig_datausage_fraction if 'trainig_datausage_fraction' in data else 200)
