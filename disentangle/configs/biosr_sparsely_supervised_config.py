@@ -11,6 +11,8 @@ def get_config():
     data.image_size = 128
     data.grid_size = 1
     data.data_type = DataType.BioSR_MRC
+    # note that this is dependant on image_size.
+    data.std_background_arr = [1000.0, 1000.0]
     # data.channel_1 = 0
     # data.channel_2 = 1
     data.ch1_fname = 'Microtubules/GT_all.mrc'
@@ -65,7 +67,7 @@ def get_config():
     # loss.critic_loss_weight = 0.001
     loss.mixed_rec_weight = 100.0
     loss.split_weight = 0.0
-    loss.switch_to_nonorthogonal_epoch = 10000
+    loss.switch_to_nonorthogonal_epoch = 100000
     # loss.mixed_rec_w_step = 0.01
     # loss.exclusion_loss_weight = 0.005
 

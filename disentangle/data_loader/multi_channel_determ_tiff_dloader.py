@@ -93,6 +93,7 @@ class MultiChDeterministicTiffDloader:
                             data_config.grid_size if 'grid_size' in data_config else data_config.image_size)
             if self._validtarget_rand_fract is not None:
                 self._train_index_switcher = IndexSwitcher(self.idx_manager, data_config, self._img_sz)
+                self._std_background_arr = data_config.get('std_background_arr', None)
         else:
 
             self.set_img_sz(data_config.image_size,
@@ -576,6 +577,16 @@ class MultiChDeterministicTiffDloader:
                 index = self._train_index_switcher.get_invalid_target_index()
         return index
 
+    def patches_have_content(self, img_tuples):
+        if self._std_background_arr is None:
+            return True
+
+        has_content = True
+        for img, std_background in zip(img_tuples, self._std_background_arr):
+            # print('Std status', np.std(img), std_background)
+            has_content = has_content and (np.std(img) > std_background)
+        return has_content
+
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
 
         if self._validtarget_random_fraction_final is not None:
@@ -591,6 +602,14 @@ class MultiChDeterministicTiffDloader:
             index = self._get_index_from_valid_target_logic(index)
 
         img_tuples = self._get_img(index)
+        if self._train_index_switcher is not None and self._train_index_switcher.index_should_have_target(index):
+            i = 0
+            while not self.patches_have_content(img_tuples):
+                i += 1
+                # print(i, 'Image has no content. Trying again')
+                index = self._train_index_switcher.get_valid_target_index()
+                img_tuples = self._get_img(index)
+
         if self._empty_patch_replacement_enabled:
             if np.random.rand() < self._empty_patch_replacement_probab:
                 img_tuples = self.replace_with_empty_patch(img_tuples)
@@ -621,7 +640,7 @@ class MultiChDeterministicTiffDloader:
 
         if self._return_index:
             output.append(index)
-        
+
         if isinstance(index, int) or isinstance(index, np.int64):
             return tuple(output)
 
