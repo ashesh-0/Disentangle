@@ -12,7 +12,7 @@ def get_config():
     data.grid_size = 1
     data.data_type = DataType.BioSR_MRC
     # note that this is dependant on image_size.
-    data.std_background_arr = [1000.0, 1000.0]
+    data.std_background_arr = [500.0, 500.0]
     # data.channel_1 = 0
     # data.channel_2 = 1
     data.ch1_fname = 'Microtubules/GT_all.mrc'
