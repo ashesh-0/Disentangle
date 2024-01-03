@@ -22,6 +22,7 @@ from disentangle.nets.lvae_multidset_multi_optim import LadderVaeMultiDatasetMul
 from disentangle.nets.lvae_multiple_encoder_single_opt import LadderVAEMulEncoder1Optim
 from disentangle.nets.lvae_multiple_encoders import LadderVAEMultipleEncoders
 from disentangle.nets.lvae_multires_target import LadderVAEMultiTarget
+from disentangle.nets.lvae_restricted_reconstruction import LadderVAERestrictedReconstruction
 from disentangle.nets.lvae_semi_supervised import LadderVAESemiSupervised
 from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
 from disentangle.nets.lvae_with_critic import LadderVAECritic
@@ -31,10 +32,10 @@ from disentangle.nets.splitter_denoiser import SplitterDenoiser
 from disentangle.nets.unet import UNet
 
 
-def create_model(config, data_mean, data_std):
+def create_model(config, data_mean, data_std, val_idx_manager=None):
     if config.model.model_type == ModelType.LadderVae:
         target_ch = config.data.get('num_channels', 2)
-        model = LadderVAE(data_mean, data_std, config, target_ch=target_ch)
+        model = LadderVAE(data_mean, data_std, config, target_ch=target_ch, val_idx_manager=val_idx_manager)
     elif config.model.model_type == ModelType.LadderVaeTwinDecoder:
         model = LadderVAETwinDecoder(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVAECritic:
@@ -71,6 +72,9 @@ def create_model(config, data_mean, data_std):
         model = DenoiserSplitter(data_mean, data_std, config)
     elif config.model.model_type == ModelType.SplitterDenoiser:
         model = SplitterDenoiser(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVAERestrictedReconstruction:
+        model = LadderVAERestrictedReconstruction(data_mean, data_std, config, val_idx_manager=val_idx_manager)
+
     else:
         raise Exception('Invalid model type:', config.model.model_type)
     return model

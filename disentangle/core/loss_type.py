@@ -9,3 +9,4 @@ class LossType:
     ElboWithNbrConsistency = 4
     ElboSemiSupMixedReconstruction = 5
     ElboCL = 6
+    ElboRestrictedReconstruction = 7

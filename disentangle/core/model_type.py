@@ -29,3 +29,4 @@ class ModelType(Enum):
     Denoiser = 23
     DenoiserSplitter = 24
     SplitterDenoiser = 25
+    LadderVAERestrictedReconstruction = 26

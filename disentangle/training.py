@@ -393,7 +393,12 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
     for filename in glob.glob(config.workdir + "/*.ckpt"):
         os.remove(filename)
 
-    model = create_model(config, data_mean, data_std)
+    if hasattr(val_loader.dataset, 'idx_manager'):
+        val_idx_manager = val_loader.dataset.idx_manager
+    else:
+        val_idx_manager = None
+    model = create_model(config, data_mean, data_std, val_idx_manager=val_idx_manager)
+
     if config.model.model_type == ModelType.LadderVaeStitch2Stage:
         assert config.training.pre_trained_ckpt_fpath and os.path.exists(config.training.pre_trained_ckpt_fpath)
 
