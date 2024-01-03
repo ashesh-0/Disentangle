@@ -40,7 +40,7 @@ class MultiChDloader:
         """
         self._fpath = fpath
         self._data = self.N = None
-
+        self._train_index_switcher = None
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
         self._num_channels = data_config.get('num_channels', 2)
@@ -100,6 +100,7 @@ class MultiChDloader:
                             data_config.val_grid_size if 'val_grid_size' in data_config else data_config.image_size)
 
         self._return_alpha = data_config.get('return_alpha', False)
+        self._return_index = data_config.get('return_index', False)
 
         self._empty_patch_replacement_enabled = data_config.get("empty_patch_replacement_enabled",
                                                                 False) and self._is_train
@@ -258,7 +259,10 @@ class MultiChDloader:
         self.set_repeat_factor()
 
     def set_repeat_factor(self):
-        self._repeat_factor = self.idx_manager.grid_rows(self._grid_sz) * self.idx_manager.grid_cols(self._grid_sz)
+        if self._grid_sz > 1:
+            self._repeat_factor = self.idx_manager.grid_rows(self._grid_sz) * self.idx_manager.grid_cols(self._grid_sz)
+        else:
+            self._repeat_factor = self.idx_manager.grid_rows(self._img_sz) * self.idx_manager.grid_cols(self._img_sz)
 
     def _init_msg(self, ):
         msg = f'[{self.__class__.__name__}] Sz:{self._img_sz}'
@@ -365,7 +369,7 @@ class MultiChDloader:
         return self.N * self._repeat_factor
 
     def _load_img(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
-        if isinstance(index, int):
+        if isinstance(index, int) or isinstance(index, np.int64):
             idx = index
         else:
             idx = index[0]
@@ -407,7 +411,7 @@ class MultiChDloader:
         """
         It returns the top-left corner of the patch corresponding to index.
         """
-        if isinstance(index, int):
+        if isinstance(index, int) or isinstance(index, np.int64):
             idx = index
             grid_size = self._grid_sz
         else:

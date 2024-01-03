@@ -20,7 +20,6 @@ from disentangle.core.model_type import ModelType
 from disentangle.data_loader.intensity_augm_tiff_dloader import IntensityAugCLTiffDloader
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
-from disentangle.data_loader.multi_channel_tiff_dloader import MultiChTiffDloader
 from disentangle.data_loader.multi_dset_dloader import IBA1Ki67DataLoader
 from disentangle.data_loader.multifile_dset import MultiFileDset
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader

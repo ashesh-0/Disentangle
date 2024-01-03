@@ -1,3 +1,5 @@
+import numpy as np
+
 from disentangle.core.loss_type import LossType
 from disentangle.loss.restricted_reconstruction_loss import RestrictedReconstruction
 from disentangle.nets.lvae import LadderVAE
@@ -51,15 +53,18 @@ class LadderVAERestrictedReconstruction(LadderVAE):
                 self.log(key, loss_dict['log'][key], on_epoch=True)
 
     def on_validation_epoch_end(self):
-        psnrl1 = self.label1_psnr.get()
-        psnrl2 = self.label2_psnr.get()
-        psnr = (psnrl1 + psnrl2) / 2
+        psnr_arr = []
+        for i in range(len(self.channels_psnr)):
+            psnr = self.channels_psnr[i].get()
+            psnr_arr.append(psnr.cpu().numpy())
+            self.channels_psnr[i].reset()
+
+        psnr = np.mean(psnr_arr)
         self.log('val_psnr', psnr, on_epoch=True)
+
         sch1 = self.lr_schedulers()
         sch1.step(psnr)
 
-        self.label1_psnr.reset()
-        self.label2_psnr.reset()
         if self._dump_kth_frame_prediction is not None:
             if self.current_epoch == 0 or self.current_epoch % self._dump_epoch_interval == 0:
                 self._val_frame_creator.dump(self.current_epoch)
