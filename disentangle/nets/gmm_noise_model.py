@@ -21,7 +21,7 @@ def fastShuffle(series, num):
     return series
 
 
-class GaussianMixtureNoiseModel:
+class GaussianMixtureNoiseModel(nn.Module):
     """The GaussianMixtureNoiseModel class describes a noise model which is parameterized as a mixture of gaussians.
        If you would like to initialize a new object from scratch, then set `params`= None and specify the other parameters as keyword arguments. If you are instead loading a model, use only `params`.
             Parameters
@@ -56,7 +56,7 @@ class GaussianMixtureNoiseModel:
     """
 
     def __init__(self, **kwargs):
-
+        super().__init__()
         if (kwargs.get('params') is None):
             weight = kwargs.get('weight')
             n_gaussian = kwargs.get('n_gaussian')
@@ -91,6 +91,9 @@ class GaussianMixtureNoiseModel:
             self.tol = torch.Tensor([1e-10])  #.to(self.device)
             self.min_signal = torch.Tensor([self.min_signal])  #.to(self.device)
             self.max_signal = torch.Tensor([self.max_signal])  #.to(self.device)
+
+    def make_learnable(self):
+        self.weight.requires_grad = True
 
     def to_device(self, cuda_tensor):
         # move everything to GPU

@@ -33,5 +33,9 @@ def get_noise_model(model_config):
         elif model_config.noise_model_type == 'gmm':
             nmodel1 = GaussianMixtureNoiseModel(params=np.load(model_config.noise_model_ch1_fpath))
             nmodel2 = GaussianMixtureNoiseModel(params=np.load(model_config.noise_model_ch2_fpath))
+            if model_config.get('noise_model_learnable', False):
+                nmodel1.make_learnable()
+                nmodel2.make_learnable()
+
         return DisentNoiseModel(nmodel1, nmodel2)
     return None
