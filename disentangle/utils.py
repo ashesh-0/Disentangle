@@ -117,7 +117,7 @@ def extract_patches(x, patch_size, num_patches):
     img_width = x.shape[2]
     img_height = x.shape[1]
     if (num_patches is None):
-        num_patches = int(float(img_width * img_height) / float(patch_size ** 2) * 2)
+        num_patches = int(float(img_width * img_height) / float(patch_size**2) * 2)
     patches = np.zeros(shape=(x.shape[0] * num_patches, patch_size, patch_size))
 
     for i in tqdm(range(x.shape[0])):
@@ -199,13 +199,13 @@ def getSamples(vae, size=20, zSize=64, mu=None, logvar=None, samples=1, tq=False
 
 
 def interpolate(
-        vae,
-        z_start,
-        z_end,
-        steps,
-        display,
-        vmin=0,
-        vmax=255,
+    vae,
+    z_start,
+    z_end,
+    steps,
+    display,
+    vmin=0,
+    vmax=255,
 ):
     results = []
     for i in range(steps):
@@ -266,7 +266,7 @@ def findClosest(samples, q):
     q: image(array)
         Image to which the closest image needs to be found.
     """
-    dif = np.mean(np.mean((samples - q) ** 2, -1), -1)
+    dif = np.mean(np.mean((samples - q)**2, -1), -1)
     return samples[np.argmin(dif)]
 
 
@@ -301,26 +301,22 @@ def findMode(samples, initBW=200, minBW=100, reduce=0.9):
     return result
 
 
-def plotProbabilityDistribution(signalBinIndex, histogram, gaussianMixtureNoiseModel, min_signal, max_signal, n_bin,
-                                device):
+def plotProbabilityDistribution(signalBinIndex, histogramNoiseModel, gaussianMixtureNoiseModel, device):
     """Plots probability distribution P(x|s) for a certain ground truth signal.
        Predictions from both Histogram and GMM-based Noise models are displayed for comparison.
         Parameters
         ----------
         signalBinIndex: int
             index of signal bin. Values go from 0 to number of bins (`n_bin`).
-        histogram: numpy array
-            A square numpy array of size `nbin` times `n_bin`.
+        histogramNoiseModel: Histogram based noise model
         gaussianMixtureNoiseModel: GaussianMixtureNoiseModel
             Object containing trained parameters.
-        min_signal: float
-            Lowest pixel intensity present in the actual sample which needs to be denoised.
-        max_signal: float
-            Highest pixel intensity present in the actual sample which needs to be denoised.
-        n_bin: int
-            Number of Bins.
         device: GPU device
         """
+    max_signal = histogramNoiseModel.maxv.item()
+    min_signal = histogramNoiseModel.minv.item()
+    n_bin = int(histogramNoiseModel.bins.item())
+
     histBinSize = (max_signal - min_signal) / n_bin
     querySignal_numpy = (signalBinIndex / float(n_bin) * (max_signal - min_signal) + min_signal)
     querySignal_numpy += histBinSize / 2
@@ -337,18 +333,25 @@ def plotProbabilityDistribution(signalBinIndex, histogram, gaussianMixtureNoiseM
     plt.subplot(1, 2, 1)
     plt.xlabel('Observation Bin')
     plt.ylabel('Signal Bin')
-    plt.imshow(histogram ** 0.25, cmap='gray')
+    histogram = histogramNoiseModel.fullHist.cpu().numpy()
+    plt.imshow(histogram**0.25, cmap='gray')
     plt.axhline(y=signalBinIndex + 0.5, linewidth=5, color='blue', alpha=0.5)
 
     plt.subplot(1, 2, 2)
+    histobs = histogramNoiseModel.likelihood(queryObservations, querySignal_torch).cpu().numpy()
+    # histobs_repeated = np.repeat(histobs, 2)
+    # queryObservations_repeated = np.repeat(queryObservations_numpy, 2)
     plt.plot(queryObservations_numpy,
-             histogram[signalBinIndex, :] / histBinSize,
-             label='GT Hist: bin =' + str(signalBinIndex),
+             histobs,
+             label='Hist : ' + ' signal = ' + str(np.round(querySignal_numpy, 2)),
              color='blue',
+             marker='.',
              linewidth=2)
+
     plt.plot(queryObservations_numpy,
              pNumpy,
              label='GMM : ' + ' signal = ' + str(np.round(querySignal_numpy, 2)),
+             marker='.',
              color='red',
              linewidth=2)
     plt.xlabel('Observations (x) for signal s = ' + str(querySignal_numpy))
@@ -506,7 +509,7 @@ def plot_qualitative_results(noisy_input, vae, device):
 
         # we select a random crop
         size_uncropped = int(0.14 * (np.minimum(noisy_input[0].shape[0], noisy_input[0].shape[1])))
-        size = size_uncropped - (size_uncropped % (2 ** vae.n_depth))
+        size = size_uncropped - (size_uncropped % (2**vae.n_depth))
         minx = np.random.randint(0, noisy_input[0].shape[0] - size)
         miny = np.random.randint(0, noisy_input[0].shape[1] - size)
         img = noisy_input[0][minx:minx + size, miny:miny + size]

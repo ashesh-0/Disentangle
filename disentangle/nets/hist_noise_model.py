@@ -155,8 +155,8 @@
 #    The Noise Model
 ############################################
 
-import torch
 import numpy as np
+import torch
 
 
 def createHistogram(bins, minVal, maxVal, observation, signal):
@@ -238,6 +238,11 @@ class HistNoiseModel:
 
         # move everything to GPU
         self.bins = torch.Tensor(np.array(float(bins)))
+        self.bin_size = (self.maxv - self.minv) / self.bins
+        for i in range(histogram.shape[1]):
+            msg = f'bin size is not constant for index:{i}: {self.bin_size} vs {histogram[2,i,0] - histogram[1,i,0]}'
+            assert histogram[2, i, 0] - histogram[1, i, 0] == self.bin_size, msg
+
         self.fullHist = torch.Tensor(histogram[0, ...].astype(np.float32))
 
     def to_device(self, cuda_tensor):
@@ -268,9 +273,12 @@ class HistNoiseModel:
         signalF = self.getIndexSignalFloat(signal)
         signal_ = signalF.floor().long()
         fact = signalF - signal_.float()
+        # fact = 0.0
         # Finally we are looking ud the values and interpolate
-        return self.fullHist[signal_, obs_] * (1.0 - fact) + self.fullHist[torch.clamp(
+        unscaled_likelihood = self.fullHist[signal_, obs_] * (1.0 - fact) + self.fullHist[torch.clamp(
             (signal_ + 1).long(), 0, self.bins.long()), obs_] * (fact)
+
+        return unscaled_likelihood / self.bin_size
 
     def getIndexObsFloat(self, x):
         self.to_device(x)
