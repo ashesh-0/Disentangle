@@ -2,6 +2,7 @@
 Taken from https://github.com/juglab/HDN/blob/main/lib/gaussianMixtureNoiseModel.py
 """
 import torch
+import torch.nn as nn
 
 dtype = torch.float
 import pickle
@@ -57,6 +58,8 @@ class GaussianMixtureNoiseModel(nn.Module):
 
     def __init__(self, **kwargs):
         super().__init__()
+        self._learnable = False
+
         if (kwargs.get('params') is None):
             weight = kwargs.get('weight')
             n_gaussian = kwargs.get('n_gaussian')
@@ -93,6 +96,7 @@ class GaussianMixtureNoiseModel(nn.Module):
             self.max_signal = torch.Tensor([self.max_signal])  #.to(self.device)
 
     def make_learnable(self):
+        self._learnable = True
         self.weight.requires_grad = True
 
     def to_device(self, cuda_tensor):
@@ -102,6 +106,8 @@ class GaussianMixtureNoiseModel(nn.Module):
             self.min_signal = self.min_signal.to(cuda_tensor.device)
             self.tol = self.tol.to(cuda_tensor.device)
             self.weight = self.weight.to(cuda_tensor.device)
+            if self._learnable:
+                self.weight.requires_grad = True
 
     def polynomialRegressor(self, weightParams, signals):
         """Combines `weightParams` and signal `signals` to regress for the gaussian parameter values.
@@ -182,6 +188,7 @@ class GaussianMixtureNoiseModel(nn.Module):
         sigma = []
         alpha = []
         kernels = self.weight.shape[0] // 3
+
         for num in range(kernels):
             mu.append(self.polynomialRegressor(self.weight[num, :], signals))
 
@@ -244,73 +251,72 @@ class GaussianMixtureNoiseModel(nn.Module):
         sig_obs_pairs = sig_obs_pairs[(sig_obs_pairs[:, 0] > lb) & (sig_obs_pairs[:, 0] < ub)]
         return fastShuffle(sig_obs_pairs, 2)
 
-    def train(self,
-              signal,
-              observation,
-              learning_rate=1e-1,
-              batchSize=250000,
-              n_epochs=2000,
-              name='GMMNoiseModel.npz',
-              lowerClip=0,
-              upperClip=100):
-        """Training to learn the noise model from signal - observation pairs.
-                Parameters
-                ----------
-                signal: numpy array
-                    Clean Signal Data
-                observation: numpy array
-                    Noisy Observation Data
-                learning_rate: float
-                    Learning rate. Default = 1e-1.
-                batchSize: int
-                    Nini-batch size. Default = 250000.
-                n_epochs: int
-                    Number of epochs. Default = 2000.
-                name: string
-                    Model name. Default is `GMMNoiseModel`. This model after being trained is saved at the location `path`.
-                lowerClip : int
-                    Lower percentile for clipping. Default is 0.
-                upperClip : int
-                    Upper percentile for clipping. Default is 100.
-                    
-                    
-        """
-        sig_obs_pairs = self.getSignalObservationPairs(signal, observation, lowerClip, upperClip)
-        counter = 0
-        optimizer = torch.optim.Adam([self.weight], lr=learning_rate)
-        for t in range(n_epochs):
+    # def train(self,
+    #           signal,
+    #           observation,
+    #           learning_rate=1e-1,
+    #           batchSize=250000,
+    #           n_epochs=2000,
+    #           name='GMMNoiseModel.npz',
+    #           lowerClip=0,
+    #           upperClip=100):
+    #     """Training to learn the noise model from signal - observation pairs.
+    #             Parameters
+    #             ----------
+    #             signal: numpy array
+    #                 Clean Signal Data
+    #             observation: numpy array
+    #                 Noisy Observation Data
+    #             learning_rate: float
+    #                 Learning rate. Default = 1e-1.
+    #             batchSize: int
+    #                 Nini-batch size. Default = 250000.
+    #             n_epochs: int
+    #                 Number of epochs. Default = 2000.
+    #             name: string
+    #                 Model name. Default is `GMMNoiseModel`. This model after being trained is saved at the location `path`.
+    #             lowerClip : int
+    #                 Lower percentile for clipping. Default is 0.
+    #             upperClip : int
+    #                 Upper percentile for clipping. Default is 100.
 
-            jointLoss = 0
-            if (counter + 1) * batchSize >= sig_obs_pairs.shape[0]:
-                counter = 0
-                sig_obs_pairs = fastShuffle(sig_obs_pairs, 1)
+    #     """
+    #     sig_obs_pairs = self.getSignalObservationPairs(signal, observation, lowerClip, upperClip)
+    #     counter = 0
+    #     optimizer = torch.optim.Adam([self.weight], lr=learning_rate)
+    #     for t in range(n_epochs):
 
-            batch_vectors = sig_obs_pairs[counter * batchSize:(counter + 1) * batchSize, :]
-            observations = batch_vectors[:, 1].astype(np.float32)
-            signals = batch_vectors[:, 0].astype(np.float32)
-            observations = torch.from_numpy(observations.astype(np.float32)).float().to(self.device)
-            signals = torch.from_numpy(signals).float().to(self.device)
-            p = self.likelihood(observations, signals)
-            loss = torch.mean(-torch.log(p))
-            jointLoss = jointLoss + loss
+    #         jointLoss = 0
+    #         if (counter + 1) * batchSize >= sig_obs_pairs.shape[0]:
+    #             counter = 0
+    #             sig_obs_pairs = fastShuffle(sig_obs_pairs, 1)
 
-            if t % 100 == 0:
-                print(t, jointLoss.item())
+    #         batch_vectors = sig_obs_pairs[counter * batchSize:(counter + 1) * batchSize, :]
+    #         observations = batch_vectors[:, 1].astype(np.float32)
+    #         signals = batch_vectors[:, 0].astype(np.float32)
+    #         observations = torch.from_numpy(observations.astype(np.float32)).float().to(self.device)
+    #         signals = torch.from_numpy(signals).float().to(self.device)
+    #         p = self.likelihood(observations, signals)
+    #         loss = torch.mean(-torch.log(p))
+    #         jointLoss = jointLoss + loss
 
-            if (t % (int(n_epochs * 0.5)) == 0):
-                trained_weight = self.weight.cpu().detach().numpy()
-                min_signal = self.min_signal.cpu().detach().numpy()
-                max_signal = self.max_signal.cpu().detach().numpy()
-                np.savez(self.path + name,
-                         trained_weight=trained_weight,
-                         min_signal=min_signal,
-                         max_signal=max_signal,
-                         min_sigma=self.min_sigma)
+    #         if t % 100 == 0:
+    #             print(t, jointLoss.item())
 
-            optimizer.zero_grad()
-            jointLoss.backward()
-            optimizer.step()
-            counter += 1
+    #         if (t % (int(n_epochs * 0.5)) == 0):
+    #             trained_weight = self.weight.cpu().detach().numpy()
+    #             min_signal = self.min_signal.cpu().detach().numpy()
+    #             max_signal = self.max_signal.cpu().detach().numpy()
+    #             np.savez(self.path + name,
+    #                      trained_weight=trained_weight,
+    #                      min_signal=min_signal,
+    #                      max_signal=max_signal,
+    #                      min_sigma=self.min_sigma)
 
-        print("===================\n")
-        print("The trained parameters (" + name + ") is saved at location: " + self.path)
+    #         optimizer.zero_grad()
+    #         jointLoss.backward()
+    #         optimizer.step()
+    #         counter += 1
+
+    #     print("===================\n")
+    #     print("The trained parameters (" + name + ") is saved at location: " + self.path)

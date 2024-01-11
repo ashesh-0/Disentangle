@@ -59,7 +59,7 @@ class NoiseModelLikelihood(LikelihoodModule):
 
     def __init__(self, ch_in, color_channels, data_mean, data_std, noiseModel):
         super().__init__()
-        self.parameter_net = nn.Conv2d(ch_in, color_channels, kernel_size=3, padding=1)
+        self.parameter_net = nn.Identity()  #nn.Conv2d(ch_in, color_channels, kernel_size=3, padding=1)
         self.data_mean = data_mean
         self.data_std = data_std
         self.noiseModel = noiseModel

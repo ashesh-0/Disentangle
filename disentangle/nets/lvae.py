@@ -207,7 +207,7 @@ class LadderVAE(pl.LightningModule):
         # Init lists of layers
 
         enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
-        self.multiscale_decoder_retain_spatial_dims = config.model.decoder.multiscale_retain_spatial_dims and enable_multiscale
+        self.multiscale_decoder_retain_spatial_dims = self.multiscale_retain_spatial_dims and enable_multiscale
         self.bottom_up_layers = self.create_bottom_up_layers(config.model.multiscale_lowres_separate_branch)
         self.top_down_layers = self.create_top_down_layers()
 
