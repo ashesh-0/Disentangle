@@ -96,7 +96,7 @@ class GaussianMixtureNoiseModel(nn.Module):
             self.max_signal = torch.Tensor([self.max_signal])  #.to(self.device)
 
     def make_learnable(self):
-        print(f'[{self.__class__.__name__}] Making noise model learnable]')
+        print(f'[{self.__class__.__name__}] Making noise model learnable')
 
         self._learnable = True
         self.weight.requires_grad = True
