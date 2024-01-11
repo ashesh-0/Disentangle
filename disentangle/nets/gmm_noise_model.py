@@ -188,7 +188,6 @@ class GaussianMixtureNoiseModel(nn.Module):
         sigma = []
         alpha = []
         kernels = self.weight.shape[0] // 3
-
         for num in range(kernels):
             mu.append(self.polynomialRegressor(self.weight[num, :], signals))
 
