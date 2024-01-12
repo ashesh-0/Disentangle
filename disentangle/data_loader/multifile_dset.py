@@ -104,6 +104,10 @@ class SingleFileDset(MultiChDloader):
 
     def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
         self._data = self._preloaded_data
+        if 'channel_1' in data_config:
+            assert 'channel_2' in data_config
+            self._data = self._data[..., [data_config.channel_1, data_config.channel_2]].copy()
+
         self.N = len(self._data)
 
 

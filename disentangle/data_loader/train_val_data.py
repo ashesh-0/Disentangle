@@ -18,6 +18,7 @@ from disentangle.data_loader.schroff_rawdata_loader import get_train_val_data as
 from disentangle.data_loader.sinosoid_dloader import train_val_data as _loadsinosoid
 from disentangle.data_loader.sinosoid_threecurve_dloader import train_val_data as _loadsinosoid3curve
 from disentangle.data_loader.sox2golgi_rawdata_loader import get_train_val_data as _loadsox2golgi
+from disentangle.data_loader.sox2golgi_v2_rawdata_loader import get_train_val_data as _loadsox2golgi_v2
 from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data as _loadseparatetiff
 
 
@@ -100,6 +101,12 @@ def get_train_val_data(data_config,
                               datasplit_type,
                               val_fraction=val_fraction,
                               test_fraction=test_fraction)
+    elif data_config.data_type == DataType.TavernaSox2GolgiV2:
+        return _loadsox2golgi_v2(fpath,
+                                 data_config,
+                                 datasplit_type,
+                                 val_fraction=val_fraction,
+                                 test_fraction=test_fraction)
     elif data_config.data_type == DataType.Dao3Channel:
         return _loaddao3ch(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
     elif data_config.data_type == DataType.ExpMicroscopyV2:
