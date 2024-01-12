@@ -16,12 +16,14 @@ def get_config():
     data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
     data.enable_poisson_noise = False
     data.enable_gaussian_noise = False
-    data.trainig_datausage_fraction = 0.2
+    data.validtarget_random_fraction = 1.0
+    data.training_validtarget_fraction = 0.2
     # config.data.synthetic_gaussian_scale = 2000
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
-    data.deterministic_grid = False
+    data.grid_size = 1
+    data.deterministic_grid = True
     data.normalized_input = True
     data.clip_percentile = 0.995
 
