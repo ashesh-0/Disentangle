@@ -198,6 +198,7 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                         recon_normalized, _ = model(x_normalized)
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
                                                                        tar_normalized,
+                                                                       inp,
                                                                        return_predicted_img=True)
 
                     if mmse_idx == 0:
