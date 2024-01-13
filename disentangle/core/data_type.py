@@ -24,3 +24,4 @@ class DataType(Enum):
     ExpMicroscopyV2 = 19
     Dao3ChannelV2 = 20
     TavernaSox2GolgiV2 = 21
+    TwoDset = 22

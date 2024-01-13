@@ -12,21 +12,23 @@ from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from torch.utils.data import DataLoader
 
+import ml_collections
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.model_type import ModelType
+from disentangle.data_loader.ht_iba1_ki67_dloader import IBA1Ki67DataLoader
 from disentangle.data_loader.intensity_augm_tiff_dloader import IntensityAugCLTiffDloader
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
-from disentangle.data_loader.multi_dset_dloader import IBA1Ki67DataLoader
 from disentangle.data_loader.multifile_dset import MultiFileDset
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
 from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
 from disentangle.data_loader.places_dloader import PlacesLoader
 from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
 from disentangle.data_loader.single_channel.multi_dataset_dloader import SingleChannelMultiDatasetDloader
+from disentangle.data_loader.two_dset_dloader import TwoDsetDloader
 from disentangle.data_loader.vanilla_dloader import MultiChDloader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
@@ -179,6 +181,26 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         mean_val, std_val = train_data.compute_mean_std()
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
+    elif config.data.data_type == DataType.TwoDset:
+        cnf0 = ml_collections.ConfigDict(config)
+        for key in config.data.dset0:
+            cnf0.data[key] = config.data.dset0[key]
+        train_dset0, val_dset0 = create_dataset(cnf0, datadir, raw_data_dict, skip_train_dataset)
+        mean0, std0 = train_dset0.compute_mean_std()
+        train_dset0.set_mean_std(mean0, std0)
+        val_dset0.set_mean_std(mean0, std0)
+
+        cnf1 = ml_collections.ConfigDict(config)
+        for key in config.data.dset1:
+            cnf1.data[key] = config.data.dset1[key]
+        train_dset1, val_dset1 = create_dataset(cnf1, datadir, raw_data_dict, skip_train_dataset)
+        mean1, std1 = train_dset1.compute_mean_std()
+        train_dset1.set_mean_std(mean1, std1)
+        val_dset1.set_mean_std(mean1, std1)
+
+        train_data = TwoDsetDloader(train_dset0, train_dset1, config.data, config.data.use_one_mu_std)
+        val_data = val_dset0
+
     elif config.data.data_type in [
             DataType.OptiMEM100_014,
             DataType.CustomSinosoid,
