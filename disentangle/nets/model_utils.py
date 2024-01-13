@@ -16,7 +16,6 @@ from disentangle.nets.lvae import LadderVAE
 from disentangle.nets.lvae_bleedthrough import LadderVAEWithMixedRecons
 from disentangle.nets.lvae_deepencoder import LVAEWithDeepEncoder
 from disentangle.nets.lvae_denoiser import LadderVAEDenoiser
-from disentangle.nets.lvae_multidset import LadderVaeMultiDataset
 from disentangle.nets.lvae_multidset_multi_input_branches import LadderVaeMultiDatasetMultiBranch
 from disentangle.nets.lvae_multidset_multi_optim import LadderVaeMultiDatasetMultiOptim
 from disentangle.nets.lvae_multiple_encoder_single_opt import LadderVAEMulEncoder1Optim
@@ -25,6 +24,7 @@ from disentangle.nets.lvae_multires_target import LadderVAEMultiTarget
 from disentangle.nets.lvae_restricted_reconstruction import LadderVAERestrictedReconstruction
 from disentangle.nets.lvae_semi_supervised import LadderVAESemiSupervised
 from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
+from disentangle.nets.lvae_twodset import LadderVaeTwoDset
 from disentangle.nets.lvae_with_critic import LadderVAECritic
 from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
 from disentangle.nets.lvae_with_stitch_2stage import LadderVAEwithStitching2Stage
@@ -58,11 +58,11 @@ def create_model(config, data_mean, data_std, val_idx_manager=None):
         model = LadderVAESemiSupervised(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVaeStitch2Stage:
         model = LadderVAEwithStitching2Stage(data_mean, data_std, config)
-    elif config.model.model_type == ModelType.LadderVaeMultiDataSet:
-        model = LadderVaeMultiDataset(data_mean, data_std, config)
-    elif config.model.model_type == ModelType.LadderVaeMultiDatasetMultiBranch:
+    elif config.model.model_type == ModelType.LadderVaeTwoDataSet:
+        model = LadderVaeTwoDset(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVaeTwoDatasetMultiBranch:
         model = LadderVaeMultiDatasetMultiBranch(data_mean, data_std, config)
-    elif config.model.model_type == ModelType.LadderVaeMultiDatasetMultiOptim:
+    elif config.model.model_type == ModelType.LadderVaeTwoDatasetMultiOptim:
         model = LadderVaeMultiDatasetMultiOptim(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LVaeDeepEncoderIntensityAug:
         model = LVAEWithDeepEncoder(data_mean, data_std, config)

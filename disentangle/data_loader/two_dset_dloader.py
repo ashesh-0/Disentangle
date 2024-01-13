@@ -232,7 +232,7 @@ class TwoDsetDloader(BaseDataLoader):
 
             loss_idx = self.get_loss_idx(dset_idx)
 
-            dset = getattr(self, f'_dloader_{dset_idx}')
+            dset = getattr(self, f'_dset{dset_idx}')
             idx = np.random.randint(len(dset))
             return (*dset[idx], dset_idx, loss_idx)
 

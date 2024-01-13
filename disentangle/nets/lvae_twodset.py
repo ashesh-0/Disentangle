@@ -9,10 +9,11 @@ from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.nets.lvae import LadderVAE, compute_batch_mean, torch_nanmean
 
 
-class LadderVaeMultiDataset(LadderVAE):
+class LadderVaeTwoDset(LadderVAE):
 
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)
+        assert config.loss.loss_type == LossType.ElboMixedReconstruction, "This model only supports ElboMixedReconstruction loss type."
         self._interchannel_weights = None
         if config.model.get('enable_learnable_interchannel_weights', False):
             self._interchannel_weights = nn.Parameter(torch.ones((1, target_ch, 1, 1)), requires_grad=True)
@@ -31,12 +32,14 @@ class LadderVaeMultiDataset(LadderVAE):
 
     def get_reconstruction_loss(self,
                                 reconstruction,
+                                target,
                                 input,
                                 dset_idx,
                                 loss_type_idx,
                                 return_predicted_img=False,
                                 likelihood_obj=None):
         output = self._get_reconstruction_loss_vector(reconstruction,
+                                                      target,
                                                       input,
                                                       dset_idx,
                                                       return_predicted_img=return_predicted_img,
@@ -75,6 +78,7 @@ class LadderVaeMultiDataset(LadderVAE):
 
     def _get_reconstruction_loss_vector(self,
                                         reconstruction,
+                                        target,
                                         input,
                                         dset_idx,
                                         return_predicted_img=False,
@@ -84,10 +88,18 @@ class LadderVaeMultiDataset(LadderVAE):
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
 
+        output = {
+            'loss': None,
+            'mixed_loss': None,
+        }
+        for i in range(1, 1 + target.shape[1]):
+            output['ch{}_loss'.format(i)] = None
+
         if likelihood_obj is None:
             likelihood_obj = self.likelihood
         # Log likelihood
-        ll, like_dict = likelihood_obj(reconstruction, input)
+        ll, like_dict = likelihood_obj(reconstruction, target)
+        ll = self._get_weighted_likelihood(ll)
         if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
             pad = self.skip_nboundary_pixels_from_loss
             ll = ll[:, :, pad:-pad, pad:-pad]
@@ -96,10 +108,17 @@ class LadderVaeMultiDataset(LadderVAE):
         assert ll.shape[1] == 2, f"Change the code below to handle >2 channels first. ll.shape {ll.shape}"
         output = {
             'loss': compute_batch_mean(-1 * ll),
-            'ch1_loss': compute_batch_mean(-ll[:, 0]),
-            'ch2_loss': compute_batch_mean(-ll[:, 1]),
         }
+        if ll.shape[1] > 1:
+            for i in range(1, 1 + target.shape[1]):
+                output['ch{}_loss'.format(i)] = compute_batch_mean(-ll[:, i - 1])
+        else:
+            assert ll.shape[1] == 1
+            output['ch1_loss'] = output['loss']
+            output['ch2_loss'] = output['loss']
+
         if self.channel_1_w is not None or self.channel_2_w is not None:
+            assert ll.shape[1] == 2, "Only 2 channels are supported for now."
             output['loss'] = (self.channel_1_w * output['ch1_loss'] +
                               self.channel_2_w * output['ch2_loss']) / (self.channel_1_w + self.channel_2_w)
 
@@ -112,8 +131,12 @@ class LadderVaeMultiDataset(LadderVAE):
                                                                  data_mean,
                                                                  data_std,
                                                                  channel_weights=self._interchannel_weights)
-            mixed_target = input
-            mixed_recons_ll = self.likelihood.log_likelihood(mixed_target, {'mean': mixed_pred, 'logvar': mixed_logvar})
+            if self._multiscale_count is not None and self._multiscale_count > 1:
+                assert input.shape[1] == self._multiscale_count
+                input = input[:, :1]
+
+            assert input.shape == mixed_pred.shape, "No fucking room for vectorization induced bugs."
+            mixed_recons_ll = self.likelihood.log_likelihood(input, {'mean': mixed_pred, 'logvar': mixed_logvar})
             output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
 
         if return_predicted_img:
@@ -143,6 +166,7 @@ class LadderVaeMultiDataset(LadderVAE):
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         x, target, dset_idx, loss_idx = batch
+
         assert self.normalized_input == True
         x_normalized = x
         target_normalized = self.normalize_target(target, dset_idx)
@@ -154,6 +178,7 @@ class LadderVaeMultiDataset(LadderVAE):
 
         recons_loss_dict = self.get_reconstruction_loss(out,
                                                         target_normalized,
+                                                        x_normalized,
                                                         dset_idx,
                                                         loss_idx,
                                                         return_predicted_img=False)
@@ -223,11 +248,14 @@ class LadderVaeMultiDataset(LadderVAE):
                     return
 
     def validation_step(self, batch, batch_idx):
-        x, target, dset_idx, loss_idx = batch
+        x, target = batch[:2]
+        dset_idx = torch.zeros((x.shape[0], ), dtype=torch.long).to(x.device)
+        loss_idx = torch.Tensor([LossType.Elbo] * x.shape[0]).type(torch.long).to(x.device)
         self.set_params_to_same_device_as(target)
 
         x_normalized = x
         target_normalized = self.normalize_target(target, dset_idx)
+        assert self.reconstruction_mode is False
 
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
@@ -235,42 +263,42 @@ class LadderVaeMultiDataset(LadderVAE):
 
         recons_loss_dict, recons_img = self.get_reconstruction_loss(out,
                                                                     target_normalized,
+                                                                    x_normalized,
                                                                     dset_idx,
                                                                     loss_idx,
                                                                     return_predicted_img=True)
+
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
-        self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
-        self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
+        channels_rinvpsnr = []
+        for i in range(recons_img.shape[1]):
+            self.channels_psnr[i].update(recons_img[:, i], target_normalized[:, i])
+            psnr = RangeInvariantPsnr(target_normalized[:, i].clone(), recons_img[:, i].clone())
+            channels_rinvpsnr.append(psnr)
+            psnr = torch_nanmean(psnr).item()
+            self.log(f'val_psnr_l{i+1}', psnr, on_epoch=True)
 
-        psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0].clone(), recons_img[:, 0].clone())
-        psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1].clone(), recons_img[:, 1].clone())
         recons_loss = recons_loss_dict['loss']
         # kl_loss = self.get_kl_divergence_loss(td_data)
         # net_loss = recons_loss + self.get_kl_weight() * kl_loss
         self.log('val_loss', recons_loss, on_epoch=True)
-        val_psnr_l1 = torch_nanmean(psnr_label1).item()
-        val_psnr_l2 = torch_nanmean(psnr_label2).item()
-        self.log('val_psnr_l1', val_psnr_l1, on_epoch=True)
-        self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
-        # self.log('val_psnr', (val_psnr_l1 + val_psnr_l2) / 2, on_epoch=True)
 
-        if batch_idx == 0 and self.power_of_2(self.current_epoch):
-            all_samples = []
-            for i in range(20):
-                sample, _ = self(x_normalized[0:1, ...])
-                sample = self.likelihood.get_mean_lv(sample)[0]
-                all_samples.append(sample[None])
+        # if batch_idx == 0 and self.power_of_2(self.current_epoch):
+        #     all_samples = []
+        #     for i in range(20):
+        #         sample, _ = self(x_normalized[0:1, ...])
+        #         sample = self.likelihood.get_mean_lv(sample)[0]
+        #         all_samples.append(sample[None])
 
-            all_samples = torch.cat(all_samples, dim=0)
-            data_mean, data_std = self.get_mean_std_for_one_batch(dset_idx, self.data_mean, self.data_std)
-            all_samples = all_samples * data_std['target'] + data_mean['target']
-            all_samples = all_samples.cpu()
-            img_mmse = torch.mean(all_samples, dim=0)[0]
-            self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
-            self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
+        #     all_samples = torch.cat(all_samples, dim=0)
+        #     data_mean, data_std = self.get_mean_std_for_one_batch(dset_idx, self.data_mean, self.data_std)
+        #     all_samples = all_samples * data_std['target'] + data_mean['target']
+        #     all_samples = all_samples.cpu()
+        #     img_mmse = torch.mean(all_samples, dim=0)[0]
+        #     self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
+        #     self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
 
 
 if __name__ == '__main__':
@@ -296,6 +324,24 @@ if __name__ == '__main__':
         }
     }
 
-    dset_idx = torch.Tensor([0, 0, 0, 1, 1, 0])
+    # dset_idx = torch.Tensor([0, 0, 0, 1, 1, 0])
 
-    mean, std = LadderVaeMultiDataset.get_mean_std_for_one_batch(dset_idx, data_mean, data_std)
+    # mean, std = LadderVaeTwoDset.get_mean_std_for_one_batch(dset_idx, data_mean, data_std)
+    import numpy as np
+    import torch
+
+    # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
+    from disentangle.configs.twodset_config import get_config
+    config = get_config()
+    model = LadderVaeTwoDset(data_mean, data_std, config)
+    mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count
+    inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
+    out, td_data = model(inp)
+    batch = (
+        torch.rand((16, mc, config.data.image_size, config.data.image_size)),
+        torch.rand((16, 2, config.data.image_size, config.data.image_size)),
+        (torch.rand((16, )) > 0.5).type(torch.long),
+        torch.Tensor([LossType.Elbo] * 8 + [LossType.ElboMixedReconstruction] * 8).type(torch.long),
+    )
+    model.training_step(batch, 0)
+    model.validation_step(batch, 0)

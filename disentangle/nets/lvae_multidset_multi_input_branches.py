@@ -6,10 +6,10 @@ from disentangle.core.data_utils import crop_img_tensor
 from disentangle.core.loss_type import LossType
 from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.nets.lvae import torch_nanmean
-from disentangle.nets.lvae_multidset import LadderVaeMultiDataset
+from disentangle.nets.lvae_twodset import LadderVaeTwoDset
 
 
-class LadderVaeMultiDatasetMultiBranch(LadderVaeMultiDataset):
+class LadderVaeMultiDatasetMultiBranch(LadderVaeTwoDset):
 
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at, target_ch)

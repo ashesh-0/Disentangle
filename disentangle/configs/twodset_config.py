@@ -65,8 +65,8 @@ def get_config():
     # data.return_alpha = True
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
-    # loss.mixed_rec_weight = 1
+    loss.loss_type = LossType.ElboMixedReconstruction
+    loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
     loss.kl_annealing = False
@@ -78,7 +78,7 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.LadderVae
+    model.model_type = ModelType.LadderVaeTwoDataSet
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True

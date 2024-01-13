@@ -20,9 +20,9 @@ class ModelType(Enum):
     # since earlier, LadderVaeStitch2Stage = 13, LadderVaeSemiSupervised = 14
     LadderVaeMixedRecons = 15
     LadderVaeCL = 16
-    LadderVaeMultiDataSet = 17  #on one subdset, apply disentanglement, on other apply reconstruction
-    LadderVaeMultiDatasetMultiBranch = 18
-    LadderVaeMultiDatasetMultiOptim = 19
+    LadderVaeTwoDataSet = 17  #on one subdset, apply disentanglement, on other apply reconstruction
+    LadderVaeTwoDatasetMultiBranch = 18
+    LadderVaeTwoDatasetMultiOptim = 19
     LVaeDeepEncoderIntensityAug = 20
     AutoRegresiveLadderVAE = 21
     LadderVAEInterleavedOptimization = 22

@@ -110,8 +110,8 @@ class LadderVAE(pl.LightningModule):
             self.data_std = torch.Tensor(data_std)
         elif isinstance(data_mean, dict):
             for k in data_mean.keys():
-                data_mean[k] = torch.Tensor(data_mean[k])
-                data_std[k] = torch.Tensor(data_std[k])
+                data_mean[k] = torch.Tensor(data_mean[k]) if not isinstance(data_mean[k], dict) else data_mean[k]
+                data_std[k] = torch.Tensor(data_std[k]) if not isinstance(data_std[k], dict) else data_std[k]
             self.data_mean = data_mean
             self.data_std = data_std
         else:
