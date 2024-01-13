@@ -28,7 +28,7 @@ def get_config():
     data.dset1.channel_2 = 3
     data.dset1.data_type = DataType.OptiMEM100_014
     data.subdset_types_probab = [0.5, 0.5]
-    #
+    #############################
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
@@ -121,6 +121,7 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
+    model.enable_learnable_interchannel_weights = True
 
     training = config.training
     training.lr = 0.001 / 2

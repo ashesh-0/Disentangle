@@ -16,7 +16,8 @@ class LadderVaeTwoDset(LadderVAE):
         assert config.loss.loss_type == LossType.ElboMixedReconstruction, "This model only supports ElboMixedReconstruction loss type."
         self._interchannel_weights = None
         if config.model.get('enable_learnable_interchannel_weights', False):
-            self._interchannel_weights = nn.Parameter(torch.ones((1, target_ch, 1, 1)), requires_grad=True)
+            # self._interchannel_weights = nn.Parameter(torch.ones((1, target_ch, 1, 1)), requires_grad=True)
+            self._interchannel_weights = nn.Conv2d(target_ch, target_ch, 1, bias=True, groups=target_ch)
 
         for dloader_key in self.data_mean.keys():
             assert dloader_key in ['subdset_0', 'subdset_1']
@@ -124,13 +125,22 @@ class LadderVaeTwoDset(LadderVAE):
 
         if self.enable_mixed_rec:
             data_mean, data_std = self.get_mean_std_for_one_batch(dset_idx, self.data_mean, self.data_std)
+            # NOTE: We should not have access to target data_mean, data_std of the dataset2. We should have access to
+            # input data_mean, data_std of the dataset2.
+            data_mean['target'] = self.data_mean['subdset_0']['target']
+            data_std['target'] = self.data_std['subdset_0']['target']
+
             # NOTE: here, we are using the same interchannel weights for both dataset types. However,
             # we filter the loss on entries in get_reconstruction_loss()
-            mixed_pred, mixed_logvar = self.get_mixed_prediction(like_dict['params']['mean'],
+            mean_pred = like_dict['params']['mean']
+            if self._interchannel_weights is not None:
+                mean_pred = self._interchannel_weights(mean_pred)
+
+            mixed_pred, mixed_logvar = self.get_mixed_prediction(mean_pred,
                                                                  like_dict['params']['logvar'],
                                                                  data_mean,
                                                                  data_std,
-                                                                 channel_weights=self._interchannel_weights)
+                                                                 channel_weights=None)
             if self._multiscale_count is not None and self._multiscale_count > 1:
                 assert input.shape[1] == self._multiscale_count
                 input = input[:, :1]
@@ -210,8 +220,22 @@ class LadderVaeTwoDset(LadderVAE):
             self.log('training_loss', net_loss, on_epoch=True)
             self.log('lr', self.lr, on_epoch=True)
             if self._interchannel_weights is not None:
-                self.log('interchannel_w0', self._interchannel_weights.squeeze()[0].item(), on_epoch=True)
-                self.log('interchannel_w1', self._interchannel_weights.squeeze()[1].item(), on_epoch=True)
+                self.log('interchannel_w0',
+                         self._interchannel_weights.weight.squeeze()[0].item(),
+                         on_epoch=False,
+                         on_step=True)
+                self.log('interchannel_w1',
+                         self._interchannel_weights.weight.squeeze()[1].item(),
+                         on_epoch=False,
+                         on_step=True)
+                self.log('interchannel_b0',
+                         self._interchannel_weights.bias.squeeze()[0].item(),
+                         on_epoch=False,
+                         on_step=True)
+                self.log('interchannel_b1',
+                         self._interchannel_weights.bias.squeeze()[1].item(),
+                         on_epoch=False,
+                         on_step=True)
 
             # self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
             # self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
