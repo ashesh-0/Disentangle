@@ -4,8 +4,8 @@ Here, we compare two configs.
 import argparse
 import os
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 import git
 import ml_collections
@@ -19,7 +19,9 @@ def _compare_config(config1, config2, prefix_key=''):
     for key in config1:
         if isinstance(config1[key], ml_collections.ConfigDict) or isinstance(config1[key],
                                                                              ml_collections.FrozenConfigDict):
-            nested_key, nested_val1, nested_val2 = _compare_config(config1[key], config2[key], prefix_key=f'{key}.')
+            nested_key, nested_val1, nested_val2 = _compare_config(config1.get(key, {}),
+                                                                   config2.get(key, {}),
+                                                                   prefix_key=f'{key}.')
             keys += nested_key
             val1 += nested_val1
             val2 += nested_val2
