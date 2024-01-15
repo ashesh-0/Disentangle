@@ -88,6 +88,8 @@ class RestrictedReconstruction:
         for grad_vector, grad_direction in zip(grad_vectors, reference_grad_directions):
             if grad_vector is None:
                 grad_components.append(None)
+            elif grad_direction is None:
+                grad_components.append(grad_vector)
             else:
                 component = torch.dot(grad_vector.view(-1), grad_direction.view(-1))
                 if along_direction:
@@ -110,7 +112,7 @@ class RestrictedReconstruction:
         # print('Retained neg corr fraction', neg_corr_count / len(grad_vectors))
 
         # check one grad for norm
-        assert torch.norm(grad_direction) - 1 < 1e-6
+        # assert torch.norm(grad_direction) - 1 < 1e-6
 
         return grad_components
 
@@ -357,7 +359,9 @@ class RestrictedReconstruction:
         for param, corrected_unsup_grad in zip(params, corrected_unsup_grad_all):
             if corrected_unsup_grad is None:
                 continue
-
-            param.grad = self._w_split * param.grad + self._w_recons * corrected_unsup_grad
+            if param.grad is None:
+                param.grad = self._w_recons * corrected_unsup_grad
+            else:
+                param.grad = self._w_split * param.grad + self._w_recons * corrected_unsup_grad
 
         return {'input_reconstruction_loss': input_reconstruction_loss, 'log': log_dict}
