@@ -30,3 +30,4 @@ class ModelType(Enum):
     DenoiserSplitter = 24
     SplitterDenoiser = 25
     LadderVAERestrictedReconstruction = 26
+    LadderVAETwoDataSetRestRecon = 27

@@ -353,6 +353,7 @@ class RestrictedReconstruction:
         corrected_unsup_grad_all, input_reconstruction_loss, log_dict = self.get_correct_grad(
             params, normalized_input, normalized_target, normalized_target_prediction, normalized_input_prediction)
         # split_grad_all, split_loss = self.get_split_grad(params, normalized_target, normalized_target_prediction)
+
         for param, corrected_unsup_grad in zip(params, corrected_unsup_grad_all):
             if corrected_unsup_grad is None:
                 continue

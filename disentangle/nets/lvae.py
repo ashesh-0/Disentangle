@@ -151,12 +151,18 @@ class LadderVAE(pl.LightningModule):
         self.nbr_consistency_w = 0
         self._exclusion_loss_weight = config.loss.get('exclusion_loss_weight', 0)
 
-        if self.loss_type in [LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction]:
+        if self.loss_type in [
+                LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction,
+                LossType.ElboRestrictedReconstruction
+        ]:
+
             self.mixed_rec_w = config.loss.mixed_rec_weight
             self.mixed_rec_w_step = config.loss.get('mixed_rec_w_step', 0)
             self.enable_mixed_rec = True
-            if self.loss_type not in [LossType.ElboSemiSupMixedReconstruction, LossType.ElboMixedReconstruction
-                                      ] and config.data.use_one_mu_std is False:
+            if self.loss_type not in [
+                    LossType.ElboSemiSupMixedReconstruction, LossType.ElboMixedReconstruction,
+                    LossType.ElboRestrictedReconstruction
+            ] and config.data.use_one_mu_std is False:
                 raise NotImplementedError(
                     "This cannot work since now, different channels have different mean. One needs to reweigh the "
                     "predicted channels and then take their sum. This would then be equivalent to the input.")

@@ -65,7 +65,7 @@ def get_config():
     # data.return_alpha = True
 
     loss = config.loss
-    loss.loss_type = LossType.ElboMixedReconstruction
+    loss.loss_type = LossType.ElboRestrictedReconstruction
     loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -78,7 +78,7 @@ def get_config():
     # loss.ch2_recons_w = 5
 
     model = config.model
-    model.model_type = ModelType.LadderVaeTwoDataSet
+    model.model_type = ModelType.LadderVAETwoDataSetRestRecon
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
@@ -134,6 +134,6 @@ def get_config():
     training.val_fraction = 0.1
     training.test_fraction = 0.1
     training.earlystop_patience = 100
-    training.precision = 16
+    # training.precision = 16
 
     return config
