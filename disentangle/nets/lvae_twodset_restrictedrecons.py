@@ -207,7 +207,12 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
             kl_loss = self.get_kl_divergence_loss(td_data)
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
-        self.manual_backward(net_loss, retain_graph=True)
+        if isinstance(net_loss, torch.Tensor):
+            self.manual_backward(net_loss, retain_graph=True)
+        else:
+            assert net_loss == 0.0
+            return None
+
         assert self.loss_type == LossType.ElboRestrictedReconstruction
         mask = loss_idx == LossType.Elbo
         if 2 * target_normalized.shape[1] == out.shape[1]:
