@@ -36,7 +36,7 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
 
         self.rest_recons_loss = RestrictedReconstruction(1, self.mixed_rec_w)
         self.rest_recons_loss.update_only_these_till_kth_epoch(
-            ['_interchannel_weights.weight', '_interchannel_weights.bias'], 10)
+            ['_interchannel_weights.weight', '_interchannel_weights.bias'], 40)
 
         print(f'[{self.__class__.__name__}] Learnable Ch weights:', self._interchannel_weights is not None)
 
