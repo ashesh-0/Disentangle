@@ -48,8 +48,12 @@ class RestrictedReconstruction:
         self._randomize_numcount = randomize_numcount
         self._crosschannel_corr = None
         self._similarity_mode = None  #'dot'
-
+        self._restricted_epoch = self._restricted_names = None
         print(f'[{self.__class__.__name__}] w_split: {self._w_split}, w_recons: {self._w_recons}')
+
+    def update_only_these_till_kth_epoch(self, names, epoch):
+        self._restricted_epoch = epoch
+        self._restricted_names = names
 
     def enable_nonorthogonal(self):
         print(f'[{self.__class__.__name__}] Enabling non-orthogonal loss computations.')
@@ -345,18 +349,23 @@ class RestrictedReconstruction:
 
         return corrected_unsup_grad_all, unsup_reconstruction_loss, log_dict
 
-    def update_gradients(self, params, normalized_input, normalized_target, normalized_target_prediction,
-                         normalized_input_prediction):
+    def update_gradients(self, named_params, normalized_input, normalized_target, normalized_target_prediction,
+                         normalized_input_prediction, epoch):
 
         if len(normalized_target) == 0:
             print('No target, hence skipping input reconstruction loss')
             return {'input_reconstruction_loss': torch.tensor(0.0), 'log': {}}
 
+        if self._restricted_epoch is not None and epoch < self._restricted_epoch:
+            named_params = [x for x in named_params if x[0] in self._restricted_names]
+
+        names, params = zip(*named_params)
+
         corrected_unsup_grad_all, input_reconstruction_loss, log_dict = self.get_correct_grad(
             params, normalized_input, normalized_target, normalized_target_prediction, normalized_input_prediction)
         # split_grad_all, split_loss = self.get_split_grad(params, normalized_target, normalized_target_prediction)
 
-        for param, corrected_unsup_grad in zip(params, corrected_unsup_grad_all):
+        for name, param, corrected_unsup_grad in zip(names, params, corrected_unsup_grad_all):
             if corrected_unsup_grad is None:
                 continue
             if param.grad is None:

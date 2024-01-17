@@ -17,6 +17,7 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
         self.automatic_optimization = False
         assert config.loss.loss_type == LossType.ElboRestrictedReconstruction, "This model only supports ElboRestrictedReconstruction loss type."
         self._interchannel_weights = None
+
         if config.model.get('enable_learnable_interchannel_weights', False):
             # self._interchannel_weights = nn.Parameter(torch.ones((1, target_ch, 1, 1)), requires_grad=True)
             self._interchannel_weights = nn.Conv2d(target_ch, target_ch, 1, bias=True, groups=target_ch)
@@ -34,6 +35,8 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
             self.data_std[dloader_key]['input'] = self.data_std[dloader_key]['input'].reshape(1, 1, 1, 1)
 
         self.rest_recons_loss = RestrictedReconstruction(1, self.mixed_rec_w)
+        self.rest_recons_loss.update_only_these_till_kth_epoch(
+            ['_interchannel_weights.weight', '_interchannel_weights.bias'], 10)
 
         print(f'[{self.__class__.__name__}] Learnable Ch weights:', self._interchannel_weights is not None)
 
@@ -218,9 +221,9 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
         if 2 * target_normalized.shape[1] == out.shape[1]:
             pred_mean, pred_logvar = out.chunk(2, dim=1)
         pred_x_normalized, _ = self.get_mixed_prediction(pred_mean[~mask], pred_logvar[~mask], dset_idx[~mask])
-
-        loss_dict = self.rest_recons_loss.update_gradients(list(self.parameters()), x_normalized[~mask],
-                                                           target_normalized[mask], pred_mean[mask], pred_x_normalized)
+        params = list(self.named_parameters())
+        loss_dict = self.rest_recons_loss.update_gradients(params, x_normalized[~mask], target_normalized[mask],
+                                                           pred_mean[mask], pred_x_normalized, self.current_epoch)
         optim.step()
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):
@@ -368,7 +371,7 @@ if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
     from disentangle.configs.twodset_config import get_config
     config = get_config()
-    model = LadderVaeTwoDset(data_mean, data_std, config)
+    model = LadderVaeTwoDsetRestrictedRecons(data_mean, data_std, config)
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
     out, td_data = model(inp)
