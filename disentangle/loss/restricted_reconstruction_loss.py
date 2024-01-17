@@ -356,9 +356,6 @@ class RestrictedReconstruction:
             print('No target, hence skipping input reconstruction loss')
             return {'input_reconstruction_loss': torch.tensor(0.0), 'log': {}}
 
-        if self._restricted_epoch is not None and epoch < self._restricted_epoch:
-            named_params = [x for x in named_params if x[0] in self._restricted_names]
-
         names, params = zip(*named_params)
 
         corrected_unsup_grad_all, input_reconstruction_loss, log_dict = self.get_correct_grad(
@@ -368,6 +365,10 @@ class RestrictedReconstruction:
         for name, param, corrected_unsup_grad in zip(names, params, corrected_unsup_grad_all):
             if corrected_unsup_grad is None:
                 continue
+            elif self._restricted_epoch is not None and epoch < self._restricted_epoch:
+                if name not in self._restricted_names:
+                    continue
+
             if param.grad is None:
                 param.grad = self._w_recons * corrected_unsup_grad
             else:
