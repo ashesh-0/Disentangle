@@ -20,8 +20,8 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
         if config.model.get('enable_learnable_interchannel_weights', False):
             # self._interchannel_weights = nn.Parameter(torch.ones((1, target_ch, 1, 1)), requires_grad=True)
             self._interchannel_weights = nn.Conv2d(target_ch, target_ch, 1, bias=True, groups=target_ch)
-            self._interchannel_weights.weight.data.fill_(1.0 * 0.01)
-            self._interchannel_weights.bias.data.fill_(0.0)
+            # self._interchannel_weights.weight.data.fill_(1.0 * 0.01)
+            # self._interchannel_weights.bias.data.fill_(0.0)
 
         for dloader_key in self.data_mean.keys():
             assert dloader_key in ['subdset_0', 'subdset_1']
