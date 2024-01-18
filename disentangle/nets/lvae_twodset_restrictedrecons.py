@@ -17,7 +17,7 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
         self.automatic_optimization = False
         assert config.loss.loss_type == LossType.ElboRestrictedReconstruction, "This model only supports ElboRestrictedReconstruction loss type."
         self._interchannel_weights = None
-        self.split_w = config.model.split_weight
+        self.split_w = config.loss.split_weight
 
         if config.model.get('enable_learnable_interchannel_weights', False):
             # self._interchannel_weights = nn.Parameter(torch.ones((1, target_ch, 1, 1)), requires_grad=True)
