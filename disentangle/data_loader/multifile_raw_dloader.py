@@ -185,4 +185,5 @@ def get_train_val_data(datadir,
     else:
         data = TwoChannelData(dataA, dataB, paths_data1=framewise_fpathsA, paths_data2=framewise_fpathsB)
     print('Loaded from', SubDsetType.name(dset_subtype), datadir, len(data))
+    print('')
     return data

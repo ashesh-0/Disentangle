@@ -239,6 +239,15 @@ class MultiFileDset:
             cum_std += std
         return cum_mean / len(self.dsets), cum_std / len(self.dsets)
 
+    def compute_individual_mean_std(self):
+        cum_mean = 0
+        cum_std = 0
+        for dset in self.dsets:
+            mean, std = dset.compute_individual_mean_std()
+            cum_mean += mean
+            cum_std += std
+        return cum_mean / len(self.dsets), cum_std / len(self.dsets)
+
     def __len__(self):
         out = 0
         for dset in self.dsets:
