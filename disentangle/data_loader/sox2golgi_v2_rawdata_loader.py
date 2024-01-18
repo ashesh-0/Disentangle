@@ -1,4 +1,5 @@
 import os
+from functools import partial
 
 import numpy as np
 
@@ -47,7 +48,7 @@ def get_start_end_index(key):
     return start_index_dict.get(key), end_index_dict.get(key)
 
 
-def load_nd2(fpath):
+def load_nd2(fpath, channel_names=None):
     fname = os.path.basename(fpath)
     parent_dir = os.path.basename(os.path.dirname(fpath))
     key = os.path.join(parent_dir, fname)
@@ -59,9 +60,12 @@ def load_nd2(fpath):
         if end_z is None:
             end_z = reader.metadata['total_images_per_channel']
 
+        all_channels = reader.metadata['channels']
+        relevant_channel_indices = [all_channels.index(c) for c in channel_names]
+
         for z in range(start_z, end_z):
             channels = []
-            for c in range(len(reader.metadata['channels'])):
+            for c in relevant_channel_indices:
                 img = reader.get_frame_2D(c=c, z=z)
                 channels.append(img[..., None])
             img = np.concatenate(channels, axis=-1)
@@ -83,11 +87,13 @@ def get_files():
 
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
+    channel_names = [data_config.channel_1,
+                     data_config.channel_2]  # There are 3 channels ['555-647', 'GT_Cy5', 'GT_TRITC']
     return get_train_val_data_multichannel(datadir,
                                            data_config,
                                            datasplit_type,
                                            get_files,
-                                           load_data_fn=load_nd2,
+                                           load_data_fn=partial(load_nd2, channel_names=channel_names),
                                            val_fraction=val_fraction,
                                            test_fraction=test_fraction)
 
@@ -98,6 +104,8 @@ if __name__ == '__main__':
 
     config = ml_collections.ConfigDict()
     config.subdset_type = SubDsetType.MultiChannel
+    config.channel_1 = 'GT_Cy5'
+    config.channel_2 = 'GT_TRITC'
     data = get_train_val_data('/group/jug/ashesh/data/TavernaSox2Golgi/acquisition2/',
                               config,
                               DataSplitType.Train,

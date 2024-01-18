@@ -13,11 +13,12 @@ from disentangle.data_loader.multifile_raw_dloader import SubDsetType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 128
     data.data_type = DataType.TavernaSox2GolgiV2
     data.subdset_type = SubDsetType.MultiChannel
-    data.channel_1 = 1
-    data.channel_2 = 2
+    # all channels: ['555-647', 'GT_Cy5', 'GT_TRITC']
+    data.channel_1 = 'GT_Cy5'
+    data.channel_2 = 'GT_TRITC'
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
@@ -85,9 +86,7 @@ def get_config():
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-
-    #False
-    config.model.decoder.conv2d_bias = True
+    model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -103,12 +102,12 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'pixelwise'
+    model.predict_logvar = None
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = False
+    model.non_stochastic_version = True
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
@@ -116,14 +115,14 @@ def get_config():
     training = config.training
     training.lr = 0.001 / 2
     training.lr_scheduler_patience = 30
-    training.max_epochs = 400
+    training.max_epochs = 200
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 200
-    training.precision = 16
+    training.earlystop_patience = 100
+    # training.precision = 16
 
     return config
