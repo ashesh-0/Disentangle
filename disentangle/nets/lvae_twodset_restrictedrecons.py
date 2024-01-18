@@ -17,6 +17,7 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
         self.automatic_optimization = False
         assert config.loss.loss_type == LossType.ElboRestrictedReconstruction, "This model only supports ElboRestrictedReconstruction loss type."
         self._interchannel_weights = None
+        self.split_w = config.model.split_weight
 
         if config.model.get('enable_learnable_interchannel_weights', False):
             # self._interchannel_weights = nn.Parameter(torch.ones((1, target_ch, 1, 1)), requires_grad=True)
@@ -202,7 +203,7 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
-        recons_loss = recons_loss_dict['loss']
+        recons_loss = self.split_w * recons_loss_dict['loss']
         if self.non_stochastic_version:
             kl_loss = torch.Tensor([0.0]).cuda()
             net_loss = recons_loss
