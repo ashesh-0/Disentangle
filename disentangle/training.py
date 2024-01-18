@@ -34,7 +34,11 @@ from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
 
 
-def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False):
+def create_dataset(config,
+                   datadir,
+                   eval_datasplit_type=DataSplitType.Val,
+                   raw_data_dict=None,
+                   skip_train_dataset=False):
     if config.data.data_type == DataType.NotMNIST:
         train_img_files_pkl = os.path.join(datadir, 'train_fnames.pkl')
         val_img_files_pkl = os.path.join(datadir, 'val_fnames.pkl')
@@ -93,7 +97,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             val_data = SingleChannelMultiDatasetDloader(
                 config.data,
                 datapath,
-                datasplit_type=DataSplitType.Val,
+                datasplit_type=eval_datasplit_type,
                 val_fraction=config.training.val_fraction,
                 test_fraction=config.training.test_fraction,
                 normalized_input=normalized_input,
@@ -121,7 +125,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             val_data = SingleChannelMultiDatasetDloader(
                 config.data,
                 datapath,
-                datasplit_type=DataSplitType.Val,
+                datasplit_type=eval_datasplit_type,
                 val_fraction=config.training.val_fraction,
                 test_fraction=config.training.test_fraction,
                 normalized_input=normalized_input,
@@ -167,7 +171,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         val_data = IBA1Ki67DataLoader(
             config.data,
             datapath,
-            datasplit_type=DataSplitType.Val,
+            datasplit_type=eval_datasplit_type,
             val_fraction=config.training.val_fraction,
             test_fraction=config.training.test_fraction,
             normalized_input=normalized_input,
@@ -249,7 +253,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             val_data = LCMultiChDloader(
                 config.data,
                 datapath,
-                datasplit_type=DataSplitType.Val,
+                datasplit_type=eval_datasplit_type,
                 val_fraction=config.training.val_fraction,
                 test_fraction=config.training.test_fraction,
                 normalized_input=normalized_input,
@@ -295,7 +299,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
             val_data = data_class(
                 config.data,
                 datapath,
-                datasplit_type=DataSplitType.Val,
+                datasplit_type=eval_datasplit_type,
                 val_fraction=config.training.val_fraction,
                 test_fraction=config.training.test_fraction,
                 normalized_input=normalized_input,
@@ -335,7 +339,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         val_data = Pavia2ThreeChannelDloader(
             config.data,
             datapath,
-            datasplit_type=DataSplitType.Val,
+            datasplit_type=eval_datasplit_type,
             val_fraction=config.training.val_fraction,
             test_fraction=config.training.test_fraction,
             normalized_input=normalized_input,
@@ -384,7 +388,7 @@ def create_dataset(config, datadir, raw_data_dict=None, skip_train_dataset=False
         val_data = MultiFileDset(
             config.data,
             datapath,
-            datasplit_type=DataSplitType.Val,
+            datasplit_type=eval_datasplit_type,
             val_fraction=config.training.val_fraction,
             test_fraction=config.training.test_fraction,
             normalized_input=normalized_input,
