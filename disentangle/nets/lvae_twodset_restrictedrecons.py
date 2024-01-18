@@ -242,14 +242,15 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
                          self._interchannel_weights.weight.squeeze()[1].item(),
                          on_epoch=False,
                          on_step=True)
-                self.log('interchannel_b0',
-                         self._interchannel_weights.bias.squeeze()[0].item(),
-                         on_epoch=False,
-                         on_step=True)
-                self.log('interchannel_b1',
-                         self._interchannel_weights.bias.squeeze()[1].item(),
-                         on_epoch=False,
-                         on_step=True)
+                if self._interchannel_weights.bias is not None:
+                    self.log('interchannel_b0',
+                             self._interchannel_weights.bias.squeeze()[0].item(),
+                             on_epoch=False,
+                             on_step=True)
+                    self.log('interchannel_b1',
+                             self._interchannel_weights.bias.squeeze()[1].item(),
+                             on_epoch=False,
+                             on_step=True)
 
             # self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
             # self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
