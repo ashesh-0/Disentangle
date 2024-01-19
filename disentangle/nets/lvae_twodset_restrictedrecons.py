@@ -213,6 +213,7 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
         mask = loss_idx == LossType.Elbo
+        exclusion_loss = None
         if self._exclusion_loss_weight > 0 and torch.sum(~mask) > 0:
             exclusion_loss = compute_exclusion_loss(out[~mask, 0], out[~mask, 1])
             net_loss += exclusion_loss * self._exclusion_loss_weight
@@ -232,6 +233,9 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
                                                            pred_mean[mask], pred_x_normalized, self.current_epoch)
         optim.step()
         if enable_logging:
+            if exclusion_loss is not None:
+                self.log('exclusive_loss', exclusion_loss.item(), on_epoch=True)
+
             for i, x in enumerate(td_data['debug_qvar_max']):
                 self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
 
