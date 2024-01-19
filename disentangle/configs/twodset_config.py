@@ -27,7 +27,7 @@ def get_config():
     data.dset1.channel_1 = 0
     data.dset1.channel_2 = 3
     data.dset1.data_type = DataType.OptiMEM100_014
-    data.subdset_types_probab = [0.5, 0.5]
+    data.subdset_types_probab = [0.75, 0.25]
     #############################
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -67,7 +67,7 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.ElboRestrictedReconstruction
     loss.split_weight = 1
-    loss.mixed_rec_weight = 0.0
+    loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
     loss.kl_annealing = False
