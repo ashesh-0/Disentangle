@@ -68,7 +68,7 @@ def get_config():
     loss.loss_type = LossType.ElboRestrictedReconstruction
     loss.split_weight = 1
     loss.mixed_rec_weight = 1
-    loss.exclusion_loss_weight = 0.1
+    loss.exclusion_loss_weight = 0.01
 
     loss.kl_weight = 1
     loss.kl_annealing = False
