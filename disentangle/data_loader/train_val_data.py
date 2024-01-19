@@ -33,7 +33,7 @@ def get_train_val_data(data_config,
     Ensure that the shape of data should be N*H*W*C: N is number of data points. H,W are the image dimensions.
     C is the number of channels.
     """
-    assert isinstance(datasplit_type, int)
+    assert isinstance(datasplit_type, int), f'datasplit_type should be an integer, but is {datasplit_type}'
     if data_config.data_type == DataType.OptiMEM100_014:
         return _load_tiff_train_val(fpath,
                                     data_config,
