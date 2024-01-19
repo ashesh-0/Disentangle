@@ -68,6 +68,7 @@ def get_config():
     loss.loss_type = LossType.ElboRestrictedReconstruction
     loss.split_weight = 1
     loss.mixed_rec_weight = 1
+    loss.exclusion_loss_weight = 0.1
 
     loss.kl_weight = 1
     loss.kl_annealing = False
@@ -128,7 +129,7 @@ def get_config():
     training.lr = 0.001 / 2
     training.lr_scheduler_patience = 30
     training.max_epochs = 200
-    training.batch_size = 64
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None

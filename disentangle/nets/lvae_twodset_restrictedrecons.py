@@ -6,6 +6,7 @@ import torch.nn as nn
 
 from disentangle.core.loss_type import LossType
 from disentangle.core.psnr import RangeInvariantPsnr
+from disentangle.loss.exclusive_loss import compute_exclusion_loss
 from disentangle.loss.restricted_reconstruction_loss import RestrictedReconstruction
 from disentangle.nets.lvae import LadderVAE, compute_batch_mean, torch_nanmean
 
@@ -211,6 +212,11 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
             kl_loss = self.get_kl_divergence_loss(td_data)
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
+        mask = loss_idx == LossType.Elbo
+        if self._exclusion_loss_weight > 0 and torch.sum(~mask) > 0:
+            exclusion_loss = compute_exclusion_loss(out[~mask, 0], out[~mask, 1])
+            net_loss += exclusion_loss * self._exclusion_loss_weight
+
         if isinstance(net_loss, torch.Tensor):
             self.manual_backward(net_loss, retain_graph=True)
         else:
@@ -218,7 +224,6 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
             return None
 
         assert self.loss_type == LossType.ElboRestrictedReconstruction
-        mask = loss_idx == LossType.Elbo
         if 2 * target_normalized.shape[1] == out.shape[1]:
             pred_mean, pred_logvar = out.chunk(2, dim=1)
         pred_x_normalized, _ = self.get_mixed_prediction(pred_mean[~mask], pred_logvar[~mask], dset_idx[~mask])
