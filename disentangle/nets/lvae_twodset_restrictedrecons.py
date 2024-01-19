@@ -22,8 +22,8 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
         if config.model.get('enable_learnable_interchannel_weights', False):
             # self._interchannel_weights = nn.Parameter(torch.ones((1, target_ch, 1, 1)), requires_grad=True)
             self._interchannel_weights = nn.Conv2d(target_ch, target_ch, 1, bias=True, groups=target_ch)
-            # self._interchannel_weights.weight.data.fill_(1.0 * 0.01)
-            # self._interchannel_weights.bias.data.fill_(0.0)
+            self._interchannel_weights.weight.data.fill_(1.0 * 0.01)
+            self._interchannel_weights.bias.data.fill_(0.0)
 
         for dloader_key in self.data_mean.keys():
             assert dloader_key in ['subdset_0', 'subdset_1']
@@ -36,8 +36,8 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
             self.data_std[dloader_key]['input'] = self.data_std[dloader_key]['input'].reshape(1, 1, 1, 1)
 
         self.rest_recons_loss = RestrictedReconstruction(1, self.mixed_rec_w)
-        self.rest_recons_loss.update_only_these_till_kth_epoch(
-            ['_interchannel_weights.weight', '_interchannel_weights.bias'], 40)
+        # self.rest_recons_loss.update_only_these_till_kth_epoch(
+        #     ['_interchannel_weights.weight', '_interchannel_weights.bias'], 40)
 
         print(f'[{self.__class__.__name__}] Learnable Ch weights:', self._interchannel_weights is not None)
 
