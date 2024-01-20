@@ -4,6 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
+from disentangle.nets.gmm_nnbased_noise_model import DeepGMMNoiseModel
 from disentangle.nets.gmm_noise_model import GaussianMixtureNoiseModel
 from disentangle.nets.hist_noise_model import HistNoiseModel
 
@@ -31,8 +32,10 @@ def get_noise_model(model_config):
             hist2 = np.load(model_config.noise_model_ch2_fpath)
             nmodel2 = HistNoiseModel(hist2)
         elif model_config.noise_model_type == 'gmm':
-            nmodel1 = GaussianMixtureNoiseModel(params=np.load(model_config.noise_model_ch1_fpath))
-            nmodel2 = GaussianMixtureNoiseModel(params=np.load(model_config.noise_model_ch2_fpath))
+            # nmodel1 = GaussianMixtureNoiseModel(params=np.load(model_config.noise_model_ch1_fpath))
+            # nmodel2 = GaussianMixtureNoiseModel(params=np.load(model_config.noise_model_ch2_fpath))
+            nmodel1 = DeepGMMNoiseModel(params=np.load(model_config.noise_model_ch1_fpath))
+            nmodel2 = DeepGMMNoiseModel(params=np.load(model_config.noise_model_ch2_fpath))
             if model_config.get('noise_model_learnable', False):
                 nmodel1.make_learnable()
                 nmodel2.make_learnable()
