@@ -40,8 +40,9 @@ class LadderVAERestrictedReconstruction(LadderVAE):
         split_loss = self.grad_setter.loss_fn(target_normalized[mask], out[mask])
         self.manual_backward(self.split_w * split_loss, retain_graph=True)
         # add input reconstruction loss compoenent to the gradient.
-        loss_dict = self.grad_setter.update_gradients(list(self.parameters()), x_normalized, target_normalized[mask],
-                                                      out[mask], pred_x_normalized)
+        loss_dict = self.grad_setter.update_gradients(list(self.named_parameters()), x_normalized,
+                                                      target_normalized[mask], out[mask], pred_x_normalized,
+                                                      self.current_epoch)
         optim.step()
         assert self.non_stochastic_version == True
         if enable_logging:
