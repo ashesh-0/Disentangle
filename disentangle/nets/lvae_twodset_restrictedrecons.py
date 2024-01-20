@@ -267,7 +267,7 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
 
         output = {
             'loss': net_loss,
-            'reconstruction_loss': recons_loss.detach(),
+            'reconstruction_loss': recons_loss.detach() if isinstance(recons_loss, torch.Tensor) else recons_loss,
             'kl_loss': kl_loss.detach(),
         }
         # https://github.com/openai/vdvae/blob/main/train.py#L26
