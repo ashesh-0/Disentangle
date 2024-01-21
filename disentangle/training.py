@@ -2,6 +2,7 @@ import glob
 import logging
 import os
 import pickle
+from copy import deepcopy
 
 import pytorch_lightning as pl
 import torch
@@ -38,7 +39,11 @@ def create_dataset(config,
                    datadir,
                    eval_datasplit_type=DataSplitType.Val,
                    raw_data_dict=None,
-                   skip_train_dataset=False):
+                   skip_train_dataset=False,
+                   kwargs_dict=None):
+    if kwargs_dict is None:
+        kwargs_dict = {}
+
     if config.data.data_type == DataType.NotMNIST:
         train_img_files_pkl = os.path.join(datadir, 'train_fnames.pkl')
         val_img_files_pkl = os.path.join(datadir, 'val_fnames.pkl')
@@ -69,8 +74,8 @@ def create_dataset(config,
         use_one_mu_std = config.data.use_one_mu_std
         train_aug_rotate = config.data.train_aug_rotate
         enable_random_cropping = config.data.deterministic_grid is False
-        train_data_kwargs = {}
-        val_data_kwargs = {}
+        train_data_kwargs = deepcopy(kwargs_dict)
+        val_data_kwargs = deepcopy(kwargs_dict)
 
         train_data_kwargs['enable_random_cropping'] = enable_random_cropping
         val_data_kwargs['enable_random_cropping'] = False
@@ -152,8 +157,8 @@ def create_dataset(config,
         enable_random_cropping = config.data.deterministic_grid is False
         lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
 
-        train_data_kwargs = {'allow_generation': False}
-        val_data_kwargs = {'allow_generation': False}
+        train_data_kwargs = {'allow_generation': False, **kwargs_dict}
+        val_data_kwargs = {'allow_generation': False, **kwargs_dict}
         train_data_kwargs['enable_random_cropping'] = enable_random_cropping
         val_data_kwargs['enable_random_cropping'] = False
 
@@ -236,9 +241,12 @@ def create_dataset(config,
         enable_random_cropping = config.data.deterministic_grid is False
         lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
         if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
-            padding_kwargs = {'mode': config.data.padding_mode}
-            if 'padding_value' in config.data and config.data.padding_value is not None:
-                padding_kwargs['constant_values'] = config.data.padding_value
+            if 'padding_kwargs' not in kwargs_dict:
+                padding_kwargs = {'mode': config.data.padding_mode}
+                if 'padding_value' in config.data and config.data.padding_value is not None:
+                    padding_kwargs['constant_values'] = config.data.padding_value
+            else:
+                padding_kwargs = kwargs_dict.pop('padding_kwargs')
 
             train_data = None if skip_train_dataset else LCMultiChDloader(
                 config.data,
@@ -253,6 +261,7 @@ def create_dataset(config,
                 num_scales=config.data.multiscale_lowres_count,
                 lowres_supervision=lowres_supervision,
                 padding_kwargs=padding_kwargs,
+                **kwargs_dict,
                 allow_generation=True)
             max_val = train_data.get_max_val()
 
@@ -271,12 +280,13 @@ def create_dataset(config,
                 lowres_supervision=lowres_supervision,
                 padding_kwargs=padding_kwargs,
                 allow_generation=False,
+                **kwargs_dict,
                 max_val=max_val,
             )
 
         else:
-            train_data_kwargs = {'allow_generation': True}
-            val_data_kwargs = {'allow_generation': False}
+            train_data_kwargs = {'allow_generation': True, **kwargs_dict}
+            val_data_kwargs = {'allow_generation': False, **kwargs_dict}
             if config.model.model_type in [ModelType.LadderVaeSepEncoder, ModelType.LadderVaeSepEncoderSingleOptim]:
                 data_class = SemiSupDloader
                 # mixed_input_type = None,
@@ -324,8 +334,8 @@ def create_dataset(config,
         use_one_mu_std = config.data.use_one_mu_std
         train_aug_rotate = config.data.train_aug_rotate
         enable_random_cropping = config.data.deterministic_grid is False
-        train_data_kwargs = {'allow_generation': False}
-        val_data_kwargs = {'allow_generation': False}
+        train_data_kwargs = {'allow_generation': False, **kwargs_dict}
+        val_data_kwargs = {'allow_generation': False, **kwargs_dict}
         train_data_kwargs['enable_random_cropping'] = enable_random_cropping
         val_data_kwargs['enable_random_cropping'] = False
 
@@ -369,8 +379,8 @@ def create_dataset(config,
         enable_random_cropping = config.data.deterministic_grid is False
         lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
 
-        train_data_kwargs = {}
-        val_data_kwargs = {}
+        train_data_kwargs = {**kwargs_dict}
+        val_data_kwargs = {**kwargs_dict}
         train_data_kwargs['enable_random_cropping'] = enable_random_cropping
         val_data_kwargs['enable_random_cropping'] = False
         padding_kwargs = None
