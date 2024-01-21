@@ -49,8 +49,8 @@ if __name__ == '__main__':
     from disentangle.core.sampler_type import SamplerType
 
     config = get_config()
-    config.data.enable_gaussian_noise = True
-    config.data.synthetic_gaussian_scale = 1000
+    config.data.enable_gaussian_noise = False
+    # config.data.synthetic_gaussian_scale = 1000
     data = get_train_val_data('/group/jug/ashesh/data/ventura_gigascience/', config.data, DataSplitType.Train,
                               config.training.val_fraction, config.training.test_fraction)
 
