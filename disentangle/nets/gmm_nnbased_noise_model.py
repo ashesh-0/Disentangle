@@ -31,17 +31,27 @@ class PointConvBlock(nn.Module):
             return self.nn(x)
 
 
+class MuModel(nn.Module):
+
+    def __init__(self, n_gaussian):
+        self.mu_model = nn.Sequential(
+            PointConvBlock(1, 64, residual=False),
+            PointConvBlock(64, 64, residual=True),
+            PointConvBlock(64, n_gaussian, interim_channels=32, residual=False),
+        )
+
+    def forward(self, x):
+        return x + self.mu_model(x)
+
+
 class DeepGMMNoiseModel(GaussianMixtureNoiseModel):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         del self.weight
         layers = []
-        self.mu_model = nn.Sequential(
-            PointConvBlock(1, 64, residual=False),
-            PointConvBlock(64, 64, residual=True),
-            PointConvBlock(64, self.n_gaussian, interim_channels=32, residual=False),
-        )
+        self.mu_model = MuModel(self.n_gaussian)
+
         self.sigma_model = nn.Sequential(
             PointConvBlock(1, 64, residual=False),
             PointConvBlock(64, 64, residual=True),
