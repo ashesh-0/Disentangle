@@ -82,11 +82,11 @@ class DeepGMMNoiseModel(GaussianMixtureNoiseModel):
         alpha = []
         mu = [self.mu_model(signals)[:, k:k + 1] for k in range(self.n_gaussian)]
 
-        sigmaTemp = torch.exp(self.sigma_model(signals))
+        sigmaTemp = StableExponential(self.sigma_model(signals)).exp()
         sigmaTemp = torch.clamp(sigmaTemp, min=self.min_sigma)
         sigmaTemp = torch.sqrt(sigmaTemp)
         sigma = [sigmaTemp[:, k:k + 1] for k in range(self.n_gaussian)]
-        alphatemp = torch.exp(self.alpha_model(signals)) + self.tol
+        alphatemp = StableExponential(self.alpha_model(signals)).exp() + self.tol
         alpha = [alphatemp[:, k:k + 1] for k in range(self.n_gaussian)]
 
         sum_alpha = 0
