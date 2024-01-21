@@ -19,7 +19,7 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
         assert config.loss.loss_type == LossType.ElboRestrictedReconstruction, "This model only supports ElboRestrictedReconstruction loss type."
         self._interchannel_weights = None
         self.split_w = config.loss.split_weight
-
+        self._switch_to_nonorthogonal_epoch = config.loss.get('switch_to_nonorthogonal_epoch', 100000)
         if config.model.get('enable_learnable_interchannel_weights', False):
             # self._interchannel_weights = nn.Parameter(torch.ones((1, target_ch, 1, 1)), requires_grad=True)
             self._interchannel_weights = nn.Conv2d(target_ch, target_ch, 1, bias=True, groups=target_ch)
@@ -37,6 +37,8 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
             self.data_std[dloader_key]['input'] = self.data_std[dloader_key]['input'].reshape(1, 1, 1, 1)
 
         self.rest_recons_loss = RestrictedReconstruction(1, self.mixed_rec_w)
+        self._nonorthogonal_epoch_enabled = False
+
         # self.rest_recons_loss.update_only_these_till_kth_epoch(
         #     ['_interchannel_weights.weight', '_interchannel_weights.bias'], 40)
 
@@ -182,6 +184,10 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         x, target, dset_idx, loss_idx = batch
+        if self.current_epoch == self._switch_to_nonorthogonal_epoch and self._nonorthogonal_epoch_enabled == False:
+            self.rest_recons_loss.enable_nonorthogonal()
+            self._nonorthogonal_epoch_enabled = True
+
         optim = self.optimizers()
         optim.zero_grad()
         assert self.normalized_input == True
