@@ -13,7 +13,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
+    data.image_size = 128
     data.data_type = DataType.TwoDset
     data.channel_1 = None
     data.channel_2 = None
@@ -27,7 +27,7 @@ def get_config():
     data.dset1.channel_1 = 0
     data.dset1.channel_2 = 3
     data.dset1.data_type = DataType.OptiMEM100_014
-    data.subdset_types_probab = [0.5, 0.5]
+    data.subdset_types_probab = [0.25, 0.75]
     #############################
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -129,7 +129,7 @@ def get_config():
     training.lr = 0.001 / 2
     training.lr_scheduler_patience = 30
     training.max_epochs = 200
-    training.batch_size = 16
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
