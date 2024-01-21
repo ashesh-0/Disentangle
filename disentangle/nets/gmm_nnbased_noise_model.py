@@ -34,6 +34,7 @@ class PointConvBlock(nn.Module):
 class MuModel(nn.Module):
 
     def __init__(self, n_gaussian):
+        super().__init__()
         self.mu_model = nn.Sequential(
             PointConvBlock(1, 64, residual=False),
             PointConvBlock(64, 64, residual=True),
