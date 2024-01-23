@@ -180,6 +180,7 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                         recon_normalized, _ = model(x_normalized_new)
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
                                                                        tar_normalized,
+                                                                       x_normalized_new,
                                                                        return_predicted_img=True)
                     elif model_type == ModelType.DenoiserSplitter:
                         x_normalized = model.normalize_input(inp)
@@ -215,7 +216,7 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                         except:
                             losses.append(rec_loss['loss'])
 
-                for i in range(len(patch_psnr_channels)):
+                for i in range(imgs.shape[1]):
                     patch_psnr_channels[i].update(imgs[:, i], tar_normalized[:, i])
 
                 recon_img_list.append(imgs.cpu()[None])
