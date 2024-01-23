@@ -595,11 +595,9 @@ class LadderVAE(pl.LightningModule):
             ll = ll[:, :, pad:-pad, pad:-pad]
             like_dict['params']['mean'] = like_dict['params']['mean'][:, :, pad:-pad, pad:-pad]
 
-        assert ll.shape[1] == 2, f"Change the code below to handle >2 channels first. ll.shape {ll.shape}"
+        # assert ll.shape[1] == 2, f"Change the code below to handle >2 channels first. ll.shape {ll.shape}"
         output = {
             'loss': compute_batch_mean(-1 * ll),
-            # 'ch1_loss': compute_batch_mean(-ll[:, 0]),
-            # 'ch2_loss': compute_batch_mean(-ll[:, 1]),
         }
         if ll.shape[1] > 1:
             for i in range(1, 1 + target.shape[1]):
