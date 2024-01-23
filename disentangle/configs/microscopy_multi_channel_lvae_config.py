@@ -12,7 +12,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 256
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
     data.channel_2 = 2
@@ -20,7 +20,7 @@ def get_config():
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
     data.normalized_input = True
-    data.clip_percentile = 0.995
+    data.clip_percentile = 0.999
     data.background_quantile = 0.0
     # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
     # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
@@ -99,7 +99,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'pixelwise'
+    model.predict_logvar = None  #'pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
