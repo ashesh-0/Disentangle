@@ -12,20 +12,19 @@ from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 class TwoDsetDloader(BaseDataLoader):
     """
-    Here, we have 2 datasets. We want to get the data from 2 datasets.
+    Here, we can have multiple datasets. We want to get the data from these datasets.
+    One can get the data in a probablistic manner from these datasets.
     """
 
     def __init__(
         self,
-        dset0,
-        dset1,
         data_config,
+        *dsets,
         use_one_mu_std=None,
     ) -> None:
 
         # self._enable_random_cropping = enable_random_cropping
-        self._dset0 = dset0
-        self._dset1 = dset1
+        self._dsets = dsets
         self._use_one_mu_std = use_one_mu_std
 
         self._mean = None
@@ -56,10 +55,10 @@ class TwoDsetDloader(BaseDataLoader):
         assert sum(self._subdset_types_prob) == 1
         print(f'[{self.__class__.__name__}] Probabs:{self._subdset_types_prob}')
 
-    def sum_channels(self, data, first_index_arr, second_index_arr):
-        fst_channel = data[..., first_index_arr].sum(axis=-1, keepdims=True)
-        scnd_channel = data[..., second_index_arr].sum(axis=-1, keepdims=True)
-        return np.concatenate([fst_channel, scnd_channel], axis=-1)
+    # def sum_channels(self, data, first_index_arr, second_index_arr):
+    #     fst_channel = data[..., first_index_arr].sum(axis=-1, keepdims=True)
+    #     scnd_channel = data[..., second_index_arr].sum(axis=-1, keepdims=True)
+    #     return np.concatenate([fst_channel, scnd_channel], axis=-1)
 
     # def set_img_sz(self, image_size, grid_size, alignment=None):
     #     """
@@ -104,10 +103,10 @@ class TwoDsetDloader(BaseDataLoader):
 
     def __len__(self):
         sz = 0
-        if self._dset0 is not None:
-            sz += int(self._subdset_types_prob[0] * len(self._dset0))
-        if self._dset1 is not None:
-            sz += int(self._subdset_types_prob[1] * len(self._dset1))
+        for i, dset in enumerate(self._dsets):
+            if dset is not None:
+                sz += int(self._subdset_types_prob[i] * len(dset))
+
         return sz
 
     def compute_mean_std_for_input(self, dloader):
@@ -125,17 +124,12 @@ class TwoDsetDloader(BaseDataLoader):
         mean_dict = {'subdset_0': {}, 'subdset_1': {}}
         std_dict = {'subdset_0': {}, 'subdset_1': {}}
 
-        if self._dset0 is not None:
-            mean_, std_ = self._dset0.compute_individual_mean_std()
-            mean_for_input, std_for_input = self.compute_mean_std_for_input(self._dset0)
-            mean_dict['subdset_0'] = {'target': mean_, 'input': mean_for_input}
-            std_dict['subdset_0'] = {'target': std_, 'input': std_for_input}
-
-        if self._dset1 is not None:
-            mean_, std_ = self._dset1.compute_individual_mean_std()
-            mean_for_input, std_for_input = self.compute_mean_std_for_input(self._dset1)
-            mean_dict['subdset_1'] = {'target': mean_, 'input': mean_for_input}
-            std_dict['subdset_1'] = {'target': std_, 'input': std_for_input}
+        for i, dset in enumerate(self._dsets):
+            if dset is not None:
+                mean_, std_ = dset.compute_individual_mean_std()
+                mean_for_input, std_for_input = self.compute_mean_std_for_input(dset)
+                mean_dict[f'subdset_{i}'] = {'target': mean_, 'input': mean_for_input}
+                std_dict[f'subdset_{i}'] = {'target': std_, 'input': std_for_input}
 
         # assert LossType.ElboMixedReconstruction in [self.get_loss_idx(0), self.get_loss_idx(1)]
         # if self.get_loss_idx(0) == LossType.ElboMixedReconstruction:
@@ -173,30 +167,32 @@ class TwoDsetDloader(BaseDataLoader):
         self._std = std_val
 
     def per_side_overlap_pixelcount(self):
-        if self._dset0 is not None:
-            return self._dset0.per_side_overlap_pixelcount()
-        if self._dset1 is not None:
-            return self._dset1.per_side_overlap_pixelcount()
+        for i, dset in enumerate(self._dsets):
+            if dset is not None:
+                return dset.per_side_overlap_pixelcount()
 
     def get_idx_manager(self):
-        d0_active = self._dset0 is not None
-        d1_active = self._dset1 is not None
-        assert d0_active or d1_active
-        assert not (d0_active and d1_active)
-        if d0_active:
-            return self._dset0.idx_manager
-        else:
-            return self._dset1.idx_manager
+        active_dsets = [dset is not None for dset in self._dsets]
+        assert sum([int(x) for x in active_dsets]) == 1
+        for dset in self._dsets:
+            if dset is not None:
+                return dset.get_idx_manager()
 
     def get_grid_size(self):
-        d0_active = self._dset0 is not None
-        d1_active = self._dset1 is not None
-        assert d0_active or d1_active
-        assert not (d0_active and d1_active)
-        if d0_active:
-            return self._dset0.get_grid_size()
-        else:
-            return self._dset1.get_grid_size()
+        active_dsets = [dset is not None for dset in self._dsets]
+        assert sum([int(x) for x in active_dsets]) == 1
+        for dset in self._dsets:
+            if dset is not None:
+                return dset.get_grid_size()
+
+        # d0_active = self._dset0 is not None
+        # d1_active = self._dset1 is not None
+        # assert d0_active or d1_active
+        # assert not (d0_active and d1_active)
+        # if d0_active:
+        #     return self._dset0.get_grid_size()
+        # else:
+        #     return self._dset1.get_grid_size()
 
     def get_loss_idx(self, dset_idx):
         if dset_idx == 0:
@@ -206,37 +202,55 @@ class TwoDsetDloader(BaseDataLoader):
         else:
             raise NotImplementedError("Not implemented")
 
+    def get_random_dset_index(self):
+        coin_flip = np.random.rand()
+        prob_list = np.cumsum(self._subdset_types_prob)
+        for idx, cum_prob in enumerate(prob_list):
+            if coin_flip <= cum_prob:
+                return idx
+
+        raise ValueError(f"This is invalid state.: p={coin_flip}, cdf={prob_list}")
+
     def __getitem__(self, index):
         """
         Returns:
             (inp,tar,dset_label,loss_idx)
         """
-
-        if self._subdset_types_prob[0] == 0 or self._subdset_types_prob[1] == 0:
-            # This is typically only true when we are handling validation.``
-            if self._subdset_types_prob[0] == 0:
-                dset_idx = 1
-                return (*self._dset1[index], dset_idx, self.get_loss_idx(dset_idx))
-            elif self._subdset_types_prob[1] == 0:
-                dset_idx = 0
-                return (*self._dset0[index], dset_idx, self.get_loss_idx(dset_idx))
-            else:
-                raise ValueError("This is invalid state.")
-        else:
-            prob_list = np.cumsum(self._subdset_types_prob)
-            coin_flip = np.random.rand()
-            if coin_flip <= prob_list[0]:
-                dset_idx = 0
-            elif coin_flip > prob_list[0] and coin_flip <= prob_list[1]:
-                dset_idx = 1
-
+        assert sum(self._subdset_types_prob) == 1
+        if 1.0 in self._subdset_types_prob or 1 in self._subdset_types_prob:
+            dset_idx = np.argmax(self._subdset_types_prob)
             loss_idx = self.get_loss_idx(dset_idx)
+            dset = self._dsets[dset_idx]
+            return (*dset[index], dset_idx, loss_idx)
 
-            dset = getattr(self, f'_dset{dset_idx}')
+        # if self._subdset_types_prob[0] == 0 or self._subdset_types_prob[1] == 0:
+        #     # This is typically only true when we are handling validation.``
+        #     if self._subdset_types_prob[0] == 0:
+        #         dset_idx = 1
+        #         return (*self._dset1[index], dset_idx, self.get_loss_idx(dset_idx))
+        #     elif self._subdset_types_prob[1] == 0:
+        #         dset_idx = 0
+        #         return (*self._dset0[index], dset_idx, self.get_loss_idx(dset_idx))
+        #     else:
+        #         raise ValueError("This is invalid state.")
+        else:
+            # prob_list = np.cumsum(self._subdset_types_prob)
+            # coin_flip = np.random.rand()
+            # if coin_flip <= prob_list[0]:
+            #     dset_idx = 0
+            # elif coin_flip > prob_list[0] and coin_flip <= prob_list[1]:
+            #     dset_idx = 1
+            dset_idx = self.get_random_dset_index()
+            loss_idx = self.get_loss_idx(dset_idx)
+            dset = self._dsets[dset_idx]
             idx = np.random.randint(len(dset))
             return (*dset[idx], dset_idx, loss_idx)
 
     def get_max_val(self):
-        max_val0 = self._dset0.get_max_val()
-        max_val1 = self._dset1.get_max_val()
-        return [max_val0, max_val1]
+        max_vals = []
+        for dset in self._dsets:
+            if dset is not None:
+                max_vals.append(dset.get_max_val())
+            else:
+                max_vals.append(None)
+        return max_vals

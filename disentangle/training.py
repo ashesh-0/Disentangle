@@ -213,7 +213,7 @@ def create_dataset(config,
         train_dset1.set_mean_std(mean1, std1)
         val_dset1.set_mean_std(mean1, std1)
 
-        train_data = TwoDsetDloader(train_dset0, train_dset1, config.data, config.data.use_one_mu_std)
+        train_data = TwoDsetDloader(config.data, train_dset0, train_dset1, use_one_mu_std=config.data.use_one_mu_std)
         val_data = val_dset0
 
     elif config.data.data_type in [
