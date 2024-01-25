@@ -2,6 +2,7 @@ import glob
 import os
 import pickle
 
+import numpy as np
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -80,6 +81,37 @@ def create_model(config, data_mean, data_std, val_idx_manager=None):
     else:
         raise Exception('Invalid model type:', config.model.model_type)
     return model
+
+
+def get_mean_std_dict_for_model(config, train_dset):
+    """
+    Computes the mean and std for the model. This will be subsequently passed to the model.
+    """
+    if config.data.data_type == DataType.TwoDset:
+        mean_dict, std_dict = train_dset.compute_mean_std()
+        for dset_key in mean_dict.keys():
+            mean_dict[dset_key]['input'] = mean_dict[dset_key]['input'].reshape(1, 1, 1, 1)
+    else:
+        mean_dict = {'input': None, 'target': None}
+        std_dict = {'input': None, 'target': None}
+        inp_mean, inp_std = train_dset.get_mean_std()
+        mean_sq = inp_mean.squeeze()
+        std_sq = inp_std.squeeze()
+        for i in range(1, config.data.get('num_channels', 2)):
+            assert mean_sq[0] == mean_sq[i]
+            assert std_sq[0] == std_sq[i]
+        mean_dict['input'] = np.mean(inp_mean, axis=1, keepdims=True)
+        std_dict['input'] = np.mean(inp_std, axis=1, keepdims=True)
+
+        if config.data.target_separate_normalization is True:
+            data_mean, data_std = train_dset.compute_individual_mean_std()
+        else:
+            data_mean, data_std = train_dset.get_mean_std()
+
+        mean_dict['target'] = data_mean
+        std_dict['target'] = data_std
+
+    return mean_dict, std_dict
 
 
 def get_best_checkpoint(ckpt_dir):

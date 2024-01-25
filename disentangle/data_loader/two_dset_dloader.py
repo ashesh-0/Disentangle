@@ -121,8 +121,8 @@ class TwoDsetDloader(BaseDataLoader):
         return mean_for_input, std_for_input
 
     def compute_individual_mean_std(self):
-        mean_dict = {'subdset_0': {}, 'subdset_1': {}}
-        std_dict = {'subdset_0': {}, 'subdset_1': {}}
+        mean_dict = {f'subdset_{i}': {} for i in range(len(self._dsets))}
+        std_dict = {f'subdset_{i}': {} for i in range(len(self._dsets))}
 
         for i, dset in enumerate(self._dsets):
             if dset is not None:
@@ -195,12 +195,10 @@ class TwoDsetDloader(BaseDataLoader):
         #     return self._dset1.get_grid_size()
 
     def get_loss_idx(self, dset_idx):
-        if dset_idx == 0:
+        if dset_idx != len(self._dsets) - 1:
             return LossType.Elbo
-        elif dset_idx == 1:
-            return LossType.ElboMixedReconstruction
         else:
-            raise NotImplementedError("Not implemented")
+            return LossType.ElboMixedReconstruction
 
     def get_random_dset_index(self):
         coin_flip = np.random.rand()
