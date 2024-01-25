@@ -209,7 +209,8 @@ def create_dataset(config,
             val_dsets.append(val_dset)
 
         train_data = TwoDsetDloader(config.data, *train_dsets, use_one_mu_std=config.data.use_one_mu_std)
-        val_data = val_dsets[0]
+
+        val_data = val_dsets[config.data.val_dset_idx]
 
     elif config.data.data_type in [
             DataType.OptiMEM100_014,

@@ -35,6 +35,7 @@ def get_config():
     data.dset2.channel_2 = 3
     data.dset2.data_type = DataType.OptiMEM100_014
     data.subdset_types_probab = [0.25, 0.25, 0.5]
+    data.val_dset_idx = 0
     #############################
 
     data.sampler_type = SamplerType.DefaultSampler

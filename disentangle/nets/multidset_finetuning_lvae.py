@@ -19,6 +19,8 @@ class MultiDsetFineTuningLvae(nn.Module):
         # Note that model_idx and dset_idx must be the same.
         self.relevant_channels_dict = config.model.relevant_channels_dict
         self.grad_setter = RestrictedReconstruction(1, config.loss.mixed_rec_weight)
+        self.val_dset_idx = config.data.val_dset_idx
+
         # dset_idx -> position_idx in the final prediction.
         self.relevant_channels_position_dict = config.model.relevant_channels_position_dict
         self.finetune_data_mean = {'input': torch.Tensor(finetuning_input_mean), 'target': None}
@@ -65,7 +67,6 @@ class MultiDsetFineTuningLvae(nn.Module):
         assert isinstance(model_index, int)
         output = {}
         if model_index == -1:
-            # all
             for idx, model in enumerate(self.models):
                 output[idx] = model(x)
             return output
@@ -74,7 +75,36 @@ class MultiDsetFineTuningLvae(nn.Module):
 
     def normalize_target(self, target, model_index):
         assert isinstance(model_index, int)
-        return self.models[model_index].normalize_target(target)
+        if model_index == self.finetuning_dset_idx:
+            return (target - self.finetune_data_mean['target']) / self.finetune_data_std['target']
+        else:
+            return self.models[model_index].normalize_target(target)
+
+
+def validate_one_batch(batch, model):
+    x, target = batch
+    x = x.cuda()
+    target = target.cuda()
+    model.set_params_to_same_device_as(x)
+    didx = model.val_dset_idx
+    target_normalized = model.normalize_target(target, didx)
+    out = get_prediction_for_finetuning(model, x)
+    recons_loss_dict = model.models[0].get_reconstruction_loss(out, target_normalized, x, return_predicted_img=False)
+    return recons_loss_dict['loss']
+
+
+def get_prediction_for_finetuning(model, x):
+    out_dict = model(x, model_index=-1)
+    ftune_out = [None, None]
+    for dset_idx in out_dict:
+        out, _ = out_dict[dset_idx]
+        ch_idx = model.relevant_channels_dict[dset_idx]
+        # get the relevant prediction.
+        out = out[:, ch_idx:ch_idx + 1, :, :]
+        ftune_out[model.relevant_channels_position_dict[dset_idx]] = out
+
+    out = torch.cat(ftune_out, dim=1)
+    return out
 
 
 def train_one_batch(batch, model, optimizer, current_epoch):
@@ -114,17 +144,8 @@ def train_one_batch(batch, model, optimizer, current_epoch):
 
     mask = dset_idx == model.finetuning_dset_idx
     x_finetune = x[mask]
-    out_dict = model(x_finetune, model_index=-1)
-    ftune_out = [None, None]
+    out = get_prediction_for_finetuning(model, x_finetune)
 
-    for dset_idx in out_dict:
-        out, _ = out_dict[dset_idx]
-        ch_idx = model.relevant_channels_dict[dset_idx]
-        # get the relevant prediction.
-        out = out[:, ch_idx:ch_idx + 1, :, :]
-        ftune_out[model.relevant_channels_position_dict[dset_idx]] = out
-
-    out = torch.cat(ftune_out, dim=1)
     # accounting for the scaling factor.
     if model.interchannel_weights is not None:
         out = model.interchannel_weights(out)
@@ -190,21 +211,17 @@ if __name__ == '__main__':
                                                      verbose=True)
     # train now
     for epoch in tqdm(range(config.training.max_epochs)):
-        model.train()
         for batch_idx, batch in enumerate(train_dloader):
+            model.train()
             train_one_batch(batch, model, optimizer, epoch)
 
         # validate now
         model.eval()
         val_loss = 0
         with torch.no_grad():
-            for batch_idx, (data, _) in enumerate(val_dloader):
-                data = data.cuda()
-                output = model(data, model_index=-1)
-                loss = 0
-                for idx, out in output.items():
-                    loss += out['loss']
+            for batch_idx, batch in enumerate(val_dloader):
+                loss = validate_one_batch(batch, model)
                 val_loss += loss.item()
         val_loss /= len(val_dloader)
-        scheduler.step(val_loss)
+        # scheduler.step(val_loss)
         print('Epoch: {} \tValidation Loss: {:.6f}'.format(epoch, val_loss))

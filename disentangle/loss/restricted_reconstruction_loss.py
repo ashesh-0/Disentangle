@@ -254,7 +254,6 @@ class RestrictedReconstruction:
         ch2_alphas = sample_from_gmm(self._randomize_numcount, mean=0.25)
         incorrect_c1loss = 0
         incorrect_c2loss = 0
-        # import pdb; pdb.set_trace()
         for ch1_alpha, ch2_alpha in zip(ch1_alphas, ch2_alphas):
             tar1 = normalized_target[:, 0, :, :] * (1 - ch1_alpha) + normalized_target[:, 1, :, :] * ch2_alpha
             tar2 = normalized_target[:, 1, :, :] * ch1_alpha + normalized_target[:, 0, :, :] * (1 - ch2_alpha)
