@@ -13,7 +13,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 256
     data.data_type = DataType.TwoDset
     data.channel_1 = None
     data.channel_2 = None
@@ -93,11 +93,11 @@ def get_config():
     # finetuning portion
     model.model1 = ml_collections.ConfigDict()
     model.model1.model_type = ModelType.LadderVae
-    # model.model1.pretrained_weights_path ='/home/ashesh.ashesh/training/disentangle/2401/D3-M3-S0-L0/1/BaselineVAECL_best.ckpt'
+    model.model1.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2401/D3-M3-S0-L0/1/BaselineVAECL_best.ckpt'
 
     model.model2 = ml_collections.ConfigDict()
     model.model2.model_type = ModelType.LadderVae
-    # model.model2.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2401/D3-M3-S0-L0/2/BaselineVAECL_best.ckpt'
+    model.model2.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2401/D3-M3-S0-L0/2/BaselineVAECL_best.ckpt'
 
     model.finetuning_dset_idx = 2
     model.relevant_channels_dict = [1, 1]

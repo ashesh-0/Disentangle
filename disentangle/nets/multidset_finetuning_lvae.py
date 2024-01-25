@@ -187,6 +187,7 @@ def avg_range_inv_psnr(target, prediction):
 
 
 if __name__ == '__main__':
+    import os
     from copy import deepcopy
 
     from tqdm import tqdm
@@ -195,11 +196,13 @@ if __name__ == '__main__':
     from disentangle.analysis.stitch_prediction import stitch_predictions
     from disentangle.configs.multidset_finetuning_config import get_config
     from disentangle.nets.model_utils import create_model, get_mean_std_dict_for_model
+    from disentangle.scripts.run import get_workdir
     from disentangle.training import create_dataset
 
     # from disentangle.data_loader.two_dset_dloader import TwoDsetDloader
     config = get_config()
     datadir = '/group/jug/ashesh/data/microscopy/'
+    workdir = get_workdir(config)
     train_dset, val_dset = create_dataset(config, datadir)
     mean_dict, std_dict = get_mean_std_dict_for_model(config, train_dset)
 
@@ -237,6 +240,8 @@ if __name__ == '__main__':
                                                      min_lr=1e-12,
                                                      verbose=True)
     # train now
+    best_val_psnr = None
+
     for epoch in tqdm(range(config.training.max_epochs)):
         for batch_idx, batch in enumerate(train_dloader):
             model.train()
@@ -257,3 +262,7 @@ if __name__ == '__main__':
             val_psnr2 = avg_range_inv_psnr(tar[..., 1].copy(), pred[..., 1].copy())
             val_psnr = (val_psnr1 + val_psnr2) / 2
             print('Epoch: {} \tValidation PSNR: {:.6f}'.format(epoch, val_psnr))
+
+    fname = 'latest_model.ckpt'
+    path = os.path.join(workdir, fname)
+    torch.save(model.state_dict(), path)
