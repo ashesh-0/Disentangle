@@ -1,8 +1,10 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
+from disentangle.core.psnr import RangeInvariantPsnr
 from disentangle.loss.restricted_reconstruction_loss import RestrictedReconstruction
 
 
@@ -15,6 +17,7 @@ class MultiDsetFineTuningLvae(nn.Module):
         super().__init__()
         self.models = nn.ModuleList(models)
         self.finetuning_dset_idx = config.model.finetuning_dset_idx
+        self.likelihood = None
         # dset_idx -> channel_idx.
         # Note that model_idx and dset_idx must be the same.
         self.relevant_channels_dict = config.model.relevant_channels_dict
@@ -36,6 +39,9 @@ class MultiDsetFineTuningLvae(nn.Module):
             self.interchannel_weights = nn.Conv2d(target_ch, target_ch, 1, bias=True, groups=target_ch)
             self.interchannel_weights.weight.data.fill_(1.0 * 0.01)
             self.interchannel_weights.bias.data.fill_(0.0)
+
+    def normalize_input(self, x):
+        return x
 
     def set_params_to_same_device_as(self, x):
         for model in self.models:
@@ -63,15 +69,28 @@ class MultiDsetFineTuningLvae(nn.Module):
         self.finetune_data_mean['target'] = mean
         self.finetune_data_std['target'] = std
 
+    def get_prediction_for_finetuning(self, output_dict):
+        ftune_out = [None, None]
+        for dset_idx in output_dict:
+            out, _ = output_dict[dset_idx]
+            ch_idx = self.relevant_channels_dict[dset_idx]
+            # get the relevant prediction.
+            out = out[:, ch_idx:ch_idx + 1, :, :]
+            ftune_out[self.relevant_channels_position_dict[dset_idx]] = out
+
+        out = torch.cat(ftune_out, dim=1)
+        return out
+
     def forward(self, x, model_index):
         assert isinstance(model_index, int)
-        output = {}
-        if model_index == -1:
+        output_dict = {}
+        if model_index == self.val_dset_idx:
             for idx, model in enumerate(self.models):
-                output[idx] = model(x)
-            return output
+                output_dict[idx] = model(x)
+            out = self.get_prediction_for_finetuning(output_dict)
+            return out, None
         else:
-            return {model_index: self.models[model_index](x)}
+            return self.models[model_index](x)
 
     def normalize_target(self, target, model_index):
         assert isinstance(model_index, int)
@@ -93,20 +112,6 @@ def validate_one_batch(batch, model):
     return recons_loss_dict['loss']
 
 
-def get_prediction_for_finetuning(model, x):
-    out_dict = model(x, model_index=-1)
-    ftune_out = [None, None]
-    for dset_idx in out_dict:
-        out, _ = out_dict[dset_idx]
-        ch_idx = model.relevant_channels_dict[dset_idx]
-        # get the relevant prediction.
-        out = out[:, ch_idx:ch_idx + 1, :, :]
-        ftune_out[model.relevant_channels_position_dict[dset_idx]] = out
-
-    out = torch.cat(ftune_out, dim=1)
-    return out
-
-
 def train_one_batch(batch, model, optimizer, current_epoch):
     x, target, dset_idx, loss_idx = batch
     x = x.cuda()
@@ -124,8 +129,8 @@ def train_one_batch(batch, model, optimizer, current_epoch):
         mask = dset_idx == didx
         if didx != model.finetuning_dset_idx:
             target_normalized = model.normalize_target(target[mask], didx)
-            out_dict = model(x[mask], model_index=didx)
-            out, _ = out_dict[didx]
+            out, _ = model(x[mask], model_index=didx)
+            # out, _ = out_dict[didx]
             other_targets.append(target_normalized)
             other_predictions.append(out)
             recons_loss_dict = model.models[didx].get_reconstruction_loss(out,
@@ -144,8 +149,7 @@ def train_one_batch(batch, model, optimizer, current_epoch):
 
     mask = dset_idx == model.finetuning_dset_idx
     x_finetune = x[mask]
-    out = get_prediction_for_finetuning(model, x_finetune)
-
+    out, _ = model(x_finetune, model_index=-1)
     # accounting for the scaling factor.
     if model.interchannel_weights is not None:
         out = model.interchannel_weights(out)
@@ -161,11 +165,34 @@ def train_one_batch(batch, model, optimizer, current_epoch):
     return loss.item()
 
 
+def get_ignored_pixels(pred):
+    ignored_pixels = 1
+    while (pred[
+            0,
+            -ignored_pixels:,
+            -ignored_pixels:,
+    ].std() == 0):
+        ignored_pixels += 1
+    ignored_pixels -= 1
+    return ignored_pixels
+
+
+def _avg_psnr(target, prediction, psnr_fn):
+    output = np.mean([psnr_fn(target[i:i + 1], prediction[i:i + 1]).item() for i in range(len(prediction))])
+    return round(output, 2)
+
+
+def avg_range_inv_psnr(target, prediction):
+    return _avg_psnr(target, prediction, RangeInvariantPsnr)
+
+
 if __name__ == '__main__':
     from copy import deepcopy
 
     from tqdm import tqdm
 
+    from disentangle.analysis.mmse_prediction import get_dset_predictions
+    from disentangle.analysis.stitch_prediction import stitch_predictions
     from disentangle.configs.multidset_finetuning_config import get_config
     from disentangle.nets.model_utils import create_model, get_mean_std_dict_for_model
     from disentangle.training import create_dataset
@@ -215,13 +242,18 @@ if __name__ == '__main__':
             model.train()
             train_one_batch(batch, model, optimizer, epoch)
 
-        # validate now
-        model.eval()
-        val_loss = 0
-        with torch.no_grad():
-            for batch_idx, batch in enumerate(val_dloader):
-                loss = validate_one_batch(batch, model)
-                val_loss += loss.item()
-        val_loss /= len(val_dloader)
-        # scheduler.step(val_loss)
-        print('Epoch: {} \tValidation Loss: {:.6f}'.format(epoch, val_loss))
+            # validate now
+            model.eval()
+            preds, *_ = get_dset_predictions(model,
+                                             val_dset,
+                                             config.training.batch_size,
+                                             model_type=config.model.model_type)
+            pred = stitch_predictions(preds, val_dset)
+            tar = val_dset._data
+            ignore_cnt = get_ignored_pixels(pred)
+            pred = pred[:, :-ignore_cnt, :-ignore_cnt]
+            tar = tar[:, :-ignore_cnt, :-ignore_cnt]
+            val_psnr1 = avg_range_inv_psnr(tar[..., 0].copy(), pred[..., 0].copy())
+            val_psnr2 = avg_range_inv_psnr(tar[..., 1].copy(), pred[..., 1].copy())
+            val_psnr = (val_psnr1 + val_psnr2) / 2
+            print('Epoch: {} \tValidation PSNR: {:.6f}'.format(epoch, val_psnr))

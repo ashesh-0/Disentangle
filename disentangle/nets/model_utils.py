@@ -80,6 +80,17 @@ def create_model(config, data_mean, data_std, val_idx_manager=None):
         model = LadderVaeTwoDsetRestrictedRecons(data_mean, data_std, config)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
+
+    if config.model.get('pretrained_weights_path', None):
+        ckpt_fpath = config.model.pretrained_weights_path
+        checkpoint = torch.load(ckpt_fpath)
+        skip_likelihood = config.model.get('pretrained_weights_skip_likelihood', False)
+        if skip_likelihood:
+            checkpoint['state_dict'].pop('likelihood.parameter_net.weight')
+            checkpoint['state_dict'].pop('likelihood.parameter_net.bias')
+
+        _ = model.load_state_dict(checkpoint['state_dict'], strict=False)
+        print('Loaded model from ckpt dir', ckpt_fpath, f' at epoch:{checkpoint["epoch"]}')
     return model
 
 

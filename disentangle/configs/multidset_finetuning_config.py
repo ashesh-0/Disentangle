@@ -35,7 +35,7 @@ def get_config():
     data.dset2.channel_2 = 3
     data.dset2.data_type = DataType.OptiMEM100_014
     data.subdset_types_probab = [0.25, 0.25, 0.5]
-    data.val_dset_idx = 0
+    data.val_dset_idx = 2
     #############################
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -93,8 +93,12 @@ def get_config():
     # finetuning portion
     model.model1 = ml_collections.ConfigDict()
     model.model1.model_type = ModelType.LadderVae
+    # model.model1.pretrained_weights_path ='/home/ashesh.ashesh/training/disentangle/2401/D3-M3-S0-L0/1/BaselineVAECL_best.ckpt'
+
     model.model2 = ml_collections.ConfigDict()
     model.model2.model_type = ModelType.LadderVae
+    # model.model2.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2401/D3-M3-S0-L0/2/BaselineVAECL_best.ckpt'
+
     model.finetuning_dset_idx = 2
     model.relevant_channels_dict = [1, 1]
     model.relevant_channels_position_dict = [0, 1]
