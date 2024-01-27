@@ -131,6 +131,8 @@ class LadderVAE(pl.LightningModule):
         self.logvar_lowerbound = config.model.logvar_lowerbound
         self.non_stochastic_version = config.model.get('non_stochastic_version', False)
         self._var_clip_max = config.model.var_clip_max
+        self._enable_u_mamba = config.model.get('enable_u_mamba', False)
+
         # loss related
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
@@ -333,7 +335,7 @@ class LadderVAE(pl.LightningModule):
                               multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
                               multiscale_lowres_size_factor=multiscale_lowres_size_factor,
                               decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
-                              enable_u_mamba=is_top,
+                              enable_u_mamba=is_top and self._enable_u_mamba,
                               output_expected_shape=output_expected_shape))
         return bottom_up_layers
 

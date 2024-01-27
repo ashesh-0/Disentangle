@@ -8,16 +8,16 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 64
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
     data.enable_poisson_noise = False
     data.enable_gaussian_noise = False
-    data.validtarget_random_fraction = 1.0
-    data.training_validtarget_fraction = 0.2
+    # data.validtarget_random_fraction = 1.0
+    # data.training_validtarget_fraction = 0.2
     # config.data.synthetic_gaussian_scale = 2000
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -38,12 +38,12 @@ def get_config():
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
-    data.target_separate_normalization = False
+    data.target_separate_normalization = True
     data.input_is_sum = False
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # this is not uSplit.
-    loss.kl_loss_formulation = ''
+    loss.kl_loss_formulation = 'usplit'
 
     # loss.mixed_rec_weight = 1
 
@@ -73,7 +73,7 @@ def get_config():
     model.decoder.res_block_skip_padding = False
 
     #False
-    config.model.decoder.conv2d_bias = True
+    model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
@@ -92,20 +92,21 @@ def get_config():
     model.predict_logvar = None  #'pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
-    model.multiscale_retain_spatial_dims = True
+    model.multiscale_retain_spatial_dims = False
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = True
-    model.noise_model_type = 'gmm'
-    # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2401/26/GMMNoiseModel_ventura_gigascience-actin_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2401/27/GMMNoiseModel_ventura_gigascience-mito_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_learnable = True
-    assert model.enable_noise_model == False or model.predict_logvar is None
+    model.enable_noise_model = False
+    # model.noise_model_type = 'gmm'
+    # # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
+    # model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2401/26/GMMNoiseModel_ventura_gigascience-actin_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2401/27/GMMNoiseModel_ventura_gigascience-mito_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_learnable = True
+    # assert model.enable_noise_model == False or model.predict_logvar is None
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
     # model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
     model.non_stochastic_version = False
+    model.enable_u_mamba = True
 
     training = config.training
     training.lr = 0.001
