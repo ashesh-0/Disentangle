@@ -16,7 +16,6 @@ class UMambaBlock(nn.Module):
         self._ssm_exp = ssm_expansion_factor
         self._ssm_conv1d_k = conv1d_kernel_size
         self._ssm_state_dim = state_dim
-
         self._conv_blocks = self.get_conv_blocks(starting_conv_blocks)
         self._ssm = Mamba(d_model=self._in_c,
                           expand=self._ssm_exp,
@@ -48,13 +47,23 @@ class UMambaBlock(nn.Module):
 
 class ConditionalMamba(UMambaBlock):
 
-    def __init__(self, in_channels, ssm_expansion_factor, conv1d_kernel_size, state_dim, starting_conv_blocks=2):
+    def __init__(self,
+                 in_channels,
+                 ssm_expansion_factor,
+                 conv1d_kernel_size,
+                 state_dim,
+                 primary_first=False,
+                 starting_conv_blocks=2):
         super().__init__(in_channels,
                          ssm_expansion_factor,
                          conv1d_kernel_size,
                          state_dim,
                          starting_conv_blocks=starting_conv_blocks)
         self._conv_blocks_primary = self.get_conv_blocks(starting_conv_blocks)
+        self._primary_first = primary_first
+        print(
+            f'[{self.__class__.__name__}] {in_channels} {ssm_expansion_factor} {state_dim} primary_first: {self._primary_first}'
+        )
 
     def forward(self, primary_x, conditional_x):
         bN, cN, hN, wN = primary_x.shape
@@ -65,10 +74,14 @@ class ConditionalMamba(UMambaBlock):
         conditional_x = conditional_x.flatten(start_dim=2).permute(0, 2, 1)
         primary_x = primary_x.flatten(start_dim=2).permute(0, 2, 1)
         # The order is important here.
-        x = torch.cat((conditional_x, primary_x), dim=1)
-        x = self._ssm(x)
+        if self._primary_first:
+            x = torch.cat((primary_x, conditional_x), dim=1)
+        else:
+            x = torch.cat((conditional_x, primary_x), dim=1)
 
+        x = self._ssm(x)
         x = x[:, -primary_x.shape[1]:]
+
         # at this point, x is of shape (batch_size, h*w, in_channels)
         # we want to swap the last two dimensions and reshape the last dimension
         # so that we can apply the convolutions

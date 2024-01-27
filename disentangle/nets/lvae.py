@@ -217,7 +217,10 @@ class LadderVAE(pl.LightningModule):
 
         enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
         self.multiscale_decoder_retain_spatial_dims = self.multiscale_retain_spatial_dims and enable_multiscale
-        self.bottom_up_layers = self.create_bottom_up_layers(config.model.multiscale_lowres_separate_branch)
+        self.bottom_up_layers = self.create_bottom_up_layers(config.model.multiscale_lowres_separate_branch,
+                                                             primary_first_mamba=config.model.get(
+                                                                 'primary_first_mamba', False))
+
         self.top_down_layers = self.create_top_down_layers()
 
         # Final top-down layer
@@ -304,7 +307,7 @@ class LadderVAE(pl.LightningModule):
         ch2 = (ch2_un - self.data_mean['target'][:, -1:]) / self.data_std['target'][:, -1:]
         return ch2
 
-    def create_bottom_up_layers(self, lowres_separate_branch):
+    def create_bottom_up_layers(self, lowres_separate_branch, primary_first_mamba=False):
         bottom_up_layers = nn.ModuleList([])
         multiscale_lowres_size_factor = 1
         enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
@@ -339,6 +342,7 @@ class LadderVAE(pl.LightningModule):
                               multiscale_lowres_size_factor=multiscale_lowres_size_factor,
                               decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
                               enable_u_mamba=is_topk_for_mamba and self._enable_u_mamba,
+                              primary_first_mamba=primary_first_mamba,
                               output_expected_shape=output_expected_shape))
         return bottom_up_layers
 

@@ -110,6 +110,7 @@ def get_config():
     model.noise_model_ch1_fpath = None
     model.enable_u_mamba = True
     model.enable_u_mamba_topk = 3
+    model.primary_first_mamba = True
 
     training = config.training
     training.lr = 0.001 / 2

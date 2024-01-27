@@ -381,6 +381,7 @@ class BottomUpLayer(nn.Module):
                  multiscale_retain_spatial_dims: bool = False,
                  decoder_retain_spatial_dims: bool = False,
                  enable_u_mamba=False,
+                 primary_first_mamba=True,
                  output_expected_shape=None):
         """
         Args:
@@ -412,7 +413,8 @@ class BottomUpLayer(nn.Module):
             self.u_mamba_block = ConditionalMamba(in_channels=n_filters,
                                                   ssm_expansion_factor=2,
                                                   conv1d_kernel_size=4,
-                                                  state_dim=n_filters)
+                                                  state_dim=n_filters,
+                                                  primary_first=primary_first_mamba)
 
         assert self.output_expected_shape is None or self.enable_multiscale is True
 
