@@ -22,8 +22,8 @@ def get_config():
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
-    data.grid_size = 1
-    data.deterministic_grid = True
+    # data.grid_size = 1
+    data.deterministic_grid = False
     data.normalized_input = True
     data.clip_percentile = 0.995
 
@@ -52,7 +52,7 @@ def get_config():
     loss.kl_annealtime = 10
     loss.kl_start = -1
     loss.kl_min = 1e-7
-    loss.free_bits = 1.0
+    loss.free_bits = 0.0
 
     model = config.model
     model.model_type = ModelType.LadderVae
@@ -89,7 +89,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None  #'pixelwise'
+    model.predict_logvar = 'pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = False
