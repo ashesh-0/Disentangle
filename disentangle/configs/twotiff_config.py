@@ -109,7 +109,8 @@ def get_config():
 
     # mamba configs
     model.enable_u_mamba = True
-    model.enable_u_mamba_topk = 1
+    model.enable_u_mamba_topk = 3
+    model.mamba_enable_positional_encoding = True
     model.primary_first_mamba = True
     ######
 

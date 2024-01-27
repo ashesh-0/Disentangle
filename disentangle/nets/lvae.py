@@ -133,6 +133,7 @@ class LadderVAE(pl.LightningModule):
         self._var_clip_max = config.model.var_clip_max
         self._enable_u_mamba = config.model.get('enable_u_mamba', False)
         self._enable_u_mamba_topk = config.model.get('enable_u_mamba_topk', 1)
+        self._mamba_enable_positional_encoding = config.model.get('mamba_enable_positional_encoding', False)
 
         # loss related
         self.loss_type = config.loss.loss_type
@@ -343,6 +344,7 @@ class LadderVAE(pl.LightningModule):
                               decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
                               enable_u_mamba=is_topk_for_mamba and self._enable_u_mamba,
                               primary_first_mamba=primary_first_mamba,
+                              mamba_enable_positional_encoding=self._mamba_enable_positional_encoding,
                               output_expected_shape=output_expected_shape))
         return bottom_up_layers
 

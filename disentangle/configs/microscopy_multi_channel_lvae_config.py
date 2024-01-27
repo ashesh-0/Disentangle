@@ -111,6 +111,7 @@ def get_config():
     model.enable_u_mamba = True
     model.enable_u_mamba_topk = 3
     model.primary_first_mamba = True
+    model.mamba_enable_positional_encoding = True
 
     training = config.training
     training.lr = 0.001 / 2

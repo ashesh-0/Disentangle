@@ -382,6 +382,7 @@ class BottomUpLayer(nn.Module):
                  decoder_retain_spatial_dims: bool = False,
                  enable_u_mamba=False,
                  primary_first_mamba=True,
+                 mamba_enable_positional_encoding=False,
                  output_expected_shape=None):
         """
         Args:
@@ -414,8 +415,10 @@ class BottomUpLayer(nn.Module):
                                                   ssm_expansion_factor=2,
                                                   conv1d_kernel_size=4,
                                                   state_dim=n_filters,
-                                                  primary_first=primary_first_mamba)
-
+                                                  primary_first=primary_first_mamba,
+                                                  enable_positional_encoding=mamba_enable_positional_encoding)
+            # self.u_mamba_block = UMambaBlock(n_filters, 2, 4, n_filters,
+            #                                  starting_conv_blocks=2)
         assert self.output_expected_shape is None or self.enable_multiscale is True
 
         bu_blocks_downsized = []
