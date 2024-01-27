@@ -107,6 +107,7 @@ def get_config():
     # model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
     model.non_stochastic_version = False
     model.enable_u_mamba = True
+    model.enable_u_mamba_topk = 3
 
     training = config.training
     training.lr = 0.001

@@ -132,6 +132,7 @@ class LadderVAE(pl.LightningModule):
         self.non_stochastic_version = config.model.get('non_stochastic_version', False)
         self._var_clip_max = config.model.var_clip_max
         self._enable_u_mamba = config.model.get('enable_u_mamba', False)
+        self._enable_u_mamba_topk = config.model.get('enable_u_mamba_topk', 1)
 
         # loss related
         self.loss_type = config.loss.loss_type
@@ -311,6 +312,8 @@ class LadderVAE(pl.LightningModule):
         for i in range(self.n_layers):
             # Whether this is the top layer
             is_top = i == self.n_layers - 1
+            is_topk_for_mamba = i >= self.n_layers - self._enable_u_mamba_topk
+
             layer_enable_multiscale = enable_multiscale and self._multiscale_count > i + 1
             # if multiscale is enabled, this is the factor by which the lowres tensor will be larger than
             multiscale_lowres_size_factor *= (1 + int(layer_enable_multiscale))
@@ -335,7 +338,7 @@ class LadderVAE(pl.LightningModule):
                               multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
                               multiscale_lowres_size_factor=multiscale_lowres_size_factor,
                               decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
-                              enable_u_mamba=is_top and self._enable_u_mamba,
+                              enable_u_mamba=is_topk_for_mamba and self._enable_u_mamba,
                               output_expected_shape=output_expected_shape))
         return bottom_up_layers
 
