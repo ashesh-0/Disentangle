@@ -108,6 +108,8 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
+    model.enable_u_mamba = True
+    model.enable_u_mamba_topk = 3
 
     training = config.training
     training.lr = 0.001 / 2

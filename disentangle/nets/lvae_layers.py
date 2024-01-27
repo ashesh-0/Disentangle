@@ -12,7 +12,7 @@ from disentangle.core.data_utils import crop_img_tensor, pad_img_tensor
 from disentangle.core.nn_submodules import ResidualBlock, ResidualGatedBlock
 from disentangle.core.non_stochastic import NonStochasticBlock2d
 from disentangle.core.stochastic import NormalStochasticBlock2d
-from disentangle.nets.u_mamba_block import UMambaBlock
+from disentangle.nets.u_mamba_block import ConditionalMamba, UMambaBlock
 
 
 class TopDownLayer(nn.Module):
@@ -409,10 +409,10 @@ class BottomUpLayer(nn.Module):
         self.enable_u_mamba = enable_u_mamba
         self.u_mamba_block = None
         if self.enable_u_mamba:
-            self.u_mamba_block = UMambaBlock(in_channels=n_filters,
-                                             ssm_expansion_factor=2,
-                                             conv1d_kernel_size=4,
-                                             state_dim=n_filters)
+            self.u_mamba_block = ConditionalMamba(in_channels=n_filters,
+                                                  ssm_expansion_factor=2,
+                                                  conv1d_kernel_size=4,
+                                                  state_dim=n_filters)
 
         assert self.output_expected_shape is None or self.enable_multiscale is True
 
@@ -498,7 +498,7 @@ class BottomUpLayer(nn.Module):
         if lowres_x is not None:
             lowres_flow = self.lowres_net(lowres_x)
             if self.enable_u_mamba:
-                lowres_flow = self.u_mamba_block(lowres_flow)
+                lowres_flow = self.u_mamba_block(lowres_flow, primary_flow)
 
             merged = self.lowres_merge(primary_flow, lowres_flow)
         else:
