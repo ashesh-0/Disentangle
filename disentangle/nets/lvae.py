@@ -333,6 +333,7 @@ class LadderVAE(pl.LightningModule):
                               multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
                               multiscale_lowres_size_factor=multiscale_lowres_size_factor,
                               decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
+                              enable_u_mamba=is_top,
                               output_expected_shape=output_expected_shape))
         return bottom_up_layers
 
@@ -501,7 +502,9 @@ class LadderVAE(pl.LightningModule):
         loss_dict['loss'] = loss_dict['loss'][splitting_mask].sum() / len(reconstruction)
         for i in range(1, 1 + input.shape[1]):
             key = 'ch{}_loss'.format(i)
-            loss_dict[key] = loss_dict[key][splitting_mask].sum() / len(reconstruction)
+            # if statement is necessary for multiscale setup.
+            if key in loss_dict:
+                loss_dict[key] = loss_dict[key][splitting_mask].sum() / len(reconstruction)
 
         if 'mixed_loss' in loss_dict:
             loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'])
