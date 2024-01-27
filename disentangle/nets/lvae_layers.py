@@ -414,7 +414,7 @@ class BottomUpLayer(nn.Module):
             self.u_mamba_block = ConditionalMamba(in_channels=n_filters,
                                                   ssm_expansion_factor=2,
                                                   conv1d_kernel_size=4,
-                                                  state_dim=n_filters,
+                                                  state_dim=n_filters * 4,
                                                   primary_first=primary_first_mamba,
                                                   enable_positional_encoding=mamba_enable_positional_encoding)
             # self.u_mamba_block = UMambaBlock(n_filters, 2, 4, n_filters,
