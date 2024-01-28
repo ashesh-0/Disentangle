@@ -16,20 +16,23 @@ class DenoiserSplitter(LadderVAE):
     """
 
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
+        self._denoiser_mmse = config.model.get('denoiser_mmse', 1)
+        self._synchronized_input_target = config.model.get('synchronized_input_target', False)
+        self._use_noisy_input = config.model.get('use_noisy_input', False)
+        self._use_noisy_target = config.model.get('use_noisy_target', False)
+        self._use_both_noisy_clean_input = config.model.get('use_both_noisy_clean_input', False)
+
         new_config = deepcopy(ml_collections.ConfigDict(config))
         with new_config.unlocked():
             new_config.data.image_size = new_config.data.image_size // 2
-
+            if self._use_both_noisy_clean_input:
+                new_config.data.color_ch = 2
         super().__init__(data_mean, data_std, new_config, use_uncond_mode_at, target_ch)
 
         self._denoiser_ch1, config_ch1 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch1', None))
         self._denoiser_ch2, config_ch2 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch2', None))
         self._denoiser_input, config_inp = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_input', None))
         self._denoiser_all, config_all = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_all', None))
-        self._denoiser_mmse = config.model.get('denoiser_mmse', 1)
-        self._synchronized_input_target = config.model.get('synchronized_input_target', False)
-        self._use_noisy_input = config.model.get('use_noisy_input', False)
-        self._use_noisy_target = config.model.get('use_noisy_target', False)
 
         if self._denoiser_all is not None:
             self._denoiser_ch1 = self._denoiser_all
@@ -114,7 +117,13 @@ class DenoiserSplitter(LadderVAE):
         else:
             target_normalized = denoised_target_normalized
 
-        if self._use_noisy_input:
+        # inputs
+        if self._use_both_noisy_clean_input:
+            x_normalized = self.normalize_input(x)
+            denoised_x = self.denoise_input(x_normalized)
+            x_normalized = self.trim_to_half(x_normalized)
+            x_normalized = torch.cat([x_normalized, denoised_x], dim=1)
+        elif self._use_noisy_input:
             x_normalized = self.normalize_input(x)
             x_normalized = self.trim_to_half(x_normalized)
             assert self._synchronized_input_target != True
@@ -245,8 +254,8 @@ if __name__ == '__main__':
     from disentangle.configs.denoiser_splitting_config import get_config
 
     config = get_config()
-    data_mean = {'input': np.array([0]).reshape(1, 1, 1, 1), 'target': np.array([0, 0.1]).reshape(1, 2, 1, 1)}
-    data_std = {'input': np.array([1]).reshape(1, 1, 1, 1), 'target': np.array([1, 1.1]).reshape(1, 2, 1, 1)}
+    data_mean = {'input': np.array([0]).reshape(1, 1, 1, 1), 'target': np.array([0, 0]).reshape(1, 2, 1, 1)}
+    data_std = {'input': np.array([1]).reshape(1, 1, 1, 1), 'target': np.array([1, 1]).reshape(1, 2, 1, 1)}
     model = DenoiserSplitter(data_mean, data_std, config)
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count + 1
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))

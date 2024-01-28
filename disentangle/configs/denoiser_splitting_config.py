@@ -82,6 +82,7 @@ def get_config():
     model.synchronized_input_target = False
     model.use_noisy_input = False
     model.use_noisy_target = True
+    model.use_both_noisy_clean_input = True
     #############################
 
     model.z_dims = [128, 128, 128, 128]
