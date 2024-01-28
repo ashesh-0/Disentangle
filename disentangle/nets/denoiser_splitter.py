@@ -19,6 +19,7 @@ class DenoiserSplitter(LadderVAE):
         new_config = deepcopy(ml_collections.ConfigDict(config))
         with new_config.unlocked():
             new_config.data.image_size = new_config.data.image_size // 2
+
         super().__init__(data_mean, data_std, new_config, use_uncond_mode_at, target_ch)
 
         self._denoiser_ch1 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch1', None))
@@ -27,6 +28,8 @@ class DenoiserSplitter(LadderVAE):
         self._denoiser_all = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_all', None))
         self._denoiser_mmse = config.model.get('denoiser_mmse', 1)
         self._synchronized_input_target = config.model.get('synchronized_input_target', False)
+        self._use_noisy_input = config.model.get('use_noisy_input', False)
+        self._use_noisy_target = config.model.get('use_noisy_target', False)
 
         if self._denoiser_all is not None:
             self._denoiser_ch1 = self._denoiser_all
@@ -36,22 +39,23 @@ class DenoiserSplitter(LadderVAE):
         den_ch1 = self._denoiser_ch1 is not None
         den_ch2 = self._denoiser_ch2 is not None
         den_input = self._denoiser_input is not None
+        assert self._denoiser_input is None or self._use_noisy_input == False
         print(f'[{self.__class__}] Denoisers Ch1:{den_ch1}, Ch2:{den_ch2}, Input:{den_input} All:{den_input}')
 
     def load_data_mean_std(self, checkpoint):
         # TODO: save the mean and std in the checkpoint.
-        data_mean = self.data_mean
-        data_std = self.data_std
+        data_mean = deepcopy(self.data_mean)
+        data_std = deepcopy(self.data_std)
         return data_mean, data_std
 
     def load_denoiser(self, pre_trained_ckpt_fpath):
         if pre_trained_ckpt_fpath is None:
             return None
-
         checkpoint = torch.load(pre_trained_ckpt_fpath)
         config_fpath = os.path.join(os.path.dirname(pre_trained_ckpt_fpath), 'config.pkl')
         config = load_config(config_fpath)
         data_mean, data_std = self.load_data_mean_std(checkpoint)
+
         model = LadderVAEDenoiser(data_mean, data_std, config)
         _ = model.load_state_dict(checkpoint['state_dict'], strict=True)
         print('Loaded model from ckpt dir', pre_trained_ckpt_fpath, f' at epoch:{checkpoint["epoch"]}')
@@ -67,40 +71,62 @@ class DenoiserSplitter(LadderVAE):
             output += denoiser.likelihood.distr_params(out)['mean']
         return output / self._denoiser_mmse
 
+    def trim_to_half(self, x):
+        H = x.shape[-1] // 2
+        return x[:, :, H // 2:-H // 2, H // 2:-H // 2]
+
     def denoise_target(self, target_normalized):
         ch1 = target_normalized[:, :1]
         ch2 = target_normalized[:, 1:]
         ch1_denoised = self.denoise_one_channel(ch1, self._denoiser_ch1)
         ch2_denoised = self.denoise_one_channel(ch2, self._denoiser_ch2)
-        H = ch1_denoised.shape[-1] // 2
-        ch1_denoised = ch1_denoised[:, :, H // 2:-H // 2, H // 2:-H // 2]
-        ch2_denoised = ch2_denoised[:, :, H // 2:-H // 2, H // 2:-H // 2]
+
+        ch1_denoised = self.trim_to_half(ch1_denoised)
+        ch2_denoised = self.trim_to_half(ch2_denoised)
         return torch.cat([ch1_denoised, ch2_denoised], dim=1)
 
     def denoise_input(self, x_normalized):
         x_normalized = self.denoise_one_channel(x_normalized, self._denoiser_input)
-        H = x_normalized.shape[-1] // 2
-        return x_normalized[:, :, H // 2:-H // 2, H // 2:-H // 2]
+        return self.trim_to_half(x_normalized)
 
     def compute_input(self, target_normalized):
         return torch.mean(target_normalized, dim=1, keepdim=True)
 
-    def training_step(self, batch, batch_idx, enable_logging=True):
+    def get_normalized_input_target(self, batch):
+        """
+        Optionally denoise the input and target. For conssistency, we also trim them to half their spatial size.
+        """
         x, noisy_target = batch[:2]
         noisy_target_normalized = self.normalize_target(noisy_target)
-        target_normalized = self.denoise_target(noisy_target_normalized)
-        if self._synchronized_input_target:
-            x_normalized = torch.mean(target_normalized, dim=1, keepdim=True)
-        elif self._denoiser_input is None:
-            x_normalized = self.compute_input(target_normalized)
-        else:
-            x_normalized = self.denoise_input(x)
+        denoised_target_normalized = self.denoise_target(noisy_target_normalized)
 
+        if self._use_noisy_target:
+            target_normalized = self.trim_to_half(noisy_target_normalized)
+        else:
+            target_normalized = denoised_target_normalized
+
+        if self._use_noisy_input:
+            x_normalized = self.normalize_input(x)
+            x_normalized = self.trim_to_half(x_normalized)
+            assert self._synchronized_input_target != True
+        elif self._synchronized_input_target:
+            x_normalized = torch.mean(target_normalized, dim=1, keepdim=True)
+        elif self._denoiser_input is not None:
+            x_normalized = self.denoise_input(x)
+        else:
+            raise ValueError('Not clear how input needs to be computed.')
+        return x_normalized, target_normalized
+
+    def training_step(self, batch, batch_idx, enable_logging=True):
+        x_normalized, target_normalized = self.get_normalized_input_target(batch)
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict, imgs = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        recons_loss_dict, imgs = self.get_reconstruction_loss(out,
+                                                              target_normalized,
+                                                              x_normalized,
+                                                              return_predicted_img=True)
 
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
@@ -150,54 +176,57 @@ class DenoiserSplitter(LadderVAE):
         return output
 
     def validation_step(self, batch, batch_idx):
-        x, noisy_target = batch[:2]
-        self.set_params_to_same_device_as(noisy_target)
-        noisy_target_normalized = self.normalize_target(noisy_target)
-        target_normalized = self.denoise_target(noisy_target_normalized)
-        if self._synchronized_input_target:
-            x_normalized = torch.mean(target_normalized, dim=1, keepdim=True)
-        elif self._denoiser_input is None:
-            x_normalized = self.compute_input(target_normalized)
-        else:
-            x_normalized = self.denoise_input(x)
+        self.set_params_to_same_device_as(batch[0])
+        x_normalized, target_normalized = self.get_normalized_input_target(batch)
 
         out, td_data = self.forward(x_normalized)
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict, recons_img = self.get_reconstruction_loss(out, target_normalized, return_predicted_img=True)
+        recons_loss_dict, recons_img = self.get_reconstruction_loss(out,
+                                                                    target_normalized,
+                                                                    x_normalized,
+                                                                    return_predicted_img=True)
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
-        self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
-        self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
+        channels_rinvpsnr = []
+        for i in range(recons_img.shape[1]):
+            self.channels_psnr[i].update(recons_img[:, i], target_normalized[:, i])
+            psnr = RangeInvariantPsnr(target_normalized[:, i].clone(), recons_img[:, i].clone())
+            channels_rinvpsnr.append(psnr)
+            psnr = torch_nanmean(psnr).item()
+            self.log(f'val_psnr_l{i+1}', psnr, on_epoch=True)
 
-        psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0].clone(), recons_img[:, 0].clone())
-        psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1].clone(), recons_img[:, 1].clone())
+        # self.label1_psnr.update(recons_img[:, 0], target_normalized[:, 0])
+        # self.label2_psnr.update(recons_img[:, 1], target_normalized[:, 1])
+
+        # psnr_label1 = RangeInvariantPsnr(target_normalized[:, 0].clone(), recons_img[:, 0].clone())
+        # psnr_label2 = RangeInvariantPsnr(target_normalized[:, 1].clone(), recons_img[:, 1].clone())
         recons_loss = recons_loss_dict['loss']
         # kl_loss = self.get_kl_divergence_loss(td_data)
         # net_loss = recons_loss + self.get_kl_weight() * kl_loss
         self.log('val_loss', recons_loss, on_epoch=True)
-        val_psnr_l1 = torch_nanmean(psnr_label1).item()
-        val_psnr_l2 = torch_nanmean(psnr_label2).item()
-        self.log('val_psnr_l1', val_psnr_l1, on_epoch=True)
-        self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
+        # val_psnr_l1 = torch_nanmean(psnr_label1).item()
+        # val_psnr_l2 = torch_nanmean(psnr_label2).item()
+        # self.log('val_psnr_l1', val_psnr_l1, on_epoch=True)
+        # self.log('val_psnr_l2', val_psnr_l2, on_epoch=True)
         # self.log('val_psnr', (val_psnr_l1 + val_psnr_l2) / 2, on_epoch=True)
 
-        if batch_idx == 0 and self.power_of_2(self.current_epoch):
-            all_samples = []
-            for i in range(20):
-                sample, _ = self(x_normalized[0:1, ...])
-                sample = self.likelihood.get_mean_lv(sample)[0]
-                all_samples.append(sample[None])
+        # if batch_idx == 0 and self.power_of_2(self.current_epoch):
+        #     all_samples = []
+        #     for i in range(20):
+        #         sample, _ = self(x_normalized[0:1, ...])
+        #         sample = self.likelihood.get_mean_lv(sample)[0]
+        #         all_samples.append(sample[None])
 
-            all_samples = torch.cat(all_samples, dim=0)
-            all_samples = all_samples * self.data_std['target'] + self.data_mean['target']
-            all_samples = all_samples.cpu()
-            img_mmse = torch.mean(all_samples, dim=0)[0]
-            self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], noisy_target[0, 0, ...], img_mmse[0], 'label1')
-            self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], noisy_target[0, 1, ...], img_mmse[1], 'label2')
+        #     all_samples = torch.cat(all_samples, dim=0)
+        #     all_samples = all_samples * self.data_std['target'] + self.data_mean['target']
+        #     all_samples = all_samples.cpu()
+        #     img_mmse = torch.mean(all_samples, dim=0)[0]
+        #     self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], noisy_target[0, 0, ...], img_mmse[0], 'label1')
+        #     self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], noisy_target[0, 1, ...], img_mmse[1], 'label2')
 
 
 if __name__ == '__main__':
@@ -207,8 +236,8 @@ if __name__ == '__main__':
     from disentangle.configs.denoiser_splitting_config import get_config
 
     config = get_config()
-    data_mean = {'input': np.array([0]).reshape(1, 1, 1, 1), 'target': np.array([0, 0]).reshape(1, 2, 1, 1)}
-    data_std = {'input': np.array([1]).reshape(1, 1, 1, 1), 'target': np.array([1, 1]).reshape(1, 2, 1, 1)}
+    data_mean = {'input': np.array([0]).reshape(1, 1, 1, 1), 'target': np.array([0, 0.1]).reshape(1, 2, 1, 1)}
+    data_std = {'input': np.array([1]).reshape(1, 1, 1, 1), 'target': np.array([1, 1.1]).reshape(1, 2, 1, 1)}
     model = DenoiserSplitter(data_mean, data_std, config)
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count + 1
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))

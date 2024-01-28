@@ -16,14 +16,18 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
     data.enable_poisson_noise = False
+    data.enable_gaussian_noise = True
+    # data.validtarget_random_fraction = 1.0
+    # data.training_validtarget_fraction = 0.2
+    config.data.synthetic_gaussian_scale = 250
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
     data.normalized_input = True
-    data.clip_percentile = 0.995
+    data.clip_percentile = 0.999
     # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
     # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
     # the background noise is also a distribution. So, some amount of background noise will remain.
@@ -63,15 +67,22 @@ def get_config():
     loss.kl_annealtime = 10
     loss.kl_start = -1
     loss.kl_min = 1e-7
-    loss.free_bits = 0.0
+    loss.free_bits = 1.0
     # loss.ch1_recons_w = 1
     # loss.ch2_recons_w = 5
 
     model = config.model
     model.model_type = ModelType.DenoiserSplitter
-    model.pre_trained_ckpt_fpath_all = '/home/ashesh.ashesh/training/disentangle/2311/D7-M23-S0-L0/13/BaselineVAECL_best.ckpt'
+    # denoiser splitter specific
+    # model.pre_trained_ckpt_fpath_all = '/home/ashesh.ashesh/training/disentangle/2311/D7-M23-S0-L0/13/BaselineVAECL_best.ckpt'
+    model.pre_trained_ckpt_fpath_ch1 = '/home/ashesh.ashesh/training/disentangle/2401/D7-M23-S0-L0/9/BaselineVAECL_best.ckpt'
+    model.pre_trained_ckpt_fpath_ch2 = '/home/ashesh.ashesh/training/disentangle/2401/D7-M23-S0-L0/8/BaselineVAECL_best.ckpt'
+    model.pre_trained_ckpt_fpath_input = '/home/ashesh.ashesh/training/disentangle/2401/D7-M23-S0-L0/6/BaselineVAECL_best.ckpt'
     model.denoiser_mmse = 2
-    model.synchronized_input_target = True
+    model.synchronized_input_target = False
+    model.use_noisy_input = False
+    model.use_noisy_target = False
+    #############################
 
     model.z_dims = [128, 128, 128, 128]
 
@@ -120,7 +131,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
-    training.batch_size = 8
+    training.batch_size = 2
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
