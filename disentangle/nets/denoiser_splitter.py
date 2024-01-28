@@ -22,10 +22,10 @@ class DenoiserSplitter(LadderVAE):
 
         super().__init__(data_mean, data_std, new_config, use_uncond_mode_at, target_ch)
 
-        self._denoiser_ch1 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch1', None))
-        self._denoiser_ch2 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch2', None))
-        self._denoiser_input = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_input', None))
-        self._denoiser_all = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_all', None))
+        self._denoiser_ch1, config_ch1 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch1', None))
+        self._denoiser_ch2, config_ch2 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch2', None))
+        self._denoiser_input, config_inp = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_input', None))
+        self._denoiser_all, config_all = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_all', None))
         self._denoiser_mmse = config.model.get('denoiser_mmse', 1)
         self._synchronized_input_target = config.model.get('synchronized_input_target', False)
         self._use_noisy_input = config.model.get('use_noisy_input', False)
@@ -35,6 +35,15 @@ class DenoiserSplitter(LadderVAE):
             self._denoiser_ch1 = self._denoiser_all
             self._denoiser_ch2 = self._denoiser_all
             self._denoiser_input = self._denoiser_all
+        else:
+            if self._denoiser_ch1 is not None:
+                idx = ['Ch1', 'Ch2'].index(self._denoiser_ch1.denoise_channel)
+                fname = config_ch1.data[f'ch{idx+1}_fname']
+                assert config.data['ch1_fname'] == fname
+            if self._denoiser_ch2 is not None:
+                idx = ['Ch1', 'Ch2'].index(self._denoiser_ch2.denoise_channel)
+                fname = config_ch2.data[f'ch{idx+1}_fname']
+                assert config.data['ch2_fname'] == fname
 
         den_ch1 = self._denoiser_ch1 is not None
         den_ch2 = self._denoiser_ch2 is not None
@@ -50,7 +59,7 @@ class DenoiserSplitter(LadderVAE):
 
     def load_denoiser(self, pre_trained_ckpt_fpath):
         if pre_trained_ckpt_fpath is None:
-            return None
+            return None, None
         checkpoint = torch.load(pre_trained_ckpt_fpath)
         config_fpath = os.path.join(os.path.dirname(pre_trained_ckpt_fpath), 'config.pkl')
         config = load_config(config_fpath)
@@ -62,7 +71,7 @@ class DenoiserSplitter(LadderVAE):
 
         for param in model.parameters():
             param.requires_grad = False
-        return model
+        return model, config
 
     def denoise_one_channel(self, normalized_x, denoiser):
         output = 0
