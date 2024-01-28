@@ -59,7 +59,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = ''
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -81,7 +81,7 @@ def get_config():
     model.denoiser_mmse = 2
     model.synchronized_input_target = False
     model.use_noisy_input = False
-    model.use_noisy_target = False
+    model.use_noisy_target = True
     #############################
 
     model.z_dims = [128, 128, 128, 128]
