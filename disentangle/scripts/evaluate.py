@@ -122,6 +122,24 @@ def compute_high_snr_stats(config, highres_data, pred_unnorm):
     return {'psnr': [psnr1, psnr2], 'ssim': [ssim1_hres_mean, ssim2_hres_mean, ssim1_hres_std, ssim2_hres_std]}
 
 
+def get_highres_data_ventura(data_dir, config, eval_datasplit_type):
+    data_config = ml_collections.ConfigDict()
+    data_config.ch1_fname = 'actin-60x-noise2-highsnr.tif'
+    data_config.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+    highres_data = get_train_val_data(data_dir, data_config, DataSplitType.Train, config.training.val_fraction,
+                                      config.training.test_fraction)
+
+    hres_max_val = compute_max_val(highres_data, config)
+    del highres_data
+
+    highres_data = get_train_val_data(data_dir, data_config, eval_datasplit_type, config.training.val_fraction,
+                                      config.training.test_fraction)
+
+    # highres_data = highres_data[::5].copy()
+    upperclip_data(highres_data, hres_max_val)
+    return highres_data
+
+
 def main(
     ckpt_dir,
     DEBUG,
@@ -506,20 +524,7 @@ def main(
     print()
     # highres data
     if config.data.data_type == DataType.SeparateTiffData:
-        data_config = ml_collections.ConfigDict()
-        data_config.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-        data_config.ch2_fname = 'mito-60x-noise2-highsnr.tif'
-        highres_data = get_train_val_data(data_dir, data_config, DataSplitType.Train, config.training.val_fraction,
-                                          config.training.test_fraction)
-
-        hres_max_val = compute_max_val(highres_data, config)
-        del highres_data
-
-        highres_data = get_train_val_data(data_dir, data_config, eval_datasplit_type, config.training.val_fraction,
-                                          config.training.test_fraction)
-
-        # highres_data = highres_data[::5].copy()
-        upperclip_data(highres_data, hres_max_val)
+        highres_data = get_highres_data_ventura(data_dir, config, eval_datasplit_type)
         highres_data = ignore_pixels(highres_data)
         _ = compute_high_snr_stats(config, highres_data, [ch1_pred_unnorm, ch2_pred_unnorm])
         print('')
