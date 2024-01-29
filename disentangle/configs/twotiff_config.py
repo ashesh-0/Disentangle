@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
+    data.image_size = 128
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
@@ -89,17 +89,17 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None  #'pixelwise'
+    model.predict_logvar = 'pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2401/62/GMMNoiseModel_ventura_gigascience-actin_6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2401/63/GMMNoiseModel_ventura_gigascience-mito_6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2401/62/GMMNoiseModel_ventura_gigascience-actin_6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2401/63/GMMNoiseModel_ventura_gigascience-mito_6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
     assert model.enable_noise_model == False or model.predict_logvar is None
 
