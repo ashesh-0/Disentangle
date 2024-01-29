@@ -17,6 +17,11 @@ class DenoiserSplitter(LadderVAE):
 
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2):
         self._denoiser_mmse = config.model.get('denoiser_mmse', 1)
+        self._denoiser_kinput_samples = config.model.get('denoiser_kinput_samples', None)
+        if self._denoiser_kinput_samples is not None:
+            assert self._denoiser_kinput_samples >= 1
+            assert self._denoiser_mmse == 1
+
         self._synchronized_input_target = config.model.get('synchronized_input_target', False)
         self._use_noisy_input = config.model.get('use_noisy_input', False)
         self._use_noisy_target = config.model.get('use_noisy_target', False)
@@ -26,7 +31,7 @@ class DenoiserSplitter(LadderVAE):
         with new_config.unlocked():
             new_config.data.image_size = new_config.data.image_size // 2
             if self._use_both_noisy_clean_input:
-                new_config.data.color_ch = 2
+                new_config.data.color_ch = new_config.data.get('color_ch', 1) + 1
         super().__init__(data_mean, data_std, new_config, use_uncond_mode_at, target_ch)
 
         self._denoiser_ch1, config_ch1 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch1', None))
@@ -76,12 +81,22 @@ class DenoiserSplitter(LadderVAE):
             param.requires_grad = False
         return model, config
 
-    def denoise_one_channel(self, normalized_x, denoiser):
-        output = 0
-        for i in range(self._denoiser_mmse):
-            out, _ = denoiser(normalized_x)
-            output += denoiser.likelihood.distr_params(out)['mean']
-        return output / self._denoiser_mmse
+    def denoise_one_channel(self, normalized_x, denoiser, mmse_count=1, k_samples=None):
+        if k_samples is None:
+            output = 0
+            for i in range(mmse_count):
+                out, _ = denoiser(normalized_x)
+                output += denoiser.likelihood.distr_params(out)['mean']
+            return output / mmse_count
+        else:
+            import pdb
+            pdb.set_trace()
+            output = []
+            for i in range(k_samples):
+                out, _ = denoiser(normalized_x)
+                output.append(denoiser.likelihood.distr_params(out)['mean'][:, None])
+            # batch * k_samples * ch * H * W
+            return torch.stack(output, dim=0).mean(dim=1)
 
     def trim_to_half(self, x):
         H = x.shape[-1] // 2
@@ -90,15 +105,23 @@ class DenoiserSplitter(LadderVAE):
     def denoise_target(self, target_normalized):
         ch1 = target_normalized[:, :1]
         ch2 = target_normalized[:, 1:]
-        ch1_denoised = self.denoise_one_channel(ch1, self._denoiser_ch1)
-        ch2_denoised = self.denoise_one_channel(ch2, self._denoiser_ch2)
+        ch1_denoised = self.denoise_one_channel(ch1, self._denoiser_ch1, mmse_count=self._denoiser_mmse)
+        ch2_denoised = self.denoise_one_channel(ch2, self._denoiser_ch2, mmse_count=self._denoiser_mmse)
 
         ch1_denoised = self.trim_to_half(ch1_denoised)
         ch2_denoised = self.trim_to_half(ch2_denoised)
         return torch.cat([ch1_denoised, ch2_denoised], dim=1)
 
     def denoise_input(self, x_normalized):
-        x_normalized = self.denoise_one_channel(x_normalized, self._denoiser_input)
+        x_normalized = self.denoise_one_channel(x_normalized,
+                                                self._denoiser_input,
+                                                mmse_count=self._denoiser_mmse,
+                                                k_samples=self._denoiser_kinput_samples)
+        if self._denoiser_kinput_samples is not None:
+            assert len(x_normalized.shape) == 5  #'batch * k_samples * ch * H * W'
+            assert x_normalized.shape[2] == 1
+            x_normalized = x_normalized[:, :, 0]
+
         return self.trim_to_half(x_normalized)
 
     def compute_input(self, target_normalized):
