@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
     data.enable_poisson_noise = False
     data.enable_gaussian_noise = True
-    data.synthetic_gaussian_scale = 1000
+    data.synthetic_gaussian_scale = 750
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -55,7 +55,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.Denoiser
     # 4 values for denoise_channel {'Ch1', 'Ch2', 'input','all'}
-    model.denoise_channel = 'Ch1'
+    model.denoise_channel = 'input'
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
