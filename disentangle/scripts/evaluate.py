@@ -545,7 +545,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    patchsz_gridsz_tuples = [(256, 64)]
+    patchsz_gridsz_tuples = [(None, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
@@ -560,6 +560,9 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
                     assert custom_image_size == 64, '44 is only valid when custom_image_size is 64'
                 else:
                     ignored_last_pixels = 0
+
+                if custom_image_size is None:
+                    custom_image_size = load_config(ckpt_dir).data.image_size
 
                 handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
                                               image_size_for_grid_centers, mmse_count, ignored_last_pixels)
