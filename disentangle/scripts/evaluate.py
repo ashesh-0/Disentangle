@@ -29,8 +29,9 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.psnr import PSNR, RangeInvariantPsnr
 from disentangle.core.tiff_reader import load_tiff
-from disentangle.data_loader.multiscale_mc_tiff_dloader import LCMultiChDloader
+from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.patch_index_manager import GridAlignement
+from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data
 from disentangle.data_loader.vanilla_dloader import MultiChDloader
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.training import create_dataset, create_model
@@ -81,6 +82,44 @@ def fix_seeds():
     np.random.seed(0)
     random.seed(0)
     torch.backends.cudnn.deterministic = True
+
+
+def upperclip_data(data, max_val):
+    """
+    data: (N, H, W, C)
+    """
+    if isinstance(max_val, list):
+        chN = data.shape[-1]
+        assert chN == len(max_val)
+        for ch in range(chN):
+            ch_data = data[..., ch]
+            ch_q = max_val[ch]
+            ch_data[ch_data > ch_q] = ch_q
+            data[..., ch] = ch_data
+    else:
+        data[data > max_val] = max_val
+    return True
+
+
+def compute_max_val(data, config):
+    if config.data.get('channelwise_quantile', False):
+        max_val_arr = [np.quantile(data[..., i], config.data.clip_percentile) for i in range(data.shape[-1])]
+        return max_val_arr
+    else:
+        return np.quantile(data, config.data.clip_percentile)
+
+
+def compute_high_snr_stats(config, highres_data, pred_unnorm):
+    assert config.model.model_type == ModelType.DenoiserSplitter or config.data.data_type == DataType.SeparateTiffData
+    psnr1 = avg_range_inv_psnr(highres_data[..., 0], pred_unnorm[0])
+    psnr2 = avg_range_inv_psnr(highres_data[..., 1], pred_unnorm[1])
+
+    ssim1_hres_mean, ssim1_hres_std = avg_ssim(highres_data[..., 0], pred_unnorm[0])
+    ssim2_hres_mean, ssim2_hres_std = avg_ssim(highres_data[..., 1], pred_unnorm[1])
+    print('PSNR on Highres', psnr1, psnr2)
+    print('SSIM on Highres', np.round(ssim1_hres_mean, 3), '±', np.round(ssim1_hres_std, 3),
+          np.round(ssim2_hres_mean, 3), '±', np.round(ssim2_hres_std, 3))
+    return {'psnr': [psnr1, psnr2], 'ssim': [ssim1_hres_mean, ssim2_hres_mean, ssim1_hres_std, ssim2_hres_std]}
 
 
 def main(
@@ -171,6 +210,9 @@ def main(
                     config.model.use_random_for_missing_inp = False
                 if 'learnable_merge_tensors' not in config.model:
                     config.model.learnable_merge_tensors = False
+
+            if 'input_is_sum' not in config.data:
+                config.data.input_is_sum = False
         except:
             pass
 
@@ -326,7 +368,6 @@ def main(
 
     if evaluate_train:
         val_dset = train_dset
-    data_mean, data_std = train_dset.get_mean_std()
 
     with config.unlocked():
         if config.data.data_type in [
@@ -335,20 +376,37 @@ def main(
         ] and old_image_size is not None:
             config.data.image_size = old_image_size
 
+    mean_dict = {'input': None, 'target': None}
+    std_dict = {'input': None, 'target': None}
+    inp_fr_mean, inp_fr_std = train_dset.get_mean_std()
+    mean_sq = inp_fr_mean.squeeze()
+    std_sq = inp_fr_std.squeeze()
+    assert mean_sq[0] == mean_sq[1] and len(mean_sq) == config.data.get('num_channels', 2)
+    assert std_sq[0] == std_sq[1] and len(std_sq) == config.data.get('num_channels', 2)
+    mean_dict['input'] = np.mean(inp_fr_mean, axis=1, keepdims=True)
+    std_dict['input'] = np.mean(inp_fr_std, axis=1, keepdims=True)
+
     if config.data.target_separate_normalization is True:
-        model = create_model(config, *train_dset.compute_individual_mean_std())
+        target_data_mean, target_data_std = train_dset.compute_individual_mean_std()
     else:
-        model = create_model(config, *train_dset.get_mean_std())
+        target_data_mean, target_data_std = train_dset.get_mean_std()
+
+    mean_dict['target'] = target_data_mean
+    std_dict['target'] = target_data_std
+    ######
+
+    model = create_model(config, mean_dict, std_dict)
 
     ckpt_fpath = get_best_checkpoint(ckpt_dir)
     checkpoint = torch.load(ckpt_fpath)
 
-    _ = model.load_state_dict(checkpoint['state_dict'])
+    _ = model.load_state_dict(checkpoint['state_dict'], strict=False)
     model.eval()
     _ = model.cuda()
 
-    model.data_mean = model.data_mean.cuda()
-    model.data_std = model.data_std.cuda()
+    # model.data_mean = model.data_mean.cuda()
+    # model.data_std = model.data_std.cuda()
+    model.set_params_to_same_device_as(torch.Tensor([1]).cuda())
     print('Loading from epoch', checkpoint['epoch'])
 
     def count_parameters(model):
@@ -372,7 +430,11 @@ def main(
 
     def print_ignored_pixels():
         ignored_pixels = 1
-        while (pred[0, -ignored_pixels:, -ignored_pixels:, ].std() == 0):
+        while (pred[
+                0,
+                -ignored_pixels:,
+                -ignored_pixels:,
+        ].std() == 0):
             ignored_pixels += 1
         ignored_pixels -= 1
         # print(f'In {pred.shape}, {ignored_pixels} many rows and columns are all zero.')
@@ -391,7 +453,7 @@ def main(
     pred = ignore_pixels(pred)
     tar = ignore_pixels(tar)
 
-    sep_mean, sep_std = model.data_mean, model.data_std
+    sep_mean, sep_std = model.data_mean['target'], model.data_std['target']
     sep_mean = sep_mean.squeeze()[None, None, None]
     sep_std = sep_std.squeeze()[None, None, None]
 
@@ -438,53 +500,31 @@ def main(
     else:
         print('SSIM:', round(ssim1_mean, 3), round(ssim2_mean, 3), '±', round((ssim1_std + ssim2_std) / 2, 4))
     print()
+    # highres data
+    if config.data.data_type == DataType.SeparateTiffData:
+        data_config = ml_collections.ConfigDict()
+        data_config.ch1_fname = 'actin-60x-noise2-highsnr.tif'
+        data_config.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+        highres_data = get_train_val_data(data_dir, data_config, DataSplitType.Train, config.training.val_fraction,
+                                          config.training.test_fraction)
 
-    # if config.data.data_type == DataType.SeparateTiffData:
-    #     # comparing psnr with highres data
-    #     if eval_datasplit_type == DataSplitType.Val:
-    #         N = len(pred1) / config.training.val_fraction
-    #     elif eval_datasplit_type == DataSplitType.Test:
-    #         N = len(pred1) / config.training.test_fraction
+        hres_max_val = compute_max_val(highres_data, config)
+        del highres_data
 
-    #     train_idx, val_idx_list, test_idx_list = get_datasplit_tuples(config.training.val_fraction,
-    #                                                                   config.training.test_fraction,
-    #                                                                   N,
-    #                                                                   starting_test=True)
-    #     highres_actin = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/actin-60x-noise2-highsnr.tif')[...,
-    #                                                                                                            None]
-    #     highres_mito = load_tiff('/home/ashesh.ashesh/data/ventura_gigascience/mito-60x-noise2-highsnr.tif')[..., None]
+        highres_data = get_train_val_data(data_dir, data_config, eval_datasplit_type, config.training.val_fraction,
+                                          config.training.test_fraction)
 
-    #     if eval_datasplit_type == DataSplitType.Val:
-    #         highres_data = np.concatenate([highres_actin[val_idx_list], highres_mito[val_idx_list]],
-    #                                       axis=-1).astype(np.float32)
-    #     elif eval_datasplit_type == DataSplitType.Test:
-    #         highres_data = np.concatenate([highres_actin[test_idx_list], highres_mito[test_idx_list]],
-    #                                       axis=-1).astype(np.float32)
-
-    #     thresh = np.quantile(highres_data, config.data.clip_percentile)
-    #     highres_data[highres_data > thresh] = thresh
-
-    #     output_stats['highres_psnr'] = [avg_psnr(highres_data[..., 0], pred1), avg_psnr(highres_data[..., 1], pred2)]
-    #     output_stats['highres_rinvpsnr'] = [
-    #         avg_range_inv_psnr(highres_data[..., 0], pred1),
-    #         avg_range_inv_psnr(highres_data[..., 1], pred2)
-    #     ]
-    #     print('PSNR with HighRes', output_stats['highres_psnr'][0], output_stats['highres_psnr'][1])
-    #     print('RangeInvPSNR with HighRes', output_stats['highres_rinvpsnr'][0], output_stats['highres_rinvpsnr'][1])
+        # highres_data = highres_data[::5].copy()
+        upperclip_data(highres_data, hres_max_val)
+        highres_data = ignore_pixels(highres_data)
+        _ = compute_high_snr_stats(config, highres_data, [ch1_pred_unnorm, ch2_pred_unnorm])
+        print('')
     return output_stats
 
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/81',
-        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/83',
-        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/92',
-        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/82',
-        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/85',
-        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/84',
-        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/88',
-        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/86',
-        '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/93',
+        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/77',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')

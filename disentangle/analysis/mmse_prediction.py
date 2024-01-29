@@ -183,13 +183,11 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                                                                        x_normalized_new,
                                                                        return_predicted_img=True)
                     elif model_type == ModelType.DenoiserSplitter:
-                        x_normalized = model.normalize_input(inp)
-                        x_normalized = model.denoise_input(x_normalized)
-                        tar_normalized = model.normalize_target(tar)
-                        tar_normalized = model.denoise_target(tar_normalized)
+                        x_normalized, tar_normalized = model.get_normalized_input_target((inp, tar, *batch[2:]))
                         recon_normalized, _ = model(x_normalized)
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
                                                                        tar_normalized,
+                                                                       x_normalized,
                                                                        return_predicted_img=True)
 
                     else:
