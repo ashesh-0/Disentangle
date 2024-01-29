@@ -39,7 +39,7 @@ class MultiChDloader:
 
         """
         self._fpath = fpath
-        self._data = self.N = None
+        self._data = self.N = self._noise_data = None
         self._train_index_switcher = None
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
@@ -145,6 +145,16 @@ class MultiChDloader:
                                         val_fraction=val_fraction,
                                         test_fraction=test_fraction,
                                         allow_generation=allow_generation)
+
+        if data_config.get('enable_poisson_noise', False):
+            raise NotImplementedError('Poisson noise is not implemented yet.')
+        if data_config.get('enable_gaussian_noise', False):
+            synthetic_scale = data_config.get('synthetic_gaussian_scale', 0.1)
+            print('Adding Gaussian noise with scale', synthetic_scale)
+            # 0 => noise for input. 1: => noise for all targets.
+            shape = self._data.shape
+            self._noise_data = np.random.normal(0, synthetic_scale, (*shape[:-1], shape[-1] + 1)).astype(np.int32)
+
         old_shape = self._data.shape
         if self._datausage_fraction < 1.0:
             framepixelcount = np.prod(self._data.shape[1:3])
@@ -371,6 +381,9 @@ class MultiChDloader:
         return self.N * self._repeat_factor
 
     def _load_img(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Returns the channels and also the respective noise channels.
+        """
         if isinstance(index, int) or isinstance(index, np.int64):
             idx = index
         else:
@@ -378,7 +391,12 @@ class MultiChDloader:
 
         imgs = self._data[self.idx_manager.get_t(idx)]
         loaded_imgs = [imgs[None, ..., i] for i in range(imgs.shape[-1])]
-        return tuple(loaded_imgs)
+        noise = []
+        if self._noise_data is not None:
+            noise = [
+                self._noise_data[self.idx_manager.get_t(idx)][None, ..., i] for i in range(self._noise_data.shape[-1])
+            ]
+        return tuple(loaded_imgs), tuple(noise)
 
     def get_mean_std(self):
         return self._mean, self._std
@@ -490,9 +508,11 @@ class MultiChDloader:
         Loads an image.
         Crops the image such that cropped image has content.
         """
-        img_tuples = self._load_img(index)
-        cropped_img_tuples = self._crop_imgs(index, *img_tuples)[:-1]
-        return cropped_img_tuples
+        img_tuples, noise_tuples = self._load_img(index)
+        cropped_img_tuples = self._crop_imgs(index, *img_tuples, *noise_tuples)[:-1]
+        cropped_noise_tuples = cropped_img_tuples[len(img_tuples):]
+        cropped_img_tuples = cropped_img_tuples[:len(img_tuples)]
+        return cropped_img_tuples, cropped_noise_tuples
 
     def replace_with_empty_patch(self, img_tuples):
         empty_index = self._empty_patch_fetcher.sample()
@@ -552,19 +572,31 @@ class MultiChDloader:
         if self._train_index_switcher is not None:
             index = self._get_index_from_valid_target_logic(index)
 
-        img_tuples = self._get_img(index)
+        img_tuples, noise_tuples = self._get_img(index)
+        assert self._empty_patch_replacement_enabled != True, "This is not supported with noise"
+
         if self._empty_patch_replacement_enabled:
             if np.random.rand() < self._empty_patch_replacement_probab:
                 img_tuples = self.replace_with_empty_patch(img_tuples)
 
         if self._enable_rotation:
             # passing just the 2D input. 3rd dimension messes up things.
-            assert len(img_tuples) == 2
-            rot_dic = self._rotation_transform(image=img_tuples[0][0], mask=img_tuples[1][0])
-            img1 = rot_dic['image'][None]
-            img2 = rot_dic['mask'][None]
+            img_kwargs = {f'img{i}': img_tuples[i][0] for i in range(len(img_tuples))}
+            noise_kwargs = {f'noise{i}': noise_tuples[i][0] for i in range(len(noise_tuples))}
+            rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
+            img_tuples = [rot_dic[f'img{i}'][None] for i in range(len(img_tuples))]
+            noise_tuples = [rot_dic[f'noise{i}'][None] for i in range(len(noise_tuples))]
 
-        inp, alpha = self._compute_input(img_tuples)
+        # add noise to input
+        if len(noise_tuples) > 0:
+            factor = np.sqrt(2) if self._input_is_sum else 1.0
+            input_tuples = [x + noise_tuples[0] * factor for x in img_tuples]
+        else:
+            input_tuples = img_tuples
+        inp, alpha = self._compute_input(input_tuples)
+
+        # add noise to target.
+        input_tuples = [x + noise for x, noise in zip(img_tuples, noise_tuples[1:])]
 
         if self._alpha_weighted_target:
             assert self._input_is_sum is False
@@ -593,12 +625,12 @@ class MultiChDloader:
 
 if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
-    from disentangle.configs.biosr_config import get_config
+    from disentangle.configs.twotiff_config import get_config
     config = get_config()
     dset = MultiChDloader(
         config.data,
         #    '/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif',
-        '/group/jug/ashesh/data/BioSR/',
+        '/group/jug/ashesh/data/ventura_gigascience_small/',
         DataSplitType.Train,
         val_fraction=config.training.val_fraction,
         test_fraction=config.training.test_fraction,
@@ -614,4 +646,4 @@ if __name__ == '__main__':
     mean, std = dset.compute_mean_std()
     dset.set_mean_std(mean, std)
 
-    inp, target, alpha = dset[0]
+    inp, target = dset[0]

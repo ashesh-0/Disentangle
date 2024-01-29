@@ -19,13 +19,17 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
 
     data = np.concatenate([data1, data2], axis=3)
     # data = data[::3].copy()
-    if data_config.get('enable_poisson_noise', False):
-        data = np.random.poisson(data)
-    if data_config.get('enable_gaussian_noise', False):
-        synthetic_scale = data_config.get('synthetic_gaussian_scale', 0.1)
-        print('Adding Gaussian noise with scale', synthetic_scale)
-        noise = np.random.normal(0, synthetic_scale, data.shape)
-        data = data + noise
+    # NOTE: This was not the correct way to do it. It is so because the noise present in the input was directly related
+    # to the noise present in the channels and so this is not the way we would get the data.
+    # We need to add the noise independently to the input and the target.
+
+    # if data_config.get('enable_poisson_noise', False):
+    #     data = np.random.poisson(data)
+    # if data_config.get('enable_gaussian_noise', False):
+    #     synthetic_scale = data_config.get('synthetic_gaussian_scale', 0.1)
+    #     print('Adding Gaussian noise with scale', synthetic_scale)
+    #     noise = np.random.normal(0, synthetic_scale, data.shape)
+    #     data = data + noise
 
     if datasplit_type == DataSplitType.All:
         return data.astype(np.float32)
