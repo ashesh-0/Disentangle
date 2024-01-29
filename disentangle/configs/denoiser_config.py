@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
     data.enable_poisson_noise = False
     data.enable_gaussian_noise = True
-    data.synthetic_gaussian_scale = 1000
+    data.synthetic_gaussian_scale = 250
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
