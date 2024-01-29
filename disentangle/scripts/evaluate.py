@@ -425,6 +425,10 @@ def main(
         mmse_count=mmse_count,
         model_type=config.model.model_type,
     )
+    if pred_tiled.shape[-1] != val_dset.get_img_sz():
+        pad = (val_dset.get_img_sz() - pred_tiled.shape[-1]) // 2
+        pred_tiled = np.pad(pred_tiled, ((0, 0), (0, 0), (pad, pad), (pad, pad)))
+
     pred = stitch_predictions(pred_tiled, val_dset)
     print('Stitched predictions shape', pred.shape)
 
@@ -524,7 +528,7 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2210/D7-M3-S0-L0/77',
+        '/home/ashesh.ashesh/training/disentangle/2401/D7-M24-S0-L0/25',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -536,7 +540,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 1
 
-    patchsz_gridsz_tuples = [(64, 32)]
+    patchsz_gridsz_tuples = [(256, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
@@ -610,7 +614,7 @@ if __name__ == '__main__':
             image_size_for_grid_centers=args.grid_size,
             mmse_count=mmse_count,
             custom_image_size=args.patch_size,
-            batch_size=32,
+            batch_size=16,
             num_workers=4,
             COMPUTE_LOSS=False,
             use_deterministic_grid=None,
