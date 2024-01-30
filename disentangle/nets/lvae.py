@@ -501,7 +501,7 @@ class LadderVAE(pl.LightningModule):
         # print(len(target) - (torch.isnan(loss_dict['loss'])).sum())
 
         loss_dict['loss'] = loss_dict['loss'][splitting_mask].sum() / len(reconstruction)
-        for i in range(1, 1 + input.shape[1]):
+        for i in range(1, 1 + target.shape[1]):
             key = 'ch{}_loss'.format(i)
             loss_dict[key] = loss_dict[key][splitting_mask].sum() / len(reconstruction)
 

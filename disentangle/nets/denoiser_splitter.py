@@ -32,6 +32,8 @@ class DenoiserSplitter(LadderVAE):
             new_config.data.image_size = new_config.data.image_size // 2
             if self._use_both_noisy_clean_input:
                 new_config.data.color_ch = new_config.data.get('color_ch', 1) + 1
+            if self._denoiser_kinput_samples is not None:
+                new_config.data.color_ch += (self._denoiser_kinput_samples - 1)
         super().__init__(data_mean, data_std, new_config, use_uncond_mode_at, target_ch)
 
         self._denoiser_ch1, config_ch1 = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_ch1', None))
@@ -104,14 +106,12 @@ class DenoiserSplitter(LadderVAE):
                 output += denoiser.likelihood.distr_params(out)['mean']
             return output / mmse_count
         else:
-            import pdb
-            pdb.set_trace()
             output = []
             for i in range(k_samples):
                 out, _ = denoiser(normalized_x)
-                output.append(denoiser.likelihood.distr_params(out)['mean'][:, None])
+                output.append(denoiser.likelihood.distr_params(out)['mean'])
             # batch * k_samples * ch * H * W
-            return torch.stack(output, dim=0).mean(dim=1)
+            return output
 
     def trim_to_half(self, x):
         H = x.shape[-1] // 2
@@ -133,10 +133,8 @@ class DenoiserSplitter(LadderVAE):
                                                 mmse_count=self._denoiser_mmse,
                                                 k_samples=self._denoiser_kinput_samples)
         if self._denoiser_kinput_samples is not None:
-            assert len(x_normalized.shape) == 5  #'batch * k_samples * ch * H * W'
-            assert x_normalized.shape[2] == 1
-            x_normalized = x_normalized[:, :, 0]
-
+            assert isinstance(x_normalized, list)
+            return [self.trim_to_half(x) for x in x_normalized]
         return self.trim_to_half(x_normalized)
 
     def compute_input(self, target_normalized):
@@ -160,7 +158,8 @@ class DenoiserSplitter(LadderVAE):
             x_normalized = self.normalize_input(x)
             denoised_x = self.denoise_input(x_normalized)
             x_normalized = self.trim_to_half(x_normalized)
-            x_normalized = torch.cat([x_normalized, denoised_x], dim=1)
+            assert isinstance(denoised_x, list)
+            x_normalized = torch.cat([x_normalized] + denoised_x, dim=1)
         elif self._use_noisy_input:
             x_normalized = self.normalize_input(x)
             x_normalized = self.trim_to_half(x_normalized)
@@ -297,8 +296,8 @@ if __name__ == '__main__':
     model = DenoiserSplitter(data_mean, data_std, config)
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count + 1
     inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
-    out, td_data = model(inp)
-    print(out.shape)
+    # out, td_data = model(inp)
+    # print(out.shape)
     batch = (
         torch.rand((16, mc, config.data.image_size, config.data.image_size)),
         torch.rand((16, 2, config.data.image_size, config.data.image_size)),

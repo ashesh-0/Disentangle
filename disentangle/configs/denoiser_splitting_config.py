@@ -77,12 +77,13 @@ def get_config():
     # model.pre_trained_ckpt_fpath_all = '/home/ashesh.ashesh/training/disentangle/2311/D7-M23-S0-L0/13/BaselineVAECL_best.ckpt'
     model.pre_trained_ckpt_fpath_ch1 = '/home/ashesh.ashesh/training/disentangle/2401/D7-M23-S0-L0/25/BaselineVAECL_best.ckpt'
     model.pre_trained_ckpt_fpath_ch2 = '/home/ashesh.ashesh/training/disentangle/2401/D7-M23-S0-L0/26/BaselineVAECL_best.ckpt'
-    model.pre_trained_ckpt_fpath_input = '/home/ashesh.ashesh/training/disentangle/2401/D7-M23-S0-L0/27/BaselineVAECL_best.ckpt'
-    model.denoiser_mmse = 2
+    model.pre_trained_ckpt_fpath_input = '/home/ashesh.ashesh/training/disentangle/2401/D7-M23-S0-L0/32/BaselineVAECL_best.ckpt'
+    model.denoiser_mmse = 1
     model.synchronized_input_target = False
     model.use_noisy_input = False
     model.use_noisy_target = True
     model.use_both_noisy_clean_input = True
+    model.denoiser_kinput_samples = 4
     #############################
 
     model.z_dims = [128, 128, 128, 128]
