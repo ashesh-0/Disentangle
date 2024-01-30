@@ -39,6 +39,21 @@ class DenoiserSplitter(LadderVAE):
         self._denoiser_input, config_inp = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_input', None))
         self._denoiser_all, config_all = self.load_denoiser(config.model.get('pre_trained_ckpt_fpath_all', None))
 
+        # Same noise level for all denoisers
+        if 'synthetic_gaussian_scale' in config.data:
+            assert config_ch1 is None or ('synthetic_gaussian_scale' in config_ch1.data
+                                          and config_ch1.data.synthetic_gaussian_scale
+                                          == config.data.synthetic_gaussian_scale)
+            assert config_ch2 is None or ('synthetic_gaussian_scale' in config_ch2.data
+                                          and config_ch2.data.synthetic_gaussian_scale
+                                          == config.data.synthetic_gaussian_scale)
+            assert config_inp is None or ('synthetic_gaussian_scale' in config_inp.data
+                                          and config_inp.data.synthetic_gaussian_scale
+                                          == config.data.synthetic_gaussian_scale)
+            assert config_all is None or ('synthetic_gaussian_scale' in config_all.data
+                                          and config_all.data.synthetic_gaussian_scale
+                                          == config.data.synthetic_gaussian_scale)
+
         if self._denoiser_all is not None:
             self._denoiser_ch1 = self._denoiser_all
             self._denoiser_ch2 = self._denoiser_all
