@@ -15,7 +15,7 @@ def get_config():
     data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
     data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
     data.enable_poisson_noise = False
-    data.enable_gaussian_noise = True
+    data.enable_gaussian_noise = False
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
     config.data.synthetic_gaussian_scale = 1000
