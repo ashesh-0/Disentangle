@@ -91,7 +91,6 @@ class ConditionalMamba(UMambaBlock):
         # bN, cN, hN, wN = primary_x.shape
         conditional_x = self._conv_blocks(conditional_x)
         primary_x = self._conv_blocks_primary(primary_x)
-        return primary_x
 
         if self._enable_positional_encoding:
             _, _, hN, wN = primary_x.shape
