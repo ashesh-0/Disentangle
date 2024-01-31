@@ -600,7 +600,7 @@ class MultiChDloader:
         inp, alpha = self._compute_input(input_tuples)
 
         # add noise to target.
-        input_tuples = [x + noise for x, noise in zip(img_tuples, noise_tuples[1:])]
+        img_tuples = [x + noise for x, noise in zip(img_tuples, noise_tuples[1:])]
 
         if self._alpha_weighted_target:
             assert self._input_is_sum is False
