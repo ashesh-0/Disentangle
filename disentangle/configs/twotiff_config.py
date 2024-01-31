@@ -19,6 +19,8 @@ def get_config():
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
     config.data.synthetic_gaussian_scale = 1000
+    # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
+    config.data.input_has_dependant_noise = True
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02

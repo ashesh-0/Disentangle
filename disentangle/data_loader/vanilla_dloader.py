@@ -154,6 +154,11 @@ class MultiChDloader:
             # 0 => noise for input. 1: => noise for all targets.
             shape = self._data.shape
             self._noise_data = np.random.normal(0, synthetic_scale, (*shape[:-1], shape[-1] + 1)).astype(np.int32)
+            if data_config.get('input_has_dependant_noise', False):
+                self._noise_data[..., 0] = np.mean(self._noise_data[..., 1:], axis=-1)
+                if self._input_is_sum:
+                    assert self._num_channels == self._noise_data.shape[-1] - 1
+                    self._noise_data[..., 0] = self._noise_data[..., 0] * self._num_channels
 
         old_shape = self._data.shape
         if self._datausage_fraction < 1.0:
