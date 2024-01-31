@@ -157,9 +157,6 @@ class MultiChDloader:
             if data_config.get('input_has_dependant_noise', False):
                 msg += '. Moreover, input has dependent noise'
                 self._noise_data[..., 0] = np.mean(self._noise_data[..., 1:], axis=-1)
-                if self._input_is_sum:
-                    assert self._num_channels == self._noise_data.shape[-1] - 1
-                    self._noise_data[..., 0] = self._noise_data[..., 0] * self._num_channels
             print(msg)
 
         old_shape = self._data.shape
