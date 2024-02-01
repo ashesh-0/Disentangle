@@ -45,6 +45,8 @@ class LadderVAE(pl.LightningModule):
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
         self.ch1_recons_w = config.loss.get('ch1_recons_w', 1)
         self.ch2_recons_w = config.loss.get('ch2_recons_w', 1)
+        self._stochastic_use_naive_exponential = config.model.decoder.get('stochastic_use_naive_exponential', False)
+
         # can be used to tile the validation predictions
         self._val_idx_manager = val_idx_manager
         self._val_frame_creator = None
@@ -288,7 +290,8 @@ class LadderVAE(pl.LightningModule):
                     non_stochastic_version=self.non_stochastic_version,
                     input_image_shape=self.img_shape,
                     normalize_latent_factor=normalize_latent_factor,
-                    conv2d_bias=self.topdown_conv2d_bias))
+                    conv2d_bias=self.topdown_conv2d_bias,
+                    stochastic_use_naive_exponential=self._stochastic_use_naive_exponential))
         return top_down_layers
 
     def get_other_channel(self, ch1, input):

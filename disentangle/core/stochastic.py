@@ -6,13 +6,13 @@ from typing import Union
 
 import numpy as np
 import torch
+import torchvision.transforms.functional as F
 from torch import nn
 from torch.distributions import kl_divergence
 from torch.distributions.normal import Normal
-import torchvision.transforms.functional as F
 
-from disentangle.core.stable_exp import log_prob
 from disentangle.core.stable_dist_params import StableLogVar, StableMean
+from disentangle.core.stable_exp import log_prob
 
 
 class NormalStochasticBlock2d(nn.Module):
@@ -21,7 +21,14 @@ class NormalStochasticBlock2d(nn.Module):
     same for p(z), then sample z ~ q(z) and return conv(z).
     If q's parameters are not given, do the same but sample from p(z).
     """
-    def __init__(self, c_in: int, c_vars: int, c_out, kernel: int = 3, transform_p_params: bool = True):
+
+    def __init__(self,
+                 c_in: int,
+                 c_vars: int,
+                 c_out,
+                 kernel: int = 3,
+                 transform_p_params: bool = True,
+                 use_naive_exponential=False):
         """
         Args:
             c_in:   This is the channel count of the tensor input to this module.
@@ -37,6 +44,7 @@ class NormalStochasticBlock2d(nn.Module):
         self.c_in = c_in
         self.c_out = c_out
         self.c_vars = c_vars
+        self._use_naive_exponential = use_naive_exponential
 
         if transform_p_params:
             self.conv_in_p = nn.Conv2d(c_in, 2 * c_vars, kernel, padding=pad)
@@ -134,7 +142,7 @@ class NormalStochasticBlock2d(nn.Module):
             p_lv = torch.clip(p_lv, max=var_clip_max)
 
         p_mu = StableMean(p_mu)
-        p_lv = StableLogVar(p_lv)
+        p_lv = StableLogVar(p_lv, enable_stable=not self._use_naive_exponential)
         p = Normal(p_mu.get(), p_lv.get_std())
         return p_mu, p_lv, p
 
@@ -153,7 +161,7 @@ class NormalStochasticBlock2d(nn.Module):
             # q_lv = q_lv[:, :, 1:, 1:] if clip_start else q_lv[:, :, :-1, :-1]
 
         q_mu = StableMean(q_mu)
-        q_lv = StableLogVar(q_lv)
+        q_lv = StableLogVar(q_lv, enable_stable=not self._use_naive_exponential)
         q = Normal(q_mu.get(), q_lv.get_std())
         return q_mu, q_lv, q
 

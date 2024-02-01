@@ -57,7 +57,8 @@ class TopDownLayer(nn.Module):
                  non_stochastic_version=False,
                  input_image_shape: Union[None, Tuple[int, int]] = None,
                  normalize_latent_factor=1.0,
-                 conv2d_bias: bool = True):
+                 conv2d_bias: bool = True,
+                 stochastic_use_naive_exponential=False):
         """
             Args:
                 z_dim:          This is the dimension of the latent space.
@@ -153,6 +154,7 @@ class TopDownLayer(nn.Module):
                 c_vars=z_dim,
                 c_out=n_filters,
                 transform_p_params=(not is_top_layer),
+                use_naive_exponential=stochastic_use_naive_exponential,
             )
 
         if not is_top_layer:

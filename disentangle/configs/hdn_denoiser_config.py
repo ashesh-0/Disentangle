@@ -47,34 +47,40 @@ def get_config():
 
     loss.kl_weight = 1.0
     loss.kl_annealing = False
-    loss.kl_annealtime = 10
-    loss.kl_start = -1
-    loss.kl_min = 1e-7
-    loss.free_bits = 1.0
+    # loss.kl_annealtime = 10
+    # loss.kl_start = -1
+    # loss.kl_min = 1e-7
 
     model = config.model
     model.model_type = ModelType.Denoiser
     # 4 values for denoise_channel {'Ch1', 'Ch2', 'input','all'}
     model.denoise_channel = 'input'
-    model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
-    model.encoder.blocks_per_layer = 1
-    model.encoder.n_filters = 64
-    model.encoder.dropout = 0.1
+    model.encoder.dropout = 0.2
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
     model.decoder.batchnorm = True
-    model.decoder.blocks_per_layer = 1
-    model.decoder.n_filters = 64
-    model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
 
-    #False
-    config.model.decoder.conv2d_bias = True
+    # HDN specific parameters which were changed.
+    model.decoder.dropout = 0.2
+    model.decoder.stochastic_use_naive_exponential = True
+    model.decoder.blocks_per_layer = 5
+    model.encoder.blocks_per_layer = 5
+    model.encoder.n_filters = 32
+    model.decoder.n_filters = 32
+    model.z_dims = [32, 32, 32, 32, 32, 32]
+    loss.free_bits = 1.0
+    model.analytical_kl = True
+    model.var_clip_max = None
+    model.logvar_lowerbound = None  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
+    model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
+    #########################
 
+    model.decoder.conv2d_bias = True
     model.skip_nboundary_pixels_from_loss = None
     model.nonlin = 'elu'
     model.merge_type = 'residual'
@@ -82,18 +88,14 @@ def get_config():
     model.learn_top_prior = True
     model.img_shape = None
     model.res_block_type = 'bacdbacd'
-
     model.gated = True
     model.no_initial_downscaling = True
-    model.analytical_kl = False
     model.mode_pred = False
-    model.var_clip_max = 20
+
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = None  #'pixelwise'
-    model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
-    model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
     model.enable_noise_model = False
     model.noise_model_type = 'gmm'
@@ -106,7 +108,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
-    training.batch_size = 32
+    training.batch_size = 64
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
