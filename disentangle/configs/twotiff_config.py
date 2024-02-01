@@ -45,7 +45,7 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # this is not uSplit.
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = ''
 
     # loss.mixed_rec_weight = 1
 
@@ -100,9 +100,9 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2401/56/GMMNoiseModel_ventura_gigascience-actin_6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2401/57/GMMNoiseModel_ventura_gigascience-mito_6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_learnable = False
+    # model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2401/56/GMMNoiseModel_ventura_gigascience-actin_6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2401/57/GMMNoiseModel_ventura_gigascience-mito_6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_learnable = False
     assert model.enable_noise_model == False or model.predict_logvar is None
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
