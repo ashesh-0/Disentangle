@@ -50,7 +50,7 @@ def get_config():
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
-    data.target_separate_normalization = False
+    data.target_separate_normalization = True
 
     # This is for intensity augmentation
     # data.ch1_min_alpha = 0.4
@@ -131,15 +131,15 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 15
-    training.max_epochs = 200
+    training.lr_scheduler_patience = 60
+    training.max_epochs = 800
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 100
+    training.earlystop_patience = 400
     training.precision = 16
 
     return config
