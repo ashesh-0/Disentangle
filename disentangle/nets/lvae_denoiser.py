@@ -13,7 +13,7 @@ class LadderVAEDenoiser(LadderVAE):
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=1)
         self.denoise_channel = config.model.denoise_channel
         assert self.denoise_channel in ['input', 'Ch1', 'Ch2', 'all']
-        if self.denoise_channel in ['input', 'all']:
+        if self.denoise_channel == 'all':
             msg = 'For target, we expect it to be unnormalized. For such reasons, we expect same normalization for input and target.'
             assert len(self.data_mean['target'].squeeze()) == 2, msg
             assert self.data_mean['input'].squeeze() == self.data_mean['target'].squeeze()[:1], msg
@@ -24,13 +24,19 @@ class LadderVAEDenoiser(LadderVAE):
             assert self.data_std['input'].squeeze() == self.data_std['target'].squeeze()[1:], msg
             self.data_mean['target'] = self.data_mean['target'][:, :1]
             self.data_std['target'] = self.data_std['target'][:, :1]
-
+        elif self.denoise_channel == 'input':
+            self.data_mean['target'] = self.data_mean['input']
+            self.data_std['target'] = self.data_std['input']
         elif self.denoise_channel == 'Ch1':
             self.data_mean['target'] = self.data_mean['target'][:, :1]
             self.data_std['target'] = self.data_std['target'][:, :1]
+            self.data_mean['input'] = self.data_mean['target']
+            self.data_std['input'] = self.data_std['target']
         elif self.denoise_channel == 'Ch2':
             self.data_mean['target'] = self.data_mean['target'][:, 1:]
             self.data_std['target'] = self.data_std['target'][:, 1:]
+            self.data_mean['input'] = self.data_mean['target']
+            self.data_std['input'] = self.data_std['target']
 
     def get_new_input_target(self, batch):
         x, target = batch[:2]
@@ -71,7 +77,7 @@ if __name__ == '__main__':
     import numpy as np
     import torch
 
-    from disentangle.configs.denoiser_config import get_config
+    from disentangle.configs.hdn_denoiser_config import get_config
 
     config = get_config()
     data_mean = {'input': np.array([0]).reshape(1, 1, 1, 1), 'target': np.array([0, 0]).reshape(1, 2, 1, 1)}

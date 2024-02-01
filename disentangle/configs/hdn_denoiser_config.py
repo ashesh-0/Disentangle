@@ -35,7 +35,7 @@ def get_config():
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
-    data.target_separate_normalization = False
+    data.target_separate_normalization = True
     data.input_is_sum = False
 
     loss = config.loss
@@ -47,14 +47,14 @@ def get_config():
 
     loss.kl_weight = 1.0
     loss.kl_annealing = False
-    # loss.kl_annealtime = 10
-    # loss.kl_start = -1
+    loss.kl_annealtime = 10
+    loss.kl_start = None
     # loss.kl_min = 1e-7
 
     model = config.model
     model.model_type = ModelType.Denoiser
     # 4 values for denoise_channel {'Ch1', 'Ch2', 'input','all'}
-    model.denoise_channel = 'input'
+    model.denoise_channel = 'Ch2'
 
     model.encoder.batchnorm = True
     model.encoder.dropout = 0.2

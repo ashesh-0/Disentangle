@@ -126,9 +126,13 @@ class LadderVAE(pl.LightningModule):
         self.mode_pred = config.model.mode_pred
         self.use_uncond_mode_at = use_uncond_mode_at
         self.nonlin = config.model.nonlin
-        self.kl_start = config.loss.kl_start
         self.kl_annealing = config.loss.kl_annealing
-        self.kl_annealtime = config.loss.kl_annealtime
+        self.kl_annealtime = self.kl_start = None
+
+        if self.kl_annealing:
+            self.kl_annealtime = config.loss.kl_annealtime
+            self.kl_start = config.loss.kl_start
+
         self.predict_logvar = config.model.predict_logvar
         self.logvar_lowerbound = config.model.logvar_lowerbound
         self.non_stochastic_version = config.model.get('non_stochastic_version', False)
