@@ -456,7 +456,11 @@ class MultiChDloader:
         std_arr = []
         for ch_idx in range(self._data.shape[-1]):
             mean_ = 0.0 if self._skip_normalization_using_mean else self._data[..., ch_idx].mean()
-            std_ = self._data[..., ch_idx].std()
+            if self._noise_data is not None:
+                std_ = (self._data[..., ch_idx] + self._noise_data[..., ch_idx + 1]).std()
+            else:
+                std_ = self._data[..., ch_idx].std()
+
             mean_arr.append(mean_)
             std_arr.append(std_)
 
@@ -472,6 +476,7 @@ class MultiChDloader:
         assert self._is_train is True or allow_for_validation_data, 'This is just allowed for training data'
         if self._use_one_mu_std is True:
             if self._input_is_sum:
+                assert self._noise_data is None, "This is not supported with noise"
                 mean = [np.mean(self._data[..., k:k + 1], keepdims=True) for k in range(self._num_channels)]
                 mean = np.sum(mean, keepdims=True)[0]
                 std = np.linalg.norm(
@@ -479,7 +484,11 @@ class MultiChDloader:
                     keepdims=True)[0]
             else:
                 mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
-                std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
+                if self._noise_data is not None:
+                    std = np.std(self._data + self._noise_data[..., 1:], keepdims=True).reshape(1, 1, 1, 1)
+                else:
+                    std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
+
             mean = np.repeat(mean, self._num_channels, axis=1)
             std = np.repeat(std, self._num_channels, axis=1)
 
