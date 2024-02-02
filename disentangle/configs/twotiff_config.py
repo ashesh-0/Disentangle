@@ -8,17 +8,17 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 256
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
     data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
     data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
     data.enable_poisson_noise = False
-    data.enable_gaussian_noise = False
+    data.enable_gaussian_noise = True
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 0.1
+    config.data.synthetic_gaussian_scale = 1000
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -43,7 +43,7 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # this is not uSplit.
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = ''
 
     # loss.mixed_rec_weight = 1
 
@@ -89,13 +89,13 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'pixelwise'
+    model.predict_logvar = None  #'pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
     model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2401/62/GMMNoiseModel_ventura_gigascience-actin_6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
