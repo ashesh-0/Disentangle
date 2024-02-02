@@ -153,7 +153,7 @@ class MultiChDloader:
             msg = f'Adding Gaussian noise with scale {synthetic_scale}'
             # 0 => noise for input. 1: => noise for all targets.
             shape = self._data.shape
-            self._noise_data = np.random.normal(0, synthetic_scale, (*shape[:-1], shape[-1] + 1)).astype(np.int32)
+            self._noise_data = np.random.normal(0, synthetic_scale, (*shape[:-1], shape[-1] + 1))
             if data_config.get('input_has_dependant_noise', False):
                 msg += '. Moreover, input has dependent noise'
                 self._noise_data[..., 0] = np.mean(self._noise_data[..., 1:], axis=-1)
