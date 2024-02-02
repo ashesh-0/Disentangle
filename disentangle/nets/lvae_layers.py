@@ -416,7 +416,8 @@ class BottomUpLayer(nn.Module):
                                                   conv1d_kernel_size=4,
                                                   state_dim=n_filters * 4,
                                                   primary_first=primary_first_mamba,
-                                                  enable_positional_encoding=mamba_enable_positional_encoding)
+                                                  enable_positional_encoding=mamba_enable_positional_encoding,
+                                                  spatial_size=output_expected_shape[0])
             # self.u_mamba_block = UMambaBlock(n_filters, 2, 4, n_filters,
             #                                  starting_conv_blocks=2)
         assert self.output_expected_shape is None or self.enable_multiscale is True
