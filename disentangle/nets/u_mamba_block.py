@@ -17,7 +17,8 @@ class UMambaBlock(nn.Module):
                  conv1d_kernel_size,
                  state_dim,
                  starting_conv_blocks=2,
-                 enable_positional_encoding=False):
+                 enable_positional_encoding=False,
+                 spatial_size=8):
         super().__init__()
         self._in_c = in_channels
         self._ssm_exp = ssm_expansion_factor
@@ -27,11 +28,15 @@ class UMambaBlock(nn.Module):
         self._enable_positional_encoding = enable_positional_encoding
         self._pos_encoder = None
         self._last_channel_matcher = nn.Identity()
+
         self._pos_encoder_emb_dim = 0
         if self._enable_positional_encoding:
             self._pos_encoder_emb_dim = 16
             self._pos_encoder = TwoDimPositionalEncoder(emb_dim=self._pos_encoder_emb_dim, max_x=64, max_y=64)
             self._last_channel_matcher = nn.Conv2d(self._in_c + self._pos_encoder_emb_dim, self._in_c, 1)
+
+        self._layer_norm = nn.LayerNorm(
+            [spatial_size * spatial_size + 64 * 64, in_channels + self._pos_encoder_emb_dim])
 
         self._ssm = Mamba(d_model=self._in_c + self._pos_encoder_emb_dim,
                           expand=self._ssm_exp,
@@ -55,6 +60,7 @@ class UMambaBlock(nn.Module):
         # we want to flatten the last two dimensions and swap the last two dimensions
         # so that we can apply the ssm
         x = x.flatten(start_dim=2).permute(0, 2, 1)
+        x = self._layer_norm(x)
         x = self._ssm(x)
         # at this point, x is of shape (batch_size, h*w, in_channels)
         # we want to swap the last two dimensions and reshape the last dimension
@@ -73,16 +79,21 @@ class ConditionalMamba(UMambaBlock):
                  state_dim,
                  primary_first=False,
                  starting_conv_blocks=2,
+                 spatial_size=8,
                  enable_positional_encoding=False):
         super().__init__(in_channels,
                          ssm_expansion_factor,
                          conv1d_kernel_size,
                          state_dim,
                          starting_conv_blocks=starting_conv_blocks,
-                         enable_positional_encoding=enable_positional_encoding)
+                         enable_positional_encoding=enable_positional_encoding,
+                         spatial_size=spatial_size)
 
         self._conv_blocks_primary = self.get_conv_blocks(starting_conv_blocks)
         self._primary_first = primary_first
+        del self._layer_norm
+        self._layer_norm = nn.LayerNorm(
+            [spatial_size * spatial_size + 64 * 64, in_channels + self._pos_encoder_emb_dim])
         print(
             f'[{self.__class__.__name__}] {in_channels} {ssm_expansion_factor} {state_dim} primary_first: {self._primary_first} pos_enc:{enable_positional_encoding}'
         )
@@ -124,6 +135,7 @@ class ConditionalMamba(UMambaBlock):
         else:
             x = torch.cat((conditional_x, primary_x), dim=1)
 
+        x = self._layer_norm(x)
         x = self._ssm(x)
         x = x[:, -primary_x.shape[1]:]
 
