@@ -533,10 +533,15 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/0',
-        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/1',
-        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/2',
-        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/3'
+        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/41/',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/44/',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/39/',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/43/',
+
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/42/',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/38/',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/40/',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/45/',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
