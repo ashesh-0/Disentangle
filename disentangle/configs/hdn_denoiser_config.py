@@ -71,7 +71,7 @@ def get_config():
     model.decoder.blocks_per_layer = 1
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64
-    model.decoder.n_filters = 32
+    model.decoder.n_filters = 64
     model.z_dims = [128, 128, 128, 128]
     loss.free_bits = 1.0
     model.analytical_kl = False
