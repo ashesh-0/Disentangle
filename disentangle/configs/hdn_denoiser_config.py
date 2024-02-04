@@ -98,11 +98,11 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
-    model.noise_model_type = 'gmm'
+    model.enable_noise_model = True
+    model.noise_model_type = 'hist'
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/20/GMMNoiseModel_ventura_gigascience-actin__6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/19/GMMNoiseModel_ventura_gigascience-mito__6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/20/HistNoiseModel_ventura_gigascience-actin__Norm0_Bins128_bootstrap.npy'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/19/HistNoiseModel_ventura_gigascience-mito__Norm0_Bins128_bootstrap.npy'
     # model.noise_model_learnable = False
     assert model.enable_noise_model == False or model.predict_logvar is None
 
