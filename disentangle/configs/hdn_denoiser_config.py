@@ -89,7 +89,7 @@ def get_config():
 
     model.gated = True
     model.no_initial_downscaling = True
-    model.analytical_kl = False
+    model.analytical_kl = True
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
