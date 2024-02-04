@@ -53,8 +53,8 @@ def get_config():
     loss.kl_weight = 1.0
     loss.kl_annealing = False
     loss.kl_annealtime = 10
-    loss.kl_start = -1
-    loss.kl_min = 1e-7
+    # loss.kl_start = -1
+    # loss.kl_min = 1e-7
     loss.free_bits = 1.0
 
     model = config.model
@@ -92,7 +92,7 @@ def get_config():
     model.no_initial_downscaling = True
     model.analytical_kl = True
     model.mode_pred = False
-    model.var_clip_max = 20
+    model.var_clip_max = None
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
     model.predict_logvar = None  #'pixelwise'
     model.logvar_lowerbound = None  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
