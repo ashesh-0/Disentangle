@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
     data.enable_poisson_noise = False
     data.enable_gaussian_noise = True
-    data.synthetic_gaussian_scale = 1500
+    data.synthetic_gaussian_scale = 500
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -100,8 +100,8 @@ def get_config():
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}__6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname_format.format('2402/20', 'actin')
-    model.noise_model_ch2_fpath = fname_format.format('2402/19', 'mito')
+    model.noise_model_ch1_fpath = fname_format.format('2402/18', 'actin')
+    model.noise_model_ch2_fpath = fname_format.format('2402/16', 'mito')
     model.non_stochastic_version = False
 
     training = config.training
