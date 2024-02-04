@@ -42,6 +42,7 @@ def get_config():
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
     data.input_is_sum = False
+
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # this is not uSplit.
@@ -75,7 +76,7 @@ def get_config():
     model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-
+    model.decoder.stochastic_use_naive_exponential = True
     #False
     config.model.decoder.conv2d_bias = True
 
