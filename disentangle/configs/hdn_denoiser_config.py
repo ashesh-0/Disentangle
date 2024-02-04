@@ -61,19 +61,19 @@ def get_config():
     model.model_type = ModelType.Denoiser
     # 4 values for denoise_channel {'Ch1', 'Ch2', 'input','all'}
     model.denoise_channel = 'Ch1'
-    model.z_dims = [128, 128, 128, 128]
+    model.z_dims = [32, 32, 32, 32, 32, 32]
 
     model.encoder.batchnorm = True
-    model.encoder.blocks_per_layer = 1
-    model.encoder.n_filters = 64
-    model.encoder.dropout = 0.1
+    model.encoder.blocks_per_layer = 5
+    model.encoder.n_filters = 32
+    model.encoder.dropout = 0.2
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
     model.decoder.batchnorm = True
-    model.decoder.blocks_per_layer = 1
-    model.decoder.n_filters = 64
-    model.decoder.dropout = 0.1
+    model.decoder.blocks_per_layer = 5
+    model.decoder.n_filters = 32
+    model.decoder.dropout = 0.2
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
     model.decoder.stochastic_use_naive_exponential = True
