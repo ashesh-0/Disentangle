@@ -42,7 +42,6 @@ def get_config():
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
     data.input_is_sum = False
-
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # this is not uSplit.
@@ -53,30 +52,29 @@ def get_config():
     loss.kl_weight = 1.0
     loss.kl_annealing = False
     loss.kl_annealtime = 10
-    # loss.kl_start = -1
-    # loss.kl_min = 1e-7
+    loss.kl_start = -1
+    loss.kl_min = 1e-7
     loss.free_bits = 1.0
 
     model = config.model
     model.model_type = ModelType.Denoiser
-    # 4 values for denoise_channel {'Ch1', 'Ch2', 'input','all'}
     model.denoise_channel = 'Ch1'
-    model.z_dims = [32, 32, 32, 32, 32, 32]
+    model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
-    model.encoder.blocks_per_layer = 5
-    model.encoder.n_filters = 32
-    model.encoder.dropout = 0.2
+    model.encoder.blocks_per_layer = 1
+    model.encoder.n_filters = 64
+    model.encoder.dropout = 0.1
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
     model.decoder.batchnorm = True
-    model.decoder.blocks_per_layer = 5
-    model.decoder.n_filters = 32
-    model.decoder.dropout = 0.2
+    model.decoder.blocks_per_layer = 1
+    model.decoder.n_filters = 64
+    model.decoder.dropout = 0.1
     model.decoder.res_block_kernel = 3
     model.decoder.res_block_skip_padding = False
-    model.decoder.stochastic_use_naive_exponential = True
+
     #False
     config.model.decoder.conv2d_bias = True
 
@@ -90,12 +88,12 @@ def get_config():
 
     model.gated = True
     model.no_initial_downscaling = True
-    model.analytical_kl = True
+    model.analytical_kl = False
     model.mode_pred = False
-    model.var_clip_max = None
+    model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None  #'pixelwise'
-    model.logvar_lowerbound = None  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
+    model.predict_logvar = None
+    model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
