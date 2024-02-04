@@ -68,11 +68,11 @@ def get_config():
     # HDN specific parameters which were changed.
     model.decoder.dropout = 0.2
     model.decoder.stochastic_use_naive_exponential = True
-    model.decoder.blocks_per_layer = 5
-    model.encoder.blocks_per_layer = 5
-    model.encoder.n_filters = 32
+    model.decoder.blocks_per_layer = 1
+    model.encoder.blocks_per_layer = 1
+    model.encoder.n_filters = 64
     model.decoder.n_filters = 32
-    model.z_dims = [32, 32, 32, 32, 32, 32]
+    model.z_dims = [128, 128, 128, 128]
     loss.free_bits = 1.0
     model.analytical_kl = False
     model.var_clip_max = None
