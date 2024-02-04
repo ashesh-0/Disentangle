@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
     data.enable_poisson_noise = False
     data.enable_gaussian_noise = True
-    data.synthetic_gaussian_scale = 500
+    data.synthetic_gaussian_scale = 1500
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -74,7 +74,7 @@ def get_config():
     model.decoder.n_filters = 32
     model.z_dims = [32, 32, 32, 32, 32, 32]
     loss.free_bits = 1.0
-    model.analytical_kl = True
+    model.analytical_kl = False
     model.var_clip_max = None
     model.logvar_lowerbound = None  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
