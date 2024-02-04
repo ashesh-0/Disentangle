@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 256
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
     data.enable_poisson_noise = False
     data.enable_gaussian_noise = True
-    data.synthetic_gaussian_scale = 1000
+    data.synthetic_gaussian_scale = 1500
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -57,7 +57,6 @@ def get_config():
     model.denoise_channel = 'Ch2'
 
     model.encoder.batchnorm = True
-    model.encoder.dropout = 0.2
     model.encoder.res_block_kernel = 3
     model.encoder.res_block_skip_padding = False
 
@@ -66,6 +65,7 @@ def get_config():
     model.decoder.res_block_skip_padding = False
 
     # HDN specific parameters which were changed.
+    model.encoder.dropout = 0.2
     model.decoder.dropout = 0.2
     model.decoder.stochastic_use_naive_exponential = True
     model.decoder.blocks_per_layer = 5
@@ -97,7 +97,7 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
 
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}__6_4_Clip0.001-0.999_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname_format.format('2402/17', 'actin')
