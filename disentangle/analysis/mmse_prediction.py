@@ -73,6 +73,7 @@ def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, pred
 def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1, num_workers=4):
     dloader = DataLoader(dset, pin_memory=False, num_workers=num_workers, shuffle=False, batch_size=batch_size)
     predictions = []
+    predictions_std = []
     losses = []
     logvar_arr = []
     patch_psnr_channels = [RunningPSNR() for _ in range(dset[0][1].shape[0])]
@@ -193,7 +194,6 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
                     else:
                         x_normalized = model.normalize_input(inp)
                         tar_normalized = model.normalize_target(tar)
-
                         recon_normalized, _ = model(x_normalized)
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
                                                                        tar_normalized,
@@ -219,8 +219,13 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
 
                 recon_img_list.append(imgs.cpu()[None])
 
-            mmse_imgs = torch.mean(torch.cat(recon_img_list, dim=0), dim=0)
+            samples = torch.cat(recon_img_list, dim=0)
+            mmse_imgs = torch.mean(samples, dim=0)
+            mmse_std = torch.std(samples, dim=0)
             predictions.append(mmse_imgs.cpu().numpy())
+            predictions_std.append(mmse_std.cpu().numpy())
 
     psnr = [x.get() for x in patch_psnr_channels]
-    return np.concatenate(predictions, axis=0), np.array(losses), np.concatenate(logvar_arr), psnr
+    return np.concatenate(predictions,
+                          axis=0), np.array(losses), np.concatenate(logvar_arr), psnr, np.concatenate(predictions_std,
+                                                                                                      axis=0)

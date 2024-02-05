@@ -24,6 +24,12 @@ class Calibration:
         return np.linspace(min_std, max_std, self._bins + 1)
 
     def compute_stats(self, pred, pred_logvar, target):
+        """
+        Args:
+            pred: np.ndarray, shape (n, h, w, c)
+            pred_logvar: np.ndarray, shape (n, h, w, c)
+            target: np.ndarray, shape (n, h, w, c)
+        """
         self._bin_boundaries = {}
         stats = {}
         for ch_idx in range(pred.shape[-1]):
