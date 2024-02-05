@@ -93,7 +93,7 @@ def get_config():
     model.mode_pred = False
 
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None  #'pixelwise'
+    model.predict_logvar = 'pixelwise'
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
 
