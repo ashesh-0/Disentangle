@@ -22,7 +22,7 @@ def get_config():
     data.enable_gaussian_noise = True
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 1000
+    config.data.synthetic_gaussian_scale = 1500
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
@@ -74,10 +74,10 @@ def get_config():
     model = config.model
     model.model_type = ModelType.DenoiserSplitter
     # denoiser splitter specific
-    # model.pre_trained_ckpt_fpath_all = '/home/ashesh.ashesh/training/disentangle/2311/D7-M23-S0-L0/13/BaselineVAECL_best.ckpt'
-    model.pre_trained_ckpt_fpath_ch1 = '/home/ashesh.ashesh/training/disentangle/2401/D7-M23-S0-L0/25/BaselineVAECL_best.ckpt'
-    model.pre_trained_ckpt_fpath_ch2 = '/home/ashesh.ashesh/training/disentangle/2401/D7-M23-S0-L0/26/BaselineVAECL_best.ckpt'
-    model.pre_trained_ckpt_fpath_input = '/home/ashesh.ashesh/training/disentangle/2401/D7-M23-S0-L0/32/BaselineVAECL_best.ckpt'
+    fpath = '/home/ashesh.ashesh/training/disentangle/{}/D7-M23-S0-L0/{}/BaselineVAECL_best.ckpt'
+    model.pre_trained_ckpt_fpath_ch1 = fpath.format(2402, 74)
+    model.pre_trained_ckpt_fpath_ch2 = fpath.format(2402, 75)
+    model.pre_trained_ckpt_fpath_input = fpath.format(2402, 73)
     model.denoiser_mmse = 1
     model.synchronized_input_target = False
     model.use_noisy_input = False
