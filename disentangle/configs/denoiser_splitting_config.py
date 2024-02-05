@@ -22,7 +22,8 @@ def get_config():
     data.enable_gaussian_noise = True
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 1500
+    data.synthetic_gaussian_scale = 1500
+    data.input_has_dependant_noise = True
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
