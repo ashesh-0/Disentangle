@@ -358,6 +358,7 @@ def plotProbabilityDistribution(signalBinIndex, histogramNoiseModel, gaussianMix
     plt.ylabel('Probability Density')
     plt.title("Probability Distribution P(x|s) at signal =" + str(querySignal_numpy))
     plt.legend()
+    return {'gmm': {'x': queryObservations_numpy, 'p': pNumpy}, 'hist': {'x': queryObservations_numpy, 'p': histobs}}
 
 
 def predict_mmse(vae, img, samples, device, returnSamples=False, tq=True):
