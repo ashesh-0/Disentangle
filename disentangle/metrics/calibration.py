@@ -64,3 +64,46 @@ class Calibration:
             else:
                 raise NotImplementedError(f'Patchwise mode is not implemented yet.')
         return stats
+
+
+def nll(x, mean, logvar):
+    """
+    Log of the probability density of the values x untder the Normal
+    distribution with parameters mean and logvar.
+    :param x: tensor of points, with shape (batch, channels, dim1, dim2)
+    :param mean: tensor with mean of distribution, shape
+                 (batch, channels, dim1, dim2)
+    :param logvar: tensor with log-variance of distribution, shape has to be
+                   either scalar or broadcastable
+    """
+    var = torch.exp(logvar)
+    log_prob = -0.5 * (((x - mean)**2) / var + logvar + torch.tensor(2 * math.pi).log())
+    nll = -log_prob
+    return nll
+
+
+def calibrate(pred, pred_logvar, target, batch_size=32, epochs=100):
+    """
+    Here, we calibrate with multiplying the predicted logvar with a scalar.
+    """
+    import torch
+    from tqdm import tqdm
+
+    # create a learnable scalar
+    scalar = torch.nn.Parameter(torch.tensor(1.0))
+    optimizer = torch.optim.Adam([scalar], lr=0.01)
+    # tqdm with text description as loss
+    bar = tqdm(total=100, desc='nll')
+    for _ in bar:
+        optimizer.zero_grad()
+        mask = np.random.randint(0, pred.shape[0], batch_size)
+        pred_batch = torch.Tensor(pred[mask]).cuda()
+        pred_logvar_batch = torch.Tensor(pred_logvar[mask]).cuda()
+        target_batch = torch.Tensor(target[mask]).cuda()
+
+        loss = torch.mean(nll(target_batch, pred_batch, pred_logvar_batch * scalar))
+        loss.backward()
+        optimizer.step()
+        bar.set_description(f'nll: {loss.item()} scalar: {scalar.item()}')
+
+    return scalar.item()
