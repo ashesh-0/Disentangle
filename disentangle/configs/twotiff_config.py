@@ -12,13 +12,13 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
     data.enable_poisson_noise = False
-    data.enable_gaussian_noise = True
+    data.enable_gaussian_noise = False
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 250
+    config.data.synthetic_gaussian_scale = None
     # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
     config.data.input_has_dependant_noise = True
 
@@ -45,7 +45,7 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # this is not uSplit.
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = ''
 
     # loss.mixed_rec_weight = 1
 
