@@ -7,6 +7,7 @@ import os
 import pickle
 import socket
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -102,7 +103,7 @@ def get_month():
     return datetime.now().strftime("%y%m")
 
 
-def get_workdir(config, root_dir, use_max_version):
+def get_workdir(config, root_dir, use_max_version, nested_call=0):
     rel_path = get_month()
     cur_workdir = os.path.join(root_dir, rel_path)
     Path(cur_workdir).mkdir(exist_ok=True)
@@ -122,7 +123,18 @@ def get_workdir(config, root_dir, use_max_version):
         rel_path = os.path.join(rel_path, get_new_model_version(cur_workdir))
 
     cur_workdir = os.path.join(root_dir, rel_path)
-    Path(cur_workdir).mkdir(exist_ok=True)
+    try:
+        Path(cur_workdir).mkdir(exist_ok=False)
+    except FileExistsError:
+        print(
+            f'Workdir {cur_workdir} already exists. Probably because someother program also created the exact same directory. Trying to get a new version.'
+        )
+        time.sleep(2.5)
+        if nested_call > 10:
+            raise ValueError(f'Cannot create a new directory. {cur_workdir} already exists.')
+
+        return get_workdir(config, root_dir, use_max_version, nested_call + 1)
+
     return cur_workdir, rel_path
 
 
