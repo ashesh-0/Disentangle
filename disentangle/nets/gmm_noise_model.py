@@ -73,7 +73,8 @@ class GaussianMixtureNoiseModel(nn.Module):
                 weight = np.random.randn(n_gaussian * 3, n_coeff)
                 weight[n_gaussian:2 * n_gaussian, 1] = np.log(max_signal - min_signal)
                 weight = torch.from_numpy(weight.astype(np.float32)).float()  #.to(self.device)
-                weight.requires_grad = True
+                weight = nn.Parameter(weight, requires_grad=True)
+
             self.n_gaussian = weight.shape[0] // 3
             self.n_coeff = weight.shape[1]
             self.weight = weight
@@ -87,7 +88,8 @@ class GaussianMixtureNoiseModel(nn.Module):
             self.min_signal = torch.Tensor(params['min_signal'])  #.to(self.device)
             self.max_signal = torch.Tensor(params['max_signal'])  #.to(self.device)
 
-            self.weight = torch.Tensor(params['trained_weight'])  #.to(self.device)
+            self.weight = torch.nn.Parameter(torch.Tensor(params['trained_weight']),
+                                             requires_grad=False)  #.to(self.device)
             self.min_sigma = params['min_sigma'].item()
             self.n_gaussian = self.weight.shape[0] // 3
             self.n_coeff = self.weight.shape[1]
@@ -101,6 +103,7 @@ class GaussianMixtureNoiseModel(nn.Module):
         self._learnable = True
         self.weight.requires_grad = True
 
+        #
     def to_device(self, cuda_tensor):
         # move everything to GPU
         if self.min_signal.device != cuda_tensor.device:
