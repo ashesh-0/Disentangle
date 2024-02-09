@@ -141,6 +141,7 @@ class LadderVAE(pl.LightningModule):
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
         self.free_bits = config.loss.free_bits
+        self.reconstruction_weight = config.loss.get('reconstruction_weight', 1.0)
 
         self.encoder_no_padding_mode = config.model.encoder.res_block_skip_padding is True and config.model.encoder.res_block_kernel > 1
         self.decoder_no_padding_mode = config.model.decoder.res_block_skip_padding is True and config.model.decoder.res_block_kernel > 1
@@ -697,7 +698,7 @@ class LadderVAE(pl.LightningModule):
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
-        recons_loss = recons_loss_dict['loss']
+        recons_loss = recons_loss_dict['loss'] * self.reconstruction_weight
         if torch.isnan(recons_loss).any():
             recons_loss = 0.0
 
