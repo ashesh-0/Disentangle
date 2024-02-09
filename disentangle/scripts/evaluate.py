@@ -5,6 +5,7 @@ import pickle
 import random
 import re
 import sys
+from copy import deepcopy
 from posixpath import basename
 
 import matplotlib.pyplot as plt
@@ -31,8 +32,8 @@ from disentangle.core.psnr import PSNR, RangeInvariantPsnr
 from disentangle.core.tiff_reader import load_tiff
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.patch_index_manager import GridAlignement
-from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data
-from disentangle.data_loader.vanilla_dloader import MultiChDloader
+# from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data
+from disentangle.data_loader.vanilla_dloader import MultiChDloader, get_train_val_data
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.training import create_dataset, create_model
 
@@ -120,6 +121,29 @@ def compute_high_snr_stats(config, highres_data, pred_unnorm):
     print('SSIM on Highres', np.round(ssim1_hres_mean, 3), '±', np.round(ssim1_hres_std, 3),
           np.round(ssim2_hres_mean, 3), '±', np.round(ssim2_hres_std, 3))
     return {'psnr': [psnr1, psnr2], 'ssim': [ssim1_hres_mean, ssim2_hres_mean, ssim1_hres_std, ssim2_hres_std]}
+
+
+def get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type):
+    """
+    Here, we don't add any synthetic noise.
+    """
+    assert 'synthetic_gaussian_scale' in config.data or 'enable_poisson_noise' in config.data
+    assert config.data.synthetic_gaussian_scale > 0
+    data_config = deepcopy(config.data)
+    data_config.enable_poisson_noise = False
+    data_config.synthetic_gaussian_scale = None
+    highres_data = get_train_val_data(data_config, data_dir, DataSplitType.Train, config.training.val_fraction,
+                                      config.training.test_fraction)
+
+    hres_max_val = compute_max_val(highres_data, config)
+    del highres_data
+
+    highres_data = get_train_val_data(data_config, data_dir, eval_datasplit_type, config.training.val_fraction,
+                                      config.training.test_fraction)
+
+    # highres_data = highres_data[::5].copy()
+    upperclip_data(highres_data, hres_max_val)
+    return highres_data
 
 
 def get_highres_data_ventura(data_dir, config, eval_datasplit_type):
