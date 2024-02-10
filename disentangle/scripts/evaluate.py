@@ -150,13 +150,14 @@ def get_highres_data_ventura(data_dir, config, eval_datasplit_type):
     data_config = ml_collections.ConfigDict()
     data_config.ch1_fname = 'actin-60x-noise2-highsnr.tif'
     data_config.ch2_fname = 'mito-60x-noise2-highsnr.tif'
-    highres_data = get_train_val_data(data_dir, data_config, DataSplitType.Train, config.training.val_fraction,
+    data_config.data_type = DataType.SeparateTiffData
+    highres_data = get_train_val_data(data_config, data_dir, DataSplitType.Train, config.training.val_fraction,
                                       config.training.test_fraction)
 
     hres_max_val = compute_max_val(highres_data, config)
     del highres_data
 
-    highres_data = get_train_val_data(data_dir, data_config, eval_datasplit_type, config.training.val_fraction,
+    highres_data = get_train_val_data(data_config, data_dir, eval_datasplit_type, config.training.val_fraction,
                                       config.training.test_fraction)
 
     # highres_data = highres_data[::5].copy()
@@ -472,7 +473,7 @@ def main(
         pred_tiled = np.pad(pred_tiled, ((0, 0), (0, 0), (pad, pad), (pad, pad)))
 
     pred = stitch_predictions(pred_tiled, val_dset)
-    print('Stitched predictions shape', pred.shape)
+    print('Stitched predictions shape before ignoring boundary pixels', pred.shape)
 
     def print_ignored_pixels():
         ignored_pixels = 1
@@ -487,6 +488,7 @@ def main(
         return ignored_pixels
 
     actual_ignored_pixels = print_ignored_pixels()
+    assert ignored_last_pixels == actual_ignored_pixels
     tar = val_dset._data
 
     def ignore_pixels(arr):
@@ -498,6 +500,7 @@ def main(
 
     pred = ignore_pixels(pred)
     tar = ignore_pixels(tar)
+    print('Stitched predictions shape after', pred.shape)
 
     sep_mean, sep_std = model.data_mean['target'], model.data_std['target']
     sep_mean = sep_mean.squeeze()[None, None, None]
@@ -557,7 +560,8 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/41/',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/36',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/35',
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/44/',
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/39/',
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/43/',
@@ -575,7 +579,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
         raise Exception('Invalid server')
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
-    mmse_count = 1
+    mmse_count = 5
 
     patchsz_gridsz_tuples = [(None, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
@@ -589,7 +593,6 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
                     ignored_last_pixels = 32
                 elif data_type == DataType.BioSR_MRC:
                     ignored_last_pixels = 44
-                    assert custom_image_size == 64, '44 is only valid when custom_image_size is 64'
                 else:
                     ignored_last_pixels = 0
 
