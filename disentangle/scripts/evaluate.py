@@ -127,10 +127,10 @@ def get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type):
     """
     Here, we don't add any synthetic noise.
     """
-    assert 'synthetic_gaussian_scale' in config.data or 'enable_poisson_noise' in config.data
+    assert 'synthetic_gaussian_scale' in config.data or 'poisson_noise_factor' in config.data
     assert config.data.synthetic_gaussian_scale > 0
     data_config = deepcopy(config.data)
-    data_config.enable_poisson_noise = False
+    data_config.poisson_noise_factor = -1
     data_config.synthetic_gaussian_scale = None
     highres_data = get_train_val_data(data_config, data_dir, DataSplitType.Train, config.training.val_fraction,
                                       config.training.test_fraction)

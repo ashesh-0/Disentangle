@@ -146,11 +146,15 @@ class MultiChDloader:
                                         test_fraction=test_fraction,
                                         allow_generation=allow_generation)
 
-        if data_config.get('enable_poisson_noise', False):
-            raise NotImplementedError('Poisson noise is not implemented yet.')
+        msg = ''
+        if data_config.get('poisson_noise_factor', -1) > 0:
+            poisson_factor = data_config.poisson_noise_factor
+            msg += f'Adding Poisson noise with factor {poisson_factor}.\t'
+            self._data = np.random.poisson(self._data / poisson_factor) * poisson_factor
+
         if data_config.get('enable_gaussian_noise', False):
             synthetic_scale = data_config.get('synthetic_gaussian_scale', 0.1)
-            msg = f'Adding Gaussian noise with scale {synthetic_scale}'
+            msg += f'Adding Gaussian noise with scale {synthetic_scale}'
             # 0 => noise for input. 1: => noise for all targets.
             shape = self._data.shape
             self._noise_data = np.random.normal(0, synthetic_scale, (*shape[:-1], shape[-1] + 1))
