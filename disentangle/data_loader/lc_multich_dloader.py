@@ -78,8 +78,9 @@ class LCMultiChDloader(MultiChDloader):
             ds_data = resize(self._scaled_data[-1], new_shape)
             self._scaled_data.append(ds_data)
             # do the same for noise
-            noise_data = resize(self._scaled_noise_data[-1], new_shape)
-            self._scaled_noise_data.append(noise_data)
+            if self._noise_data is not None:
+                noise_data = resize(self._scaled_noise_data[-1], new_shape)
+                self._scaled_noise_data.append(noise_data)
 
     def _init_msg(self):
         msg = super()._init_msg()
