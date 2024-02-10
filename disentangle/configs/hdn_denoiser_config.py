@@ -14,7 +14,7 @@ def get_config():
     data.channel_2 = 1
     data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
     data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
-    data.enable_poisson_noise = False
+    data.poisson_noise_factor = -1
     data.enable_gaussian_noise = True
     data.synthetic_gaussian_scale = 1500
 
