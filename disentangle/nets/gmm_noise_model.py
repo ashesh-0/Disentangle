@@ -22,6 +22,9 @@ def fastShuffle(series, num):
     return series
 
 
+MAXVAL = 1000000
+
+
 class GaussianMixtureNoiseModel(nn.Module):
     """The GaussianMixtureNoiseModel class describes a noise model which is parameterized as a mixture of gaussians.
        If you would like to initialize a new object from scratch, then set `params`= None and specify the other parameters as keyword arguments. If you are instead loading a model, use only `params`.
@@ -150,7 +153,7 @@ class GaussianMixtureNoiseModel(nn.Module):
 
         tmp = -((x - m_)**2)
         tmp = tmp / (2.0 * std_ * std_)
-        tmp = torch.exp(tmp)
+        tmp = torch.nan_to_num(torch.exp(tmp), posinf=MAXVAL)
         tmp = tmp / torch.sqrt((2.0 * np.pi) * std_ * std_)
         return tmp
 
@@ -195,10 +198,14 @@ class GaussianMixtureNoiseModel(nn.Module):
         for num in range(kernels):
             mu.append(self.polynomialRegressor(self.weight[num, :], signals))
 
-            sigmaTemp = self.polynomialRegressor(torch.exp(self.weight[kernels + num, :]), signals)
+            sigmaTemp = self.polynomialRegressor(
+                torch.nan_to_num(torch.exp(self.weight[kernels + num, :]), posinf=MAXVAL), signals)
             sigmaTemp = torch.clamp(sigmaTemp, min=self.min_sigma)
             sigma.append(torch.sqrt(sigmaTemp))
-            alpha.append(torch.exp(self.polynomialRegressor(self.weight[2 * kernels + num, :], signals) + self.tol))
+            alpha.append(
+                torch.nan_to_num(
+                    torch.exp(self.polynomialRegressor(self.weight[2 * kernels + num, :], signals) + self.tol),
+                    posinf=MAXVAL))
 
         sum_alpha = 0
         for al in range(kernels):
