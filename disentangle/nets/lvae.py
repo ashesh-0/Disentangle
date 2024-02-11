@@ -119,7 +119,7 @@ class LadderVAE(pl.LightningModule):
         else:
             raise NotImplementedError('data_mean and data_std must be either a numpy array or a dictionary')
 
-        self.noiseModel = get_noise_model(config.model)
+        self.noiseModel = get_noise_model(config)
         self.merge_type = config.model.merge_type
         self.analytical_kl = config.model.analytical_kl
         self.no_initial_downscaling = config.model.no_initial_downscaling
