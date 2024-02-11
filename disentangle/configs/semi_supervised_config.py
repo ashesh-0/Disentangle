@@ -1,5 +1,3 @@
-import numpy as np
-
 from disentangle.configs.default_config import get_default_config
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
