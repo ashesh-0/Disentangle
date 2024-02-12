@@ -22,7 +22,8 @@ def fastShuffle(series, num):
     return series
 
 
-MAXVAL = 1000000
+MAX_VAR_W = 30
+MAX_ALPHA_W = 30
 
 
 class GaussianMixtureNoiseModel(nn.Module):
@@ -153,7 +154,7 @@ class GaussianMixtureNoiseModel(nn.Module):
 
         tmp = -((x - m_)**2)
         tmp = tmp / (2.0 * std_ * std_)
-        tmp = torch.nan_to_num(torch.exp(tmp), posinf=MAXVAL)
+        tmp = torch.exp(tmp)
         tmp = tmp / torch.sqrt((2.0 * np.pi) * std_ * std_)
         return tmp
 
@@ -181,6 +182,7 @@ class GaussianMixtureNoiseModel(nn.Module):
 
     def getGaussianParameters(self, signals):
         """Returns the noise model for given signals
+
                 Parameters
                 ----------
                 signals : torch.cuda.FloatTensor
@@ -189,6 +191,7 @@ class GaussianMixtureNoiseModel(nn.Module):
                 -------
                 noiseModel: list of torch.cuda.FloatTensor
                     Contains a list of `mu`, `sigma` and `alpha` for the `signals`
+
         """
         noiseModel = []
         mu = []
@@ -197,27 +200,37 @@ class GaussianMixtureNoiseModel(nn.Module):
         kernels = self.weight.shape[0] // 3
         for num in range(kernels):
             mu.append(self.polynomialRegressor(self.weight[num, :], signals))
-
-            sigmaTemp = self.polynomialRegressor(
-                torch.nan_to_num(torch.exp(self.weight[kernels + num, :]), posinf=MAXVAL), signals)
+            # expval = torch.exp(torch.clamp(self.weight[kernels + num, :], max=MAX_VAR_W))
+            expval = torch.exp(self.weight[kernels + num, :])
+            # self.maxval = max(self.maxval, expval.max().item())
+            sigmaTemp = self.polynomialRegressor(expval, signals)
             sigmaTemp = torch.clamp(sigmaTemp, min=self.min_sigma)
             sigma.append(torch.sqrt(sigmaTemp))
-            alpha.append(
-                torch.nan_to_num(
-                    torch.exp(self.polynomialRegressor(self.weight[2 * kernels + num, :], signals) + self.tol),
-                    posinf=MAXVAL))
+
+            # expval = torch.exp(
+            #     torch.clamp(
+            #         self.polynomialRegressor(self.weight[2 * kernels + num, :], signals) + self.tol, MAX_ALPHA_W))
+            expval = torch.exp(self.polynomialRegressor(self.weight[2 * kernels + num, :], signals) + self.tol)
+            # self.maxval = max(self.maxval, expval.max().item())
+            alpha.append(expval)
 
         sum_alpha = 0
         for al in range(kernels):
             sum_alpha = alpha[al] + sum_alpha
+
+        # sum of alpha is forced to be 1.
         for ker in range(kernels):
             alpha[ker] = alpha[ker] / sum_alpha
 
         sum_means = 0
+        # sum_means is the alpha weighted average of the means
         for ker in range(kernels):
             sum_means = alpha[ker] * mu[ker] + sum_means
 
         mu_shifted = []
+        # subtracting the alpha weighted average of the means from the means
+        # ensures that the GMM has the inclination to have the mean=signals.
+        # its like a residual conection. I don't understand why we need to learn the mean?
         for ker in range(kernels):
             mu[ker] = mu[ker] - sum_means + signals
 
