@@ -560,8 +560,11 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/36',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/35',
+        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/78',
+        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/84',
+        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/86',
+        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/85',
+
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/44/',
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/39/',
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/43/',
@@ -581,7 +584,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
     mmse_count = 5
 
-    patchsz_gridsz_tuples = [(None, 64)]
+    patchsz_gridsz_tuples = [(None, 32)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
