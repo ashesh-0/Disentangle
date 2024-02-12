@@ -99,7 +99,7 @@ class LCMultiChDloader(MultiChDloader):
             noise = tuple([noisedata[None, :, :, i] for i in range(noisedata.shape[-1])])
             factor = np.sqrt(2) if self._input_is_sum else 1.0
             # since we are using this lowres images for just the input, we need to add the noise of the input.
-            assert self._lowres_supervision is False
+            assert self._lowres_supervision is None or self._lowres_supervision is False
             imgs = tuple([img + noise[0] * factor for img in imgs])
         return imgs
 
