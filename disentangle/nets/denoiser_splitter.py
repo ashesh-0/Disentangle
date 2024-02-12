@@ -73,7 +73,8 @@ class DenoiserSplitter(LadderVAE):
         den_ch1 = self._denoiser_ch1 is not None
         den_ch2 = self._denoiser_ch2 is not None
         den_input = self._denoiser_input is not None
-        assert self._denoiser_input is None or self._use_noisy_input == False
+        assert self._denoiser_input is None or (self._use_noisy_input == False
+                                                or self._use_both_noisy_clean_input == True)
         print(f'[{self.__class__}] Denoisers Ch1:{den_ch1}, Ch2:{den_ch2}, Input:{den_input} All:{den_input}')
 
     def load_data_mean_std(self, checkpoint):

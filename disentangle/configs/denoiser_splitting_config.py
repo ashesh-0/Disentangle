@@ -22,13 +22,13 @@ def get_config():
     data.enable_gaussian_noise = True
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    data.synthetic_gaussian_scale = 1500
+    data.synthetic_gaussian_scale = 1000
     data.input_has_dependant_noise = True
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
     data.normalized_input = True
-    data.clip_percentile = 0.999
+    data.clip_percentile = 1.0
     # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
     # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
     # the background noise is also a distribution. So, some amount of background noise will remain.
@@ -77,14 +77,14 @@ def get_config():
     # denoiser splitter specific
     model.synchronized_input_target = False  # this should not change at all. This is the default behavior.
     fpath = '/home/ashesh.ashesh/training/disentangle/{}/D7-M23-S0-L0/{}/BaselineVAECL_best.ckpt'
-    model.pre_trained_ckpt_fpath_ch1 = fpath.format(2402, 74)
-    model.pre_trained_ckpt_fpath_ch2 = fpath.format(2402, 75)
-    model.pre_trained_ckpt_fpath_input = fpath.format(2402, 73)
-    model.denoiser_mmse = 2
-    model.use_noisy_input = False
-    model.use_noisy_target = False
-    model.use_both_noisy_clean_input = False
-    # model.denoiser_kinput_samples = 1
+    model.pre_trained_ckpt_fpath_ch1 = fpath.format(2402, 107)
+    model.pre_trained_ckpt_fpath_ch2 = fpath.format(2402, 109)
+    model.pre_trained_ckpt_fpath_input = fpath.format(2402, 110)
+    model.denoiser_mmse = 1
+    model.use_noisy_input = True
+    model.use_noisy_target = True
+    model.use_both_noisy_clean_input = True
+    model.denoiser_kinput_samples = 3
     #############################
 
     model.z_dims = [128, 128, 128, 128]
