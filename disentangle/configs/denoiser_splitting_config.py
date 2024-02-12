@@ -60,7 +60,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    loss.kl_loss_formulation = ''
+    loss.kl_loss_formulation = 'usplit'
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1
@@ -68,7 +68,7 @@ def get_config():
     loss.kl_annealtime = 10
     loss.kl_start = -1
     loss.kl_min = 1e-7
-    loss.free_bits = 1.0
+    loss.free_bits = 0.0
     # loss.ch1_recons_w = 1
     # loss.ch2_recons_w = 5
 
@@ -81,10 +81,10 @@ def get_config():
     model.pre_trained_ckpt_fpath_ch2 = fpath.format(2402, 109)
     model.pre_trained_ckpt_fpath_input = fpath.format(2402, 110)
     model.denoiser_mmse = 1
-    model.use_noisy_input = True
-    model.use_noisy_target = True
-    model.use_both_noisy_clean_input = True
-    model.denoiser_kinput_samples = 3
+    model.use_noisy_input = False
+    model.use_noisy_target = False
+    model.use_both_noisy_clean_input = False
+    # model.denoiser_kinput_samples = -1
     #############################
 
     model.z_dims = [128, 128, 128, 128]
