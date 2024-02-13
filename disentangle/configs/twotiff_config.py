@@ -100,8 +100,8 @@ def get_config():
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname_format.format('2402/188', 'actin')
-    model.noise_model_ch2_fpath = fname_format.format('2402/189', 'mito')
+    model.noise_model_ch1_fpath = fname_format.format('2402/190', 'actin')
+    model.noise_model_ch2_fpath = fname_format.format('2402/191', 'mito')
 
     model.noise_model_learnable = False
     assert model.enable_noise_model == False or model.predict_logvar is None
