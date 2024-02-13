@@ -12,28 +12,27 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
     data.channel_2 = 2
 
+    data.poisson_noise_factor = -1
+    data.enable_gaussian_noise = False
+    # data.validtarget_random_fraction = 1.0
+    # data.training_validtarget_fraction = 0.2
+    config.data.synthetic_gaussian_scale = 1500
+    # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
+    config.data.input_has_dependant_noise = True
+
     data.sampler_type = SamplerType.DefaultSampler
+    data.threshold = 0.02
+    # data.grid_size = 1
     data.deterministic_grid = False
     data.normalized_input = True
-    data.clip_percentile = 0.995
-    data.background_quantile = 0.0
-    # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
-    # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
-    # the background noise is also a distribution. So, some amount of background noise will remain.
-    data.clip_background_noise_to_zero = False
+    data.clip_percentile = 1
 
-    # we will not subtract the mean of the dataset from every patch. We just want to subtract the background and normalize using std. This way, background will be very close to 0.
-    # this will help in the all scaling related approaches where we want to multiply the frame with some factor and then add them. we will then effectively just do these scaling on the
-    # foreground pixels and the background will anyways will remain very close to 0.
-    data.skip_normalization_using_mean = False
-
-    data.input_is_sum = False
-
+    data.channelwise_quantile = False
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
@@ -44,25 +43,21 @@ def get_config():
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
-    data.target_separate_normalization = False
-
-    # This is for intensity augmentation
-    # data.ch1_min_alpha = 0.4
-    # data.ch1_max_alpha = 0.55
-    # data.return_alpha = True
-
+    data.target_separate_normalization = True
+    data.input_is_sum = False
     loss = config.loss
     loss.loss_type = LossType.Elbo
+    # this is not uSplit.
+    loss.kl_loss_formulation = 'usplit'
+
     # loss.mixed_rec_weight = 1
 
-    loss.kl_weight = 1
+    loss.kl_weight = 1.0
     loss.kl_annealing = False
     loss.kl_annealtime = 10
     loss.kl_start = -1
     loss.kl_min = 1e-7
     loss.free_bits = 0.0
-    # loss.ch1_recons_w = 1
-    # loss.ch2_recons_w = 5
 
     model = config.model
     model.model_type = ModelType.LadderVae
@@ -104,14 +99,23 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = True
+
     model.enable_noise_model = False
-    model.noise_model_ch1_fpath = None
-    model.noise_model_ch1_fpath = None
+    model.noise_model_type = 'gmm'
+    fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = fname_format.format('2402/190', 'actin')
+    model.noise_model_ch2_fpath = fname_format.format('2402/191', 'mito')
+
+    model.noise_model_learnable = False
+    assert model.enable_noise_model == False or model.predict_logvar is None
+
+    # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
+    # model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
+    model.non_stochastic_version = False
 
     training = config.training
-    training.lr = 0.001 / 2
-    training.lr_scheduler_patience = 30
+    training.lr = 0.001
+    training.lr_scheduler_patience = 15
     training.max_epochs = 200
     training.batch_size = 32
     training.num_workers = 4
@@ -121,5 +125,4 @@ def get_config():
     training.test_fraction = 0.1
     training.earlystop_patience = 100
     training.precision = 16
-
     return config
