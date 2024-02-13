@@ -858,11 +858,17 @@ class LadderVAE(pl.LightningModule):
         psnr_arr = []
         for i in range(len(self.channels_psnr)):
             psnr = self.channels_psnr[i].get()
+            if psnr is None:
+                psnr_arr = None
+                break
             psnr_arr.append(psnr.cpu().numpy())
             self.channels_psnr[i].reset()
 
-        psnr = np.mean(psnr_arr)
-        self.log('val_psnr', psnr, on_epoch=True)
+        if psnr_arr is not None:
+            psnr = np.mean(psnr_arr)
+            self.log('val_psnr', psnr, on_epoch=True)
+        else:
+            self.log('val_psnr', 0.0, on_epoch=True)
 
         if self._dump_kth_frame_prediction is not None:
             if self.current_epoch == 1:
