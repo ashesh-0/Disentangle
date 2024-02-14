@@ -18,7 +18,7 @@ def get_config():
     data.channel_2 = 2
 
     data.poisson_noise_factor = -1
-    data.enable_gaussian_noise = False
+    data.enable_gaussian_noise = True
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
     config.data.synthetic_gaussian_scale = 178
