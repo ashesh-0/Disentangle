@@ -15,7 +15,6 @@ def gaus(x, mu, sigma):
 
 
 def gaus_pytorch(x, mu, sigma):
-    print(mu, sigma)
     out = torch.exp(-(x - mu)**2 / (2 * sigma**2)) * 1 / (sigma * np.sqrt(2 * math.pi))
     return out
 
@@ -84,6 +83,8 @@ class HistGMMNoiseModel:
             self._params[self._max_valid_index + 1, 0] += self._binsize
             self._max_valid_index += 1
 
+        self._params = self._params.cuda()
+
     def getIndexSignalFloat(self, x):
         return torch.clamp(self.bins * (x - self.minv) / (self.maxv - self.minv), min=0.0, max=self.bins - 1 - 1e-3)
 
@@ -91,18 +92,25 @@ class HistGMMNoiseModel:
         signalF = self.getIndexSignalFloat(signal)
         signal_ = signalF.floor().long()
         fact = signalF - signal_.float()
+
         underflow_mask = signal_ < self._min_valid_index
         signal_[underflow_mask] = self._min_valid_index
+        fact[underflow_mask] = 0.0
+
         overflow_mask = signal_ > self._max_valid_index
         signal_[overflow_mask] = self._max_valid_index
-        mu1, sigma1 = self._params[signal_]
+        params1 = self._params[signal_]
+        mu1 = params1[..., 0]
+        sigma1 = params1[..., 1]
 
         # if the signal is in the last bin, we just need to ignore the first mu and sigma and go with the last one.
         last_index_mask = signal_ == self._max_valid_index
         signal_[last_index_mask] = self._max_valid_index - 1
         fact[last_index_mask] = 1.0
+        params2 = self._params[signal_ + 1]
+        mu2 = params2[..., 0]
+        sigma2 = params2[..., 1]
 
-        mu2, sigma2 = self._params[signal_ + 1]
         mu = mu1 * (1 - fact) + mu2 * fact
         sigma = sigma1 * (1 - fact) + sigma2 * fact
         return gaus_pytorch(obs, mu, sigma)
