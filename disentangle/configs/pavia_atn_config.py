@@ -12,7 +12,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 128
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 0
     data.channel_2 = 2
@@ -21,7 +21,7 @@ def get_config():
     data.enable_gaussian_noise = False
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 1500
+    config.data.synthetic_gaussian_scale = 178
     # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
     config.data.input_has_dependant_noise = True
 
@@ -48,7 +48,7 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # this is not uSplit.
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = ''
 
     # loss.mixed_rec_weight = 1
 
@@ -57,7 +57,7 @@ def get_config():
     loss.kl_annealtime = 10
     loss.kl_start = -1
     loss.kl_min = 1e-7
-    loss.free_bits = 0.0
+    loss.free_bits = 1.0
 
     model = config.model
     model.model_type = ModelType.LadderVae
