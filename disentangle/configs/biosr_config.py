@@ -20,7 +20,7 @@ def get_config():
     data.enable_gaussian_noise = True
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 4450
+    config.data.synthetic_gaussian_scale = 4450 * 2
     # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
     config.data.input_has_dependant_noise = True
 
@@ -101,10 +101,10 @@ def get_config():
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
     model.enable_noise_model = True
-    model.noise_model_type = 'gmm'
+    model.noise_model_type = 'histgmm'
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/201/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/202/GMMNoiseModel_Microtubules-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/193/HistNoiseModel_ER-GT_all.mrc__Norm0_Bins128_bootstrap.npy'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/157/HistNoiseModel_Microtubules-GT_all.mrc__Norm0_Bins128_bootstrap.npy'
     model.noise_model_learnable = False
     assert model.enable_noise_model == False or model.predict_logvar is None
 

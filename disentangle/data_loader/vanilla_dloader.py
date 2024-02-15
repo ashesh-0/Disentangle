@@ -40,6 +40,9 @@ class MultiChDloader:
         """
         self._fpath = fpath
         self._data = self.N = self._noise_data = None
+        # by default, if the noise is present, add it to the input and target.
+        self._disable_noise = False
+
         self._train_index_switcher = None
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
@@ -134,6 +137,12 @@ class MultiChDloader:
         if print_vars:
             msg = self._init_msg()
             print(msg)
+
+    def disable_noise(self):
+        self._disable_noise = True
+
+    def enable_noise(self):
+        self._disable_noise = False
 
     def get_data_shape(self):
         return self._data.shape
@@ -400,7 +409,7 @@ class MultiChDloader:
         imgs = self._data[self.idx_manager.get_t(idx)]
         loaded_imgs = [imgs[None, ..., i] for i in range(imgs.shape[-1])]
         noise = []
-        if self._noise_data is not None:
+        if self._noise_data is not None and not self._disable_noise:
             noise = [
                 self._noise_data[self.idx_manager.get_t(idx)][None, ..., i] for i in range(self._noise_data.shape[-1])
             ]
