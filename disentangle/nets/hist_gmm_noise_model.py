@@ -59,7 +59,7 @@ class HistGMMNoiseModel:
 
         mean = self._bin_val[index]
         sigma = sum(y * (x - mean)**2)
-        popt, pcov = curve_fit(gaus, x, y, p0=[x[index], sigma])
+        popt, pcov = curve_fit(gaus, x, y, p0=[x[index], sigma], maxfev=6000)
         return torch.Tensor(popt)
 
     def fit(self):
