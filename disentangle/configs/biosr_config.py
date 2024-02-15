@@ -12,7 +12,7 @@ def get_config():
     data.data_type = DataType.BioSR_MRC
     # data.channel_1 = 0
     # data.channel_2 = 1
-    data.ch1_fname = 'ER/GT_all.mrc'
+    data.ch1_fname = 'CCPs/GT_all.mrc'
     data.ch2_fname = 'Microtubules/GT_all.mrc'
     data.num_channels = 2
 
@@ -20,7 +20,7 @@ def get_config():
     data.enable_gaussian_noise = True
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 4450 * 6
+    config.data.synthetic_gaussian_scale = 6300
     # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
     config.data.input_has_dependant_noise = True
 
@@ -103,8 +103,8 @@ def get_config():
     model.enable_noise_model = True
     model.noise_model_type = 'histgmm'
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2402/195/HistNoiseModel_ER-GT_all.mrc__Norm0_Bins128_bootstrap.npy'
-    model.noise_model_ch2_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2402/162/HistNoiseModel_Microtubules-GT_all.mrc__Norm0_Bins128_bootstrap.npy'
+    model.noise_model_ch1_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2402/218/HistNoiseModel_CCPs-GT_all.mrc__Norm0_Bins128_bootstrap.npy'
+    model.noise_model_ch2_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2402/209/HistNoiseModel_Microtubules-GT_all.mrc__Norm0_Bins128_bootstrap.npy'
     model.noise_model_learnable = False
     assert model.enable_noise_model == False or model.predict_logvar is None
 
