@@ -38,6 +38,7 @@ class HistGMMNoiseModel:
         self.bins = histdata.shape[1]
         self._min_valid_index = None
         self._max_valid_index = None
+        self.tol = 1e-10
 
     def fit_index(self, index):
         x = self._bin_val
@@ -108,4 +109,4 @@ class HistGMMNoiseModel:
         sigma2 = params2[..., 1]
         mu = mu1 * (1 - fact) + mu2 * fact
         sigma = sigma1 * (1 - fact) + sigma2 * fact
-        return gaus_pytorch(obs, mu, sigma)
+        return self.tol + gaus_pytorch(obs, mu, sigma)
