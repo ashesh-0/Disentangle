@@ -99,9 +99,8 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'histgmm'
-    fname_format = '/home/ashesh.ashesh/training/noise_model/{}/HistNoiseModel_ventura_gigascience-{}__Norm0_Bins128_bootstrap.npy'
-    model.noise_model_ch1_fpath = fname_format.format('2402/167', 'actin')
-    model.noise_model_ch2_fpath = fname_format.format('2402/168', 'mito')
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/167/HistNoiseModel_ventura_gigascience-actin__Norm0_Bins128_bootstrap.npy'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/196/HistNoiseModel_ventura_gigascience-mito__Norm0_Bins64_bootstrap.npy'
 
     model.noise_model_learnable = False
     assert model.enable_noise_model == False or model.predict_logvar is None
