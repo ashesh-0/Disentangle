@@ -30,6 +30,10 @@ class DisentNoiseModel(nn.Module):
         return torch.cat([ll1, ll2], dim=1)
 
 
+def last2path(fpath):
+    return os.path.join(*fpath.split('/')[-2:])
+
+
 def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None):
     config_fpath = os.path.join(os.path.dirname(noise_model_fpath), 'config.json')
     with open(config_fpath, 'r') as f:
@@ -57,10 +61,11 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
             fname.remove('')
         assert len(fname) == 1
         fname = fname[0]
-        assert config.data[channel_key] == fname, f'{config.data[channel_key]} != {fname}'
-        # cur_data_fpath = os.path.join(config.datadir, config.data[channel_key])
-        # nm_data_fpath = os.path.join(noise_model_config['datadir'], fname)
-
+        cur_data_fpath = os.path.join(config.datadir, config.data[channel_key])
+        nm_data_fpath = os.path.join(noise_model_config['datadir'], fname)
+        if cur_data_fpath != nm_data_fpath:
+            print(f'Warning: {cur_data_fpath} != {nm_data_fpath}')
+            assert last2path(cur_data_fpath) == last2path(nm_data_fpath), f'{cur_data_fpath} != {nm_data_fpath}'
         # assert cur_data_fpath == nm_data_fpath, f'{cur_data_fpath} != {nm_data_fpath}'
 
 
