@@ -1,6 +1,8 @@
 """
 Here, we define the calibration metric. This metric measures the calibration of the model's predictions. A model is well-calibrated if the predicted probabilities are close to the true probabilities. We use the Expected Calibration Error (ECE) to measure the calibration of the model. The ECE is defined as the expected value of the difference between the predicted and true probabilities, where the expectation is taken over the bins of the predicted probabilities. The ECE is a scalar value that ranges from 0 to 1, where 0 indicates perfect calibration and 1 indicates the worst calibration. We also provide a function to plot the reliability diagram, which is a visual representation of the calibration of the model.
 """
+import math
+
 import numpy as np
 
 
@@ -11,7 +13,7 @@ class Calibration:
         self._bin_boundaries = None
         self._mode = mode
         assert mode in ['pixelwise', 'patchwise']
-        self._boundary_mode = 'quantile'
+        self._boundary_mode = 'uniform'
         assert self._boundary_mode in ['quantile', 'uniform']
         # self._bin_boundaries = {}
 
@@ -82,7 +84,7 @@ def nll(x, mean, logvar):
     return nll
 
 
-def calibrate(pred, pred_logvar, target, batch_size=32, epochs=100):
+def calibrate(pred, pred_logvar, target, batch_size=32, epochs=500, lr=0.01):
     """
     Here, we calibrate with multiplying the predicted logvar with a scalar.
     """
@@ -90,10 +92,10 @@ def calibrate(pred, pred_logvar, target, batch_size=32, epochs=100):
     from tqdm import tqdm
 
     # create a learnable scalar
-    scalar = torch.nn.Parameter(torch.tensor(1.0))
-    optimizer = torch.optim.Adam([scalar], lr=0.01)
+    scalar = torch.nn.Parameter(torch.tensor(2.0))
+    optimizer = torch.optim.Adam([scalar], lr=lr)
     # tqdm with text description as loss
-    bar = tqdm(total=100, desc='nll')
+    bar = tqdm(range(epochs))
     for _ in bar:
         optimizer.zero_grad()
         mask = np.random.randint(0, pred.shape[0], batch_size)
@@ -101,7 +103,7 @@ def calibrate(pred, pred_logvar, target, batch_size=32, epochs=100):
         pred_logvar_batch = torch.Tensor(pred_logvar[mask]).cuda()
         target_batch = torch.Tensor(target[mask]).cuda()
 
-        loss = torch.mean(nll(target_batch, pred_batch, pred_logvar_batch * scalar))
+        loss = torch.mean(nll(target_batch, pred_batch, pred_logvar_batch + torch.log(scalar)))
         loss.backward()
         optimizer.step()
         bar.set_description(f'nll: {loss.item()} scalar: {scalar.item()}')
