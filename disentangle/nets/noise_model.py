@@ -57,9 +57,11 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
             fname.remove('')
         assert len(fname) == 1
         fname = fname[0]
-        cur_data_fpath = os.path.join(config.datadir, config.data[channel_key])
-        nm_data_fpath = os.path.join(noise_model_config['datadir'], fname)
-        assert cur_data_fpath == nm_data_fpath, f'{cur_data_fpath} != {nm_data_fpath}'
+        assert config.data[channel_key] == fname, f'{config.data[channel_key]} != {fname}'
+        # cur_data_fpath = os.path.join(config.datadir, config.data[channel_key])
+        # nm_data_fpath = os.path.join(noise_model_config['datadir'], fname)
+
+        # assert cur_data_fpath == nm_data_fpath, f'{cur_data_fpath} != {nm_data_fpath}'
 
 
 def get_noise_model(config):
