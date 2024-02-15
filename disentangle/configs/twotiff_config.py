@@ -98,9 +98,9 @@ def get_config():
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
     model.enable_noise_model = True
-    model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/198/GMMNoiseModel_ventura_gigascience-actin__1_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/197/GMMNoiseModel_ventura_gigascience-mito__1_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_type = 'histgmm'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/200/HistNoiseModel_ventura_gigascience-actin__Norm0_Bins256_bootstrap.npy'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/199/HistNoiseModel_ventura_gigascience-mito__Norm0_Bins256_bootstrap.npy'
 
     model.noise_model_learnable = False
     assert model.enable_noise_model == False or model.predict_logvar is None
