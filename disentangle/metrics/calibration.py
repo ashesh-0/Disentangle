@@ -4,6 +4,7 @@ Here, we define the calibration metric. This metric measures the calibration of 
 import math
 
 import numpy as np
+import torch
 
 
 class Calibration:
@@ -84,9 +85,11 @@ def nll(x, mean, logvar):
     return nll
 
 
-def calibrate(pred, pred_logvar, target, batch_size=32, epochs=500, lr=0.01):
+def get_calibrated_factor_for_stdev(pred, pred_logvar, target, batch_size=32, epochs=500, lr=0.01):
     """
-    Here, we calibrate with multiplying the predicted logvar with a scalar.
+    Here, we calibrate with multiplying the predicted std (computed from logvar) with a scalar.
+    We return the calibrated scalar. This needs to be multiplied with the std.
+    Why is the input logvar and not std? because the model typically predicts logvar and not std.
     """
     import torch
     from tqdm import tqdm
@@ -108,4 +111,4 @@ def calibrate(pred, pred_logvar, target, batch_size=32, epochs=500, lr=0.01):
         optimizer.step()
         bar.set_description(f'nll: {loss.item()} scalar: {scalar.item()}')
 
-    return scalar.item()
+    return np.sqrt(scalar.item())
