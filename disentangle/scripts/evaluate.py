@@ -473,12 +473,16 @@ def main(
         pred_tiled = np.pad(pred_tiled, ((0, 0), (0, 0), (pad, pad), (pad, pad)))
 
     pred = stitch_predictions(pred_tiled, val_dset)
+    if pred.shape[-1] == 2 and pred[..., 1].std() == 0:
+        print('Denoiser model. Ignoring the second channel')
+        pred = pred[..., :1].copy()
+
     print('Stitched predictions shape before ignoring boundary pixels', pred.shape)
 
     def print_ignored_pixels():
         ignored_pixels = 1
         while (pred[
-                0,
+                :10,
                 -ignored_pixels:,
                 -ignored_pixels:,
         ].std() == 0):
@@ -503,39 +507,54 @@ def main(
     print('Stitched predictions shape after', pred.shape)
 
     sep_mean, sep_std = model.data_mean['target'], model.data_std['target']
-    sep_mean = sep_mean.squeeze()[None, None, None]
-    sep_std = sep_std.squeeze()[None, None, None]
+    sep_mean = sep_mean.squeeze().reshape(1, 1, 1, -1)
+    sep_std = sep_std.squeeze().reshape(1, 1, 1, -1)
 
-    ch1_pred_unnorm = pred[..., 0] * sep_std[..., 0].cpu().numpy() + sep_mean[..., 0].cpu().numpy()
-    ch2_pred_unnorm = pred[..., 1] * sep_std[..., 1].cpu().numpy() + sep_mean[..., 1].cpu().numpy()
-
-    # pred is already normalized. no need to do it.
-    pred1, pred2 = pred[..., 0].astype(np.float32), pred[..., 1].astype(np.float32)
     # tar1, tar2 = val_dset.normalize_img(tar[...,0], tar[...,1])
     tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
+
+    ch1_pred_unnorm = pred[..., 0] * sep_std[..., 0].cpu().numpy() + sep_mean[..., 0].cpu().numpy()
+    # pred is already normalized. no need to do it.
+    pred1 = pred[..., 0].astype(np.float32)
     tar1 = tar_normalized[..., 0]
-    tar2 = tar_normalized[..., 1]
-
     rmse1 = np.sqrt(((pred1 - tar1)**2).reshape(len(pred1), -1).mean(axis=1))
-    rmse2 = np.sqrt(((pred2 - tar2)**2).reshape(len(pred2), -1).mean(axis=1))
-
-    rmse = (rmse1 + rmse2) / 2
-    rmse = np.round(rmse, 3)
+    rmse = rmse1
+    rmse2 = np.array([0])
 
     if not normalized_ssim:
         ssim1_mean, ssim1_std = avg_ssim(tar[..., 0], ch1_pred_unnorm)
-        ssim2_mean, ssim2_std = avg_ssim(tar[..., 1], ch2_pred_unnorm)
     else:
         ssim1_mean, ssim1_std = avg_ssim(tar_normalized[..., 0], pred[..., 0])
-        ssim2_mean, ssim2_std = avg_ssim(tar_normalized[..., 1], pred[..., 1])
+
+    pred2 = None
+    if pred.shape[-1] == 2:
+        ch2_pred_unnorm = pred[..., 1] * sep_std[..., 1].cpu().numpy() + sep_mean[..., 1].cpu().numpy()
+        # pred is already normalized. no need to do it.
+        pred2 = pred[..., 1].astype(np.float32)
+        tar2 = tar_normalized[..., 1]
+        rmse2 = np.sqrt(((pred2 - tar2)**2).reshape(len(pred2), -1).mean(axis=1))
+        rmse = (rmse1 + rmse2) / 2
+
+        if not normalized_ssim:
+            ssim2_mean, ssim2_std = avg_ssim(tar[..., 1], ch2_pred_unnorm)
+        else:
+            ssim2_mean, ssim2_std = avg_ssim(tar_normalized[..., 1], pred[..., 1])
+    rmse = np.round(rmse, 3)
 
     # Computing the output statistics.
     output_stats = {}
     output_stats['rec_loss'] = rec_loss.mean()
-    output_stats['rmse'] = [np.mean(rmse1), np.mean(rmse2), np.mean(rmse)]
-    output_stats['psnr'] = [avg_psnr(tar1, pred1), avg_psnr(tar2, pred2)]
-    output_stats['rangeinvpsnr'] = [avg_range_inv_psnr(tar1, pred1), avg_range_inv_psnr(tar2, pred2)]
-    output_stats['ssim'] = [ssim1_mean, ssim2_mean, ssim1_std, ssim2_std]
+    output_stats['rmse'] = [np.mean(rmse1), np.array(0.0), np.array(0.0)]  #, np.mean(rmse2), np.mean(rmse)]
+    output_stats['psnr'] = [avg_psnr(tar1, pred1), np.array(0.0)]  #, avg_psnr(tar2, pred2)]
+    output_stats['rangeinvpsnr'] = [avg_range_inv_psnr(tar1, pred1), np.array(0.0)]  #, avg_range_inv_psnr(tar2, pred2)]
+    output_stats['ssim'] = [ssim1_mean, np.array(0.0), ssim1_std, np.array(0.0)]
+
+    if pred.shape[-1] == 2:
+        output_stats['rmse'][1] = np.mean(rmse2)
+        output_stats['psnr'][1] = avg_psnr(tar2, pred2)
+        output_stats['rangeinvpsnr'][1] = avg_range_inv_psnr(tar2, pred2)
+        output_stats['ssim'] = [ssim1_mean, ssim2_mean, ssim1_std, ssim2_std]
+
     output_stats['normalized_ssim'] = normalized_ssim
 
     print(print_token)
@@ -543,11 +562,9 @@ def main(
     print('RMSE', output_stats['rmse'][0].round(3), output_stats['rmse'][1].round(3), output_stats['rmse'][2].round(3))
     print('PSNR', output_stats['psnr'][0], output_stats['psnr'][1])
     print('RangeInvPSNR', output_stats['rangeinvpsnr'][0], output_stats['rangeinvpsnr'][1])
-    if normalized_ssim:
-        print('SSIM normalized:', round(ssim1_mean, 3), round(ssim2_mean, 3), '±', round((ssim1_std + ssim2_std) / 2,
-                                                                                         4))
-    else:
-        print('SSIM:', round(ssim1_mean, 3), round(ssim2_mean, 3), '±', round((ssim1_std + ssim2_std) / 2, 4))
+    ssim_str = 'SSIM normalized:' if normalized_ssim else 'SSIM:'
+    print(ssim_str, output_stats['ssim'][0].round(3), output_stats['ssim'][1].round(3), '±',
+          np.mean(output_stats['ssim'][2:4]).round(4))
     print()
     # highres data
     if config.data.data_type == DataType.SeparateTiffData:
@@ -560,17 +577,7 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/93',
-        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/94',
-
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/44/',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/39/',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/43/',
-
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/42/',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/38/',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/40/',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/45/',
+        '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/107',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -580,9 +587,9 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
         raise Exception('Invalid server')
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
-    mmse_count = 2
+    mmse_count = 1
 
-    patchsz_gridsz_tuples = [(None, 64)]
+    patchsz_gridsz_tuples = [(None, 128)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
