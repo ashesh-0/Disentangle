@@ -17,15 +17,19 @@ def get_config():
     data.data_type = DataType.PredictedTiffData
     data.channel_1 = 0
     data.channel_2 = 2
-    data.channel_3 = 3
+
+    data.num_channels = 3
+    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+    data.ch_input_fname = 'actin-60x-noise2-highsnr.tif'
 
     data.poisson_noise_factor = -1
-    data.enable_gaussian_noise = True
+    data.enable_gaussian_noise = False
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 178
+    # config.data.synthetic_gaussian_scale = 178
     # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
-    config.data.input_has_dependant_noise = True
+    # config.data.input_has_dependant_noise = True
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -64,7 +68,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
-
+    model.num_targets = 2
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
     model.encoder.n_filters = 64

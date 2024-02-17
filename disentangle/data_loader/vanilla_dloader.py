@@ -551,15 +551,22 @@ class MultiChDloader:
                 final_img_tuples.append(img_tuples[tuple_idx])
         return tuple(final_img_tuples)
 
+    def get_mean_std_for_input(self):
+        return self.get_mean_std()
+
     def _compute_input_with_alpha(self, img_tuples, alpha):
         assert self._normalized_input is True, "normalization should happen here"
         inp = 0
         for alpha, img in zip(alpha, img_tuples):
             inp += img * alpha
 
-        mean, std = self.get_mean_std()
+        mean, std = self.get_mean_std_for_input()
         mean = mean.squeeze()
         std = std.squeeze()
+        if mean.size == 1:
+            mean = mean.reshape(1, )
+            std = std.reshape(1, )
+
         assert len(mean) == len(img_tuples)
         for i in range(len(mean)):
             assert mean[0] == mean[i]

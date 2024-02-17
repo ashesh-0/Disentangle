@@ -162,6 +162,23 @@ def get_mean_std_dict_for_model(config, train_dset):
         mean_dict, std_dict = train_dset.compute_mean_std()
         for dset_key in mean_dict.keys():
             mean_dict[dset_key]['input'] = mean_dict[dset_key]['input'].reshape(1, 1, 1, 1)
+    elif config.data.data_type == DataType.PredictedTiffData:
+        mean_dict = {'input': None, 'target': None}
+        std_dict = {'input': None, 'target': None}
+        inp_mean, inp_std = train_dset.get_mean_std_for_input()
+        mean_dict['input'] = inp_mean
+        std_dict['input'] = inp_std
+        if config.data.target_separate_normalization is True:
+            data_mean, data_std = train_dset.compute_individual_mean_std()
+        else:
+            data_mean, data_std = train_dset.get_mean_std()
+            # skip input channel
+            data_mean = data_mean[1:].copy()
+            data_std = data_std[1:].copy()
+
+        mean_dict['target'] = data_mean
+        std_dict['target'] = data_std
+
     else:
         mean_dict = {'input': None, 'target': None}
         std_dict = {'input': None, 'target': None}

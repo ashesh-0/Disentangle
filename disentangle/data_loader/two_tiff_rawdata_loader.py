@@ -16,8 +16,8 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
         fpath0 = os.path.join(dirname, data_config.ch_input_fname)
         fpaths = [fpath0] + fpaths
 
-    print(f'Loading from {dirname} Channel1: '
-          f'{fpath1},{fpath2},inp:{fpath0} Mode:{DataSplitType.name(datasplit_type)}')
+    print(f'Loading from {dirname} Channels: '
+          f'{fpath1},{fpath2}, inp:{fpath0} Mode:{DataSplitType.name(datasplit_type)}')
 
     data = np.concatenate([load_tiff(fpath)[..., None] for fpath in fpaths], axis=3)
     # data = data[::3].copy()

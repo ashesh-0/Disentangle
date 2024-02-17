@@ -35,7 +35,11 @@ from disentangle.nets.unet import UNet
 
 def create_model(config, data_mean, data_std, val_idx_manager=None):
     if config.model.model_type == ModelType.LadderVae:
-        target_ch = config.data.get('num_channels', 2)
+        if 'num_targets' in config.model:
+            target_ch = config.model.num_targets
+        else:
+            target_ch = config.data.get('num_channels', 2)
+
         model = LadderVAE(data_mean, data_std, config, target_ch=target_ch, val_idx_manager=val_idx_manager)
     elif config.model.model_type == ModelType.LadderVaeTwinDecoder:
         model = LadderVAETwinDecoder(data_mean, data_std, config)
