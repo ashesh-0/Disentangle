@@ -121,6 +121,9 @@ def get_noise_model(config):
             print(f'Noise model Ch1: {config.model.noise_model_ch1_fpath}')
             print(f'Noise model Ch2: {config.model.noise_model_ch2_fpath}')
 
+            noise_model_config_sanity_check(config.model.noise_model_ch1_fpath, config, 'ch1_fname')
+            noise_model_config_sanity_check(config.model.noise_model_ch2_fpath, config, 'ch2_fname')
+
             hist1 = np.load(config.model.noise_model_ch1_fpath)
             nmodel1 = HistGMMNoiseModel(hist1)
             nmodel1.fit()
