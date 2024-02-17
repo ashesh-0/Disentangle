@@ -100,8 +100,8 @@ def get_config():
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_{}-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname_format.format('2402/219', 'CCPs')
-    model.noise_model_ch2_fpath = fname_format.format('2402/212', 'Microtubules')
+    model.noise_model_ch1_fpath = fname_format.format('2402/277', 'CCPs')
+    model.noise_model_ch2_fpath = fname_format.format('2402/278', 'Microtubules')
     model.noise_model_learnable = False
     model.non_stochastic_version = False
 
