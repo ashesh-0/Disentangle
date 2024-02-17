@@ -578,7 +578,7 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_prediction=False, mmse_count=1):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/82',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/10',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -591,7 +591,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
 
     patchsz_gridsz_tuples = [(None, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.All]:
+        for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
                 if data_type in [
@@ -642,7 +642,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
                     offset = prediction.min()
                     prediction -= offset
                     prediction = prediction.astype(np.uint16)
-                    handler.dump_predictions(ckpt_dir, prediction, {'offset': offset})
+                    handler.dump_predictions(ckpt_dir, prediction, {'offset': str(offset)})
 
 
 if __name__ == '__main__':

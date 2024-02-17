@@ -1,3 +1,4 @@
+import json
 import os
 import pickle
 
@@ -67,7 +68,7 @@ class PaperResultsHandler:
         print(f'Written {predictions.shape} to {fpath}')
         hparam_fpath = fpath.replace('.tif', '.json')
         with open(hparam_fpath, 'w') as f:
-            f.write(hparam_dict)
+            json.dump(hparam_dict, f)
 
     def load(self, output_fpath):
         assert os.path.exists(output_fpath)
