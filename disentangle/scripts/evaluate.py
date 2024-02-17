@@ -185,6 +185,7 @@ def main(
     ignore_first_pixels=0,
     print_token='',
     normalized_ssim=True,
+    save_to_file=False,
 ):
     global DATA_ROOT, CODE_ROOT
 
@@ -512,8 +513,8 @@ def main(
 
     # tar1, tar2 = val_dset.normalize_img(tar[...,0], tar[...,1])
     tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
-
-    ch1_pred_unnorm = pred[..., 0] * sep_std[..., 0].cpu().numpy() + sep_mean[..., 0].cpu().numpy()
+    pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
+    ch1_pred_unnorm = pred_unnorm[..., 0]
     # pred is already normalized. no need to do it.
     pred1 = pred[..., 0].astype(np.float32)
     tar1 = tar_normalized[..., 0]
@@ -528,7 +529,7 @@ def main(
 
     pred2 = None
     if pred.shape[-1] == 2:
-        ch2_pred_unnorm = pred[..., 1] * sep_std[..., 1].cpu().numpy() + sep_mean[..., 1].cpu().numpy()
+        ch2_pred_unnorm = pred_unnorm[..., 1]
         # pred is already normalized. no need to do it.
         pred2 = pred[..., 1].astype(np.float32)
         tar2 = tar_normalized[..., 1]
@@ -572,12 +573,12 @@ def main(
         highres_data = ignore_pixels(highres_data)
         _ = compute_high_snr_stats(config, highres_data, [ch1_pred_unnorm, ch2_pred_unnorm])
         print('')
-    return output_stats
+    return output_stats, pred_unnorm
 
 
-def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
+def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_prediction=False, mmse_count=1):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/107',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/82',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -587,11 +588,10 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
         raise Exception('Invalid server')
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
-    mmse_count = 1
 
-    patchsz_gridsz_tuples = [(None, 128)]
+    patchsz_gridsz_tuples = [(None, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Test]:
+        for eval_datasplit_type in [DataSplitType.All]:
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
                 if data_type in [
@@ -609,7 +609,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
 
                 handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
                                               image_size_for_grid_centers, mmse_count, ignored_last_pixels)
-                data = main(
+                data, prediction = main(
                     ckpt_dir,
                     DEBUG,
                     image_size_for_grid_centers=image_size_for_grid_centers,
@@ -638,6 +638,11 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True):
                 print('')
                 print('')
                 print('')
+                if save_prediction:
+                    offset = prediction.min()
+                    prediction -= offset
+                    prediction = prediction.astype(np.uint16)
+                    handler.dump_predictions(ckpt_dir, prediction, {'offset': offset})
 
 
 if __name__ == '__main__':
@@ -648,11 +653,15 @@ if __name__ == '__main__':
     parser.add_argument('--grid_size', type=int, default=16)
     parser.add_argument('--hardcoded', action='store_true')
     parser.add_argument('--normalized_ssim', action='store_true')
+    parser.add_argument('--save_prediction', action='store_true')
+    parser.add_argument('--mmse_count', type=int, default=1)
 
     args = parser.parse_args()
     if args.hardcoded:
         print('Ignoring ckpt_dir,patch_size and grid_size')
-        save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=args.normalized_ssim)
+        save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=args.normalized_ssim,
+                                                save_prediction=args.save_prediction,
+                                                mmse_count=args.mmse_count)
     else:
         mmse_count = 1
         ignored_last_pixels = 32 if os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:] == '3' else 0

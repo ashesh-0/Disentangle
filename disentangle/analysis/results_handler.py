@@ -1,6 +1,8 @@
-import pickle
 import os
+import pickle
+
 from disentangle.core.data_split_type import DataSplitType
+from disentangle.core.tiff_reader import save_tiff
 
 
 class PaperResultsHandler:
@@ -33,11 +35,21 @@ class PaperResultsHandler:
         basename = 'stats_' + basename
         return basename
 
-    def get_output_fpath(self, ckpt_fpath):
+    @staticmethod
+    def get_pred_fname(ckpt_fpath):
+        assert ckpt_fpath[-1] != '/'
+        basename = '_'.join(ckpt_fpath.split("/")[4:]) + '.tif'
+        basename = 'pred_' + basename
+        return basename
+
+    def get_output_dir(self):
         outdir = self.dirpath()
         if not os.path.isdir(outdir):
             os.mkdir(outdir)
+        return outdir
 
+    def get_output_fpath(self, ckpt_fpath):
+        outdir = self.get_output_dir()
         output_fpath = os.path.join(outdir, self.get_fname(ckpt_fpath))
         return output_fpath
 
@@ -47,6 +59,15 @@ class PaperResultsHandler:
             pickle.dump(ckpt_stats, f)
         print(f'[{self.__class__.__name__}] Saved to {output_fpath}')
         return output_fpath
+
+    def dump_predictions(self, ckpt_fpath, predictions, hparam_dict):
+        fname = self.get_pred_fname(ckpt_fpath)
+        fpath = os.path.join(self.get_output_dir(), fname)
+        save_tiff(fpath, predictions)
+        print(f'Written {predictions.shape} to {fpath}')
+        hparam_fpath = fpath.replace('.tif', '.json')
+        with open(hparam_fpath, 'w') as f:
+            f.write(hparam_dict)
 
     def load(self, output_fpath):
         assert os.path.exists(output_fpath)
