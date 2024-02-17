@@ -10,14 +10,16 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
     # actin-60x-noise2-highsnr.tif  mito-60x-noise2-highsnr.tif
     fpath1 = os.path.join(dirname, data_config.ch1_fname)
     fpath2 = os.path.join(dirname, data_config.ch2_fname)
+    fpaths = [fpath1, fpath2]
+    fpath0 = ''
+    if 'ch_input_fname' in data_config:
+        fpath0 = os.path.join(dirname, data_config.ch_input_fname)
+        fpaths = [fpath0] + fpaths
 
     print(f'Loading from {dirname} Channel1: '
-          f'{fpath1},{fpath2}, Mode:{DataSplitType.name(datasplit_type)}')
+          f'{fpath1},{fpath2},inp:{fpath0} Mode:{DataSplitType.name(datasplit_type)}')
 
-    data1 = load_tiff(fpath1)[..., None]
-    data2 = load_tiff(fpath2)[..., None]
-
-    data = np.concatenate([data1, data2], axis=3)
+    data = np.concatenate([load_tiff(fpath)[..., None] for fpath in fpaths], axis=3)
     # data = data[::3].copy()
     # NOTE: This was not the correct way to do it. It is so because the noise present in the input was directly related
     # to the noise present in the channels and so this is not the way we would get the data.

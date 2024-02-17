@@ -34,7 +34,7 @@ def get_train_val_data(data_config,
     C is the number of channels.
     """
     assert isinstance(datasplit_type, int), f'datasplit_type should be an integer, but is {datasplit_type}'
-    if data_config.data_type in [DataType.OptiMEM100_014, DataType.PredictedTiffData]:
+    if data_config.data_type in DataType.OptiMEM100_014:
         return _load_tiff_train_val(fpath,
                                     data_config,
                                     datasplit_type,
@@ -64,7 +64,7 @@ def get_train_val_data(data_config,
                                     test_fraction=test_fraction)
     elif data_config.data_type == DataType.AllenCellMito:
         return _loadallencellmito(fpath, data_config, datasplit_type, val_fraction, test_fraction)
-    elif data_config.data_type == DataType.SeparateTiffData:
+    elif data_config.data_type in [DataType.SeparateTiffData, DataType.PredictedTiffData]:
         return _loadseparatetiff(fpath, data_config, datasplit_type, val_fraction, test_fraction)
     elif data_config.data_type == DataType.Pavia2:
         return _loadpavia2(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
