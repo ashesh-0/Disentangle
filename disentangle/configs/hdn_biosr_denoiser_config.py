@@ -13,7 +13,7 @@ def get_config():
     data.channel_1 = 0
     data.channel_2 = 1
     data.ch1_fname = 'CCPs/GT_all.mrc'
-    data.ch2_fname = 'Microtubules/GT_all.mrc'
+    data.ch2_fname = 'ER/GT_all.mrc'
     data.poisson_noise_factor = -1
     data.enable_gaussian_noise = True
     data.synthetic_gaussian_scale = 12600
@@ -100,8 +100,8 @@ def get_config():
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_{}-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname_format.format('2402/277', 'CCPs')
-    model.noise_model_ch2_fpath = fname_format.format('2402/278', 'Microtubules')
+    model.noise_model_ch1_fpath = fname_format.format('2402/279', 'CCPs')
+    model.noise_model_ch2_fpath = fname_format.format('2402/285', 'ER')
     model.noise_model_learnable = False
     model.non_stochastic_version = False
 
