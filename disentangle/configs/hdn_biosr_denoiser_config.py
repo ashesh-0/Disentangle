@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'ER/GT_all.mrc'
     data.poisson_noise_factor = -1
     data.enable_gaussian_noise = True
-    data.synthetic_gaussian_scale = 12600
+    data.synthetic_gaussian_scale = 3400
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
