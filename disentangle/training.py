@@ -227,9 +227,12 @@ def create_dataset(config,
             DataType.ShroffMitoEr,
             DataType.HTIba1Ki67,
             DataType.BioSR_MRC,
+            DataType.PredictedTiffData,
     ]:
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
+        elif config.data.data_type == DataType.PredictedTiffData:
+            datapath = os.path.join(datadir, config.data.fname)
         elif config.data.data_type == DataType.Prevedel_EMBL:
             datapath = os.path.join(datadir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
         else:

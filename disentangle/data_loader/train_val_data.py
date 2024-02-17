@@ -34,7 +34,7 @@ def get_train_val_data(data_config,
     C is the number of channels.
     """
     assert isinstance(datasplit_type, int), f'datasplit_type should be an integer, but is {datasplit_type}'
-    if data_config.data_type == DataType.OptiMEM100_014:
+    if data_config.data_type in [DataType.OptiMEM100_014, DataType.PredictedTiffData]:
         return _load_tiff_train_val(fpath,
                                     data_config,
                                     datasplit_type,

@@ -25,3 +25,4 @@ class DataType(Enum):
     Dao3ChannelV2 = 20
     TavernaSox2GolgiV2 = 21
     TwoDset = 22
+    PredictedTiffData = 23
