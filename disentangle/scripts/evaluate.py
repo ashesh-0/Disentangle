@@ -578,7 +578,15 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_prediction=False, mmse_count=1):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/10',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/36',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/35',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/32',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/30',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/31',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/33',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/43',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/49',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/55',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -591,7 +599,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
 
     patchsz_gridsz_tuples = [(None, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Test]:
+        for eval_datasplit_type in [DataSplitType.All]:
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
                 if data_type in [
