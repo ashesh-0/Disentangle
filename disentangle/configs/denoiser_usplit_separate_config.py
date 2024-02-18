@@ -19,9 +19,9 @@ def get_config():
     data.channel_2 = 2
 
     data.num_channels = 3
-    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
-    data.ch_input_fname = 'actin-60x-noise2-highsnr.tif'
+    data.ch1_fname = 'pred_disentangle_2402_D16-M23-S0-L0_14.tif'
+    data.ch2_fname = 'pred_disentangle_2402_D16-M23-S0-L0_15.tif'
+    data.ch_input_fname = 'pred_disentangle_2402_D16-M23-S0-L0_21.tif'
 
     data.poisson_noise_factor = -1
     data.enable_gaussian_noise = False
