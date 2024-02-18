@@ -3,6 +3,7 @@ import os
 import numpy as np
 
 from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
+from disentangle.core.data_type import DataType
 from disentangle.core.tiff_reader import load_tiff
 
 
@@ -20,6 +21,9 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
           f'{fpath1},{fpath2}, inp:{fpath0} Mode:{DataSplitType.name(datasplit_type)}')
 
     data = np.concatenate([load_tiff(fpath)[..., None] for fpath in fpaths], axis=3)
+    if data_config.data_type == DataType.PredictedTiffData:
+        assert len(data.shape) == 5 and data.shape[-1] == 1
+        data = data[..., 0].copy()
     # data = data[::3].copy()
     # NOTE: This was not the correct way to do it. It is so because the noise present in the input was directly related
     # to the noise present in the channels and so this is not the way we would get the data.
