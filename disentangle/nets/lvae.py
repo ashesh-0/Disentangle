@@ -46,7 +46,7 @@ class LadderVAE(pl.LightningModule):
         self.ch1_recons_w = config.loss.get('ch1_recons_w', 1)
         self.ch2_recons_w = config.loss.get('ch2_recons_w', 1)
         self._stochastic_use_naive_exponential = config.model.decoder.get('stochastic_use_naive_exponential', False)
-
+        self._enable_topdown_normalize_factor = config.model.get('enable_topdown_normalize_factor', True)
         # can be used to tile the validation predictions
         self._val_idx_manager = val_idx_manager
         self._val_frame_creator = None
@@ -268,7 +268,11 @@ class LadderVAE(pl.LightningModule):
             # only apply this normalization with relatively deep networks.
             # Whether this is the top layer
             is_top = i == self.n_layers - 1
-            normalize_latent_factor = 1 / np.sqrt(2 * (1 + i)) if len(self.z_dims) > 4 else 1.0
+            if self._enable_topdown_normalize_factor:
+                normalize_latent_factor = 1 / np.sqrt(2 * (1 + i)) if len(self.z_dims) > 4 else 1.0
+            else:
+                normalize_latent_factor = 1.0
+
             top_down_layers.append(
                 TopDownLayer(
                     z_dim=self.z_dims[i],

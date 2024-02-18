@@ -65,6 +65,7 @@ def get_config():
     model.decoder.res_block_skip_padding = False
 
     # HDN specific parameters which were changed.
+    model.enable_topdown_normalize_factor = False
     model.encoder.dropout = 0.2
     model.decoder.dropout = 0.2
     model.decoder.stochastic_use_naive_exponential = True

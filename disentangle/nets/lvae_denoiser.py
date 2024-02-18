@@ -12,6 +12,7 @@ class LadderVAEDenoiser(LadderVAE):
         # since input is the target, we don't need to normalize it at all.
         super().__init__(data_mean, data_std, config, use_uncond_mode_at=use_uncond_mode_at, target_ch=1)
         self.denoise_channel = config.model.denoise_channel
+
         assert self.denoise_channel in ['input', 'Ch1', 'Ch2', 'all']
         if self.denoise_channel == 'all':
             msg = 'For target, we expect it to be unnormalized. For such reasons, we expect same normalization for input and target.'
