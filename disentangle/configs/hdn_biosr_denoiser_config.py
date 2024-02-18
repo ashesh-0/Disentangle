@@ -104,6 +104,7 @@ def get_config():
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_{}-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     # model.noise_model_ch1_fpath = fname_format.format('2402/279', 'CCPs')
     # model.noise_model_ch2_fpath = fname_format.format('2402/285', 'ER')
+    model.noise_model_ch2_fpath = ''
     model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/315/GMMNoiseModel_BioSR-CCPs_GT_all_ER_GT_all_6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
     model.non_stochastic_version = False
