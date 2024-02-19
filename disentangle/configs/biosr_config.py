@@ -12,8 +12,8 @@ def get_config():
     data.data_type = DataType.BioSR_MRC
     # data.channel_1 = 0
     # data.channel_2 = 1
-    data.ch1_fname = 'CCPs/GT_all.mrc'
-    data.ch2_fname = 'ER/GT_all.mrc'
+    data.ch1_fname = 'ER/GT_all.mrc'
+    data.ch2_fname = 'Microtubules/GT_all.mrc'
     data.num_channels = 2
 
     data.poisson_noise_factor = -1
@@ -101,10 +101,10 @@ def get_config():
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
     model.enable_noise_model = True
-    model.noise_model_type = 'histgmm'
+    model.noise_model_type = 'gmm'
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/221/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/225/GMMNoiseModel_Microtubules-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/336/GMMNoiseModel_BioSR-ER_GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/338/GMMNoiseModel_BioSR-Microtubules_GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
     assert model.enable_noise_model == False or model.predict_logvar is None
 
