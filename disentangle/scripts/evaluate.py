@@ -130,8 +130,11 @@ def get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type):
     assert 'synthetic_gaussian_scale' in config.data or 'poisson_noise_factor' in config.data
     assert config.data.synthetic_gaussian_scale > 0
     data_config = deepcopy(config.data)
-    data_config.poisson_noise_factor = -1
-    data_config.synthetic_gaussian_scale = None
+    if 'poisson_noise_factor' in data_config:
+        data_config.poisson_noise_factor = -1
+    if 'synthetic_gaussian_scale' in data_config:
+        data_config.synthetic_gaussian_scale = None
+
     highres_data = get_train_val_data(data_config, data_dir, DataSplitType.Train, config.training.val_fraction,
                                       config.training.test_fraction)
 
@@ -578,15 +581,14 @@ def main(
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_prediction=False, mmse_count=1):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/36',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/35',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/32',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/30',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/31',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/33',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/43',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/49',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/55',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/97',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/96',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/95',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/94',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/100',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/15',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/61',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/92',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -599,7 +601,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
 
     patchsz_gridsz_tuples = [(None, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.All]:
+        for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
                 if data_type in [
