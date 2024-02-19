@@ -36,12 +36,26 @@ from disentangle.data_loader.patch_index_manager import GridAlignement
 from disentangle.data_loader.vanilla_dloader import MultiChDloader, get_train_val_data
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.training import create_dataset, create_model
-
-# from disentangle.data_loader.single_channel_dloader import SingleChannelDloader
+from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 DATA_ROOT = 'PUT THE ROOT DIRECTORY FOR THE DATASET HERE'
 CODE_ROOT = 'PUT THE ROOT DIRECTORY FOR THE CODE HERE'
+
+
+def compute_multiscale_ssim(highres_data_, pred_):
+    """
+    Computes multiscale ssim for each channel.
+    """
+    ms_ssim_values = {i: None for i in range(highres_data_.shape[-1])}
+    for ch_idx in range(highres_data_.shape[-1]):
+        # tar_tmp = (highres_data_[...,ch_idx] - sep_mean_[...,ch_idx]) /sep_std_[...,ch_idx]
+        tar_tmp = highres_data_[..., ch_idx]
+        pred_tmp = pred_[..., ch_idx]
+        ms_ssim = MultiScaleStructuralSimilarityIndexMeasure(data_range=tar_tmp.max() - tar_tmp.min())
+        ms_ssim_values[ch_idx] = ms_ssim(torch.Tensor(pred_tmp[:, None]), torch.Tensor(tar_tmp[:, None]))
+    output = [ms_ssim_values[i].item() for i in range(highres_data_.shape[-1])]
+    return output
 
 
 def _avg_psnr(target, prediction, psnr_fn):
@@ -70,6 +84,7 @@ def compute_masked_psnr(mask, tar1, tar2, pred1, pred2):
 
 
 def avg_ssim(target, prediction):
+    raise ValueError('This function is not used anymore. Use compute_multiscale_ssim instead.')
     ssim = [
         structural_similarity(target[i], prediction[i], data_range=target[i].max() - target[i].min())
         for i in range(len(target))
@@ -111,16 +126,18 @@ def compute_max_val(data, config):
 
 
 def compute_high_snr_stats(config, highres_data, pred_unnorm):
-    assert config.model.model_type == ModelType.DenoiserSplitter or config.data.data_type == DataType.SeparateTiffData
-    psnr1 = avg_range_inv_psnr(highres_data[..., 0], pred_unnorm[0])
-    psnr2 = avg_range_inv_psnr(highres_data[..., 1], pred_unnorm[1])
-
-    ssim1_hres_mean, ssim1_hres_std = avg_ssim(highres_data[..., 0], pred_unnorm[0])
-    ssim2_hres_mean, ssim2_hres_std = avg_ssim(highres_data[..., 1], pred_unnorm[1])
+    """
+    last dimension is the channel dimension
+    """
+    # assert config.model.model_type == ModelType.DenoiserSplitter or config.data.data_type == DataType.SeparateTiffData
+    psnr1 = avg_range_inv_psnr(highres_data[..., 0].copy(), pred_unnorm[..., 0].copy())
+    psnr2 = avg_range_inv_psnr(highres_data[..., 1].copy(), pred_unnorm[..., 1].copy())
+    ssim1, ssim2 = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy())
+    # ssim1_hres_mean, ssim1_hres_std = avg_ssim(highres_data[..., 0], pred_unnorm[0])
+    # ssim2_hres_mean, ssim2_hres_std = avg_ssim(highres_data[..., 1], pred_unnorm[1])
     print('PSNR on Highres', psnr1, psnr2)
-    print('SSIM on Highres', np.round(ssim1_hres_mean, 3), '±', np.round(ssim1_hres_std, 3),
-          np.round(ssim2_hres_mean, 3), '±', np.round(ssim2_hres_std, 3))
-    return {'psnr': [psnr1, psnr2], 'ssim': [ssim1_hres_mean, ssim2_hres_mean, ssim1_hres_std, ssim2_hres_std]}
+    print('SSIM on Highres', np.round(ssim1, 3), np.round(ssim2, 3))
+    return {'psnr': [psnr1, psnr2], 'ssim': [ssim1, ssim2]}
 
 
 def get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type):
@@ -525,10 +542,10 @@ def main(
     rmse = rmse1
     rmse2 = np.array([0])
 
-    if not normalized_ssim:
-        ssim1_mean, ssim1_std = avg_ssim(tar[..., 0], ch1_pred_unnorm)
-    else:
-        ssim1_mean, ssim1_std = avg_ssim(tar_normalized[..., 0], pred[..., 0])
+    # if not normalized_ssim:
+    #     ssim1_mean, ssim1_std = avg_ssim(tar[..., 0], ch1_pred_unnorm)
+    # else:
+    #     ssim1_mean, ssim1_std = avg_ssim(tar_normalized[..., 0], pred[..., 0])
 
     pred2 = None
     if pred.shape[-1] == 2:
@@ -539,10 +556,10 @@ def main(
         rmse2 = np.sqrt(((pred2 - tar2)**2).reshape(len(pred2), -1).mean(axis=1))
         rmse = (rmse1 + rmse2) / 2
 
-        if not normalized_ssim:
-            ssim2_mean, ssim2_std = avg_ssim(tar[..., 1], ch2_pred_unnorm)
-        else:
-            ssim2_mean, ssim2_std = avg_ssim(tar_normalized[..., 1], pred[..., 1])
+        # if not normalized_ssim:
+        #     ssim2_mean, ssim2_std = avg_ssim(tar[..., 1], ch2_pred_unnorm)
+        # else:
+        #     ssim2_mean, ssim2_std = avg_ssim(tar_normalized[..., 1], pred[..., 1])
     rmse = np.round(rmse, 3)
 
     # Computing the output statistics.
@@ -551,13 +568,13 @@ def main(
     output_stats['rmse'] = [np.mean(rmse1), np.array(0.0), np.array(0.0)]  #, np.mean(rmse2), np.mean(rmse)]
     output_stats['psnr'] = [avg_psnr(tar1, pred1), np.array(0.0)]  #, avg_psnr(tar2, pred2)]
     output_stats['rangeinvpsnr'] = [avg_range_inv_psnr(tar1, pred1), np.array(0.0)]  #, avg_range_inv_psnr(tar2, pred2)]
-    output_stats['ssim'] = [ssim1_mean, np.array(0.0), ssim1_std, np.array(0.0)]
+    # output_stats['ssim'] = [ssim1_mean, np.array(0.0), ssim1_std, np.array(0.0)]
 
     if pred.shape[-1] == 2:
         output_stats['rmse'][1] = np.mean(rmse2)
         output_stats['psnr'][1] = avg_psnr(tar2, pred2)
         output_stats['rangeinvpsnr'][1] = avg_range_inv_psnr(tar2, pred2)
-        output_stats['ssim'] = [ssim1_mean, ssim2_mean, ssim1_std, ssim2_std]
+        # output_stats['ssim'] = [ssim1_mean, ssim2_mean, ssim1_std, ssim2_std]
 
     output_stats['normalized_ssim'] = normalized_ssim
 
@@ -566,17 +583,30 @@ def main(
     print('RMSE', output_stats['rmse'][0].round(3), output_stats['rmse'][1].round(3), output_stats['rmse'][2].round(3))
     print('PSNR', output_stats['psnr'][0], output_stats['psnr'][1])
     print('RangeInvPSNR', output_stats['rangeinvpsnr'][0], output_stats['rangeinvpsnr'][1])
-    ssim_str = 'SSIM normalized:' if normalized_ssim else 'SSIM:'
-    print(ssim_str, output_stats['ssim'][0].round(3), output_stats['ssim'][1].round(3), '±',
-          np.mean(output_stats['ssim'][2:4]).round(4))
+    # ssim_str = 'SSIM normalized:' if normalized_ssim else 'SSIM:'
+    # print(ssim_str, output_stats['ssim'][0].round(3), output_stats['ssim'][1].round(3), '±',
+    #       np.mean(output_stats['ssim'][2:4]).round(4))
     print()
+    highres_data = get_highsnr_data(config, data_dir, eval_datasplit_type)
     # highres data
-    if config.data.data_type == DataType.SeparateTiffData:
-        highres_data = get_highres_data_ventura(data_dir, config, eval_datasplit_type)
+    if highres_data is not None:
         highres_data = ignore_pixels(highres_data)
-        _ = compute_high_snr_stats(config, highres_data, [ch1_pred_unnorm, ch2_pred_unnorm])
+        highres_data = (highres_data - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
+        _ = compute_high_snr_stats(config, highres_data, pred)
         print('')
     return output_stats, pred_unnorm
+
+
+def get_highsnr_data(config, data_dir, eval_datasplit_type):
+    """
+    Get the high SNR data.
+    """
+    highres_data = None
+    if config.model.model_type == ModelType.DenoiserSplitter or config.data.data_type == DataType.SeparateTiffData:
+        highres_data = get_highres_data_ventura(data_dir, config, eval_datasplit_type)
+    elif 'synthetic_gaussian_scale' in config.data or 'enable_poisson_noise' in config.data:
+        highres_data = get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type)
+    return highres_data
 
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_prediction=False, mmse_count=1):
@@ -587,7 +617,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/94',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/100',
         '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/15',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/61',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/61',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/92',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
