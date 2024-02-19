@@ -101,10 +101,10 @@ def get_config():
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
     model.enable_noise_model = True
-    model.noise_model_type = 'gmm'
+    model.noise_model_type = 'histgmm'
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}_6_4_Clip0.0-0.995_Sig0.125_UpNone_Norm1_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/336/GMMNoiseModel_BioSR-ER_GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/338/GMMNoiseModel_BioSR-Microtubules_GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/336/HistNoiseModel_BioSR-ER_GT_all__Norm0_Bins128_bootstrap.npy'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/338/HistNoiseModel_BioSR-Microtubules_GT_all__Norm0_Bins128_bootstrap.npy'
     model.noise_model_learnable = False
     assert model.enable_noise_model == False or model.predict_logvar is None
 
