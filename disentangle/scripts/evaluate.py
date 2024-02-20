@@ -130,14 +130,16 @@ def compute_high_snr_stats(config, highres_data, pred_unnorm):
     last dimension is the channel dimension
     """
     # assert config.model.model_type == ModelType.DenoiserSplitter or config.data.data_type == DataType.SeparateTiffData
-    psnr1 = avg_range_inv_psnr(highres_data[..., 0].copy(), pred_unnorm[..., 0].copy())
-    psnr2 = avg_range_inv_psnr(highres_data[..., 1].copy(), pred_unnorm[..., 1].copy())
-    ssim1, ssim2 = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy())
+    psnr_list = [
+        avg_range_inv_psnr(highres_data[..., i].copy(), pred_unnorm[..., i].copy())
+        for i in range(highres_data.shape[-1])
+    ]
+    ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy())
     # ssim1_hres_mean, ssim1_hres_std = avg_ssim(highres_data[..., 0], pred_unnorm[0])
     # ssim2_hres_mean, ssim2_hres_std = avg_ssim(highres_data[..., 1], pred_unnorm[1])
-    print('PSNR on Highres', psnr1, psnr2)
-    print('SSIM on Highres', np.round(ssim1, 3), np.round(ssim2, 3))
-    return {'psnr': [psnr1, psnr2], 'ssim': [ssim1, ssim2]}
+    print('PSNR on Highres', psnr_list)
+    print('SSIM on Highres', [np.round(ssim, 3) for ssim in ssim_list])
+    return {'psnr': psnr_list, 'ssim': ssim_list}
 
 
 def get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type):
@@ -592,6 +594,15 @@ def main(
     if highres_data is not None:
         highres_data = ignore_pixels(highres_data)
         highres_data = (highres_data - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
+        # for denoiser, we don't need both channels.
+        if config.model.model_type == ModelType.Denoiser:
+            if model.denoise_channel == 'Ch1':
+                highres_data = highres_data[..., :1]
+            elif model.denoise_channel == 'Ch2':
+                highres_data = highres_data[..., 1:]
+            elif model.denoise_channel == 'input':
+                highres_data = np.mean(highres_data, axis=-1, keepdims=True)
+
         _ = compute_high_snr_stats(config, highres_data, pred)
         print('')
     return output_stats, pred_unnorm
@@ -616,7 +627,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/95',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/94',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/100',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/15',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/58',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/61',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/92',
     ]
