@@ -622,14 +622,42 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_prediction=False, mmse_count=1):
     ckpt_dirs = [
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/97',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/96',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/95',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/94',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/100',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/65',
         '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/58',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/61',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/92',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/65',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/30',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/31',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/33',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/34',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/29',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/63',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/32',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/35',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/36',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/48',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/42',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/50',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/51',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/54',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/59',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/55',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/43',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/49',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/68',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/56',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/62',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/74',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/80',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/78',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/75',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/79',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/82',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/76',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/81',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/83',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/77',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/84',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/85',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -642,7 +670,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
 
     patchsz_gridsz_tuples = [(None, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Test]:
+        for eval_datasplit_type in [DataSplitType.All]:
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
                 if data_type in [
