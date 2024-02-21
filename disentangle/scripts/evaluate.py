@@ -766,7 +766,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
                 if save_prediction:
                     offset = prediction.min()
                     prediction -= offset
-                    prediction = prediction.astype(np.uint16)
+                    prediction = prediction.astype(np.uint32)
                     handler.dump_predictions(ckpt_dir, prediction, {'offset': str(offset)})
 
 
