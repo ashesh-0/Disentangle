@@ -139,7 +139,7 @@ def compute_high_snr_stats(config, highres_data, pred_unnorm):
     # ssim2_hres_mean, ssim2_hres_std = avg_ssim(highres_data[..., 1], pred_unnorm[1])
     print('PSNR on Highres', psnr_list)
     print('Multiscale SSIM on Highres', [np.round(ssim, 3) for ssim in ssim_list])
-    return {'psnr': psnr_list, 'ssim': ssim_list}
+    return {'rangeinvpsnr': psnr_list, 'ms_ssim': ssim_list}
 
 
 def get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type):
@@ -515,7 +515,7 @@ def main(
         return ignored_pixels
 
     actual_ignored_pixels = print_ignored_pixels()
-    assert ignored_last_pixels == actual_ignored_pixels
+    assert ignored_last_pixels >= actual_ignored_pixels
     tar = val_dset._data
 
     def ignore_pixels(arr):
@@ -564,34 +564,37 @@ def main(
         #     ssim2_mean, ssim2_std = avg_ssim(tar_normalized[..., 1], pred[..., 1])
     rmse = np.round(rmse, 3)
 
-    # Computing the output statistics.
-    output_stats = {}
-    output_stats['rec_loss'] = rec_loss.mean()
-    output_stats['rmse'] = [np.mean(rmse1), np.array(0.0), np.array(0.0)]  #, np.mean(rmse2), np.mean(rmse)]
-    output_stats['psnr'] = [avg_psnr(tar1, pred1), np.array(0.0)]  #, avg_psnr(tar2, pred2)]
-    output_stats['rangeinvpsnr'] = [avg_range_inv_psnr(tar1, pred1), np.array(0.0)]  #, avg_range_inv_psnr(tar2, pred2)]
-    # output_stats['ssim'] = [ssim1_mean, np.array(0.0), ssim1_std, np.array(0.0)]
-
-    if pred.shape[-1] == 2:
-        output_stats['rmse'][1] = np.mean(rmse2)
-        output_stats['psnr'][1] = avg_psnr(tar2, pred2)
-        output_stats['rangeinvpsnr'][1] = avg_range_inv_psnr(tar2, pred2)
-        # output_stats['ssim'] = [ssim1_mean, ssim2_mean, ssim1_std, ssim2_std]
-
-    output_stats['normalized_ssim'] = normalized_ssim
-
-    print(print_token)
-    print('Rec Loss', np.round(output_stats['rec_loss'], 3))
-    print('RMSE', output_stats['rmse'][0].round(3), output_stats['rmse'][1].round(3), output_stats['rmse'][2].round(3))
-    print('PSNR', output_stats['psnr'][0], output_stats['psnr'][1])
-    print('RangeInvPSNR', output_stats['rangeinvpsnr'][0], output_stats['rangeinvpsnr'][1])
-    # ssim_str = 'SSIM normalized:' if normalized_ssim else 'SSIM:'
-    # print(ssim_str, output_stats['ssim'][0].round(3), output_stats['ssim'][1].round(3), '±',
-    #       np.mean(output_stats['ssim'][2:4]).round(4))
-    print()
     highres_data = get_highsnr_data(config, data_dir, eval_datasplit_type)
+    if highres_data is None:
+        # Computing the output statistics.
+        output_stats = {}
+        output_stats['rec_loss'] = rec_loss.mean()
+        output_stats['rmse'] = [np.mean(rmse1), np.array(0.0), np.array(0.0)]  #, np.mean(rmse2), np.mean(rmse)]
+        output_stats['psnr'] = [avg_psnr(tar1, pred1), np.array(0.0)]  #, avg_psnr(tar2, pred2)]
+        output_stats['rangeinvpsnr'] = [avg_range_inv_psnr(tar1, pred1),
+                                        np.array(0.0)]  #, avg_range_inv_psnr(tar2, pred2)]
+        # output_stats['ssim'] = [ssim1_mean, np.array(0.0), ssim1_std, np.array(0.0)]
+
+        if pred.shape[-1] == 2:
+            output_stats['rmse'][1] = np.mean(rmse2)
+            output_stats['psnr'][1] = avg_psnr(tar2, pred2)
+            output_stats['rangeinvpsnr'][1] = avg_range_inv_psnr(tar2, pred2)
+            # output_stats['ssim'] = [ssim1_mean, ssim2_mean, ssim1_std, ssim2_std]
+
+        output_stats['normalized_ssim'] = normalized_ssim
+
+        print(print_token)
+        print('Rec Loss', np.round(output_stats['rec_loss'], 3))
+        print('RMSE', output_stats['rmse'][0].round(3), output_stats['rmse'][1].round(3),
+              output_stats['rmse'][2].round(3))
+        print('PSNR', output_stats['psnr'][0], output_stats['psnr'][1])
+        print('RangeInvPSNR', output_stats['rangeinvpsnr'][0], output_stats['rangeinvpsnr'][1])
+        # ssim_str = 'SSIM normalized:' if normalized_ssim else 'SSIM:'
+        # print(ssim_str, output_stats['ssim'][0].round(3), output_stats['ssim'][1].round(3), '±',
+        #       np.mean(output_stats['ssim'][2:4]).round(4))
+        print()
     # highres data
-    if highres_data is not None:
+    else:
         highres_data = ignore_pixels(highres_data)
         highres_data = (highres_data - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
         # for denoiser, we don't need both channels.
@@ -603,7 +606,10 @@ def main(
             elif model.denoise_channel == 'input':
                 highres_data = np.mean(highres_data, axis=-1, keepdims=True)
 
-        _ = compute_high_snr_stats(config, highres_data, pred)
+        stats_dict = compute_high_snr_stats(config, highres_data, pred)
+        output_stats = {}
+        output_stats['rangeinvpsnr'] = stats_dict['rangeinvpsnr']
+        output_stats['ms_ssim'] = stats_dict['ms_ssim']
         print('')
     return output_stats, pred_unnorm
 
@@ -622,8 +628,44 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_prediction=False, mmse_count=1):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/61',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/65',
+        # hagen et al HDN denoisers
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/136',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/125',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/123',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/135',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/126',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/127',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/128',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/129',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/139',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/131',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/130',
+
+        # results for plots.
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/42',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/43',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/44',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/16',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/62',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/15',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/61',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/14',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/60',
+
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/40',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/17',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/108',
+
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/89',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/103',
+
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/39',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/18',
+
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/41',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/19',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/38',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/40',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/58',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/65',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/30',
@@ -672,9 +714,9 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
 
-    patchsz_gridsz_tuples = [(None, 64)]
+    patchsz_gridsz_tuples = [(256, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.All]:
+        for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
                 if data_type in [

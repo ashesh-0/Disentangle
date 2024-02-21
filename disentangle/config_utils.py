@@ -34,3 +34,17 @@ def get_updated_config(config):
         return ml_collections.FrozenConfigDict(config)
     else:
         return config
+
+
+def get_configdir_from_saved_predictionfile(pref_file_name, train_dir='/home/ashesh.ashesh/training/disentangle'):
+    """
+    Example input: 'pred_disentangle_2402_D16-M23-S0-L0_14.tif'
+    Returns: '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/14'
+    """
+    fname = pref_file_name
+    assert fname[-4:] == '.tif'
+    fname = fname[:-4]
+    *_, ym, modelcfg, modelid = fname.split('_')
+    subdir = '/'.join([ym, modelcfg, modelid])
+    datacfg_dir = os.path.join(train_dir, subdir)
+    return datacfg_dir
