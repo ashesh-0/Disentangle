@@ -606,6 +606,7 @@ def main(
             elif model.denoise_channel == 'input':
                 highres_data = np.mean(highres_data, axis=-1, keepdims=True)
 
+        print(print_token)
         stats_dict = compute_high_snr_stats(config, highres_data, pred)
         output_stats = {}
         output_stats['rangeinvpsnr'] = stats_dict['rangeinvpsnr']
@@ -645,13 +646,13 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/42',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/43',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/44',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/16',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/62',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/15',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/61',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/14',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/60',
-
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/16',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/62',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/15',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/61',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/14',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/60',
+        '/home/ubuntu/ashesh/training/disentangle/2402/D16-M3-S0-L0/0'
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/40',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/17',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/108',
@@ -714,7 +715,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
 
-    patchsz_gridsz_tuples = [(256, 64)]
+    patchsz_gridsz_tuples = [(None, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
