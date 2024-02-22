@@ -38,8 +38,6 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
     config_fpath = os.path.join(os.path.dirname(noise_model_fpath), 'config.json')
     with open(config_fpath, 'r') as f:
         noise_model_config = json.load(f)
-    import pdb
-    pdb.set_trace()
     # make sure that the amount of noise is consistent.
     if 'add_gaussian_noise_std' in noise_model_config:
         # data.enable_gaussian_noise = False
