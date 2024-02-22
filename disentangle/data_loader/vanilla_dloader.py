@@ -42,7 +42,7 @@ class MultiChDloader:
         self._data = self.N = self._noise_data = None
         # by default, if the noise is present, add it to the input and target.
         self._disable_noise = False
-
+        self._poisson_noise_factor = None
         self._train_index_switcher = None
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
@@ -139,6 +139,7 @@ class MultiChDloader:
             print(msg)
 
     def disable_noise(self):
+        assert self._poisson_noise_factor is None, "This is not supported. Poisson noise is added to the data itself and so the noise cannot be disabled."
         self._disable_noise = True
 
     def enable_noise(self):
@@ -157,9 +158,9 @@ class MultiChDloader:
 
         msg = ''
         if data_config.get('poisson_noise_factor', -1) > 0:
-            poisson_factor = data_config.poisson_noise_factor
-            msg += f'Adding Poisson noise with factor {poisson_factor}.\t'
-            self._data = np.random.poisson(self._data / poisson_factor) * poisson_factor
+            self._poisson_noise_factor = data_config.poisson_noise_factor
+            msg += f'Adding Poisson noise with factor {self._poisson_noise_factor}.\t'
+            self._data = np.random.poisson(self._data / self._poisson_noise_factor) * self._poisson_noise_factor
 
         if data_config.get('enable_gaussian_noise', False):
             synthetic_scale = data_config.get('synthetic_gaussian_scale', 0.1)

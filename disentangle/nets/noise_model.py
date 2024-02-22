@@ -38,7 +38,8 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
     config_fpath = os.path.join(os.path.dirname(noise_model_fpath), 'config.json')
     with open(config_fpath, 'r') as f:
         noise_model_config = json.load(f)
-
+    import pdb
+    pdb.set_trace()
     # make sure that the amount of noise is consistent.
     if 'add_gaussian_noise_std' in noise_model_config:
         # data.enable_gaussian_noise = False
@@ -53,6 +54,10 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
         assert 'poisson_noise_factor' in config.data
         assert noise_model_config[
             'poisson_noise_factor'] == config.data.poisson_noise_factor, f'{noise_model_config["poisson_noise_factor"]} != {config.data.poisson_noise_factor}'
+
+    if 'train_pure_noise_model' in noise_model_config and noise_model_config['train_pure_noise_model']:
+        print('Pure noise model is being used now.')
+        return
 
     # make sure that the same file is used for noise model and data.
     if channel_key is not None:
