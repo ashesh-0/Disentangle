@@ -120,6 +120,9 @@ def add_pixel_kde(ax,
                   data2: Union[np.ndarray, None],
                   min_labelsize: int,
                   plot_xmax_value: int = None,
+                  plot_xmin_value: int = None,
+                  plot1_kwargs=None,
+                  plot2_kwargs=None,
                   color1='r',
                   color2='black',
                   color_xtick='white',
@@ -128,14 +131,14 @@ def add_pixel_kde(ax,
     """
     Adds KDE (density plot) of data1(eg: target) and data2(ex: predicted) image pixel values as an inset
     """
+    if plot1_kwargs is None:
+        plot1_kwargs = {}
+    if plot2_kwargs is None:
+        plot2_kwargs = {}
+
     inset_ax = add_subplot_axes(ax, rect, facecolor="None", min_labelsize=min_labelsize)
 
     inset_ax.tick_params(axis='x', colors=color_xtick)
-
-    sns.kdeplot(data=data1.reshape(-1, ), ax=inset_ax, color=color1, label=label1, clip=(0, None))
-    if data2 is not None:
-        sns.kdeplot(data=data2.reshape(-1, ), ax=inset_ax, color=color2, label=label2, clip=(0, None))
-
     # xmin, xmax = inset_ax.get_xlim()
 
     if plot_xmax_value is not None:
@@ -145,9 +148,31 @@ def add_pixel_kde(ax,
         if data2 is not None:
             xmax_data = int(max(xmax_data, data2.max())) + 1
 
+    xmin_data = 0
+    if plot_xmin_value is not None:
+        xmin_data = plot_xmin_value
+    else:
+        xmin_data = min(xmin_data, int(data1.min()))
+        if data2 is not None:
+            xmin_data = int(min(xmin_data, data2.min())) - 1
+
+    sns.kdeplot(data=data1.reshape(-1, ),
+                ax=inset_ax,
+                color=color1,
+                label=label1,
+                clip=(xmin_data, None),
+                **plot1_kwargs)
+    if data2 is not None:
+        sns.kdeplot(data=data2.reshape(-1, ),
+                    ax=inset_ax,
+                    color=color2,
+                    label=label2,
+                    clip=(xmin_data, None),
+                    **plot2_kwargs)
+
     inset_ax.set_aspect('auto')
-    inset_ax.set_xlim([0, xmax_data])  #xmin=0,xmax= xmax_data
-    inset_ax.set_xbound(lower=0.0, upper=xmax_data)
+    inset_ax.set_xlim([xmin_data, xmax_data])  #xmin=0,xmax= xmax_data
+    inset_ax.set_xbound(lower=xmin_data, upper=xmax_data)
 
     xticks = inset_ax.get_xticks()
     inset_ax.set_xticks([xticks[0], xticks[-1]])
