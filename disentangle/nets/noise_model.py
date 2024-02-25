@@ -56,9 +56,8 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
     if 'train_pure_noise_model' in noise_model_config and noise_model_config['train_pure_noise_model']:
         print('Pure noise model is being used now.')
         return
-
     # make sure that the same file is used for noise model and data.
-    if channel_key is not None:
+    if channel_key is not None and channel_key in noise_model_config:
         fname = noise_model_config['fname']
         if '' in fname:
             fname.remove('')
@@ -70,6 +69,8 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
             print(f'Warning: {cur_data_fpath} != {nm_data_fpath}')
             assert last2path(cur_data_fpath) == last2path(nm_data_fpath), f'{cur_data_fpath} != {nm_data_fpath}'
         # assert cur_data_fpath == nm_data_fpath, f'{cur_data_fpath} != {nm_data_fpath}'
+    else:
+        print(f'Warning: channel_key is not found in noise model config: {channel_key}')
 
 
 def get_noise_model(config):
