@@ -623,12 +623,28 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
     if config.model.model_type == ModelType.DenoiserSplitter or config.data.data_type == DataType.SeparateTiffData:
         highres_data = get_highres_data_ventura(data_dir, config, eval_datasplit_type)
     elif 'synthetic_gaussian_scale' in config.data or 'enable_poisson_noise' in config.data:
+        if config.data.data_type == DataType.OptiMEM100_014:
+            data_dir = os.path.join(data_dir, 'OptiMEM100x014.tif')
         highres_data = get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type)
     return highres_data
 
 
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_prediction=False, mmse_count=1):
     ckpt_dirs = [
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/4',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/30',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/32',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/5',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/33',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/6',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/34',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/3',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/8',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/7',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/1',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/11',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/10',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/13',
         # hagen et al HDN denoisers
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/136',
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/125',
@@ -652,7 +668,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/61',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/14',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/60',
-        '/home/ubuntu/ashesh/training/disentangle/2402/D16-M3-S0-L0/9'
+        # '/home/ubuntu/ashesh/training/disentangle/2402/D16-M3-S0-L0/9'
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/40',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/17',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/108',
@@ -741,7 +757,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
                     image_size_for_grid_centers=image_size_for_grid_centers,
                     mmse_count=mmse_count,
                     custom_image_size=custom_image_size,
-                    batch_size=32,
+                    batch_size=24,
                     num_workers=4,
                     COMPUTE_LOSS=False,
                     use_deterministic_grid=None,
