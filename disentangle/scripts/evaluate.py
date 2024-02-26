@@ -652,7 +652,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/61',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/14',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/60',
-        '/home/ubuntu/ashesh/training/disentangle/2402/D16-M3-S0-L0/0'
+        '/home/ubuntu/ashesh/training/disentangle/2402/D16-M3-S0-L0/9'
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/40',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/17',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/108',
