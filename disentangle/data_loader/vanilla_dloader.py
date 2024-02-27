@@ -156,6 +156,18 @@ class MultiChDloader:
                                         test_fraction=test_fraction,
                                         allow_generation=allow_generation)
 
+        old_shape = self._data.shape
+        if self._datausage_fraction < 1.0:
+            framepixelcount = np.prod(self._data.shape[1:3])
+            pixelcount = int(len(self._data) * framepixelcount * self._datausage_fraction)
+            frame_count = int(np.ceil(pixelcount / framepixelcount))
+            last_frame_reduced_size, _ = IndexSwitcher.get_reduced_frame_size(self._data.shape[:3],
+                                                                              self._datausage_fraction)
+            self._data = self._data[:frame_count].copy()
+            if frame_count == 1:
+                self._data = self._data[:, :last_frame_reduced_size, :last_frame_reduced_size].copy()
+            print(f'[{self.__class__.__name__}] New data shape: {self._data.shape} Old: {old_shape}')
+
         msg = ''
         if data_config.get('poisson_noise_factor', -1) > 0:
             self._poisson_noise_factor = data_config.poisson_noise_factor
@@ -172,18 +184,6 @@ class MultiChDloader:
                 msg += '. Moreover, input has dependent noise'
                 self._noise_data[..., 0] = np.mean(self._noise_data[..., 1:], axis=-1)
             print(msg)
-
-        old_shape = self._data.shape
-        if self._datausage_fraction < 1.0:
-            framepixelcount = np.prod(self._data.shape[1:3])
-            pixelcount = int(len(self._data) * framepixelcount * self._datausage_fraction)
-            frame_count = int(np.ceil(pixelcount / framepixelcount))
-            last_frame_reduced_size, _ = IndexSwitcher.get_reduced_frame_size(self._data.shape[:3],
-                                                                              self._datausage_fraction)
-            self._data = self._data[:frame_count].copy()
-            if frame_count == 1:
-                self._data = self._data[:, :last_frame_reduced_size, :last_frame_reduced_size].copy()
-            print(f'[{self.__class__.__name__}] New data shape: {self._data.shape} Old: {old_shape}')
 
         self.N = len(self._data)
         assert self._data.shape[-1] == self._num_channels, 'Number of channels in data and config do not match.'
