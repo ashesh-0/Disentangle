@@ -3,6 +3,7 @@ Here, the idea is to load the data from different data dtypes into a single inte
 """
 from typing import Union
 
+from disentangle.config_utils import get_configdir_from_saved_predictionfile, load_config
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.data_loader.allencell_rawdata_loader import get_train_val_data as _loadallencellmito
@@ -65,6 +66,17 @@ def get_train_val_data(data_config,
     elif data_config.data_type == DataType.AllenCellMito:
         return _loadallencellmito(fpath, data_config, datasplit_type, val_fraction, test_fraction)
     elif data_config.data_type in [DataType.SeparateTiffData, DataType.PredictedTiffData]:
+        if data_config.data_type == DataType.PredictedTiffData:
+            cfg1 = load_config(get_configdir_from_saved_predictionfile(data_config.ch1_fname))
+            cfg2 = load_config(get_configdir_from_saved_predictionfile(data_config.ch2_fname))
+            cfg3 = load_config(get_configdir_from_saved_predictionfile(data_config.ch_input_fname))
+            msg = f'p1:{cfg1.data.poisson_noise_factor} p2:{cfg2.data.poisson_noise_factor} p3:{cfg3.data.poisson_noise_factor}'
+            assert cfg1.data.poisson_noise_factor == cfg2.data.poisson_noise_factor == cfg3.data.poisson_noise_factor, msg
+            assert cfg1.data.enable_gaussian_noise == cfg2.data.enable_gaussian_noise == cfg3.data.enable_gaussian_noise
+            if cfg1.data.enable_gaussian_noise:
+                msg = f'g1:{cfg1.data.synthetic_gaussian_scale} g2:{cfg2.data.synthetic_gaussian_scale} g3:{cfg3.data.synthetic_gaussian_scale}'
+                assert cfg1.data.synthetic_gaussian_scale == cfg2.data.synthetic_gaussian_scale == cfg3.data.synthetic_gaussian_scale, msg
+
         return _loadseparatetiff(fpath, data_config, datasplit_type, val_fraction, test_fraction)
     elif data_config.data_type == DataType.Pavia2:
         return _loadpavia2(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
