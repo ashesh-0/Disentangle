@@ -277,6 +277,7 @@ class MultiChDloader:
 
         self.N = len(t_list)
         self.set_img_sz(self._img_sz, self._grid_sz)
+        print(f'[{self.__class__.__name__}] Data reduced. New data shape: {self._data.shape}')
 
     def set_img_sz(self, image_size, grid_size):
         """

@@ -189,7 +189,6 @@ def get_highres_data_ventura(data_dir, config, eval_datasplit_type):
 
 def main(
     ckpt_dir,
-    DEBUG,
     image_size_for_grid_centers=64,
     mmse_count=1,
     custom_image_size=64,
@@ -208,6 +207,7 @@ def main(
     print_token='',
     normalized_ssim=True,
     save_to_file=False,
+    predict_kth_frame=None,
 ):
     global DATA_ROOT, CODE_ROOT
 
@@ -227,26 +227,20 @@ def main(
 
     dtype = int(ckpt_dir.split('/')[-2].split('-')[0][1:])
 
-    if DEBUG:
-        if dtype == DataType.CustomSinosoid:
-            data_dir = f'{DATA_ROOT}/sinosoid/'
-        elif dtype == DataType.OptiMEM100_014:
-            data_dir = f'{DATA_ROOT}/microscopy/'
-    else:
-        if dtype == DataType.CustomSinosoid:
-            data_dir = f'{DATA_ROOT}/sinosoid/'
-        elif dtype == DataType.CustomSinosoidThreeCurve:
-            data_dir = f'{DATA_ROOT}/sinosoid/'
-        elif dtype == DataType.OptiMEM100_014:
-            data_dir = f'{DATA_ROOT}/microscopy/'
-        elif dtype == DataType.Prevedel_EMBL:
-            data_dir = f'{DATA_ROOT}/Prevedel_EMBL/PKG_3P_dualcolor_stacks/NoAverage_NoRegistration/'
-        elif dtype == DataType.AllenCellMito:
-            data_dir = f'{DATA_ROOT}/allencell/2017_03_08_Struct_First_Pass_Seg/AICS-11/'
-        elif dtype == DataType.SeparateTiffData:
-            data_dir = f'{DATA_ROOT}/ventura_gigascience'
-        elif dtype == DataType.BioSR_MRC:
-            data_dir = f'{DATA_ROOT}/BioSR/'
+    if dtype == DataType.CustomSinosoid:
+        data_dir = f'{DATA_ROOT}/sinosoid/'
+    elif dtype == DataType.CustomSinosoidThreeCurve:
+        data_dir = f'{DATA_ROOT}/sinosoid/'
+    elif dtype == DataType.OptiMEM100_014:
+        data_dir = f'{DATA_ROOT}/microscopy/'
+    elif dtype == DataType.Prevedel_EMBL:
+        data_dir = f'{DATA_ROOT}/Prevedel_EMBL/PKG_3P_dualcolor_stacks/NoAverage_NoRegistration/'
+    elif dtype == DataType.AllenCellMito:
+        data_dir = f'{DATA_ROOT}/allencell/2017_03_08_Struct_First_Pass_Seg/AICS-11/'
+    elif dtype == DataType.SeparateTiffData:
+        data_dir = f'{DATA_ROOT}/ventura_gigascience'
+    elif dtype == DataType.BioSR_MRC:
+        data_dir = f'{DATA_ROOT}/BioSR/'
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -480,6 +474,14 @@ def main(
 
     print(f'Model has {count_parameters(model)/1000_000:.3f}M parameters')
 
+    # reducing the data here.
+    if predict_kth_frame is not None:
+        assert predict_kth_frame >= 0 and isinstance(predict_kth_frame, int), f'Invalid kth frame. {predict_kth_frame}'
+        if predict_kth_frame >= val_dset._data.shape[0]:
+            return None, None
+        else:
+            val_dset.reduce_data([predict_kth_frame])
+
     if config.data.multiscale_lowres_count is not None and custom_image_size is not None:
         model.reset_for_different_output_size(custom_image_size)
 
@@ -565,6 +567,9 @@ def main(
     rmse = np.round(rmse, 3)
 
     highres_data = get_highsnr_data(config, data_dir, eval_datasplit_type)
+    if predict_kth_frame is not None and highres_data is not None:
+        highres_data = highres_data[[predict_kth_frame]].copy()
+
     if highres_data is None:
         # Computing the output statistics.
         output_stats = {}
@@ -629,22 +634,31 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
     return highres_data
 
 
-def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_prediction=False, mmse_count=1):
+def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
+                                            save_prediction=False,
+                                            mmse_count=1,
+                                            predict_kth_frame=None):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/4',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/30',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/32',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/5',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/33',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/6',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/34',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/3',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/8',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/7',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/1',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/11',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/10',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/13',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/129',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/124',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/131',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/125',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/128',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/126',
+
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/130',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/127',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/112',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/119',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/110',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/175',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/174',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/176',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/177',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/178',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/179',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/181'
+
         # hagen et al HDN denoisers
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/136',
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/125',
@@ -749,11 +763,15 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
                 if custom_image_size is None:
                     custom_image_size = load_config(ckpt_dir).data.image_size
 
-                handler = PaperResultsHandler(OUTPUT_DIR, eval_datasplit_type, custom_image_size,
-                                              image_size_for_grid_centers, mmse_count, ignored_last_pixels)
+                handler = PaperResultsHandler(OUTPUT_DIR,
+                                              eval_datasplit_type,
+                                              custom_image_size,
+                                              image_size_for_grid_centers,
+                                              mmse_count,
+                                              ignored_last_pixels,
+                                              predict_kth_frame=predict_kth_frame)
                 data, prediction = main(
                     ckpt_dir,
-                    DEBUG,
                     image_size_for_grid_centers=image_size_for_grid_centers,
                     mmse_count=mmse_count,
                     custom_image_size=custom_image_size,
@@ -771,7 +789,11 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
                     ignore_first_pixels=0,
                     print_token=handler.dirpath(),
                     normalized_ssim=normalized_ssim,
+                    predict_kth_frame=predict_kth_frame,
                 )
+                if data is None:
+                    return None, None
+
                 fpath = handler.save(ckpt_dir, data)
                 # except:
                 #     print('FAILED for ', handler.get_output_fpath(ckpt_dir))
@@ -786,9 +808,10 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True, save_predictio
                     prediction = prediction.astype(np.uint32)
                     handler.dump_predictions(ckpt_dir, prediction, {'offset': str(offset)})
 
+                return data, prediction
+
 
 if __name__ == '__main__':
-    DEBUG = False
     parser = argparse.ArgumentParser()
     parser.add_argument('--ckpt_dir', type=str)
     parser.add_argument('--patch_size', type=int, default=64)
@@ -797,13 +820,15 @@ if __name__ == '__main__':
     parser.add_argument('--normalized_ssim', action='store_true')
     parser.add_argument('--save_prediction', action='store_true')
     parser.add_argument('--mmse_count', type=int, default=1)
+    parser.add_argument('--predict_kth_frame', type=int, default=None)
 
     args = parser.parse_args()
     if args.hardcoded:
         print('Ignoring ckpt_dir,patch_size and grid_size')
         save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=args.normalized_ssim,
                                                 save_prediction=args.save_prediction,
-                                                mmse_count=args.mmse_count)
+                                                mmse_count=args.mmse_count,
+                                                predict_kth_frame=args.predict_kth_frame)
     else:
         mmse_count = 1
         ignored_last_pixels = 32 if os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:] == '3' else 0
@@ -812,7 +837,6 @@ if __name__ == '__main__':
 
         data = main(
             args.ckpt_dir,
-            DEBUG,
             image_size_for_grid_centers=args.grid_size,
             mmse_count=mmse_count,
             custom_image_size=args.patch_size,

@@ -16,6 +16,7 @@ class PaperResultsHandler:
         grid_size,
         mmse_count,
         skip_last_pixels,
+        predict_kth_frame=None,
     ):
         self._dtype = eval_datasplit_type
         self._outdir = output_dir
@@ -23,6 +24,7 @@ class PaperResultsHandler:
         self._gridN = grid_size
         self._mmseN = mmse_count
         self._skiplN = skip_last_pixels
+        self._predict_kth_frame = predict_kth_frame
 
     def dirpath(self):
         return os.path.join(
@@ -45,6 +47,9 @@ class PaperResultsHandler:
 
     def get_output_dir(self):
         outdir = self.dirpath()
+        if self._predict_kth_frame is not None:
+            outdir = os.path.join(outdir, f'kth_{self._predict_kth_frame}')
+
         if not os.path.isdir(outdir):
             os.mkdir(outdir)
         return outdir
