@@ -22,7 +22,7 @@ def get_config():
     data.trainig_datausage_fraction = 1.0
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 6675
+    config.data.synthetic_gaussian_scale = 8900
     # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
     config.data.input_has_dependant_noise = True
 
@@ -104,8 +104,8 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2402/425/GMMNoiseModel_ER-GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2402/426/GMMNoiseModel_Microtubules-GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/439/GMMNoiseModel_ER-GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/442/GMMNoiseModel_Microtubules-GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
     assert model.enable_noise_model == False or model.predict_logvar is None
 
