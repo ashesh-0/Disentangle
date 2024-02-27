@@ -272,6 +272,9 @@ class MultiChDloader:
             w_end = self._data.shape[2]
 
         self._data = self._data[t_list, h_start:h_end, w_start:w_end, :].copy()
+        if self._noise_data is not None:
+            self._noise_data = self._noise_data[t_list, h_start:h_end, w_start:w_end, :].copy()
+
         self.N = len(t_list)
         self.set_img_sz(self._img_sz, self._grid_sz)
 
