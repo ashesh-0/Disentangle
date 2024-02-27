@@ -49,7 +49,7 @@ class MultiChDloader:
         self._num_channels = data_config.get('num_channels', 2)
         if datasplit_type == DataSplitType.Train:
             self._datausage_fraction = data_config.get('trainig_datausage_fraction', 1.0)
-            assert self._datausage_fraction == 1.0, 'Not supported. Use validtarget_random_fraction and training_validtarget_fraction to get the same effect'
+            # assert self._datausage_fraction == 1.0, 'Not supported. Use validtarget_random_fraction and training_validtarget_fraction to get the same effect'
             self._validtarget_rand_fract = data_config.get('validtarget_random_fraction', None)
             # self._validtarget_random_fraction_final = data_config.get('validtarget_random_fraction_final', None)
             # self._validtarget_random_fraction_stepepoch = data_config.get('validtarget_random_fraction_stepepoch', None)
