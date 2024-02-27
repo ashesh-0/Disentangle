@@ -48,8 +48,8 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
         assert 'synthetic_gaussian_scale' in config.data
         assert noise_model_config[
             'add_gaussian_noise_std'] == config.data.synthetic_gaussian_scale, f'{noise_model_config["add_gaussian_noise_std"]} != {config.data.synthetic_gaussian_scale}'
-    if 'poisson_noise_factor' in noise_model_config:
-        assert 'poisson_noise_factor' in config.data
+    if 'poisson_noise_factor' in config.data and config.data.poisson_noise_factor > 0:
+        assert 'poisson_noise_factor' in noise_model_config
         assert noise_model_config[
             'poisson_noise_factor'] == config.data.poisson_noise_factor, f'{noise_model_config["poisson_noise_factor"]} != {config.data.poisson_noise_factor}'
 
