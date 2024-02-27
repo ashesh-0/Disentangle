@@ -13,14 +13,14 @@ def get_config():
     # data.channel_1 = 0
     # data.channel_2 = 1
     data.ch1_fname = 'ER/GT_all.mrc'
-    data.ch2_fname = 'CCPs/GT_all.mrc'
+    data.ch2_fname = 'Microtubules/GT_all.mrc'
     data.num_channels = 2
 
     data.poisson_noise_factor = 1000
     data.enable_gaussian_noise = True
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 3400
+    config.data.synthetic_gaussian_scale = 8900
     # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
     config.data.input_has_dependant_noise = True
 
@@ -94,7 +94,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'channelwise'
+    model.predict_logvar = 'pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
