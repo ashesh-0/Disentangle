@@ -81,16 +81,13 @@ def add_psnr_str(ax_, psnr):
              color='white')
 
 
-def get_predictions(idx, val_dset, highsnr_val_dset, model, mmse_count=50, patch_size=256):
+def get_predictions(idx, val_dset, model, mmse_count=50, patch_size=256):
     print(f'Predicting for {idx}')
     val_dset.set_img_sz(patch_size, 64)
-    highsnr_val_dset.set_img_sz(patch_size, 64)
-    highsnr_val_dset.disable_noise()
 
     with torch.no_grad():
         # val_dset.enable_noise()
         inp, tar = val_dset[idx]
-        _, tar_hsnr = highsnr_val_dset[idx]
         # val_dset.disable_noise()
 
         inp = torch.Tensor(inp[None])
@@ -110,16 +107,14 @@ def get_predictions(idx, val_dset, highsnr_val_dset, model, mmse_count=50, patch
             recon_img_list.append(imgs.cpu().numpy()[0])
 
     recon_img_list = np.array(recon_img_list)
-    return inp, tar, tar_hsnr, recon_img_list
+    return inp, tar, recon_img_list
 
 
 def show_for_one(idx, val_dset, highsnr_val_dset, model, calibration_stats, mmse_count=5, patch_size=256):
-    inp, tar, tar_hsnr, recon_img_list = get_predictions(idx,
-                                                         val_dset,
-                                                         highsnr_val_dset,
-                                                         model,
-                                                         mmse_count=mmse_count,
-                                                         patch_size=patch_size)
+    highsnr_val_dset.set_img_sz(patch_size, 64)
+    highsnr_val_dset.disable_noise()
+    _, tar_hsnr = highsnr_val_dset[idx]
+    inp, tar, recon_img_list = get_predictions(idx, val_dset, model, mmse_count=mmse_count, patch_size=patch_size)
     plot_crops(inp, tar, tar_hsnr, recon_img_list, calibration_stats)
 
 
