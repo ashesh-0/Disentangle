@@ -110,18 +110,42 @@ def get_predictions(idx, val_dset, model, mmse_count=50, patch_size=256):
     return inp, tar, recon_img_list
 
 
-def show_for_one(idx, val_dset, highsnr_val_dset, model, calibration_stats, mmse_count=5, patch_size=256):
+def show_for_one(idx,
+                 val_dset,
+                 highsnr_val_dset,
+                 model,
+                 calibration_stats,
+                 mmse_count=5,
+                 patch_size=256,
+                 num_samples=2,
+                 baseline_preds=None):
     highsnr_val_dset.set_img_sz(patch_size, 64)
     highsnr_val_dset.disable_noise()
     _, tar_hsnr = highsnr_val_dset[idx]
     inp, tar, recon_img_list = get_predictions(idx, val_dset, model, mmse_count=mmse_count, patch_size=patch_size)
-    plot_crops(inp, tar, tar_hsnr, recon_img_list, calibration_stats)
+    plot_crops(inp,
+               tar,
+               tar_hsnr,
+               recon_img_list,
+               calibration_stats,
+               num_samples=num_samples,
+               baseline_preds=baseline_preds)
 
 
-def plot_crops(inp, tar, tar_hsnr, recon_img_list, calibration_stats):
+def plot_crops(inp, tar, tar_hsnr, recon_img_list, calibration_stats, num_samples=2, baseline_preds=None):
+    if baseline_preds is None:
+        baseline_preds = []
+    if len(baseline_preds) > 0:
+        for i in range(len(baseline_preds)):
+            if baseline_preds[i].shape != tar_hsnr.shape:
+                print(
+                    f'Baseline prediction {i} shape {baseline_preds[i].shape} does not match target shape {tar_hsnr.shape}'
+                )
+                print('This happens when we want to predict the edges of the image.')
+                return
+
     img_sz = 3
-    num_samples = 2
-    ncols = num_samples + 1 + 1 + 1 + 1 + 1
+    ncols = num_samples + len(baseline_preds) + 1 + 1 + 1 + 1 + 1 * (num_samples > 1)
     grid_factor = 5
     grid_img_sz = img_sz * grid_factor
     example_spacing = 1
@@ -133,25 +157,38 @@ def plot_crops(inp, tar, tar_hsnr, recon_img_list, calibration_stats):
     gs = GridSpec(nrows=int(grid_factor * fig_h), ncols=int(grid_factor * fig_w), hspace=0.2, wspace=0.2)
     params = {'mathtext.default': 'regular'}
     plt.rcParams.update(params)
+    # plot baselines
+    for i in range(2, 2 + len(baseline_preds)):
+        for col_idx in range(baseline_preds[0].shape[0]):
+            ax_temp = fig.add_subplot(gs[col_idx * grid_img_sz:grid_img_sz * (col_idx + 1),
+                                         i * grid_img_sz + c0_extra:(i + 1) * grid_img_sz + c0_extra])
+            print(tar_hsnr.shape, baseline_preds[i - 2].shape)
+            psnr = get_psnr_str(tar_hsnr, baseline_preds[i - 2], col_idx)
+            ax_temp.imshow(baseline_preds[i - 2][col_idx], cmap='magma')
+            add_psnr_str(ax_temp, psnr)
+            clean_ax(ax_temp)
 
-    for i in range(2, ncols - 3):
+    # plot samples
+    sample_start_idx = 2 + len(baseline_preds)
+    for i in range(sample_start_idx, ncols - 3):
         for col_idx in range(recon_img_list.shape[1]):
             ax_temp = fig.add_subplot(gs[col_idx * grid_img_sz:grid_img_sz * (col_idx + 1),
                                          i * grid_img_sz + c0_extra:(i + 1) * grid_img_sz + c0_extra])
-            psnr = get_psnr_str(tar_hsnr, recon_img_list[i - 2], col_idx)
-            ax_temp.imshow(recon_img_list[i - 2][col_idx], cmap='magma')
+            psnr = get_psnr_str(tar_hsnr, recon_img_list[i - sample_start_idx], col_idx)
+            ax_temp.imshow(recon_img_list[i - sample_start_idx][col_idx], cmap='magma')
             add_psnr_str(ax_temp, psnr)
             clean_ax(ax_temp)
 
     # difference image
-    for col_idx in range(recon_img_list.shape[1]):
-        ax_temp = fig.add_subplot(gs[col_idx * grid_img_sz:grid_img_sz * (col_idx + 1),
-                                     (ncols - 3) * grid_img_sz + c0_extra:(ncols - 2) * grid_img_sz + c0_extra])
-        ax_temp.imshow(recon_img_list[1][col_idx] - recon_img_list[0][col_idx], cmap='coolwarm')
-        clean_ax(ax_temp)
+    if num_samples > 1:
+        for col_idx in range(recon_img_list.shape[1]):
+            ax_temp = fig.add_subplot(gs[col_idx * grid_img_sz:grid_img_sz * (col_idx + 1),
+                                         (ncols - 3) * grid_img_sz + c0_extra:(ncols - 2) * grid_img_sz + c0_extra])
+            ax_temp.imshow(recon_img_list[1][col_idx] - recon_img_list[0][col_idx], cmap='coolwarm')
+            clean_ax(ax_temp)
 
     for col_idx in range(recon_img_list.shape[1]):
-        print(recon_img_list.shape)
+        # print(recon_img_list.shape)
         ax_temp = fig.add_subplot(gs[col_idx * grid_img_sz:grid_img_sz * (col_idx + 1),
                                      c0_extra + (ncols - 2) * grid_img_sz:(ncols - 1) * grid_img_sz + c0_extra])
         psnr = get_psnr_str(tar_hsnr, recon_img_list.mean(axis=0), col_idx)
@@ -172,5 +209,6 @@ def plot_crops(inp, tar, tar_hsnr, recon_img_list, calibration_stats):
     ax_temp.imshow(inp[0, 0].cpu().numpy(), cmap='magma')
     clean_ax(ax_temp)
 
-    ax_temp = fig.add_subplot(gs[grid_img_sz:2 * grid_img_sz, 0:grid_img_sz])
-    plot_calibration(ax_temp, calibration_stats)
+    if calibration_stats is not None:
+        ax_temp = fig.add_subplot(gs[grid_img_sz:2 * grid_img_sz, 0:grid_img_sz])
+        plot_calibration(ax_temp, calibration_stats)
