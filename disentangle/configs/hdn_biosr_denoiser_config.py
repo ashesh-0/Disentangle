@@ -14,7 +14,7 @@ def get_config():
     data.channel_2 = 1
     data.ch1_fname = 'CCPs/GT_all.mrc'
     data.ch2_fname = 'ER/GT_all.mrc'
-    data.poisson_noise_factor = 1000
+    data.poisson_noise_factor = -1
     data.enable_gaussian_noise = True
     data.synthetic_gaussian_scale = 3400
 

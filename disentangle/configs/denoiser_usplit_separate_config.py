@@ -19,9 +19,9 @@ def get_config():
     data.channel_2 = 2
 
     data.num_channels = 3
-    data.ch1_fname = 'pred_disentangle_2402_D16-M23-S0-L0_32.tif'
-    data.ch2_fname = 'pred_disentangle_2402_D16-M23-S0-L0_35.tif'
-    data.ch_input_fname = 'pred_disentangle_2402_D16-M23-S0-L0_36.tif'
+    data.ch1_fname = 'pred_disentangle_2402_D16-M23-S0-L0_58.tif'
+    data.ch2_fname = 'pred_disentangle_2402_D16-M23-S0-L0_61.tif'
+    data.ch_input_fname = 'pred_disentangle_2402_D16-M23-S0-L0_65.tif'
 
     data.poisson_noise_factor = -1
     data.enable_gaussian_noise = False
