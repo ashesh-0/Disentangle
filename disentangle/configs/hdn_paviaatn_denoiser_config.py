@@ -14,7 +14,7 @@ def get_config():
     data.channel_2 = 3
     data.poisson_noise_factor = -1
     data.enable_gaussian_noise = True
-    data.synthetic_gaussian_scale = 250
+    data.synthetic_gaussian_scale = 304
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -52,7 +52,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.Denoiser
     # 4 values for denoise_channel {'Ch1', 'Ch2', 'input','all'}
-    model.denoise_channel = 'input'
+    model.denoise_channel = 'Ch1'
 
     model.encoder.batchnorm = True
     model.encoder.res_block_kernel = 3
@@ -98,9 +98,9 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname_format.format('2402/269', 'actin')
-    model.noise_model_ch2_fpath = fname_format.format('2402/270', 'mito')
+    fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_microscopy-OptiMEM100x014__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = fname_format.format('2402/501')
+    model.noise_model_ch2_fpath = fname_format.format('2402/270')
     model.noise_model_learnable = False
     model.non_stochastic_version = False
 
