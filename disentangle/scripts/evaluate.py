@@ -657,7 +657,9 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/177',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/178',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/179',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/181'
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/180',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/181',
+        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/182'
 
         # hagen et al HDN denoisers
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/136',
@@ -808,7 +810,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                     prediction = prediction.astype(np.uint32)
                     handler.dump_predictions(ckpt_dir, prediction, {'offset': str(offset)})
 
-                return data, prediction
+    return data, prediction
 
 
 if __name__ == '__main__':
