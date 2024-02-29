@@ -210,5 +210,7 @@ def plot_crops(inp, tar, tar_hsnr, recon_img_list, calibration_stats, num_sample
     clean_ax(ax_temp)
 
     if calibration_stats is not None:
-        ax_temp = fig.add_subplot(gs[grid_img_sz:2 * grid_img_sz, 0:grid_img_sz])
+        smaller_offset = 4
+        ax_temp = fig.add_subplot(gs[grid_img_sz + 1:2 * grid_img_sz - smaller_offset + 1,
+                                     smaller_offset - 1:grid_img_sz - 1])
         plot_calibration(ax_temp, calibration_stats)
