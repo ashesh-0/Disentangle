@@ -120,8 +120,8 @@ def get_config():
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
-    model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    model.non_stochastic_version = True
+    model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
+    model.non_stochastic_version = False
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     model.noise_model_ch1_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2402/231/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
@@ -135,19 +135,17 @@ def get_config():
     model.pretrained_weights_path = '/home/ubuntu/ashesh/training_hpc/disentangle/2402/D16-M3-S0-L0/85/BaselineVAECL_best.ckpt'
     ################
 
-    model.enable_learnable_interchannel_weights = True
-
     training = config.training
-    training.lr = 0.001 / 2
+    training.lr = 0.001
     training.lr_scheduler_patience = 1
     training.max_epochs = 1
-    training.batch_size = 16
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
     training.earlystop_patience = 2
-    # training.precision = 16
+    training.precision = 16
 
     return config
