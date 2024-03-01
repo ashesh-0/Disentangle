@@ -837,8 +837,9 @@ class LadderVAE(pl.LightningModule):
             self.log(f'val_psnr_l{i+1}', psnr, on_epoch=True)
 
         recons_loss = recons_loss_dict['loss']
-        # kl_loss = self.get_kl_divergence_loss(td_data)
-        # net_loss = recons_loss + self.get_kl_weight() * kl_loss
+        if torch.isnan(recons_loss).any():
+            return
+
         self.log('val_loss', recons_loss, on_epoch=True)
         # self.log('val_psnr', (val_psnr_l1 + val_psnr_l2) / 2, on_epoch=True)
 
