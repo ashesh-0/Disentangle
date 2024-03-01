@@ -22,6 +22,7 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
                                                                target_ch=target_ch,
                                                                val_idx_manager=val_idx_manager)
         self.split_w = config.loss.split_weight
+        self.mixed_rec_w = config.loss.mixed_rec_weight
         self.init_normalization(data_mean, data_std)
         self.likelihood_old = self.likelihood
         new_config = ml_collections.ConfigDict()
@@ -37,7 +38,6 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
         new_config.model.noise_model_type = config.model.finetuning_noise_model_type
         new_config.model.model_type = ModelType.Denoiser
         new_config.model.denoise_channel = 'input'
-
         self.noiseModel_finetuning = get_noise_model(new_config)
         mean_dict = deepcopy(self.data_mean['subdset_1'])
         std_dict = deepcopy(self.data_std['subdset_1'])
@@ -51,6 +51,7 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         x, target, dset_idx, loss_idx = batch
+
         assert self.normalized_input == True
         x_normalized = x
         target_normalized = self.normalize_target(target, dset_idx)
@@ -83,6 +84,7 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
         # if 2 * target_normalized.shape[1] == out.shape[1]:
         #     pred_mean, pred_logvar = out.chunk(2, dim=1)
         assert target_normalized.shape[1] == out.shape[1]
+        mixed_loss = None
         if (~mask).sum() > 0:
             pred_x_normalized, _ = self.get_mixed_prediction(out[~mask], None, dset_idx[~mask])
             mixed_recons_ll = self.likelihood_finetuning.log_likelihood(x_normalized[~mask], {
@@ -100,7 +102,8 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
             self.log('kl_loss', kl_loss, on_epoch=True)
             self.log('training_loss', net_loss, on_epoch=True)
             self.log('lr', self.lr, on_epoch=True)
-            self.log('mixed_loss', mixed_loss)
+            if mixed_loss is not None:
+                self.log('mixed_loss', mixed_loss)
             # self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
             # self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
 

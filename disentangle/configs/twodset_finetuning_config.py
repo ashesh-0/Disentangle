@@ -13,7 +13,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
+    data.image_size = 128
     data.data_type = DataType.TwoDset
     data.channel_1 = None
     data.channel_2 = None
@@ -24,14 +24,14 @@ def get_config():
     data.dset0.data_type = DataType.BioSR_MRC
     data.dset0.ch1_fname = 'ER/GT_all.mrc'
     data.dset0.ch2_fname = 'Microtubules/GT_all.mrc'
-    data.dset0.synthetic_gaussian_scale = 4450
+    data.dset0.synthetic_gaussian_scale = 8900
     data.dset0.enable_gaussian_noise = True
 
     data.dset1 = ml_collections.ConfigDict()
     data.dset1.data_type = DataType.BioSR_MRC
     data.dset1.ch1_fname = 'ER/GT_all.mrc'
     data.dset1.ch2_fname = 'Microtubules/GT_all.mrc'
-    data.dset1.synthetic_gaussian_scale = 8900
+    data.dset1.synthetic_gaussian_scale = 4450
     data.dset1.enable_gaussian_noise = True
     data.subdset_types_probab = [0.5, 0.5]
     #############################
@@ -71,8 +71,8 @@ def get_config():
     # this is not uSplit.
     loss.kl_loss_formulation = ''
 
-    loss.mixed_rec_weight = 1
-    loss.split_weight = 1.0
+    loss.mixed_rec_weight = 1.0
+    loss.split_weight = 0.0
     loss.kl_weight = 1.0
     loss.reconstruction_weight = 1.0
     loss.kl_annealing = False
@@ -124,29 +124,30 @@ def get_config():
     model.non_stochastic_version = True
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2402/221/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2402/225/GMMNoiseModel_Microtubules-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2402/231/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2402/227/GMMNoiseModel_Microtubules-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     #################
     # this must be the input.
-    model.finetuning_noise_model_ch1_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2402/231/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.finetuning_noise_model_ch1_fpath = '/home/ubuntu/ashesh/training_hpc/noise_model/2403/5/GMMNoiseModel_BioSR-ER_GT_all_Microtubules_GT_all_6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.finetuning_noise_model_ch2_fpath = ''
     model.finetuning_noise_model_type = 'gmm'
+    model.pretrained_weights_path = '/home/ubuntu/ashesh/training_hpc/disentangle/2402/D16-M3-S0-L0/85/BaselineVAECL_best.ckpt'
     ################
 
     model.enable_learnable_interchannel_weights = True
 
     training = config.training
     training.lr = 0.001 / 2
-    training.lr_scheduler_patience = 30
-    training.max_epochs = 200
+    training.lr_scheduler_patience = 1
+    training.max_epochs = 1
     training.batch_size = 16
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 100
+    training.earlystop_patience = 2
     # training.precision = 16
 
     return config
