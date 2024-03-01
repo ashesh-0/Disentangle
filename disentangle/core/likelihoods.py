@@ -69,6 +69,10 @@ class NoiseModelLikelihood(LikelihoodModule):
             if self.data_mean.device != correct_device_tensor.device:
                 self.data_mean = self.data_mean.to(correct_device_tensor.device)
                 self.data_std = self.data_std.to(correct_device_tensor.device)
+        elif isinstance(self.data_mean, dict):
+            for key in self.data_mean.keys():
+                self.data_mean[key] = self.data_mean[key].to(correct_device_tensor.device)
+                self.data_std[key] = self.data_std[key].to(correct_device_tensor.device)
 
     def get_mean_lv(self, x):
         return self.parameter_net(x), None

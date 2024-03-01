@@ -25,6 +25,7 @@ from disentangle.nets.lvae_restricted_reconstruction import LadderVAERestrictedR
 from disentangle.nets.lvae_semi_supervised import LadderVAESemiSupervised
 from disentangle.nets.lvae_twindecoder import LadderVAETwinDecoder
 from disentangle.nets.lvae_twodset import LadderVaeTwoDset
+from disentangle.nets.lvae_twodset_finetuning import LadderVaeTwoDsetFinetuning
 from disentangle.nets.lvae_twodset_restrictedrecons import LadderVaeTwoDsetRestrictedRecons
 from disentangle.nets.lvae_with_critic import LadderVAECritic
 from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
@@ -81,6 +82,8 @@ def create_model(config, data_mean, data_std, val_idx_manager=None):
         model = LadderVAERestrictedReconstruction(data_mean, data_std, config, val_idx_manager=val_idx_manager)
     elif config.model.model_type == ModelType.LadderVAETwoDataSetRestRecon:
         model = LadderVaeTwoDsetRestrictedRecons(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVAETwoDataSetFinetuning:
+        model = LadderVaeTwoDsetFinetuning(data_mean, data_std, config)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
     return model

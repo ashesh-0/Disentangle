@@ -26,6 +26,14 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
             self._interchannel_weights.weight.data.fill_(1.0 * 0.01)
             self._interchannel_weights.bias.data.fill_(0.0)
 
+        self.init_normalization(data_mean, data_std)
+        self.rest_recons_loss = RestrictedReconstruction(1, self.mixed_rec_w)
+        # self.rest_recons_loss.update_only_these_till_kth_epoch(
+        #     ['_interchannel_weights.weight', '_interchannel_weights.bias'], 40)
+
+        print(f'[{self.__class__.__name__}] Learnable Ch weights:', self._interchannel_weights is not None)
+
+    def init_normalization(self, data_mean, data_std):
         for dloader_key in self.data_mean.keys():
             assert dloader_key in ['subdset_0', 'subdset_1']
             for data_key in self.data_mean[dloader_key].keys():
@@ -35,12 +43,6 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
 
             self.data_mean[dloader_key]['input'] = self.data_mean[dloader_key]['input'].reshape(1, 1, 1, 1)
             self.data_std[dloader_key]['input'] = self.data_std[dloader_key]['input'].reshape(1, 1, 1, 1)
-
-        self.rest_recons_loss = RestrictedReconstruction(1, self.mixed_rec_w)
-        # self.rest_recons_loss.update_only_these_till_kth_epoch(
-        #     ['_interchannel_weights.weight', '_interchannel_weights.bias'], 40)
-
-        print(f'[{self.__class__.__name__}] Learnable Ch weights:', self._interchannel_weights is not None)
 
     def get_reconstruction_loss(self,
                                 reconstruction,
