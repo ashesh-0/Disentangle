@@ -125,15 +125,15 @@ def get_config():
     model.non_stochastic_version = False
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training_hpc/noise_model/2402/231/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training_hpc/noise_model/2402/227/GMMNoiseModel_Microtubules-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/232/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/228/GMMNoiseModel_Microtubules-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     #################
     # this must be the input.
-    model.finetuning_noise_model_ch1_fpath = '/home/ashesh.ashesh/training_hpc/noise_model/2403/7/GMMNoiseModel_BioSR-ER_GT_all_Microtubules_GT_all_6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.finetuning_noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2403/5/GMMNoiseModel_BioSR-ER_GT_all_Microtubules_GT_all_6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.finetuning_noise_model_ch2_fpath = ''
     model.finetuning_noise_model_type = 'gmm'
-    model.pretrained_weights_path = '/home/ashesh.ashesh/training_hpc/disentangle/2402/D16-M3-S0-L0/84/BaselineVAECL_best.ckpt'
+    model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/86/BaselineVAECL_best.ckpt'
     ################
 
     training = config.training
