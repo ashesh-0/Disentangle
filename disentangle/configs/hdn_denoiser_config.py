@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
     data.poisson_noise_factor = -1
     data.enable_gaussian_noise = True
-    data.synthetic_gaussian_scale = 500
+    data.synthetic_gaussian_scale = 1000
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -101,8 +101,8 @@ def get_config():
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/517/GMMNoiseModel_ventura_gigascience-mito_actin_6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/515/GMMNoiseModel_ventura_gigascience-mito__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training_hpc/noise_model/2402/513/GMMNoiseModel_ventura_gigascience-actin__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training_hpc/noise_model/2402/521/GMMNoiseModel_ventura_gigascience-mito__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
     model.non_stochastic_version = False
 

@@ -12,10 +12,10 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
     data.poisson_noise_factor = -1
-    data.enable_gaussian_noise = True
+    data.enable_gaussian_noise = False
     data.synthetic_gaussian_scale = 375
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -54,7 +54,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.Denoiser
     # 4 values for denoise_channel {'Ch1', 'Ch2', 'input','all'}
-    model.denoise_channel = 'Ch2'
+    model.denoise_channel = 'input'
 
     model.encoder.batchnorm = True
     model.encoder.res_block_kernel = 3
