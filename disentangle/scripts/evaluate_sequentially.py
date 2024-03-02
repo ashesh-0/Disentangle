@@ -8,7 +8,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_prediction', action='store_true')
     parser.add_argument('--mmse_count', type=int, default=1)
     args = parser.parse_args()
-    for i in range(5000):
+    for i in range(30, 5000):
         print('')
         print('##################################')
         print(f'Predicting {i}th frame')

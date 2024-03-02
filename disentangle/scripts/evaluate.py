@@ -473,7 +473,6 @@ def main(
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
     print(f'Model has {count_parameters(model)/1000_000:.3f}M parameters')
-
     # reducing the data here.
     if predict_kth_frame is not None:
         assert predict_kth_frame >= 0 and isinstance(predict_kth_frame, int), f'Invalid kth frame. {predict_kth_frame}'
@@ -657,10 +656,9 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/177',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/178',
         # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/179',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/180',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/181',
-        '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/182'
-
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/9',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/8',
+        '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/13',
         # hagen et al HDN denoisers
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/136',
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/125',
@@ -749,7 +747,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
 
     patchsz_gridsz_tuples = [(None, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Test]:
+        for eval_datasplit_type in [DataSplitType.All]:
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
                 if data_type in [
