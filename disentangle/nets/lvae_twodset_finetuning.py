@@ -57,6 +57,8 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
                                                              self.mixed_rec_w,
                                                              custom_loss_fn=self.get_loss_fn(
                                                                  self.likelihood_finetuning))
+            self.grad_setter.enable_nonorthogonal()
+
             self.automatic_optimization = False
 
     @staticmethod
