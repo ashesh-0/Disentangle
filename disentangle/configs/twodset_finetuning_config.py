@@ -33,7 +33,7 @@ def get_config():
     data.dset1.ch2_fname = 'Microtubules/GT_all.mrc'
     data.dset1.synthetic_gaussian_scale = 4450
     data.dset1.enable_gaussian_noise = True
-    data.subdset_types_probab = [0.75, 0.25]
+    data.subdset_types_probab = [0.5, 0.5]
     #############################
 
     data.poisson_noise_factor = -1
