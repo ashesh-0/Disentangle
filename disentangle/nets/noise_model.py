@@ -35,10 +35,6 @@ def last2path(fpath):
 
 
 def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None):
-    return
-    ##########
-    ########## This needs to be handled properly.
-    ##########
     config_fpath = os.path.join(os.path.dirname(noise_model_fpath), 'config.json')
     with open(config_fpath, 'r') as f:
         noise_model_config = json.load(f)
