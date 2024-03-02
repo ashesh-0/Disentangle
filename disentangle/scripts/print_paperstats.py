@@ -1,7 +1,8 @@
-from disentangle.analysis.results_handler import PaperResultsHandler
-import pickle
-import os
 import argparse
+import os
+import pickle
+
+from disentangle.analysis.results_handler import PaperResultsHandler
 
 
 def rnd(obj):
@@ -13,7 +14,7 @@ def show(ckpt_dir, results_dir, only_test=True, skip_last_pixels=None):
         ckpt_dir = ckpt_dir[:-1]
     if results_dir[-1] == '/':
         results_dir = results_dir[:-1]
-        
+
     fname = PaperResultsHandler.get_fname(ckpt_dir)
     print(ckpt_dir)
     for dir in sorted(os.listdir(results_dir)):
@@ -32,10 +33,16 @@ def show(ckpt_dir, results_dir, only_test=True, skip_last_pixels=None):
 
             print('')
             print(dir)
-            print('RMSE', ' '.join([rnd(x) for x in out['rmse']]))
-            print('PSNR', ' '.join([rnd(x) for x in out['psnr']]))
-            print('RangeInvPSNR', ' '.join([rnd(x) for x in out['rangeinvpsnr']]))
-            print('SSIM', ' '.join(rnd(x) for x in out['ssim']))
+            if 'rmse' in out:
+                print('RMSE', ' '.join([rnd(x) for x in out['rmse']]))
+            if 'psnr' in out:
+                print('PSNR', ' '.join([rnd(x) for x in out['psnr']]))
+            if 'rangeinvpsnr' in out:
+                print('RangeInvPSNR', ' '.join([rnd(x) for x in out['rangeinvpsnr']]))
+            if 'ssim' in out:
+                print('SSIM', ' '.join(rnd(x) for x in out['ssim']))
+            if 'ms_ssim' in out:
+                print('MS-SSIM', ' '.join(rnd(x) for x in out['ms_ssim']))
 
 
 if __name__ == '__main__':
