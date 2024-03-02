@@ -61,10 +61,10 @@ class RestrictedReconstruction:
     def enable_nonorthogonal(self):
         print(f'[{self.__class__.__name__}] Enabling non-orthogonal loss computations.')
         assert self._finegrained_restriction_retain_positively_correlated == False
-        assert self._correct_grad_retain_negatively_correlated == False
+        # assert self._correct_grad_retain_negatively_correlated == False
 
         self._finegrained_restriction_retain_positively_correlated = True
-        self._correct_grad_retain_negatively_correlated = True
+        # self._correct_grad_retain_negatively_correlated = True
 
     @staticmethod
     def get_grad_direction(score, params):
