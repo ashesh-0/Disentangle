@@ -25,6 +25,9 @@ if __name__ == '__main__':
 
     max_id = np.max(list(data_dict.keys()))
     full_data = np.concatenate([data_dict[k] for k in range(max_id + 1)], axis=0)
+    print()
+    print('Data shape', full_data.shape)
+    print()
     output_fpath = os.path.join(data_dir, fname)
     save_tiff(output_fpath, full_data)
     print(f'Saved to {output_fpath}')
