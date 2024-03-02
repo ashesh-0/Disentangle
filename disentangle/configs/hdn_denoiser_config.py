@@ -73,11 +73,11 @@ def get_config():
     model.encoder.blocks_per_layer = 5
     model.encoder.n_filters = 32
     model.decoder.n_filters = 32
-    model.z_dims = [32, 32, 32, 32, 32, 32]
+    model.z_dims = [32, 32, 32]
     loss.free_bits = 1.0
-    model.analytical_kl = True
-    model.var_clip_max = None
-    model.logvar_lowerbound = None  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
+    model.analytical_kl = False
+    model.var_clip_max = 20
+    model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
     #########################
 
@@ -98,8 +98,8 @@ def get_config():
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
 
-    model.enable_noise_model = False
-    model.noise_model_type = 'hist'
+    model.enable_noise_model = True
+    model.noise_model_type = 'gmm'
     fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_ventura_gigascience-{}__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2403/2/HistNoiseModel_ventura_gigascience-actin__Norm0_Bins128_bootstrap.npy'
     model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2403/4/HistNoiseModel_ventura_gigascience-mito__Norm0_Bins128_bootstrap.npy'
