@@ -54,7 +54,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.Denoiser
     # 4 values for denoise_channel {'Ch1', 'Ch2', 'input','all'}
-    model.denoise_channel = 'Ch1'
+    model.denoise_channel = 'Ch2'
 
     model.encoder.batchnorm = True
     model.encoder.res_block_kernel = 3
