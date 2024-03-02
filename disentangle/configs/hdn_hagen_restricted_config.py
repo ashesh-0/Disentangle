@@ -12,11 +12,11 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
+    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
     data.poisson_noise_factor = -1
-    data.enable_gaussian_noise = True
-    data.synthetic_gaussian_scale = 500
+    data.enable_gaussian_noise = False
+    data.synthetic_gaussian_scale = 250
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -73,11 +73,11 @@ def get_config():
     model.encoder.blocks_per_layer = 5
     model.encoder.n_filters = 32
     model.decoder.n_filters = 32
-    model.z_dims = [32, 32, 32, 32, 32, 32]
+    model.z_dims = [32, 32, 32]
     loss.free_bits = 1.0
-    model.analytical_kl = True
-    model.var_clip_max = None
-    model.logvar_lowerbound = None  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
+    model.analytical_kl = False
+    model.var_clip_max = 20
+    model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
     #########################
 
