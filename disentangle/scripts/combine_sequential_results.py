@@ -11,8 +11,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--ckpt', type=str, default=None)
     args = parser.parse_args()
-    ckpt = args.ckpt
-    assert os.path.isdir(ckpt)
+    ckpt_ = args.ckpt
+    assert os.path.isdir(ckpt_)
 
     fname = 'pred_disentangle_' + '_'.join(ckpt_.strip('/').split('/')[-3:]) + '.tif'
     data_dict = {}
