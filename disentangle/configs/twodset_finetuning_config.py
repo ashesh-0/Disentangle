@@ -33,7 +33,7 @@ def get_config():
     data.dset1.ch2_fname = 'Microtubules/GT_all.mrc'
     data.dset1.synthetic_gaussian_scale = 4450
     data.dset1.enable_gaussian_noise = True
-    data.subdset_types_probab = [0.9, 0.1]
+    data.subdset_types_probab = [0.75, 0.25]
     #############################
 
     data.poisson_noise_factor = -1
@@ -67,7 +67,8 @@ def get_config():
     data.target_separate_normalization = True
     data.input_is_sum = False
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    # loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.ElboRestrictedReconstruction
     # this is not uSplit.
     loss.kl_loss_formulation = ''
 
@@ -138,14 +139,14 @@ def get_config():
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 1
-    training.max_epochs = 5
-    training.batch_size = 32
+    training.max_epochs = 1
+    training.batch_size = 16
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
     training.earlystop_patience = 2
-    training.precision = 16
+    # training.precision = 16
 
     return config

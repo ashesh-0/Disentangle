@@ -7,6 +7,7 @@ from disentangle.core.likelihoods import NoiseModelLikelihood
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.psnr import RangeInvariantPsnr
+from disentangle.loss.restricted_reconstruction_loss import RestrictedReconstruction
 from disentangle.nets.lvae import compute_batch_mean, torch_nanmean
 from disentangle.nets.lvae_twodset_restrictedrecons import LadderVaeTwoDsetRestrictedRecons
 from disentangle.nets.noise_model import get_noise_model
@@ -21,8 +22,10 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
                                                                use_uncond_mode_at=use_uncond_mode_at,
                                                                target_ch=target_ch,
                                                                val_idx_manager=val_idx_manager)
-        self.split_w = config.loss.split_weight
+        self.rest_recons_loss = None
         self.mixed_rec_w = config.loss.mixed_rec_weight
+
+        self.split_w = config.loss.split_weight
         self.init_normalization(data_mean, data_std)
         self.likelihood_old = self.likelihood
         new_config = ml_collections.ConfigDict()
@@ -49,7 +52,110 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
         self.likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean['subdset_0'],
                                                self.data_std['subdset_0'], self.noiseModel)
 
+        if config.loss.loss_type == LossType.ElboRestrictedReconstruction:
+            self.rest_recons_loss = RestrictedReconstruction(1,
+                                                             self.mixed_rec_w,
+                                                             custom_loss_fn=self.get_loss_fn(
+                                                                 self.likelihood_finetuning))
+            self.automatic_optimization = False
+
+    @staticmethod
+    def get_loss_fn(likelihood_fn):
+
+        def loss_fn(tar, pred):
+            """
+            Batch * H * W shape for both inputs.
+            """
+            mixed_recons_ll = likelihood_fn.log_likelihood(tar[:, None], {'mean': pred[:, None], 'logvar': None})
+            nll = (-1 * mixed_recons_ll).mean()
+            return nll
+
+        return loss_fn
+
+    def _training_manual_step(self, batch, batch_idx, enable_logging=True):
+        x, target, dset_idx, loss_idx = batch
+        optim = self.optimizers()
+        optim.zero_grad()
+
+        assert self.normalized_input == True
+        x_normalized = x
+        target_normalized = self.normalize_target(target, dset_idx)
+
+        out, td_data = self.forward(x_normalized)
+
+        if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
+            target_normalized = F.center_crop(target_normalized, out.shape[-2:])
+
+        recons_loss_dict = self.get_reconstruction_loss(out,
+                                                        target_normalized,
+                                                        x_normalized,
+                                                        dset_idx,
+                                                        loss_idx,
+                                                        return_predicted_img=False)
+
+        if self.skip_nboundary_pixels_from_loss:
+            pad = self.skip_nboundary_pixels_from_loss
+            target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
+
+        recons_loss = self.split_w * recons_loss_dict['loss']
+        if self.non_stochastic_version:
+            kl_loss = torch.Tensor([0.0]).cuda()
+            net_loss = recons_loss
+        else:
+            kl_loss = self.get_kl_divergence_loss(td_data)
+            net_loss = recons_loss + self.get_kl_weight() * kl_loss
+
+        if isinstance(net_loss, torch.Tensor):
+            self.manual_backward(net_loss, retain_graph=True)
+        else:
+            assert net_loss == 0.0
+            return None
+
+        mask = loss_idx == LossType.Elbo
+        assert target_normalized.shape[1] == out.shape[1]
+        mixed_loss = None
+        if (~mask).sum() > 0:
+            pred_x_normalized, _ = self.get_mixed_prediction(out[~mask], None, dset_idx[~mask])
+            params = list(self.named_parameters())
+            relevant_params = []
+            for name, param in params:
+                if param.requires_grad == False:
+                    pass
+                else:
+                    relevant_params.append((name, param))
+
+            _ = self.rest_recons_loss.update_gradients(relevant_params, x_normalized[~mask], target_normalized[mask],
+                                                       out[mask], pred_x_normalized, self.current_epoch)
+        optim.step()
+
+        if enable_logging:
+            for i, x in enumerate(td_data['debug_qvar_max']):
+                self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
+
+            self.log('reconstruction_loss', recons_loss_dict['loss'], on_epoch=True)
+            self.log('kl_loss', kl_loss, on_epoch=True)
+            self.log('training_loss', net_loss, on_epoch=True)
+            self.log('lr', self.lr, on_epoch=True)
+            if mixed_loss is not None:
+                self.log('mixed_loss', mixed_loss)
+            # self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
+            # self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
+
+        output = {
+            'loss': net_loss,
+            'reconstruction_loss': recons_loss.detach() if isinstance(recons_loss, torch.Tensor) else recons_loss,
+            'kl_loss': kl_loss.detach(),
+        }
+        # https://github.com/openai/vdvae/blob/main/train.py#L26
+        if torch.isnan(net_loss).any():
+            return None
+
+        return output
+
     def training_step(self, batch, batch_idx, enable_logging=True):
+        if self.automatic_optimization is False:
+            return self._training_manual_step(batch, batch_idx, enable_logging=enable_logging)
+
         x, target, dset_idx, loss_idx = batch
 
         assert self.normalized_input == True

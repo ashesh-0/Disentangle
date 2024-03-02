@@ -36,7 +36,8 @@ class RestrictedReconstruction:
                  finegrained_restriction_retain_positively_correlated=False,
                  correct_grad_retain_negatively_correlated=False,
                  randomize_alpha=True,
-                 randomize_numcount=8) -> None:
+                 randomize_numcount=8,
+                 custom_loss_fn=None) -> None:
         self._w_split = w_split
         self._w_recons = w_recons
         self._finegrained_restriction = finegrained_restriction
@@ -49,6 +50,8 @@ class RestrictedReconstruction:
         self._crosschannel_corr = None
         self._similarity_mode = None  #'dot'
         self._restricted_epoch = self._restricted_names = None
+        self.custom_loss_fn = custom_loss_fn
+
         print(f'[{self.__class__.__name__}] w_split: {self._w_split}, w_recons: {self._w_recons}')
 
     def update_only_these_till_kth_epoch(self, names, epoch):
@@ -121,7 +124,11 @@ class RestrictedReconstruction:
         return grad_components
 
     def loss_fn(self, tar, pred):
-        return torch.mean((tar - pred)**2)
+        if self.custom_loss_fn is None:
+            return torch.mean((tar - pred)**2)
+        else:
+            return self.custom_loss_fn(tar, pred)
+
         # return torch.mean(torch.abs(tar - pred))
 
     @staticmethod
