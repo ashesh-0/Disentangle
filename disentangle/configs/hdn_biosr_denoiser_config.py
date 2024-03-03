@@ -12,7 +12,7 @@ def get_config():
     data.data_type = DataType.BioSR_MRC
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'CCPs/GT_all.mrc'
+    data.ch1_fname = 'F-actin/GT_all_a.mrc'
     data.ch2_fname = 'ER/GT_all.mrc'
     data.poisson_noise_factor = -1
     data.enable_gaussian_noise = True
