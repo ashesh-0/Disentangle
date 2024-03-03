@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'F-actin/GT_all_a.mrc'
     data.num_channels = 2
 
-    data.poisson_noise_factor = -1
+    data.poisson_noise_factor = 1000
     data.enable_gaussian_noise = True
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
