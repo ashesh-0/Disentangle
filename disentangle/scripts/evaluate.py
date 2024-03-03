@@ -505,6 +505,9 @@ def main(
 
     def print_ignored_pixels():
         ignored_pixels = 1
+        if pred.shape[0] == 1:
+            return 0
+
         while (pred[
                 :10,
                 -ignored_pixels:,
@@ -516,7 +519,7 @@ def main(
         return ignored_pixels
 
     actual_ignored_pixels = print_ignored_pixels()
-    assert ignored_last_pixels >= actual_ignored_pixels
+    assert ignored_last_pixels >= actual_ignored_pixels, f'ignored_last_pixels: {ignored_last_pixels} < actual_ignored_pixels: {actual_ignored_pixels}'
     tar = val_dset._data
 
     def ignore_pixels(arr):
@@ -638,33 +641,70 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             mmse_count=1,
                                             predict_kth_frame=None):
     ckpt_dirs = [
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/129',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/124',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/131',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/125',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/128',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/126',
+        '/home/ashesh.ashesh/training/disentangle/2403/D7-M23-S0-L0/18',
+        '/home/ashesh.ashesh/training/disentangle/2403/D7-M23-S0-L0/16',
+        '/home/ashesh.ashesh/training/disentangle/2403/D7-M23-S0-L0/32'
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/150',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/144',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/152',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/155',
 
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/130',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/127',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/112',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/119',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/110',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/175',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/174',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/176',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/177',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/178',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/179',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/7',
-        '/home/ashesh.ashesh/training/disentangle/2403/D3-M23-S0-L0/1',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/10',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/11',
-        '/home/ashesh.ashesh/training/disentangle/2403/D3-M23-S0-L0/2',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/12',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/15',
-        '/home/ashesh.ashesh/training/disentangle/2403/D3-M23-S0-L0/3',
-        '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/14',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/93',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/88',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/109/',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/125',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/94',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/89',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/128',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/95',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/87',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/130',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/92',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/90',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/115',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/104',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/96',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/126',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/105',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/97',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/127',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/106',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/98',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/129',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/107',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/99',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/135',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/114',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/101',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/133',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/113',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/100',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/132',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/117',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/103',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/120',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/102',
+
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/82',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/17',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/19',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/20',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D3-M3-S0-L0/22',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/137',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/136',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/138',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/139',
+
+        # '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/7',
+        # '/home/ashesh.ashesh/training/disentangle/2403/D3-M23-S0-L0/1',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/10',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/11',
+        # '/home/ashesh.ashesh/training/disentangle/2403/D3-M23-S0-L0/2',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/12',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/15',
+        # '/home/ashesh.ashesh/training/disentangle/2403/D3-M23-S0-L0/3',
+        # '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/14',
+
         # hagen et al HDN denoisers
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/136',
         # '/home/ashesh.ashesh/training/disentangle/2402/D7-M23-S0-L0/125',
