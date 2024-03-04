@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'ER/GT_all.mrc'
     data.num_channels = 2
 
-    data.poisson_noise_factor = -1
+    data.poisson_noise_factor = 1000
 
     data.enable_gaussian_noise = True
     data.trainig_datausage_fraction = 1.0
