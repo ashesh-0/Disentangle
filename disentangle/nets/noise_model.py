@@ -48,10 +48,10 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
         assert 'synthetic_gaussian_scale' in config.data
         assert noise_model_config[
             'add_gaussian_noise_std'] == config.data.synthetic_gaussian_scale, f'{noise_model_config["add_gaussian_noise_std"]} != {config.data.synthetic_gaussian_scale}'
-    if 'poisson_noise_factor' in config.data and config.data.poisson_noise_factor > 0:
-        assert 'poisson_noise_factor' in noise_model_config
-        assert noise_model_config[
-            'poisson_noise_factor'] == config.data.poisson_noise_factor, f'{noise_model_config["poisson_noise_factor"]} != {config.data.poisson_noise_factor}'
+
+    cfg_poisson_noise_factor = config.data.get('poisson_noise_factor', -1)
+    nm_poisson_noise_factor = noise_model_config.get('poisson_noise_factor', -1)
+    assert cfg_poisson_noise_factor == nm_poisson_noise_factor, f'{nm_poisson_noise_factor} != {cfg_poisson_noise_factor}'
 
     if 'train_pure_noise_model' in noise_model_config and noise_model_config['train_pure_noise_model']:
         print('Pure noise model is being used now.')
