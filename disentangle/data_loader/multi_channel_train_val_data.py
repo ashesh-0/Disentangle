@@ -32,7 +32,7 @@ def _train_val_data(data, datasplit_type: DataSplitType, channel_1, channel_2, v
     if datasplit_type == DataSplitType.All:
         return data.astype(np.float32)
 
-    train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data), starting_test=True)
+    train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
 
     if datasplit_type == DataSplitType.Train:
         return data[train_idx].astype(np.float32)
