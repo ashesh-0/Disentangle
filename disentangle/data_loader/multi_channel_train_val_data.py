@@ -1,11 +1,11 @@
 from typing import Union
 
 import numpy as np
-from disentangle.core import data_split_type
 
-from disentangle.core.tiff_reader import load_tiff
-from disentangle.core.data_type import DataType
+from disentangle.core import data_split_type
 from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
+from disentangle.core.data_type import DataType
+from disentangle.core.tiff_reader import load_tiff
 
 
 def train_val_data(fpath, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
@@ -32,7 +32,7 @@ def _train_val_data(data, datasplit_type: DataSplitType, channel_1, channel_2, v
     if datasplit_type == DataSplitType.All:
         return data.astype(np.float32)
 
-    train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
+    train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data), starting_test=True)
 
     if datasplit_type == DataSplitType.Train:
         return data[train_idx].astype(np.float32)
