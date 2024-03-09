@@ -116,25 +116,19 @@ def clean_for_xaxis_plot(inset_ax):
 
 def add_pixel_kde(ax,
                   rect: List[float],
-                  data1: np.ndarray,
-                  data2: Union[np.ndarray, None],
+                  data_list: List[np.ndarray],
                   min_labelsize: int,
                   plot_xmax_value: int = None,
                   plot_xmin_value: int = None,
-                  plot1_kwargs=None,
-                  plot2_kwargs=None,
-                  color1='r',
-                  color2='black',
-                  color_xtick='white',
-                  label1='Target',
-                  label2='Predicted'):
+                  plot_kwargs_list=None,
+                  color_list=None,
+                  label_list=None,
+                  color_xtick='white'):
     """
     Adds KDE (density plot) of data1(eg: target) and data2(ex: predicted) image pixel values as an inset
     """
-    if plot1_kwargs is None:
-        plot1_kwargs = {}
-    if plot2_kwargs is None:
-        plot2_kwargs = {}
+    if plot_kwargs_list is None:
+        plot_kwargs_list = [{} for _ in range(len(data_list))]
 
     inset_ax = add_subplot_axes(ax, rect, facecolor="None", min_labelsize=min_labelsize)
 
@@ -144,31 +138,29 @@ def add_pixel_kde(ax,
     if plot_xmax_value is not None:
         xmax_data = plot_xmax_value
     else:
-        xmax_data = int(data1.max())
-        if data2 is not None:
-            xmax_data = int(max(xmax_data, data2.max())) + 1
+        xmax_data = [int(datak.max()) for datak in data_list]
+        if len(xmax_data) > 1:
+            xmax_data = max(*xmax_data) + 1
+        else:
+            xmax_data = xmax_data[0] + 1
 
     xmin_data = 0
     if plot_xmin_value is not None:
         xmin_data = plot_xmin_value
     else:
-        xmin_data = min(xmin_data, int(data1.min()))
-        if data2 is not None:
-            xmin_data = int(min(xmin_data, data2.min())) - 1
+        xmin_data = [int(datak.min()) for datak in data_list]
+        if len(xmin_data) > 1:
+            xmin_data = min(*xmin_data) - 1
+        else:
+            xmin_data = xmin_data[0] - 1
 
-    sns.kdeplot(data=data1.reshape(-1, ),
-                ax=inset_ax,
-                color=color1,
-                label=label1,
-                clip=(xmin_data, None),
-                **plot1_kwargs)
-    if data2 is not None:
-        sns.kdeplot(data=data2.reshape(-1, ),
+    for datak, colork, labelk, plot_kwargsk in zip(data_list, color_list, label_list, plot_kwargs_list):
+        sns.kdeplot(data=datak.reshape(-1, ),
                     ax=inset_ax,
-                    color=color2,
-                    label=label2,
+                    color=colork,
+                    label=labelk,
                     clip=(xmin_data, None),
-                    **plot2_kwargs)
+                    **plot_kwargsk)
 
     inset_ax.set_aspect('auto')
     inset_ax.set_xlim([xmin_data, xmax_data])  #xmin=0,xmax= xmax_data

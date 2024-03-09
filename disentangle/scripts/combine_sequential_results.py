@@ -6,8 +6,19 @@ from tqdm import tqdm
 
 from disentangle.core.tiff_reader import load_tiff, save_tiff
 
+# '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/7',
+# '/home/ashesh.ashesh/training/disentangle/2403/D3-M23-S0-L0/1',
+# '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/10',
+# '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/11',
+# '/home/ashesh.ashesh/training/disentangle/2403/D3-M23-S0-L0/2',
+# '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/12',
+# '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/15',
+# '/home/ashesh.ashesh/training/disentangle/2403/D3-M23-S0-L0/3',
+# '/home/ashesh.ashesh/training/disentangle/2402/D3-M23-S0-L0/14',
+
 if __name__ == '__main__':
-    data_dir = '/group/jug/ashesh/data/paper_stats/All_P128_G64_M50_Sk32/'
+    # data_dir = '/group/jug/ashesh/data/paper_stats/All_P128_G64_M50_Sk32/'
+    data_dir = '/group/jug/ashesh/data/paper_stats/All_P128_G64_M50_Sk0'
     parser = argparse.ArgumentParser()
     parser.add_argument('--ckpt', type=str, default=None)
     args = parser.parse_args()

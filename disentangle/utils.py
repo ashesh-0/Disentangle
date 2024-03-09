@@ -335,7 +335,7 @@ def plotProbabilityDistribution(signalBinIndex, histogramNoiseModel, gaussianMix
     plt.ylabel('Signal Bin')
     histogram = histogramNoiseModel.fullHist.cpu().numpy()
     plt.imshow(histogram**0.25, cmap='gray')
-    plt.axhline(y=signalBinIndex + 0.5, linewidth=5, color='blue', alpha=0.5)
+    # plt.axhline(y=signalBinIndex + 0.5, linewidth=5, color='blue', alpha=0.5)
 
     plt.subplot(1, 2, 2)
     histobs = histogramNoiseModel.likelihood(queryObservations, querySignal_torch).cpu().numpy()
