@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'Microtubules/GT_all.mrc'
     data.num_channels = 2
 
-    data.poisson_noise_factor = 1000
+    data.poisson_noise_factor = -1
 
     data.enable_gaussian_noise = True
     data.trainig_datausage_fraction = 1.0
@@ -96,13 +96,13 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None
+    model.predict_logvar = 'pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     fname = '/home/ashesh.ashesh/training/noise_model/2403/14/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2403/58/GMMNoiseModel_BioSR-F__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
