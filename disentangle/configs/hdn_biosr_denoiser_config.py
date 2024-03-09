@@ -13,10 +13,10 @@ def get_config():
     data.channel_1 = 0
     data.channel_2 = 1
     data.ch1_fname = 'F-actin/GT_all_a.mrc'
-    data.ch2_fname = 'ER/GT_all.mrc'
-    data.poisson_noise_factor = -1
+    data.ch2_fname = 'Microtubules/GT_all.mrc'
+    data.poisson_noise_factor = 1000
     data.enable_gaussian_noise = True
-    data.synthetic_gaussian_scale = 3400
+    data.synthetic_gaussian_scale = 4300
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -54,7 +54,7 @@ def get_config():
     model = config.model
     model.model_type = ModelType.Denoiser
     # 4 values for denoise_channel {'Ch1', 'Ch2', 'input','all'}
-    model.denoise_channel = 'input'
+    model.denoise_channel = 'Ch1'
 
     model.encoder.batchnorm = True
     model.encoder.res_block_kernel = 3
@@ -104,8 +104,8 @@ def get_config():
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_{}-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     # model.noise_model_ch1_fpath = fname_format.format('2402/279', 'CCPs')
     # model.noise_model_ch2_fpath = fname_format.format('2402/285', 'ER')
-    model.noise_model_ch2_fpath = ''
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/310/GMMNoiseModel_BioSR-CCPs_GT_all_ER_GT_all_6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2403/73/GMMNoiseModel_BioSR-F__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2403/82/GMMNoiseModel_BioSR-Microtubules_GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
     model.non_stochastic_version = False
 
