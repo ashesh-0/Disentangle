@@ -13,16 +13,16 @@ def get_config():
     # data.channel_1 = 0
     # data.channel_2 = 1
     data.ch1_fname = 'F-actin/GT_all_a.mrc'
-    data.ch2_fname = 'ER/GT_all.mrc'
+    data.ch2_fname = 'Microtubules/GT_all.mrc'
     data.num_channels = 2
 
-    data.poisson_noise_factor = -1
+    data.poisson_noise_factor = 1000
 
     data.enable_gaussian_noise = True
     data.trainig_datausage_fraction = 1.0
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 6675
+    config.data.synthetic_gaussian_scale = 4300
     # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
     config.data.input_has_dependant_noise = True
 
@@ -102,7 +102,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     fname = '/home/ashesh.ashesh/training/noise_model/2403/14/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2403/14/GMMNoiseModel_BioSR-F__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
