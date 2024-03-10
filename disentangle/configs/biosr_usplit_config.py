@@ -12,15 +12,15 @@ def get_config():
     data.data_type = DataType.BioSR_MRC
     # data.channel_1 = 0
     # data.channel_2 = 1
-    data.ch1_fname = 'Microtubules/GT_all.mrc'
+    data.ch1_fname = 'CCPs/GT_all.mrc'
     data.ch2_fname = 'F-actin/GT_all_a.mrc'
     data.num_channels = 2
 
-    data.poisson_noise_factor = -1
+    data.poisson_noise_factor = 1000
     data.enable_gaussian_noise = True
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 4300
+    config.data.synthetic_gaussian_scale = 3050
     # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
     config.data.input_has_dependant_noise = True
 
