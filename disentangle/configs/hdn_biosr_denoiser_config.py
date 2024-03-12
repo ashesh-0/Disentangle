@@ -13,7 +13,7 @@ def get_config():
     data.channel_1 = 0
     data.channel_2 = 1
     data.ch1_fname = 'F-actin/GT_all_a.mrc'
-    data.ch2_fname = 'Microtubules/GT_all.mrc'
+    data.ch2_fname = 'CCPs/GT_all.mrc'
     data.poisson_noise_factor = 1000
     data.enable_gaussian_noise = True
     data.synthetic_gaussian_scale = 4300
