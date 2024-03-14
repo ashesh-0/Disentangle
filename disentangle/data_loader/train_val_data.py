@@ -11,8 +11,8 @@ from disentangle.data_loader.dao_3ch_rawdata_loader import get_train_val_data as
 from disentangle.data_loader.exp_microscopyv2_rawdata_loader import get_train_val_data as _loadexp_microscopyv2
 from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import get_train_val_data as _load_ht_iba1_ki67
 from disentangle.data_loader.multi_channel_train_val_data import train_val_data as _load_tiff_train_val
-from disentangle.data_loader.pqrsinstitute_semisup_rawdata_loader import \
-    get_train_val_data as _loadpqrsinstitute2_semisup
+# from disentangle.data_loader.pqrsinstitute_semisup_rawdata_loader import \
+# get_train_val_data as _loadpqrsinstitute2_semisup
 from disentangle.data_loader.raw_mrc_dloader import get_train_val_data as _loadmrc
 from disentangle.data_loader.schroff_rawdata_loader import get_train_val_data as _loadschroff_mito_er
 from disentangle.data_loader.sinosoid_dloader import train_val_data as _loadsinosoid
@@ -20,9 +20,10 @@ from disentangle.data_loader.sinosoid_threecurve_dloader import train_val_data a
 from disentangle.data_loader.sox2golgi_rawdata_loader import get_train_val_data as _loadsox2golgi
 from disentangle.data_loader.sox2golgi_v2_rawdata_loader import get_train_val_data as _loadsox2golgi_v2
 from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data as _loadseparatetiff
-from disentangle.data_loader.xyzinstitute2_rawdata_loader import get_train_val_data as _loadxyzinstitute2
-from disentangle.data_loader.xyzinstitute2_rawdata_loader import \
-    get_train_val_data_vanilla as _loadxyzinstitute2_vanilla
+
+# from disentangle.data_loader.xyzinstitute2_rawdata_loader import get_train_val_data as _loadxyzinstitute2
+# from disentangle.data_loader.xyzinstitute2_rawdata_loader import \
+# get_train_val_data_vanilla as _loadxyzinstitute2_vanilla
 
 
 def get_train_val_data(data_config,

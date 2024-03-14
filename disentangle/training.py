@@ -31,7 +31,7 @@ from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
 from disentangle.data_loader.single_channel.multi_dataset_dloader import SingleChannelMultiDatasetDloader
 from disentangle.data_loader.two_dset_dloader import TwoDsetDloader
 from disentangle.data_loader.vanilla_dloader import MultiChDloader
-from disentangle.data_loader.xyzinstitute2_3ch_dloader import xyzinstitute2ThreeChannelDloader
+# from disentangle.data_loader.xyzinstitute2_3ch_dloader import xyzinstitute2ThreeChannelDloader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
 

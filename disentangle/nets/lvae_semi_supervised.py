@@ -7,7 +7,7 @@ import torch.nn as nn
 
 from disentangle.core.loss_type import LossType
 from disentangle.core.psnr import RangeInvariantPsnr
-from disentangle.data_loader.xyzinstitute2_enums import xyzinstitute2BleedthroughType
+# from disentangle.data_loader.xyzinstitute2_enums import xyzinstitute2BleedthroughType
 from disentangle.loss.exclusive_loss import compute_exclusion_loss
 from disentangle.nets.lvae import LadderVAE, compute_batch_mean, torch_nanmean
 
