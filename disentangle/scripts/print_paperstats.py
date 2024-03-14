@@ -54,48 +54,48 @@ if __name__ == '__main__':
     # parser.add_argument('--skip_last_pixels', type=int)
     # args = parser.parse_args()
 
-    # ckpt_dir = '/home/ashesh.ashesh/training/disentangle/2210/D3-M3-S0-L0/117'
-    # results_dir = '/home/ashesh.ashesh/data/paper_stats/'
+    # ckpt_dir = '/home/ubuntu.ubuntu/training/disentangle/2210/D3-M3-S0-L0/117'
+    # results_dir = '/home/ubuntu.ubuntu/data/paper_stats/'
     ckpt_dirs = [
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/93',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/88',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/109/',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/125',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/94',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/89',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/128',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/95',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/87',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/130',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/92',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/90',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/115',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/104',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/96',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/126',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/105',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/97',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/127',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/106',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/98',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/129',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/107',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/99',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/135',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/114',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/101',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/133',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/113',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/100',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/132',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/117',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/103',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/120',
-        # '/home/ashesh.ashesh/training/disentangle/2402/D16-M23-S0-L0/102',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/93',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/88',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/109/',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/125',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/94',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/89',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/128',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/95',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/87',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/130',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/92',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/90',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/115',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/104',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/96',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/126',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/105',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/97',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/127',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/106',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/98',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/129',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/107',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/99',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/135',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/114',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/101',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/133',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/113',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/100',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/132',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/117',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/103',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/120',
+        # '/home/ubuntu.ubuntu/training/disentangle/2402/D16-M23-S0-L0/102',
     ]
 
     for ckpt_dir in ckpt_dirs:
-        show(ckpt_dir, '/group/jug/ashesh/data/paper_stats/', only_test=True, skip_last_pixels=44)
+        show(ckpt_dir, '/group/ubuntu/ubuntu/data/paper_stats/', only_test=True, skip_last_pixels=44)
         sleep(1)
 
     # show(args.ckpt_dir, args.results_dir, only_test=True, skip_last_pixels=args.skip_last_pixels)

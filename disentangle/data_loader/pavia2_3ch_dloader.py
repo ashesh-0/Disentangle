@@ -1,9 +1,10 @@
-from disentangle.data_loader.pavia2_dloader import Pavia2V1Dloader, Pavia2DataSetChannels
-from disentangle.core.data_split_type import DataSplitType
 import numpy as np
 
+from disentangle.core.data_split_type import DataSplitType
+from disentangle.data_loader.xyzinstitute2_dloader import xyzinstitute2DataSetChannels, xyzinstitute2V1Dloader
 
-class Pavia2ThreeChannelDloader(Pavia2V1Dloader):
+
+class xyzinstitute2ThreeChannelDloader(xyzinstitute2V1Dloader):
 
     def __init__(self,
                  data_config,
@@ -19,11 +20,11 @@ class Pavia2ThreeChannelDloader(Pavia2V1Dloader):
                  max_val=None) -> None:
 
         # which are the indices for bleedthrough nucleus, clean nucleus, tubulin
-        self._bt_nuc_idx = data_config.channel_idx_list.index(Pavia2DataSetChannels.NucMTORQ)
-        self._cl_nuc_idx = data_config.channel_idx_list.index(Pavia2DataSetChannels.NucRFP670)
-        self._tubuln_idx = data_config.channel_idx_list.index(Pavia2DataSetChannels.TUBULIN)
+        self._bt_nuc_idx = data_config.channel_idx_list.index(xyzinstitute2DataSetChannels.NucMTORQ)
+        self._cl_nuc_idx = data_config.channel_idx_list.index(xyzinstitute2DataSetChannels.NucRFP670)
+        self._tubuln_idx = data_config.channel_idx_list.index(xyzinstitute2DataSetChannels.TUBULIN)
 
-        # self._relv_channel_idx = [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN]
+        # self._relv_channel_idx = [xyzinstitute2DataSetChannels.NucRFP670, xyzinstitute2DataSetChannels.NucMTORQ, xyzinstitute2DataSetChannels.TUBULIN]
         super().__init__(data_config, fpath, datasplit_type, val_fraction, test_fraction, normalized_input,
                          enable_rotation_aug, enable_random_cropping, use_one_mu_std, allow_generation, max_val)
 
@@ -42,17 +43,17 @@ class Pavia2ThreeChannelDloader(Pavia2V1Dloader):
 
 
 if __name__ == '__main__':
-    from disentangle.configs.pavia2_config import get_config
+    from disentangle.configs.xyzinstitute2_config import get_config
     config = get_config()
-    fpath = '/group/jug/ashesh/data/pavia2/'
-    dloader = Pavia2ThreeChannelDloader(config.data,
-                                        fpath,
-                                        datasplit_type=DataSplitType.Train,
-                                        val_fraction=0.1,
-                                        test_fraction=0.1,
-                                        normalized_input=True,
-                                        use_one_mu_std=False,
-                                        enable_random_cropping=True)
+    fpath = '/group/ubuntu/ubuntu/data/xyzinstitute2/'
+    dloader = xyzinstitute2ThreeChannelDloader(config.data,
+                                               fpath,
+                                               datasplit_type=DataSplitType.Train,
+                                               val_fraction=0.1,
+                                               test_fraction=0.1,
+                                               normalized_input=True,
+                                               use_one_mu_std=False,
+                                               enable_random_cropping=True)
     mean_val, std_val = dloader.compute_mean_std()
     dloader.set_mean_std(mean_val, std_val)
     inp, tar, source = dloader[0]

@@ -3,12 +3,13 @@ This model is created to handle the bleedthrough effect.
 """
 from distutils.command.config import config
 
-from numpy import dtype
-from disentangle.nets.lvae import LadderVAE, compute_batch_mean, torch_nanmean
 import torch
+from numpy import dtype
+
 from disentangle.core.loss_type import LossType
 from disentangle.core.psnr import RangeInvariantPsnr
-from disentangle.data_loader.pavia2_enums import Pavia2BleedthroughType
+from disentangle.data_loader.xyzinstitute2_enums import xyzinstitute2BleedthroughType
+from disentangle.nets.lvae import LadderVAE, compute_batch_mean, torch_nanmean
 
 
 def empty_tensor(tens):
@@ -20,7 +21,7 @@ def empty_tensor(tens):
 
 class LadderVAEWithMixedRecons(LadderVAE):
     """
-    Ex: Pavia2 dataset.
+    Ex: xyzinstitute2 dataset.
     Here, we work with 2 data sources. For one data source, we have both channels. 
     For the other, we just have one channel and the input. Here, we apply the mixed reconstruction loss.
 
@@ -34,7 +35,7 @@ class LadderVAEWithMixedRecons(LadderVAE):
 
         self.data_std['target'] = torch.Tensor(self.data_std['target'])
         self.data_std['mix'] = torch.Tensor(self.data_std['mix'])
-        self.rec_loss_ch_w = config.loss.get('rec_loss_channel_weights',None)
+        self.rec_loss_ch_w = config.loss.get('rec_loss_channel_weights', None)
         print(f'[{self.__class__.__name__}] Ch weights: {self.rec_loss_ch_w}')
 
     def normalize_input(self, x):
@@ -100,10 +101,8 @@ class LadderVAEWithMixedRecons(LadderVAE):
             output[f'ch{ch_idx}_loss'] = ch_idx_loss
             if self.rec_loss_ch_w is not None:
                 assert len(self.rec_loss_ch_w) == ll.shape[1]
-                output['loss'] += (self.rec_loss_ch_w[ch_idx] * ch_idx_loss)/sum(self.rec_loss_ch_w)
-    
+                output['loss'] += (self.rec_loss_ch_w[ch_idx] * ch_idx_loss) / sum(self.rec_loss_ch_w)
 
-        
         assert self.enable_mixed_rec is True
         mixed_pred, mixed_logvar = self.get_mixed_prediction(like_dict['params']['mean'], like_dict['params']['logvar'])
 
@@ -127,7 +126,7 @@ class LadderVAEWithMixedRecons(LadderVAE):
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        clean_mask = mixed_recons_flag == Pavia2BleedthroughType.Clean
+        clean_mask = mixed_recons_flag == xyzinstitute2BleedthroughType.Clean
         recons_loss_dict, _ = self.get_reconstruction_loss(out,
                                                            x_normalized,
                                                            target_normalized,
@@ -234,7 +233,8 @@ class LadderVAEWithMixedRecons(LadderVAE):
 
 if __name__ == '__main__':
     import numpy as np
-    from disentangle.configs.pavia2_config import get_config
+
+    from disentangle.configs.xyzinstitute2_config import get_config
     data_mean = {
         'target': np.array([0.0, 10.0], dtype=np.float32).reshape(1, 2, 1, 1),
         'mix': np.array([110.0], dtype=np.float32).reshape(1, 1, 1, 1),

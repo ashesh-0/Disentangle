@@ -83,7 +83,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVAERestrictedReconstruction
-    # model.classifier_fpath = '/home/ubuntu/ashesh/training/disentangle/texture_classifier.pth'
+    # model.classifier_fpath = '/home/ubuntu/ubuntu/training/disentangle/texture_classifier.pth'
     # model.classifier_loss_weight = 0.01
 
     model.z_dims = [128, 128, 128, 128]
@@ -135,7 +135,7 @@ def get_config():
     model.enable_noise_model = False
     model.noise_model_ch1_fpath = None
     model.noise_model_ch1_fpath = None
-    # model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2311/D16-M3-S0-L0/11/BaselineVAECL_best.ckpt'
+    # model.pretrained_weights_path = '/home/ubuntu.ubuntu/training/disentangle/2311/D16-M3-S0-L0/11/BaselineVAECL_best.ckpt'
 
     training = config.training
     training.lr = 0.001

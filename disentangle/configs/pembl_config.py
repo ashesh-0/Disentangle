@@ -9,7 +9,7 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.data_type = DataType.Prevedel_EMBL
+    data.data_type = DataType.Prevedel_pqrsinstitute
     data.channel_1 = 0
     data.channel_2 = 1
 

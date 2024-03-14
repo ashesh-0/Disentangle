@@ -668,8 +668,8 @@ if __name__ == '__main__':
     config = get_config()
     dset = MultiChDloader(
         config.data,
-        #    '/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif',
-        '/group/jug/ashesh/data/ventura_gigascience_small/',
+        #    '/group/ubuntu/ubuntu/data/microscopy/OptiMEM100x014.tif',
+        '/group/ubuntu/ubuntu/data/ventura_gigascience_small/',
         DataSplitType.Train,
         val_fraction=config.training.val_fraction,
         test_fraction=config.training.test_fraction,

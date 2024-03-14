@@ -215,15 +215,15 @@ def main(
     nodename = os.uname().nodename
 
     if nodename == 'capablerutherford-02aa4':
-        DATA_ROOT = '/mnt/ashesh/'
-        CODE_ROOT = '/home/ubuntu/ashesh/'
-    elif nodename in ['capableturing-34a32', 'colorfuljug-fa782', 'agileschroedinger-a9b1c', 'rapidkepler-ca36f']:
-        DATA_ROOT = '/home/ubuntu/ashesh/data/'
-        CODE_ROOT = '/home/ubuntu/ashesh/'
-    elif (re.match('lin-jug-\d{2}', nodename) or re.match('gnode\d{2}', nodename)
-          or re.match('lin-jug-m-\d{2}', nodename) or re.match('lin-jug-l-\d{2}', nodename)):
-        DATA_ROOT = '/group/jug/ashesh/data/'
-        CODE_ROOT = '/home/ashesh.ashesh/'
+        DATA_ROOT = '/mnt/ubuntu/'
+        CODE_ROOT = '/home/ubuntu/ubuntu/'
+    elif nodename in ['capableturing-34a32', 'colorfulubuntu-fa782', 'agileschroedinger-a9b1c', 'rapidkepler-ca36f']:
+        DATA_ROOT = '/home/ubuntu/ubuntu/data/'
+        CODE_ROOT = '/home/ubuntu/ubuntu/'
+    elif (re.match('lin-ubuntu-\d{2}', nodename) or re.match('gnode\d{2}', nodename)
+          or re.match('lin-ubuntu-m-\d{2}', nodename) or re.match('lin-ubuntu-l-\d{2}', nodename)):
+        DATA_ROOT = '/group/ubuntu/ubuntu/data/'
+        CODE_ROOT = '/home/ubuntu.ubuntu/'
 
     dtype = int(ckpt_dir.split('/')[-2].split('-')[0][1:])
 
@@ -233,8 +233,8 @@ def main(
         data_dir = f'{DATA_ROOT}/sinosoid/'
     elif dtype == DataType.OptiMEM100_014:
         data_dir = f'{DATA_ROOT}/microscopy/'
-    elif dtype == DataType.Prevedel_EMBL:
-        data_dir = f'{DATA_ROOT}/Prevedel_EMBL/PKG_3P_dualcolor_stacks/NoAverage_NoRegistration/'
+    elif dtype == DataType.Prevedel_pqrsinstitute:
+        data_dir = f'{DATA_ROOT}/Prevedel_pqrsinstitute/PKG_3P_dualcolor_stacks/NoAverage_NoRegistration/'
     elif dtype == DataType.AllenCellMito:
         data_dir = f'{DATA_ROOT}/allencell/2017_03_08_Struct_First_Pass_Seg/AICS-11/'
     elif dtype == DataType.SeparateTiffData:
@@ -375,18 +375,18 @@ def main(
         data_class = LCMultiChDloader
         dloader_kwargs['num_scales'] = config.data.multiscale_lowres_count
         dloader_kwargs['padding_kwargs'] = padding_kwargs
-    elif config.data.data_type == DataType.SemiSupBloodVesselsEMBL:
+    elif config.data.data_type == DataType.SemiSupBloodVesselspqrsinstitute:
         data_class = SingleChannelDloader
     else:
         data_class = MultiChDloader
     if config.data.data_type in [
             DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.AllenCellMito,
-            DataType.SeparateTiffData, DataType.SemiSupBloodVesselsEMBL, DataType.BioSR_MRC
+            DataType.SeparateTiffData, DataType.SemiSupBloodVesselspqrsinstitute, DataType.BioSR_MRC
     ]:
         datapath = data_dir
     elif config.data.data_type == DataType.OptiMEM100_014:
         datapath = os.path.join(data_dir, 'OptiMEM100x014.tif')
-    elif config.data.data_type == DataType.Prevedel_EMBL:
+    elif config.data.data_type == DataType.Prevedel_pqrsinstitute:
         datapath = os.path.join(data_dir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
 
     normalized_input = config.data.normalized_input
@@ -508,11 +508,7 @@ def main(
         if pred.shape[0] == 1:
             return 0
 
-        while (pred[
-                :10,
-                -ignored_pixels:,
-                -ignored_pixels:,
-        ].std() == 0):
+        while (pred[:10, -ignored_pixels:, -ignored_pixels:, ].std() == 0):
             ignored_pixels += 1
         ignored_pixels -= 1
         # print(f'In {pred.shape}, {ignored_pixels} many rows and columns are all zero.')
@@ -641,57 +637,57 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             mmse_count=1,
                                             predict_kth_frame=None):
     ckpt_dirs = [
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/38',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/36',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/39',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/38',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/36',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/39',
 
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/44',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/42',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/45',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/44',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/42',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/45',
 
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/50',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/48',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/51',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/50',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/48',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/51',
 
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/57',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/54',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/53',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/57',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/54',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/53',
 
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/37',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/34',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/35',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/37',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/34',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/35',
 
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/43',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/40',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/41',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/43',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/40',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/41',
 
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/49',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/47',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/46',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/49',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/47',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/46',
 
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/56',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/55',
-        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M23-S0-L0/52',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/30',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/38',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/31',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/39',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/32',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/43',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/33',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/41',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/48',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/52',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/49',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/53',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/51',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/55',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/54',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/50',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/56',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/55',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/52',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/30',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/38',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/31',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/39',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/32',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/43',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/33',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/41',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/48',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/52',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/49',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/53',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/51',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/55',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/54',
+        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/50',
     ]
-    if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
-        OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
-    elif ckpt_dirs[0].startswith('/home/ubuntu/ashesh'):
+    if ckpt_dirs[0].startswith('/home/ubuntu.ubuntu'):
+        OUTPUT_DIR = os.path.expanduser('/group/ubuntu/ubuntu/data/paper_stats/')
+    elif ckpt_dirs[0].startswith('/home/ubuntu/ubuntu'):
         OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
     else:
         raise Exception('Invalid server')
@@ -704,8 +700,9 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
                 if data_type in [
-                        DataType.OptiMEM100_014, DataType.SemiSupBloodVesselsEMBL, DataType.Pavia2VanillaSplitting,
-                        DataType.ExpansionMicroscopyMitoTub, DataType.ShroffMitoEr, DataType.HTIba1Ki67
+                        DataType.OptiMEM100_014, DataType.SemiSupBloodVesselspqrsinstitute,
+                        DataType.xyzinstitute2VanillaSplitting, DataType.ExpansionMicroscopyMitoTub,
+                        DataType.ShroffMitoEr, DataType.HTIba1Ki67
                 ]:
                     ignored_last_pixels = 32
                 elif data_type == DataType.BioSR_MRC:

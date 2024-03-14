@@ -98,7 +98,7 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_microscopy-OptiMEM100x014__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    fname_format = '/home/ubuntu.ubuntu/training/noise_model/{}/GMMNoiseModel_microscopy-OptiMEM100x014__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname_format.format('2402/501')
     model.noise_model_ch2_fpath = fname_format.format('2402/270')
     model.noise_model_learnable = False

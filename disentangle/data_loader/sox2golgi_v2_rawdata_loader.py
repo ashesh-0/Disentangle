@@ -116,7 +116,7 @@ if __name__ == '__main__':
     config.subdset_type = SubDsetType.MultiChannel
     config.channel_1 = 'GT_Cy5'
     config.channel_2 = 'GT_TRITC'
-    data = get_train_val_data('/group/jug/ashesh/data/TavernaSox2Golgi/acquisition2/',
+    data = get_train_val_data('/group/ubuntu/ubuntu/data/TavernaSox2Golgi/acquisition2/',
                               config,
                               DataSplitType.Train,
                               val_fraction=0.1,

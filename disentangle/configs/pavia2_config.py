@@ -5,17 +5,18 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
-from disentangle.data_loader.pavia2_enums import Pavia2DataSetChannels
+from disentangle.data_loader.xyzinstitute2_enums import xyzinstitute2DataSetChannels
 
 
 def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.data_type = DataType.Pavia2
+    data.data_type = DataType.xyzinstitute2
     data.dset_type = None  # This will be filled in the dataloader
     data.channel_idx_list = [
-        Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN
+        xyzinstitute2DataSetChannels.NucRFP670, xyzinstitute2DataSetChannels.NucMTORQ,
+        xyzinstitute2DataSetChannels.TUBULIN
     ]
     data.channelwise_quantile = True
 

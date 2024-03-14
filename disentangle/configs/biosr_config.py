@@ -104,7 +104,7 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname = '/home/ashesh.ashesh/training/noise_model/2403/139/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    fname = '/home/ubuntu.ubuntu/training/noise_model/2403/139/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname
     model.noise_model_ch2_fpath = fname
     model.noise_model_learnable = False

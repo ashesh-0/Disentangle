@@ -8,12 +8,11 @@ from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.data_loader.allencell_rawdata_loader import get_train_val_data as _loadallencellmito
 from disentangle.data_loader.dao_3ch_rawdata_loader import get_train_val_data as _loaddao3ch
-from disentangle.data_loader.embl_semisup_rawdata_loader import get_train_val_data as _loadembl2_semisup
 from disentangle.data_loader.exp_microscopyv2_rawdata_loader import get_train_val_data as _loadexp_microscopyv2
 from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import get_train_val_data as _load_ht_iba1_ki67
 from disentangle.data_loader.multi_channel_train_val_data import train_val_data as _load_tiff_train_val
-from disentangle.data_loader.pavia2_rawdata_loader import get_train_val_data as _loadpavia2
-from disentangle.data_loader.pavia2_rawdata_loader import get_train_val_data_vanilla as _loadpavia2_vanilla
+from disentangle.data_loader.pqrsinstitute_semisup_rawdata_loader import \
+    get_train_val_data as _loadpqrsinstitute2_semisup
 from disentangle.data_loader.raw_mrc_dloader import get_train_val_data as _loadmrc
 from disentangle.data_loader.schroff_rawdata_loader import get_train_val_data as _loadschroff_mito_er
 from disentangle.data_loader.sinosoid_dloader import train_val_data as _loadsinosoid
@@ -21,6 +20,9 @@ from disentangle.data_loader.sinosoid_threecurve_dloader import train_val_data a
 from disentangle.data_loader.sox2golgi_rawdata_loader import get_train_val_data as _loadsox2golgi
 from disentangle.data_loader.sox2golgi_v2_rawdata_loader import get_train_val_data as _loadsox2golgi_v2
 from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data as _loadseparatetiff
+from disentangle.data_loader.xyzinstitute2_rawdata_loader import get_train_val_data as _loadxyzinstitute2
+from disentangle.data_loader.xyzinstitute2_rawdata_loader import \
+    get_train_val_data_vanilla as _loadxyzinstitute2_vanilla
 
 
 def get_train_val_data(data_config,
@@ -57,7 +59,7 @@ def get_train_val_data(data_config,
                                    test_fraction=test_fraction,
                                    allow_generation=allow_generation)
 
-    elif data_config.data_type == DataType.Prevedel_EMBL:
+    elif data_config.data_type == DataType.Prevedel_pqrsinstitute:
         return _load_tiff_train_val(fpath,
                                     data_config,
                                     datasplit_type,
@@ -82,20 +84,24 @@ def get_train_val_data(data_config,
                     assert cfg1.data.synthetic_gaussian_scale == cfg2.data.synthetic_gaussian_scale == cfg3.data.synthetic_gaussian_scale, msg
 
         return _loadseparatetiff(fpath, data_config, datasplit_type, val_fraction, test_fraction)
-    elif data_config.data_type == DataType.Pavia2:
-        return _loadpavia2(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
-    elif data_config.data_type == DataType.Pavia2VanillaSplitting:
-        return _loadpavia2_vanilla(fpath,
-                                   data_config,
-                                   datasplit_type,
-                                   val_fraction=val_fraction,
-                                   test_fraction=test_fraction)
-    elif data_config.data_type == DataType.SemiSupBloodVesselsEMBL:
-        return _loadembl2_semisup(fpath,
+    elif data_config.data_type == DataType.xyzinstitute2:
+        return _loadxyzinstitute2(fpath,
                                   data_config,
                                   datasplit_type,
                                   val_fraction=val_fraction,
                                   test_fraction=test_fraction)
+    elif data_config.data_type == DataType.xyzinstitute2VanillaSplitting:
+        return _loadxyzinstitute2_vanilla(fpath,
+                                          data_config,
+                                          datasplit_type,
+                                          val_fraction=val_fraction,
+                                          test_fraction=test_fraction)
+    elif data_config.data_type == DataType.SemiSupBloodVesselspqrsinstitute:
+        return _loadpqrsinstitute2_semisup(fpath,
+                                           data_config,
+                                           datasplit_type,
+                                           val_fraction=val_fraction,
+                                           test_fraction=test_fraction)
 
     elif data_config.data_type == DataType.ShroffMitoEr:
         return _loadschroff_mito_er(fpath,

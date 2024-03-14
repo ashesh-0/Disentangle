@@ -101,11 +101,11 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_{}-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # fname_format = '/home/ubuntu.ubuntu/training/noise_model/{}/GMMNoiseModel_{}-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     # model.noise_model_ch1_fpath = fname_format.format('2402/279', 'CCPs')
     # model.noise_model_ch2_fpath = fname_format.format('2402/285', 'ER')
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2403/73/GMMNoiseModel_BioSR-F__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2403/82/GMMNoiseModel_BioSR-Microtubules_GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ubuntu.ubuntu/training/noise_model/2403/73/GMMNoiseModel_BioSR-F__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ubuntu.ubuntu/training/noise_model/2403/82/GMMNoiseModel_BioSR-Microtubules_GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
     model.non_stochastic_version = False
 

@@ -59,6 +59,6 @@ if __name__ == '__main__':
     data_config.ch1_fname = 'CCPs/GT_all.mrc'
     data_config.ch2_fname = 'ER/GT_all.mrc'
     data_config.ch3_fname = 'Microtubules/GT_all.mrc'
-    datadir = '/group/jug/ashesh/data/BioSR/'
+    datadir = '/group/ubuntu/ubuntu/data/BioSR/'
     data = get_train_val_data(datadir, data_config, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
     print(data.shape)

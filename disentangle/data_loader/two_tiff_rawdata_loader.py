@@ -61,7 +61,7 @@ if __name__ == '__main__':
     config = get_config()
     config.data.enable_gaussian_noise = False
     # config.data.synthetic_gaussian_scale = 1000
-    data = get_train_val_data('/group/jug/ashesh/data/ventura_gigascience/', config.data, DataSplitType.Train,
+    data = get_train_val_data('/group/ubuntu/ubuntu/data/ventura_gigascience/', config.data, DataSplitType.Train,
                               config.training.val_fraction, config.training.test_fraction)
 
     _, ax = plt.subplots(figsize=(6, 3), ncols=2)

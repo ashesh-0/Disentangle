@@ -72,5 +72,5 @@ if __name__ == '__main__':
     from ml_collections.config_dict import ConfigDict
     data_config = ConfigDict()
     data_config.subdset_type = SubDsetType.OnlyIba1
-    datadir = '/Users/ashesh.ashesh/Documents/Datasets/HT_Stefania/20230327_Ki67_and_Iba1_trainingdata/'
+    datadir = '/Users/ubuntu.ubuntu/Documents/Datasets/HT_Stefania/20230327_Ki67_and_Iba1_trainingdata/'
     data = get_train_val_data(datadir, data_config, DataSplitType.Val, val_fraction=0.1, test_fraction=0.1)

@@ -1,18 +1,18 @@
 from typing import Union
 
 import numpy as np
-from disentangle.core import data_split_type
 
-from disentangle.core.tiff_reader import load_tiff
-from disentangle.core.data_type import DataType
+from disentangle.core import data_split_type
 from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
+from disentangle.core.data_type import DataType
+from disentangle.core.tiff_reader import load_tiff
 
 
 def train_val_data(fpath, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     print(f'Loading {fpath} with Channels {data_config.channel_1},{data_config.channel_2},'
           f'datasplit mode:{DataSplitType.name(datasplit_type)}')
     data = load_tiff(fpath)
-    if data_config.data_type == DataType.Prevedel_EMBL:
+    if data_config.data_type == DataType.Prevedel_pqrsinstitute:
         # Ensure that the last dimension is the channel dimension.
         data = data[..., None]
         data = np.swapaxes(data, 1, 4)

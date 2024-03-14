@@ -197,7 +197,7 @@ if __name__ == '__main__':
         padding_kwargs['constant_values'] = config.data.padding_value
 
     dset = LCMultiChDloader(config.data,
-                            '/group/jug/ashesh/data/ventura_gigascience_small/',
+                            '/group/ubuntu/ubuntu/data/ventura_gigascience_small/',
                             DataSplitType.Train,
                             val_fraction=config.training.val_fraction,
                             test_fraction=config.training.test_fraction,

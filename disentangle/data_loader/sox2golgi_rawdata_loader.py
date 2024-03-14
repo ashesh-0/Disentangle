@@ -59,7 +59,7 @@ if __name__ == '__main__':
     from ml_collections.config_dict import ConfigDict
     data_config = ConfigDict()
     data_config.subdset_type = SubDsetType.OneChannel
-    datadir = '/group/jug/ashesh/data/TavernaSox2Golgi/'
+    datadir = '/group/ubuntu/ubuntu/data/TavernaSox2Golgi/'
     data = get_train_val_data(datadir, data_config, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
     print(len(data))
     # for i in range(len(data)):

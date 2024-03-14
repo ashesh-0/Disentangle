@@ -76,7 +76,7 @@ def get_config():
     model.model_type = ModelType.DenoiserSplitter
     # denoiser splitter specific
     model.synchronized_input_target = False  # this should not change at all. This is the default behavior.
-    fpath = '/home/ashesh.ashesh/training/disentangle/{}/D7-M23-S0-L0/{}/BaselineVAECL_best.ckpt'
+    fpath = '/home/ubuntu.ubuntu/training/disentangle/{}/D7-M23-S0-L0/{}/BaselineVAECL_best.ckpt'
     model.pre_trained_ckpt_fpath_ch1 = fpath.format(2402, 107)
     model.pre_trained_ckpt_fpath_ch2 = fpath.format(2402, 109)
     model.pre_trained_ckpt_fpath_input = fpath.format(2402, 110)

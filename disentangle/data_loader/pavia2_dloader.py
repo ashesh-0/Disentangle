@@ -5,12 +5,12 @@ import ml_collections
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.patch_index_manager import GridIndexManager
-from disentangle.data_loader.pavia2_enums import Pavia2BleedthroughType
-from disentangle.data_loader.pavia2_rawdata_loader import Pavia2DataSetChannels, Pavia2DataSetType
 from disentangle.data_loader.vanilla_dloader import MultiChDloader
+from disentangle.data_loader.xyzinstitute2_enums import xyzinstitute2BleedthroughType
+from disentangle.data_loader.xyzinstitute2_rawdata_loader import xyzinstitute2DataSetChannels, xyzinstitute2DataSetType
 
 
-class Pavia2V1Dloader:
+class xyzinstitute2V1Dloader:
 
     def __init__(self,
                  data_config,
@@ -56,7 +56,7 @@ class Pavia2V1Dloader:
             # assert enable_random_cropping is True
             dconf = ml_collections.ConfigDict(data_config)
             # take channels mean from this.
-            dconf.dset_type = Pavia2DataSetType.JustMAGENTA
+            dconf.dset_type = xyzinstitute2DataSetType.JustMAGENTA
             self._clean_prob = dconf.dset_clean_sample_probab
             self._bleedthrough_prob = dconf.dset_bleedthrough_sample_probab
             assert self._clean_prob + self._bleedthrough_prob <= 1
@@ -68,7 +68,7 @@ class Pavia2V1Dloader:
                                              max_val=None,
                                              **kwargs)
 
-            dconf.dset_type = Pavia2DataSetType.JustCYAN
+            dconf.dset_type = xyzinstitute2DataSetType.JustCYAN
             self._dloader_bleedthrough = data_class(dconf,
                                                     fpath,
                                                     val_fraction=val_fraction,
@@ -77,7 +77,7 @@ class Pavia2V1Dloader:
                                                     max_val=None,
                                                     **kwargs)
 
-            dconf.dset_type = Pavia2DataSetType.MIXED
+            dconf.dset_type = xyzinstitute2DataSetType.MIXED
             self._dloader_mix = data_class(dconf,
                                            fpath,
                                            val_fraction=val_fraction,
@@ -88,7 +88,7 @@ class Pavia2V1Dloader:
         else:
             assert enable_random_cropping is False
             dconf = ml_collections.ConfigDict(data_config)
-            dconf.dset_type = Pavia2DataSetType.JustMAGENTA
+            dconf.dset_type = xyzinstitute2DataSetType.JustMAGENTA
             # we want to evaluate on mixed samples.
             self._clean_prob = 1.0
             self._bleedthrough_prob = 0.0
@@ -123,19 +123,23 @@ class Pavia2V1Dloader:
 
         if self._datasplit_type == DataSplitType.Train:
             self._dloader_clean._data = self._dloader_clean._data[
-                ..., [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.TUBULIN]]
+                ..., [xyzinstitute2DataSetChannels.NucRFP670, xyzinstitute2DataSetChannels.TUBULIN]]
             self._dloader_bleedthrough._data = self._dloader_bleedthrough._data[
-                ..., [Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN]]
-            self._dloader_mix._data = self._dloader_mix._data[
-                ..., [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN]]
+                ..., [xyzinstitute2DataSetChannels.NucMTORQ, xyzinstitute2DataSetChannels.TUBULIN]]
+            self._dloader_mix._data = self._dloader_mix._data[..., [
+                xyzinstitute2DataSetChannels.NucRFP670, xyzinstitute2DataSetChannels.
+                NucMTORQ, xyzinstitute2DataSetChannels.TUBULIN
+            ]]
             self._dloader_mix._data = self.sum_channels(self._dloader_mix._data, [0, 1], [2])
             self._dloader_mix._data[..., 0] = self._dloader_mix._data[..., 0] / 2
             # self._dloader_clean._data = self.sum_channels(self._dloader_clean._data, [1], [0, 2])
             # In bleedthrough dataset, the nucleus channel is empty.
             # self._dloader_bleedthrough._data = self.sum_channels(self._dloader_bleedthrough._data, [0], [1, 2])
         else:
-            self._dloader_mix._data = self._dloader_mix._data[
-                ..., [Pavia2DataSetChannels.NucRFP670, Pavia2DataSetChannels.NucMTORQ, Pavia2DataSetChannels.TUBULIN]]
+            self._dloader_mix._data = self._dloader_mix._data[..., [
+                xyzinstitute2DataSetChannels.NucRFP670, xyzinstitute2DataSetChannels.
+                NucMTORQ, xyzinstitute2DataSetChannels.TUBULIN
+            ]]
             self._dloader_mix._data = self.sum_channels(self._dloader_mix._data, [0, 1], [2])
 
     def set_img_sz(self, image_size, grid_size, alignment=None):
@@ -249,17 +253,17 @@ class Pavia2V1Dloader:
             if coin_flip <= self._clean_prob:
                 idx = np.random.randint(len(self._dloader_clean))
                 inp, tar = self._dloader_clean[idx]
-                mixed_recons_flag = Pavia2BleedthroughType.Clean
+                mixed_recons_flag = xyzinstitute2BleedthroughType.Clean
                 # print('Clean', idx)
             elif coin_flip > self._clean_prob and coin_flip <= self._clean_prob + self._bleedthrough_prob:
                 idx = np.random.randint(len(self._dloader_bleedthrough))
                 inp, tar = self._dloader_bleedthrough[idx]
-                mixed_recons_flag = Pavia2BleedthroughType.Bleedthrough
+                mixed_recons_flag = xyzinstitute2BleedthroughType.Bleedthrough
                 # print('Bleedthrough')
             else:
                 idx = np.random.randint(len(self._dloader_mix))
                 inp, tar = self._dloader_mix[idx]
-                mixed_recons_flag = Pavia2BleedthroughType.Mixed
+                mixed_recons_flag = xyzinstitute2BleedthroughType.Mixed
                 # print('Mixed', idx)
 
             # dataloader takes the average of the K channels. To, undo that, we are multipying it with K.
@@ -271,7 +275,7 @@ class Pavia2V1Dloader:
             inp, tar = self._dloader_clean[index]
             inp = len(tar) * inp
             inp = self.normalize_input(inp)
-            return (inp, tar, Pavia2BleedthroughType.Clean)
+            return (inp, tar, xyzinstitute2BleedthroughType.Clean)
 
     def get_max_val(self):
         max_val = self._dloader_clean.get_max_val()
@@ -279,10 +283,10 @@ class Pavia2V1Dloader:
 
 
 if __name__ == '__main__':
-    from disentangle.configs.pavia2_config import get_config
+    from disentangle.configs.xyzinstitute2_config import get_config
     config = get_config()
-    fpath = '/group/jug/ashesh/data/pavia2/'
-    dloader = Pavia2V1Dloader(
+    fpath = '/group/ubuntu/ubuntu/data/xyzinstitute2/'
+    dloader = xyzinstitute2V1Dloader(
         config.data,
         fpath,
         datasplit_type=DataSplitType.Val,

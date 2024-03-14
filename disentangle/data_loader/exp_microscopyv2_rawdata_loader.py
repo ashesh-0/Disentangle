@@ -47,7 +47,7 @@ if __name__ == '__main__':
     from ml_collections.config_dict import ConfigDict
     data_config = ConfigDict()
     data_config.subdset_type = SubDsetType.MultiChannel
-    datadir = '/group/jug/ashesh/data/expansion_microscopy_v2/'
+    datadir = '/group/ubuntu/ubuntu/data/expansion_microscopy_v2/'
     data = get_train_val_data(datadir, data_config, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
     print(len(data))
     for i in range(len(data)):

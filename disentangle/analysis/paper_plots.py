@@ -12,7 +12,7 @@ from disentangle.core.psnr import RangeInvariantPsnr
 
 
 def get_plotoutput_dir(ckpt_dir, patch_size, mmse_count=50):
-    plotsrootdir = f'/group/jug/ashesh/data/paper_figures/patch_{patch_size}_mmse_{mmse_count}'
+    plotsrootdir = f'/group/ubuntu/ubuntu/data/paper_figures/patch_{patch_size}_mmse_{mmse_count}'
     rdate, rconfig, rid = ckpt_dir.split("/")[-3:]
     fname_prefix = rdate + '-' + rconfig.replace('-', '')[:-2] + '-' + rid
     plotsdir = os.path.join(plotsrootdir, fname_prefix)

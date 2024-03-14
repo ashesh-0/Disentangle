@@ -18,7 +18,7 @@ class IBA1Ki67DataLoader(TwoDsetDloader):
 if __name__ == '__main__':
     from disentangle.configs.ht_iba1_ki64_config import get_config
     config = get_config()
-    fpath = '/group/jug/ashesh/data/Stefania/20230327_Ki67_and_Iba1_trainingdata'
+    fpath = '/group/ubuntu/ubuntu/data/Stefania/20230327_Ki67_and_Iba1_trainingdata'
     dloader = IBA1Ki67DataLoader(
         config.data,
         fpath,

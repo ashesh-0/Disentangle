@@ -1,5 +1,5 @@
 """
-Taken from https://github.com/juglab/HDN/blob/e30edf7ec2cd55c902e469b890d8fe44d15cbb7e/lib/nn.py
+Taken from https://github.com/ubuntulab/HDN/blob/e30edf7ec2cd55c902e469b890d8fe44d15cbb7e/lib/nn.py
 """
 import torch
 import torchvision.transforms.functional as F

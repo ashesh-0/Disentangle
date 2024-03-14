@@ -9,7 +9,7 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.data_type = DataType.SemiSupBloodVesselsEMBL
+    data.data_type = DataType.SemiSupBloodVesselspqrsinstitute
     data.mix_fpath = ''  #THG-SJS42_0-1000_FITC_221116-1.tif'
     data.ch1_fpath = ''  #FITC_C1-SJS42_0-1000_FITC_221116-1.tif'
     data.mix_fpath_list = [

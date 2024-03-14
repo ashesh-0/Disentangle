@@ -9,15 +9,19 @@ from disentangle.core.psnr import PSNR, RangeInvariantPsnr
 
 
 def test_PSNR():
-    target = torch.Tensor([[10, 11, 12],
-                           [100, 120, 140], ])
-    pred = torch.Tensor([[15, 10, 13],
-                         [10, 13, 14], ])
+    target = torch.Tensor([
+        [10, 11, 12],
+        [100, 120, 140],
+    ])
+    pred = torch.Tensor([
+        [15, 10, 13],
+        [10, 13, 14],
+    ])
 
     rmse0 = torch.sqrt(torch.Tensor([25 + 1 + 1]) / 3)
     actual_psnr0 = 20 * torch.log10(2 / rmse0)
 
-    rmse1 = torch.sqrt(torch.Tensor([90 ** 2 + 107 ** 2 + 126 ** 2]) / 3)
+    rmse1 = torch.sqrt(torch.Tensor([90**2 + 107**2 + 126**2]) / 3)
     actual_psnr1 = 20 * torch.log10(40 / rmse1)
 
     psnr = PSNR(target[..., None], pred[..., None])
@@ -39,7 +43,7 @@ def _working_PSNR(gt, pred, range_=None):
     '''
     if range_ is None:
         range_ = np.max(gt) - np.min(gt)
-    mse = np.mean((gt - pred) ** 2)
+    mse = np.mean((gt - pred)**2)
     return 20 * np.log10((range_) / np.sqrt(mse))
 
 
@@ -59,7 +63,7 @@ def _working_fix(gt, x):
 
 def _working_RangeInvariantPsnr(gt, pred):
     """
-    Taken from https://github.com/juglab/ScaleInvPSNR/blob/master/psnr.py
+    Taken from https://github.com/ubuntulab/ScaleInvPSNR/blob/master/psnr.py
     It rescales the prediction to ensure that the prediction has the same range as the ground truth.
     """
     ra = (np.max(gt) - np.min(gt)) / np.std(gt)
@@ -68,10 +72,14 @@ def _working_RangeInvariantPsnr(gt, pred):
 
 
 def test_RangeInvariantPSNR():
-    target = torch.Tensor([[10, 11, 12],
-                           [100, 120, 140], ])
-    pred = torch.Tensor([[15, 10, 13],
-                         [10, 13, 14], ])
+    target = torch.Tensor([
+        [10, 11, 12],
+        [100, 120, 140],
+    ])
+    pred = torch.Tensor([
+        [15, 10, 13],
+        [10, 13, 14],
+    ])
 
     rmse0 = torch.sqrt(torch.Tensor([25 + 1 + 1]) / 3)
     actual_psnr0 = _working_RangeInvariantPsnr(target[0].numpy(), pred[0].numpy())

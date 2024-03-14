@@ -26,12 +26,12 @@ from disentangle.data_loader.lc_multich_explicit_input_dloader import LCMultiChE
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
 from disentangle.data_loader.multifile_dset import MultiFileDset
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
-from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
 from disentangle.data_loader.places_dloader import PlacesLoader
 from disentangle.data_loader.semi_supervised_dloader import SemiSupDloader
 from disentangle.data_loader.single_channel.multi_dataset_dloader import SingleChannelMultiDatasetDloader
 from disentangle.data_loader.two_dset_dloader import TwoDsetDloader
 from disentangle.data_loader.vanilla_dloader import MultiChDloader
+from disentangle.data_loader.xyzinstitute2_3ch_dloader import xyzinstitute2ThreeChannelDloader
 from disentangle.nets.model_utils import create_model
 from disentangle.training_utils import ValEveryNSteps
 
@@ -69,7 +69,7 @@ def create_dataset(config,
         train_data = None if skip_train_dataset else PlacesLoader(
             train_datapath, label1, label2, img_dsample=img_dsample)
         val_data = PlacesLoader(val_datapath, label1, label2, img_dsample=img_dsample)
-    elif config.data.data_type == DataType.SemiSupBloodVesselsEMBL:
+    elif config.data.data_type == DataType.SemiSupBloodVesselspqrsinstitute:
         datapath = datadir
         normalized_input = config.data.normalized_input
         use_one_mu_std = config.data.use_one_mu_std
@@ -221,10 +221,10 @@ def create_dataset(config,
             DataType.OptiMEM100_014,
             DataType.CustomSinosoid,
             DataType.CustomSinosoidThreeCurve,
-            DataType.Prevedel_EMBL,
+            DataType.Prevedel_pqrsinstitute,
             DataType.AllenCellMito,
             DataType.SeparateTiffData,
-            DataType.Pavia2VanillaSplitting,
+            DataType.xyzinstitute2VanillaSplitting,
             DataType.ShroffMitoEr,
             DataType.HTIba1Ki67,
             DataType.BioSR_MRC,
@@ -232,7 +232,7 @@ def create_dataset(config,
     ]:
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
-        elif config.data.data_type == DataType.Prevedel_EMBL:
+        elif config.data.data_type == DataType.Prevedel_pqrsinstitute:
             datapath = os.path.join(datadir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
         else:
             datapath = datadir
@@ -331,7 +331,7 @@ def create_dataset(config,
         mean_val, std_val = train_data.compute_mean_std()
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
-    elif config.data.data_type == DataType.Pavia2:
+    elif config.data.data_type == DataType.xyzinstitute2:
         normalized_input = config.data.normalized_input
         use_one_mu_std = config.data.use_one_mu_std
         train_aug_rotate = config.data.train_aug_rotate
@@ -342,7 +342,7 @@ def create_dataset(config,
         val_data_kwargs['enable_random_cropping'] = False
 
         datapath = datadir
-        train_data = None if skip_train_dataset else Pavia2ThreeChannelDloader(
+        train_data = None if skip_train_dataset else xyzinstitute2ThreeChannelDloader(
             config.data,
             datapath,
             datasplit_type=DataSplitType.Train,
@@ -354,7 +354,7 @@ def create_dataset(config,
             **train_data_kwargs)
 
         max_val = train_data.get_max_val()
-        val_data = Pavia2ThreeChannelDloader(
+        val_data = xyzinstitute2ThreeChannelDloader(
             config.data,
             datapath,
             datasplit_type=eval_datasplit_type,
@@ -560,7 +560,7 @@ if __name__ == '__main__':
     from disentangle.configs.deepencoder_lvae_config import get_config
 
     config = get_config()
-    train_data, val_data = create_dataset(config, '/group/jug/ashesh/data/microscopy/')
+    train_data, val_data = create_dataset(config, '/group/ubuntu/ubuntu/data/microscopy/')
 
     dset = val_data
     idx = 0

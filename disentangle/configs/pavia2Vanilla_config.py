@@ -7,16 +7,16 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
-from disentangle.data_loader.pavia2_enums import Pavia2DataSetChannels
+from disentangle.data_loader.xyzinstitute2_enums import xyzinstitute2DataSetChannels
 
 
 def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.data_type = DataType.Pavia2VanillaSplitting
-    data.channel_1 = Pavia2DataSetChannels.NucRFP670
-    data.channel_2 = Pavia2DataSetChannels.TUBULIN
+    data.data_type = DataType.xyzinstitute2VanillaSplitting
+    data.channel_1 = xyzinstitute2DataSetChannels.NucRFP670
+    data.channel_2 = xyzinstitute2DataSetChannels.TUBULIN
     data.channel_2_downscale_factor = 1
 
     data.sampler_type = SamplerType.DefaultSampler

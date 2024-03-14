@@ -26,7 +26,7 @@ def _PSNR_internal(gt, pred, range_=None):
     if range_ is None:
         range_ = torch.max(gt, dim=1).values - torch.min(gt, dim=1).values
 
-    mse = torch.mean((gt - pred) ** 2, dim=1)
+    mse = torch.mean((gt - pred)**2, dim=1)
     return 20 * torch.log10(range_ / torch.sqrt(mse))
 
 
@@ -52,7 +52,7 @@ def PSNR(gt, pred, range_=None):
 def RangeInvariantPsnr(gt, pred):
     """
     NOTE: Works only for grayscale images.
-    Adapted from https://github.com/juglab/ScaleInvPSNR/blob/master/psnr.py
+    Adapted from https://github.com/ubuntulab/ScaleInvPSNR/blob/master/psnr.py
     It rescales the prediction to ensure that the prediction has the same range as the ground truth.
     """
     assert len(gt.shape) == 3, 'Images must be in shape: (batch,H,W)'

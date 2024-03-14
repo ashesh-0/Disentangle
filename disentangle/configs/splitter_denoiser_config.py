@@ -69,7 +69,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.SplitterDenoiser
-    model.pre_trained_ckpt_fpath_splitter = '/home/ashesh.ashesh/training/disentangle/2312/D7-M3-S0-L0/0/BaselineVAECL_best.ckpt'
+    model.pre_trained_ckpt_fpath_splitter = '/home/ubuntu.ubuntu/training/disentangle/2312/D7-M3-S0-L0/0/BaselineVAECL_best.ckpt'
 
     model.z_dims = [128, 128, 128, 128]
 
@@ -112,8 +112,8 @@ def get_config():
     model.non_stochastic_version = False
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/N2V/2312/18/GMMNoiseModel_ventura_gigascience-actin_10_3_Clip0.5-100_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/N2V/2312/17/GMMNoiseModel_ventura_gigascience-mito_10_3_Clip0.5-100_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ubuntu.ubuntu/training/N2V/2312/18/GMMNoiseModel_ventura_gigascience-actin_10_3_Clip0.5-100_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ubuntu.ubuntu/training/N2V/2312/17/GMMNoiseModel_ventura_gigascience-mito_10_3_Clip0.5-100_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     training = config.training
     training.lr = 0.001
