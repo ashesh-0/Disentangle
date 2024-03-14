@@ -641,14 +641,15 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             mmse_count=1,
                                             predict_kth_frame=None):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/103',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/104',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/105',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/106',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/107',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/108',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/109',
-        '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/111',
+        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/82',
+        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/103',
+        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/104',
+        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/105',
+        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/106',
+        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/107',
+        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/108',
+        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/109',
+        # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/111',
         # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/90',
         # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/91',
         # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/92',
@@ -718,7 +719,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
 
-    patchsz_gridsz_tuples = [(None, 64)]
+    patchsz_gridsz_tuples = [(None, 32)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
