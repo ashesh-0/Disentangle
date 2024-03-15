@@ -35,7 +35,7 @@ def get_config():
     data.dset1.synthetic_gaussian_scale = 4450
     data.dset1.poisson_noise_factor = 1000
     data.dset1.enable_gaussian_noise = True
-    data.subdset_types_probab = [0.5, 0.5]
+    data.subdset_types_probab = [1.0, 0.0]
     #############################
 
     data.poisson_noise_factor = 1000
@@ -75,8 +75,8 @@ def get_config():
     loss.kl_loss_formulation = ''
 
     loss.mixed_rec_weight = 0.0
-    loss.split_weight = 0.0
-    loss.kl_weight = 0.0
+    loss.split_weight = 1.0
+    loss.kl_weight = 1.0
     # loss.reconstruction_weight = 1.0
     loss.kl_annealing = False
     loss.kl_annealtime = 10
