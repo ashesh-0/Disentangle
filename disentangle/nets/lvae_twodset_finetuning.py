@@ -3,7 +3,7 @@ from copy import deepcopy
 import torch
 
 import ml_collections
-from disentangle.core.likelihoods import NoiseModelLikelihood
+from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.psnr import RangeInvariantPsnr
@@ -48,9 +48,14 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
         std_dict['target'] = std_dict['input']
         self.likelihood_finetuning = NoiseModelLikelihood(self.decoder_n_filters, 1, mean_dict, std_dict,
                                                           self.noiseModel_finetuning)
-        assert self.likelihood_form == 'noise_model'
-        self.likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean['subdset_0'],
-                                               self.data_std['subdset_0'], self.noiseModel)
+        assert self.likelihood_form == 'gaussian'
+        # self.likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean['subdset_0'],
+        #                                        self.data_std['subdset_0'], self.noiseModel)
+        self.likelihood = GaussianLikelihood(self.decoder_n_filters,
+                                             self.target_ch,
+                                             predict_logvar=self.predict_logvar,
+                                             logvar_lowerbound=self.logvar_lowerbound,
+                                             conv2d_bias=self.topdown_conv2d_bias)
 
         if config.loss.loss_type == LossType.ElboRestrictedReconstruction:
             self.rest_recons_loss = RestrictedReconstruction(1,
@@ -114,6 +119,10 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
             return None
 
         mask = loss_idx == LossType.Elbo
+        if self.predict_logvar is not None:
+            assert target_normalized.shape[1] * 2 == out.shape[1]
+            out = out.chunk(2, dim=1)[0]
+
         assert target_normalized.shape[1] == out.shape[1]
         mixed_loss = None
         if (~mask).sum() > 0:
