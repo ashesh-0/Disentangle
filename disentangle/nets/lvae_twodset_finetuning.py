@@ -135,8 +135,8 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
                 else:
                     relevant_params.append((name, param))
 
-            # _ = self.rest_recons_loss.update_gradients(relevant_params, x_normalized[~mask], target_normalized[mask],
-            #    out[mask], pred_x_normalized, self.current_epoch)
+            _ = self.rest_recons_loss.update_gradients(relevant_params, x_normalized[~mask], target_normalized[mask],
+                                                       out[mask], pred_x_normalized, self.current_epoch)
         optim.step()
 
         if enable_logging:
