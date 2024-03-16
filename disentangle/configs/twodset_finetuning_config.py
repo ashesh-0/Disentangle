@@ -74,7 +74,7 @@ def get_config():
     # this is not uSplit.
     loss.kl_loss_formulation = ''
 
-    loss.mixed_rec_weight = 0.0
+    loss.mixed_rec_weight = 1.0
     loss.split_weight = 1.0
     loss.kl_weight = 1.0
     # loss.reconstruction_weight = 1.0
