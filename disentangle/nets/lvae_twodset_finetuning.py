@@ -86,11 +86,11 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
         # if csum[-1] < 16:
         #     return None
         # csum_mask = csum <= 16
-        csum_mask = dset_idx == 0
-        x = x[csum_mask]
-        target = target[csum_mask]
-        dset_idx = dset_idx[csum_mask]
-        loss_idx = loss_idx[csum_mask]
+        # csum_mask = dset_idx == 0
+        # x = x[csum_mask]
+        # target = target[csum_mask]
+        # dset_idx = dset_idx[csum_mask]
+        # loss_idx = loss_idx[csum_mask]
 
         optim = self.optimizers()
         optim.zero_grad()
@@ -136,18 +136,18 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
 
         assert target_normalized.shape[1] == out.shape[1]
         mixed_loss = None
-        if (~mask).sum() > 0:
-            pred_x_normalized, _ = self.get_mixed_prediction(out[~mask], None, dset_idx[~mask])
-            params = list(self.named_parameters())
-            relevant_params = []
-            for name, param in params:
-                if param.requires_grad == False:
-                    pass
-                else:
-                    relevant_params.append((name, param))
+        # if (~mask).sum() > 0:
+        #     pred_x_normalized, _ = self.get_mixed_prediction(out[~mask], None, dset_idx[~mask])
+        #     params = list(self.named_parameters())
+        #     relevant_params = []
+        #     for name, param in params:
+        #         if param.requires_grad == False:
+        #             pass
+        #         else:
+        #             relevant_params.append((name, param))
 
-            _ = self.rest_recons_loss.update_gradients(relevant_params, x_normalized[~mask], target_normalized[mask],
-                                                       out[mask], pred_x_normalized, self.current_epoch)
+        #     _ = self.rest_recons_loss.update_gradients(relevant_params, x_normalized[~mask], target_normalized[mask],
+        #                                                out[mask], pred_x_normalized, self.current_epoch)
         optim.step()
 
         if enable_logging:
