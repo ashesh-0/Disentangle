@@ -82,15 +82,15 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
     def _training_manual_step(self, batch, batch_idx, enable_logging=True):
         x, target, dset_idx, loss_idx = batch
         # ensure that we have exactly 16 dset 0 examples.
-        # csum = (dset_idx == 0).cumsum(dim=0)
-        # if csum[-1] < 16:
-        #     return None
-        # csum_mask = csum <= 16
-        # csum_mask = dset_idx == 0
-        # x = x[csum_mask]
-        # target = target[csum_mask]
-        # dset_idx = dset_idx[csum_mask]
-        # loss_idx = loss_idx[csum_mask]
+        csum = (dset_idx == 0).cumsum(dim=0)
+        if csum[-1] < 16:
+            return None
+        csum_mask = csum <= 16
+        x = x[csum_mask]
+        target = target[csum_mask]
+        dset_idx = dset_idx[csum_mask]
+        loss_idx = loss_idx[csum_mask]
+
         assert len(torch.unique(loss_idx[dset_idx == 0])) <= 1
         assert len(torch.unique(loss_idx[dset_idx == 1])) <= 1
         assert len(torch.unique(loss_idx)) <= 2
