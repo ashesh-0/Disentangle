@@ -35,7 +35,7 @@ def get_config():
     data.dset1.synthetic_gaussian_scale = 4450
     data.dset1.poisson_noise_factor = 1000
     data.dset1.enable_gaussian_noise = True
-    data.subdset_types_probab = [0.5, 0.5]
+    data.subdset_types_probab = [0.25, 0.75]
     #############################
 
     data.poisson_noise_factor = 1000
@@ -142,7 +142,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 1
     training.max_epochs = 1
-    training.batch_size = 32
+    training.batch_size = 72
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
