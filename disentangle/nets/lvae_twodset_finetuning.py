@@ -83,10 +83,11 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
     def configure_optimizers(self):
         selected_params = []
         for name, param in self.named_parameters():
+            # print(name)
             # first_bottom_up
             # final_top_down
             name = name.split('.')[0]
-            if name in ['final_top_down']:  #, 'final_top_down']:
+            if name in ['first_bottom_up', 'bottom_up_layers']:  #, 'final_top_down']:
                 selected_params.append(param)
 
         optimizer = optim.Adamax(selected_params, lr=self.lr, weight_decay=0)
