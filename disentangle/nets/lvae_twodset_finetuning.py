@@ -85,8 +85,10 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
         csum = (dset_idx == 0).cumsum(dim=0)
         if csum[-1] < 16:
             return None
-        csum_mask = csum <= 16
+        # csum_mask = csum <= 16
+        csum_mask = dset_idx == 0
         x = x[csum_mask]
+
         target = target[csum_mask]
         dset_idx = dset_idx[csum_mask]
         loss_idx = loss_idx[csum_mask]
