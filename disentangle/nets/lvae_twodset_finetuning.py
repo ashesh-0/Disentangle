@@ -91,6 +91,9 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
         # target = target[csum_mask]
         # dset_idx = dset_idx[csum_mask]
         # loss_idx = loss_idx[csum_mask]
+        assert len(torch.unique(loss_idx[dset_idx == 0])) <= 1
+        assert len(torch.unique(loss_idx[dset_idx == 1])) <= 1
+        assert len(torch.unique(loss_idx)) <= 2
 
         optim = self.optimizers()
         optim.zero_grad()
@@ -116,11 +119,13 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         recons_loss = self.split_w * recons_loss_dict['loss']
+        mask = loss_idx == LossType.Elbo
         if self.non_stochastic_version:
             kl_loss = torch.Tensor([0.0]).cuda()
             net_loss = recons_loss
         else:
-            kl_loss = self.get_kl_divergence_loss(td_data)
+            kl_dict = {'kl': [kl_level[mask] for kl_level in td_data['kl']]}
+            kl_loss = self.get_kl_divergence_loss(kl_dict)
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
         if isinstance(net_loss, torch.Tensor):
@@ -129,7 +134,6 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
             assert net_loss == 0.0
             return None
 
-        mask = loss_idx == LossType.Elbo
         if self.predict_logvar is not None:
             assert target_normalized.shape[1] * 2 == out.shape[1]
             out = out.chunk(2, dim=1)[0]

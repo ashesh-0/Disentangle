@@ -60,7 +60,6 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
                                                       likelihood_obj=likelihood_obj)
         loss_dict = output[0] if return_predicted_img else output
         individual_ch_loss_mask = loss_type_idx == LossType.Elbo
-
         if torch.sum(individual_ch_loss_mask) > 0:
             loss_dict['loss'] = torch.mean(loss_dict['loss'][individual_ch_loss_mask])
             loss_dict['ch1_loss'] = torch.mean(loss_dict['ch1_loss'][individual_ch_loss_mask])
@@ -78,10 +77,13 @@ class LadderVaeTwoDsetRestrictedRecons(LadderVAE):
 
     def normalize_target(self, target, dataset_index):
         dataset_index = dataset_index[:, None, None, None]
-        mean = self.data_mean['subdset_0']['target'] * (
-            1 - dataset_index) + self.data_mean['subdset_1']['target'] * dataset_index
-        std = self.data_std['subdset_0']['target'] * (
-            1 - dataset_index) + self.data_std['subdset_1']['target'] * dataset_index
+        mean0 = self.data_mean['subdset_0']['target']
+        mean1 = self.data_mean['subdset_1']['target']
+        std0 = self.data_std['subdset_0']['target']
+        std1 = self.data_std['subdset_1']['target']
+
+        mean = mean0 * (1 - dataset_index) + mean1 * dataset_index
+        std = std0 * (1 - dataset_index) + std1 * dataset_index
         return (target - mean) / std
 
     def _get_reconstruction_loss_vector(self,
