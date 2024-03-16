@@ -1,6 +1,7 @@
 from copy import deepcopy
 
 import torch
+import torch.optim as optim
 
 import ml_collections
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
@@ -78,6 +79,25 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
             return nll
 
         return loss_fn
+
+    def configure_optimizers(self):
+        selected_params = []
+        for name, param in self.named_parameters():
+            # first_bottom_up
+            # final_top_down
+            name = name.split('.')[0]
+            if name in ['first_bottom_up', 'final_top_down']:
+                selected_params.append(param)
+
+        optimizer = optim.Adamax(selected_params, lr=self.lr, weight_decay=0)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                         self.lr_scheduler_mode,
+                                                         patience=self.lr_scheduler_patience,
+                                                         factor=0.5,
+                                                         min_lr=1e-12,
+                                                         verbose=True)
+
+        return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': self.lr_scheduler_monitor}
 
     def _training_manual_step(self, batch, batch_idx, enable_logging=True):
         x, target, dset_idx, loss_idx = batch
