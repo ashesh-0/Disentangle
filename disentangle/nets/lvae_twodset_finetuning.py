@@ -1,9 +1,10 @@
 from copy import deepcopy
 
 import torch
+import torch.optim as optim
 
 import ml_collections
-from disentangle.core.likelihoods import NoiseModelLikelihood
+from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.psnr import RangeInvariantPsnr
@@ -48,9 +49,14 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
         std_dict['target'] = std_dict['input']
         self.likelihood_finetuning = NoiseModelLikelihood(self.decoder_n_filters, 1, mean_dict, std_dict,
                                                           self.noiseModel_finetuning)
-        assert self.likelihood_form == 'noise_model'
-        self.likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean['subdset_0'],
-                                               self.data_std['subdset_0'], self.noiseModel)
+        assert self.likelihood_form == 'gaussian'
+        # self.likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean['subdset_0'],
+        #                                        self.data_std['subdset_0'], self.noiseModel)
+        self.likelihood = GaussianLikelihood(self.decoder_n_filters,
+                                             self.target_ch,
+                                             predict_logvar=self.predict_logvar,
+                                             logvar_lowerbound=self.logvar_lowerbound,
+                                             conv2d_bias=self.topdown_conv2d_bias)
 
         if config.loss.loss_type == LossType.ElboRestrictedReconstruction:
             self.rest_recons_loss = RestrictedReconstruction(1,
@@ -74,8 +80,44 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
 
         return loss_fn
 
+    def configure_optimizers(self):
+        selected_params = []
+        for name, param in self.named_parameters():
+            # print(name)
+            # first_bottom_up
+            # final_top_down
+            name = name.split('.')[0]
+            if name in ['first_bottom_up', 'bottom_up_layers']:  #, 'final_top_down']:
+                selected_params.append(param)
+
+        optimizer = optim.Adamax(selected_params, lr=self.lr, weight_decay=0)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                         self.lr_scheduler_mode,
+                                                         patience=self.lr_scheduler_patience,
+                                                         factor=0.5,
+                                                         min_lr=1e-12,
+                                                         verbose=True)
+
+        return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': self.lr_scheduler_monitor}
+
     def _training_manual_step(self, batch, batch_idx, enable_logging=True):
         x, target, dset_idx, loss_idx = batch
+        # ensure that we have exactly 16 dset 0 examples.
+        csum = (dset_idx == 0).cumsum(dim=0)
+        if csum[-1] < 16:
+            return None
+        csum_mask = csum <= 16
+        # csum_mask = dset_idx == 0
+        x = x[csum_mask]
+
+        target = target[csum_mask]
+        dset_idx = dset_idx[csum_mask]
+        loss_idx = loss_idx[csum_mask]
+
+        assert len(torch.unique(loss_idx[dset_idx == 0])) <= 1
+        assert len(torch.unique(loss_idx[dset_idx == 1])) <= 1
+        assert len(torch.unique(loss_idx)) <= 2
+
         optim = self.optimizers()
         optim.zero_grad()
 
@@ -100,11 +142,13 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
         recons_loss = self.split_w * recons_loss_dict['loss']
+        mask = loss_idx == LossType.Elbo
         if self.non_stochastic_version:
             kl_loss = torch.Tensor([0.0]).cuda()
             net_loss = recons_loss
         else:
-            kl_loss = self.get_kl_divergence_loss(td_data)
+            kl_dict = {'kl': [kl_level[mask] for kl_level in td_data['kl']]}
+            kl_loss = self.get_kl_divergence_loss(kl_dict)
             net_loss = recons_loss + self.get_kl_weight() * kl_loss
 
         if isinstance(net_loss, torch.Tensor):
@@ -113,7 +157,10 @@ class LadderVaeTwoDsetFinetuning(LadderVaeTwoDsetRestrictedRecons):
             assert net_loss == 0.0
             return None
 
-        mask = loss_idx == LossType.Elbo
+        if self.predict_logvar is not None:
+            assert target_normalized.shape[1] * 2 == out.shape[1]
+            out = out.chunk(2, dim=1)[0]
+
         assert target_normalized.shape[1] == out.shape[1]
         mixed_loss = None
         if (~mask).sum() > 0:

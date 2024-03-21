@@ -23,20 +23,22 @@ def get_config():
     data.dset0 = ml_collections.ConfigDict()
     data.dset0.data_type = DataType.BioSR_MRC
     data.dset0.ch1_fname = 'ER/GT_all.mrc'
-    data.dset0.ch2_fname = 'CCPs/GT_all.mrc'
-    data.dset0.synthetic_gaussian_scale = 6800
+    data.dset0.ch2_fname = 'Microtubules/GT_all.mrc'
+    data.dset0.synthetic_gaussian_scale = 6675
+    data.dset0.poisson_noise_factor = 1000
     data.dset0.enable_gaussian_noise = True
 
     data.dset1 = ml_collections.ConfigDict()
     data.dset1.data_type = DataType.BioSR_MRC
     data.dset1.ch1_fname = 'ER/GT_all.mrc'
-    data.dset1.ch2_fname = 'CCPs/GT_all.mrc'
-    data.dset1.synthetic_gaussian_scale = 3400
+    data.dset1.ch2_fname = 'Microtubules/GT_all.mrc'
+    data.dset1.synthetic_gaussian_scale = 4450
+    data.dset1.poisson_noise_factor = 1000
     data.dset1.enable_gaussian_noise = True
     data.subdset_types_probab = [0.5, 0.5]
     #############################
 
-    data.poisson_noise_factor = -1
+    data.poisson_noise_factor = 1000
 
     data.enable_gaussian_noise = True
     data.trainig_datausage_fraction = 1.0
@@ -72,7 +74,7 @@ def get_config():
     # this is not uSplit.
     loss.kl_loss_formulation = ''
 
-    loss.mixed_rec_weight = 0.0
+    loss.mixed_rec_weight = 1.0
     loss.split_weight = 1.0
     loss.kl_weight = 1.0
     # loss.reconstruction_weight = 1.0
@@ -117,30 +119,30 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None
+    model.predict_logvar = 'pixelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
     model.non_stochastic_version = False
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/226/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/206/GMMNoiseModel_CCPs-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/226/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/206/GMMNoiseModel_CCPs-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     #################
     # this must be the input.
-    model.finetuning_noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2403/8/GMMNoiseModel_BioSR-ER_GT_all_CCPs_GT_all_6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.finetuning_noise_model_ch1_fpath = '/group/jug/ashesh/training_pre_eccv/noise_model/2402/475/GMMNoiseModel_BioSR-ER_GT_all_Microtubules_GT_all_6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.finetuning_noise_model_ch2_fpath = ''
     model.finetuning_noise_model_type = 'gmm'
-    model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2402/D16-M3-S0-L0/78/BaselineVAECL_best.ckpt'
+    model.pretrained_weights_path = '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/2/BaselineVAECL_best.ckpt'
     ################
 
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 1
-    training.max_epochs = 1
-    training.batch_size = 16
+    training.max_epochs = 10
+    training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
