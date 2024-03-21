@@ -5,20 +5,21 @@ import os
 
 import numpy as np
 
+from disentangle.core.custom_enum import Enum
 from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
 from nd2reader import ND2Reader
 
 
-class PaviaSeqPowerLevel:
+class Pavia3SeqPowerLevel(Enum):
     High = 'Main'
     Medium = 'Divided_2'
     Low = 'Divided_4'
 
 
-class PaviaSeqAlpha:
+class Pavia3SeqAlpha(Enum):
     Balanced = "Cond_1"
-    MediumBalance = "Cond_2"
-    LowBalance = "Cond_3"
+    MediumSkew = "Cond_2"
+    HighSkew = "Cond_3"
 
 
 def load_one_file(fpath):
@@ -52,6 +53,9 @@ def load_data(rootdatadir, power_level, alpha_level):
 def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_fraction):
     power_level = data_config.power_level
     alpha_level = data_config.alpha_level
+    assert power_level in [Pavia3SeqPowerLevel.High, Pavia3SeqPowerLevel.Medium, Pavia3SeqPowerLevel.Low]
+    assert alpha_level in [Pavia3SeqAlpha.Balanced, Pavia3SeqAlpha.MediumSkew, Pavia3SeqAlpha.HighSkew]
+
     data = load_data(dirname, power_level, alpha_level)
     print(f'Loaded from {dirname} Power:{power_level} Alpha:{alpha_level} Mode:{DataSplitType.name(datasplit_type)}')
 
