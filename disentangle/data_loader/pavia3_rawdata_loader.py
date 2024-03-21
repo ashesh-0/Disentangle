@@ -72,11 +72,5 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
 
 
 if __name__ == '__main__':
-    from ml_collections.config_dict import ConfigDict
-    data_config = ConfigDict()
-    data_config.ch1_fname = 'CCPs/GT_all.mrc'
-    data_config.ch2_fname = 'ER/GT_all.mrc'
-    data_config.ch3_fname = 'Microtubules/GT_all.mrc'
-    datadir = '/group/ubuntu/ubuntu/data/BioSR/'
-    data = get_train_val_data(datadir, data_config, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
+    data = load_data('/group/jug/ashesh/data/pavia3_sequential', Pavia3SeqPowerLevel.High, Pavia3SeqAlpha.Balanced)
     print(data.shape)
