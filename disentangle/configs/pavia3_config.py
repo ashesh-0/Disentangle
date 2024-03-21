@@ -16,7 +16,7 @@ def get_config():
     # data.ch1_fname = 'ER/GT_all.mrc'
     # data.ch2_fname = 'Microtubules/GT_all.mrc'
     data.num_channels = 2
-    data.power_level = Pavia3SeqPowerLevel.Medium
+    data.power_level = Pavia3SeqPowerLevel.Low
     data.alpha_level = Pavia3SeqAlpha.Balanced
 
     data.enable_gaussian_noise = False
