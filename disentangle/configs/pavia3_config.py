@@ -10,11 +10,11 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 128
-    data.data_type = DataType.BioSR_MRC
+    data.data_type = DataType.Pavia3SeqData
     # data.channel_1 = 0
     # data.channel_2 = 1
-    data.ch1_fname = 'ER/GT_all.mrc'
-    data.ch2_fname = 'Microtubules/GT_all.mrc'
+    # data.ch1_fname = 'ER/GT_all.mrc'
+    # data.ch2_fname = 'Microtubules/GT_all.mrc'
     data.num_channels = 2
     data.power_level = Pavia3SeqPowerLevel.High
     data.alpha_level = Pavia3SeqAlpha.Balanced
