@@ -11,15 +11,31 @@ from nd2reader import ND2Reader
 
 
 class Pavia3SeqPowerLevel(Enum):
-    High = 'Main'
-    Medium = 'Divided_2'
-    Low = 'Divided_4'
+    High = 'High'
+    Medium = 'Medium'
+    Low = 'Low'
+
+    @staticmethod
+    def subdir(power_level):
+        return {
+            Pavia3SeqPowerLevel.High: 'Main',
+            Pavia3SeqPowerLevel.Medium: 'Divided_2',
+            Pavia3SeqPowerLevel.Low: 'Divided_4'
+        }[power_level]
 
 
 class Pavia3SeqAlpha(Enum):
-    Balanced = "Cond_1"
-    MediumSkew = "Cond_2"
-    HighSkew = "Cond_3"
+    Balanced = "Balanced"
+    MediumSkew = "MediumSkew"
+    HighSkew = "HighSkew"
+
+    @staticmethod
+    def subdir(alpha_level):
+        return {
+            Pavia3SeqAlpha.Balanced: 'Cond_1',
+            Pavia3SeqAlpha.MediumSkew: 'Cond_2',
+            Pavia3SeqAlpha.HighSkew: 'Cond_3'
+        }[alpha_level]
 
 
 def load_one_file(fpath):
@@ -39,7 +55,7 @@ def load_one_file(fpath):
 
 
 def load_data(rootdatadir, power_level, alpha_level):
-    subdir = os.path.join(rootdatadir, alpha_level, power_level)
+    subdir = os.path.join(rootdatadir, Pavia3SeqAlpha.subdir(alpha_level), Pavia3SeqPowerLevel.subdir(power_level))
     fpaths = []
     for fname in os.listdir(subdir):
         fpath = os.path.join(subdir, fname)
