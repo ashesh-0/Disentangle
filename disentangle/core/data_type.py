@@ -26,3 +26,4 @@ class DataType(Enum):
     TavernaSox2GolgiV2 = 21
     TwoDset = 22
     PredictedTiffData = 23
+    Pavia3SeqData = 24
