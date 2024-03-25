@@ -622,6 +622,15 @@ def main(
     return output_stats, pred_unnorm
 
 
+def synthetic_noise_present(config):
+    """
+    Returns True if synthetic noise is present.
+    """
+    gaussian_noise = 'synthetic_gaussian_scale' in config.data and config.data.synthetic_gaussian_scale is not None and config.data.synthetic_gaussian_scale > 0
+    poisson_noise = 'poisson_noise_factor' in config.data and config.data.poisson_noise_factor is not None and config.data.poisson_noise_factor > 0
+    return gaussian_noise or poisson_noise
+
+
 def get_highsnr_data(config, data_dir, eval_datasplit_type):
     """
     Get the high SNR data.
@@ -632,7 +641,8 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
     elif 'synthetic_gaussian_scale' in config.data or 'enable_poisson_noise' in config.data:
         if config.data.data_type == DataType.OptiMEM100_014:
             data_dir = os.path.join(data_dir, 'OptiMEM100x014.tif')
-        highres_data = get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type)
+        if synthetic_noise_present(config):
+            highres_data = get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type)
     return highres_data
 
 
