@@ -27,3 +27,5 @@ class DataType(Enum):
     TwoDset = 22
     PredictedTiffData = 23
     Pavia3SeqData = 24
+    # Here, we have 16 splitting tasks.
+    NicolaData = 25
