@@ -84,7 +84,7 @@ class GaussianMixtureNoiseModel(nn.Module):
             self.weight = weight
             self.min_signal = torch.Tensor([min_signal])  #.to(self.device)
             self.max_signal = torch.Tensor([max_signal])  #.to(self.device)
-            self.tol = torch.Tensor([1e-10])  #.to(self.device)
+            self.tol = torch.Tensor([1e-6])  #.to(self.device)
         else:
             params = kwargs.get('params')
             # self.device = kwargs.get('device')
@@ -97,7 +97,7 @@ class GaussianMixtureNoiseModel(nn.Module):
             self.min_sigma = params['min_sigma'].item()
             self.n_gaussian = self.weight.shape[0] // 3
             self.n_coeff = self.weight.shape[1]
-            self.tol = torch.Tensor([1e-10])  #.to(self.device)
+            self.tol = torch.Tensor([1e-6])  #.to(self.device)
             self.min_signal = torch.Tensor([self.min_signal])  #.to(self.device)
             self.max_signal = torch.Tensor([self.max_signal])  #.to(self.device)
 
