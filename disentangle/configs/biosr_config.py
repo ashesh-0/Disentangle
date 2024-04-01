@@ -102,9 +102,9 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname = '/home/ashesh.ashesh/training/noise_model/2404/3/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    fname = '/home/ashesh.ashesh/training/noise_model/2404/4/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-05_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname
     model.noise_model_ch2_fpath = fname
     model.noise_model_learnable = False

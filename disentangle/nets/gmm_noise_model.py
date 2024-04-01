@@ -63,7 +63,7 @@ class GaussianMixtureNoiseModel(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         self._learnable = False
-
+        
         if (kwargs.get('params') is None):
             weight = kwargs.get('weight')
             n_gaussian = kwargs.get('n_gaussian')
@@ -100,6 +100,7 @@ class GaussianMixtureNoiseModel(nn.Module):
             self.tol = torch.Tensor([1e-12])  #.to(self.device)
             self.min_signal = torch.Tensor([self.min_signal])  #.to(self.device)
             self.max_signal = torch.Tensor([self.max_signal])  #.to(self.device)
+        print(f'[{self.__class__.__name__}] min_sigma: {self.min_sigma}')
 
     def make_learnable(self):
         print(f'[{self.__class__.__name__}] Making noise model learnable')
