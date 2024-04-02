@@ -135,7 +135,14 @@ def get_noise_model(config):
             hist2 = np.load(config.model.noise_model_ch2_fpath)
             nmodel2 = HistGMMNoiseModel(hist2)
             nmodel2.fit()
+        elif config.model.noise_model_type == 'deepgmm':
+            print(f'Noise model Ch1: {config.model.noise_model_ch1_fpath}')
+            print(f'Noise model Ch2: {config.model.noise_model_ch2_fpath}')
 
+            nmodel1 = DeepGMMNoiseModel(params=np.load(config.model.noise_model_ch1_fpath))
+            nmodel2 = DeepGMMNoiseModel(params=np.load(config.model.noise_model_ch2_fpath))
+            nmodel1.make_learnable()
+            nmodel2.make_learnable()
         elif config.model.noise_model_type == 'gmm':
             print(f'Noise model Ch1: {config.model.noise_model_ch1_fpath}')
             print(f'Noise model Ch2: {config.model.noise_model_ch2_fpath}')
