@@ -373,14 +373,19 @@ class LadderVAE(pl.LightningModule):
 
     def create_likelihood_module(self):
         # Define likelihood
-        self.likelihood_pixelwise = GaussianLikelihood(self.decoder_n_filters,
-                                                       self.target_ch,
-                                                       predict_logvar=self.predict_logvar,
-                                                       logvar_lowerbound=self.logvar_lowerbound,
-                                                       conv2d_bias=self.topdown_conv2d_bias)
-        self.likelihood_NM = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std,
-                                                  self.noiseModel)
-        return self.likelihood_pixelwise
+        if self.likelihood_form == 'gaussian':
+            likelihood = GaussianLikelihood(self.decoder_n_filters,
+                                            self.target_ch,
+                                            predict_logvar=self.predict_logvar,
+                                            logvar_lowerbound=self.logvar_lowerbound,
+                                            conv2d_bias=self.topdown_conv2d_bias)
+        elif self.likelihood_form == 'noise_model':
+            likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std,
+                                              self.noiseModel)
+        else:
+            msg = "Unrecognized likelihood '{}'".format(self.likelihood_form)
+            raise RuntimeError(msg)
+        return likelihood
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
         nonlin = self.get_nonlin()
