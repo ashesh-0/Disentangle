@@ -508,11 +508,7 @@ def main(
         if pred.shape[0] == 1:
             return 0
 
-        while (pred[
-                :10,
-                -ignored_pixels:,
-                -ignored_pixels:,
-        ].std() == 0):
+        while (pred[:10, -ignored_pixels:, -ignored_pixels:, ].std() == 0):
             ignored_pixels += 1
         ignored_pixels -= 1
         # print(f'In {pred.shape}, {ignored_pixels} many rows and columns are all zero.')
@@ -651,7 +647,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             mmse_count=1,
                                             predict_kth_frame=None):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2402/D7-M3-S0-L0/82',
+        '/home/ubuntu/ashesh/training/disentangle/2403/D16-M3-S0-L0/4',
         # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/103',
         # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/104',
         # '/home/ashesh.ashesh/training/disentangle/2403/D16-M3-S0-L0/105',
@@ -729,7 +725,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
 
-    patchsz_gridsz_tuples = [(None, 32)]
+    patchsz_gridsz_tuples = [(None, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
