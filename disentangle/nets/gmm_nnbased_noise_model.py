@@ -38,8 +38,8 @@ class MuModel(nn.Module):
         self.mu_model = nn.Sequential(
             PointConvBlock(1, 32, residual=False),
             PointConvBlock(32, 32, residual=True),
-            PointConvBlock(32, 32, residual=True),
-            PointConvBlock(32, 32, residual=True),
+            # PointConvBlock(32, 32, residual=True),
+            # PointConvBlock(32, 32, residual=True),
             PointConvBlock(32, n_gaussian, interim_channels=32, residual=False),
         )
 
@@ -57,15 +57,15 @@ class DeepGMMNoiseModel(GaussianMixtureNoiseModel):
         self.sigma_model = nn.Sequential(
             PointConvBlock(1, 32, residual=False),
             PointConvBlock(32, 32, residual=True),
-            PointConvBlock(32, 32, residual=True),
-            PointConvBlock(32, 32, residual=True),
+            # PointConvBlock(32, 32, residual=True),
+            # PointConvBlock(32, 32, residual=True),
             PointConvBlock(32, self.n_gaussian, interim_channels=32, residual=False),
         )
         self.alpha_model = nn.Sequential(
             PointConvBlock(1, 32, residual=False),
             PointConvBlock(32, 32, residual=True),
-            PointConvBlock(32, 32, residual=True),
-            PointConvBlock(32, 32, residual=True),
+            # PointConvBlock(32, 32, residual=True),
+            # PointConvBlock(32, 32, residual=True),
             PointConvBlock(32, self.n_gaussian, interim_channels=32, residual=False),
         )
 
