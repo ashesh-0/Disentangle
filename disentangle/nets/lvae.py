@@ -79,7 +79,7 @@ class LadderVAE(pl.LightningModule):
 
         self.kl_loss_formulation = config.loss.get('kl_loss_formulation', None)
         assert self.kl_loss_formulation in [None, '',
-                                            'usplit'], f'Invalid kl_loss_formulation. {self.kl_loss_formulation}'
+                                            'usplit','denoisplit','denoisplit_usplit'], f'Invalid kl_loss_formulation. {self.kl_loss_formulation}'
         self.n_layers = len(self.z_dims)
         self.stochastic_skip = config.model.stochastic_skip
         self.bottomup_batchnorm = config.model.encoder.batchnorm
@@ -140,6 +140,8 @@ class LadderVAE(pl.LightningModule):
         # loss related
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
+        self.usplit_kl_weight = config.loss.get('usplit_kl_weight', None)
+
         self.free_bits = config.loss.free_bits
         self.reconstruction_weight = config.loss.get('reconstruction_weight', 1.0)
 
@@ -656,7 +658,7 @@ class LadderVAE(pl.LightningModule):
             # topdown_layer_data_dict['z'][2].shape[-3:] = 128 * 32 * 32
             kl[:, i] = kl[:, i] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
 
-        kl_loss = free_bits_kl(kl, self.free_bits).mean()
+        kl_loss = free_bits_kl(kl, 0.0).mean()
         return kl_loss
 
     def get_kl_divergence_loss(self, topdown_layer_data_dict):
@@ -729,12 +731,15 @@ class LadderVAE(pl.LightningModule):
             kl_loss = torch.Tensor([0.0]).cuda()
             net_loss = recons_loss
         else:
-            kl_loss = self.get_kl_divergence_loss(
-                td_data) if self.kl_loss_formulation != 'usplit' else self.get_kl_divergence_loss_usplit(td_data)
+            if self.kl_loss_formulation == 'usplit':
+                kl_loss = self.get_kl_weight() * self.get_kl_divergence_loss_usplit(td_data)
+            elif self.kl_loss_formulation in ['', 'denoisplit']:
+                kl_loss = self.get_kl_weight() * self.get_kl_divergence_loss(td_data)
+            elif self.kl_loss_formulation == 'denoisplit_usplit':
+                kl_loss = self.kl_weight * self.get_kl_divergence_loss(td_data) + self.usplit_kl_weight * self.get_kl_divergence_loss_usplit(td_data)
 
-            net_loss = recons_loss + self.get_kl_weight() * kl_loss
+            net_loss = recons_loss + kl_loss
 
-        # print(f'rec:{recons_loss_dict["loss"]:.3f} mix: {recons_loss_dict.get("mixed_loss",0):.3f} KL: {kl_loss:.3f}')
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):
                 self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
