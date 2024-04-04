@@ -53,7 +53,7 @@ def get_config():
 
     # loss.mixed_rec_weight = 1
 
-    loss.kl_weight = 0.5
+    loss.kl_weight = 1.0
     loss.usplit_kl_weight = 1 - loss.kl_weight
     loss.reconstruction_weight = 1.0
     loss.kl_annealing = False
