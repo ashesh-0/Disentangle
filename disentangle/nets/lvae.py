@@ -47,6 +47,7 @@ class LadderVAE(pl.LightningModule):
         self.ch2_recons_w = config.loss.get('ch2_recons_w', 1)
         self._stochastic_use_naive_exponential = config.model.decoder.get('stochastic_use_naive_exponential', False)
         self._enable_topdown_normalize_factor = config.model.get('enable_topdown_normalize_factor', True)
+        self.likelihood_gm = self.likelihood_NM = None
         # can be used to tile the validation predictions
         self._val_idx_manager = val_idx_manager
         self._val_frame_creator = None
@@ -375,19 +376,14 @@ class LadderVAE(pl.LightningModule):
 
     def create_likelihood_module(self):
         # Define likelihood
-        if self.likelihood_form == 'gaussian':
-            likelihood = GaussianLikelihood(self.decoder_n_filters,
+        self.likelihood_gm = GaussianLikelihood(self.decoder_n_filters,
                                             self.target_ch,
                                             predict_logvar=self.predict_logvar,
                                             logvar_lowerbound=self.logvar_lowerbound,
                                             conv2d_bias=self.topdown_conv2d_bias)
-        elif self.likelihood_form == 'noise_model':
-            likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std,
+        self.likelihood_NM = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std,
                                               self.noiseModel)
-        else:
-            msg = "Unrecognized likelihood '{}'".format(self.likelihood_form)
-            raise RuntimeError(msg)
-        return likelihood
+        return self.likelihood_NM
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
         nonlin = self.get_nonlin()
@@ -737,7 +733,9 @@ class LadderVAE(pl.LightningModule):
                 kl_loss = self.get_kl_weight() * self.get_kl_divergence_loss(td_data)
             elif self.kl_loss_formulation == 'denoisplit_usplit':
                 kl_loss = self.kl_weight * self.get_kl_divergence_loss(td_data) + self.usplit_kl_weight * self.get_kl_divergence_loss_usplit(td_data)
-
+                recons_loss_nm = -1*self.likelihood_NM(out, target_normalized)[0].mean()
+                recons_loss_gm = -1*self.likelihood_gm(out, target_normalized)[0].mean()
+                recons_loss = self.kl_weight * recons_loss_nm + self.usplit_kl_weight * recons_loss_gm
             net_loss = recons_loss + kl_loss
 
         if enable_logging:
