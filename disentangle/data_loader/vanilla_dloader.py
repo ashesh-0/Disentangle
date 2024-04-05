@@ -606,6 +606,19 @@ class MultiChDloader:
                 index = self._train_index_switcher.get_invalid_target_index()
         return index
 
+    def _rotate(self, img_tuples, noise_tuples):
+        img_kwargs = {f'img{i}': img_tuples[i][0] for i in range(len(img_tuples))}
+        noise_kwargs = {f'noise{i}': noise_tuples[i][0] for i in range(len(noise_tuples))}
+        keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
+        self._rotation_transform.add_targets({k: 'image' for k in keys})
+        
+        rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
+        print('rotated', img_kwargs.keys(), noise_kwargs.keys())
+        img_tuples = [rot_dic[f'img{i}'][None] for i in range(len(img_tuples))]
+        noise_tuples = [rot_dic[f'noise{i}'][None] for i in range(len(noise_tuples))]
+        return img_tuples, noise_tuples
+    
+
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         if self._train_index_switcher is not None:
             index = self._get_index_from_valid_target_logic(index)
@@ -619,11 +632,7 @@ class MultiChDloader:
 
         if self._enable_rotation:
             # passing just the 2D input. 3rd dimension messes up things.
-            img_kwargs = {f'img{i}': img_tuples[i][0] for i in range(len(img_tuples))}
-            noise_kwargs = {f'noise{i}': noise_tuples[i][0] for i in range(len(noise_tuples))}
-            rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
-            img_tuples = [rot_dic[f'img{i}'][None] for i in range(len(img_tuples))]
-            noise_tuples = [rot_dic[f'noise{i}'][None] for i in range(len(noise_tuples))]
+            img_tuples, noise_tuples = self._rotate(img_tuples, noise_tuples)
 
         # add noise to input
         if len(noise_tuples) > 0:
@@ -664,18 +673,17 @@ class MultiChDloader:
 
 if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
-    from disentangle.configs.twotiff_config import get_config
+    from disentangle.configs.pavia_atn_config import get_config
     config = get_config()
     dset = MultiChDloader(
         config.data,
-        #    '/group/jug/ashesh/data/microscopy/OptiMEM100x014.tif',
-        '/group/jug/ashesh/data/ventura_gigascience_small/',
+        '/group/jug/ashesh/data/microscopy/OptiMEM100x014_medium.tif',
         DataSplitType.Train,
         val_fraction=config.training.val_fraction,
         test_fraction=config.training.test_fraction,
         normalized_input=config.data.normalized_input,
         enable_rotation_aug=config.data.normalized_input,
-        enable_random_cropping=config.data.deterministic_grid is False,
+        enable_random_cropping=False,#config.data.deterministic_grid is False,
         use_one_mu_std=config.data.use_one_mu_std,
         allow_generation=False,
         max_val=None,
@@ -686,3 +694,4 @@ if __name__ == '__main__':
     dset.set_mean_std(mean, std)
 
     inp, target = dset[0]
+    print(inp.shape, target.shape)
