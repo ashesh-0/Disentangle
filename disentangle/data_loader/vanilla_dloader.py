@@ -621,6 +621,8 @@ class MultiChDloader:
             # passing just the 2D input. 3rd dimension messes up things.
             img_kwargs = {f'img{i}': img_tuples[i][0] for i in range(len(img_tuples))}
             noise_kwargs = {f'noise{i}': noise_tuples[i][0] for i in range(len(noise_tuples))}
+            keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
+            self._rotation_transform.add_targets({k: 'image' for k in keys})
             rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
             img_tuples = [rot_dic[f'img{i}'][None] for i in range(len(img_tuples))]
             noise_tuples = [rot_dic[f'noise{i}'][None] for i in range(len(noise_tuples))]
