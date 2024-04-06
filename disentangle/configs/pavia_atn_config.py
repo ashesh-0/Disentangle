@@ -36,7 +36,7 @@ def get_config():
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
-    data.train_aug_rotate = False
+    data.train_aug_rotate = True
     data.randomized_channels = False
     data.multiscale_lowres_count = 5
     data.padding_mode = 'reflect'
