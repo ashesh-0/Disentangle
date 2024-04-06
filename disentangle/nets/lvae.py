@@ -257,9 +257,10 @@ class LadderVAE(pl.LightningModule):
                                                            padding=1,
                                                            bias=self.topdown_conv2d_bias)
 
-        print(
-            f'[{self.__class__.__name__}] Stoc:{not self.non_stochastic_version} RecMode:{self.reconstruction_mode} TethInput:{self._tethered_to_input}'
-        )
+        msg = f'[{self.__class__.__name__}] Stoc:{not self.non_stochastic_version} RecMode:{self.reconstruction_mode} TethInput:{self._tethered_to_input}'
+        if self._model_3D_depth > 1:
+            msg += f' 3D:{self._model_3D_depth}'
+        print(msg)
 
     def create_top_down_layers(self):
         top_down_layers = nn.ModuleList([])
