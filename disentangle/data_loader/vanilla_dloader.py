@@ -371,7 +371,7 @@ class MultiChDloader:
         return pad_start, pad_end
 
     def _crop_img_with_padding(self, img: np.ndarray, h_start: int, w_start: int):
-        _, H, W = img.shape
+        *_, H, W = img.shape
         h_on_boundary = self.on_boundary(h_start, H)
         w_on_boundary = self.on_boundary(w_start, W)
 
@@ -382,14 +382,14 @@ class MultiChDloader:
         assert w_start + self._img_sz <= W or w_on_boundary
         # max() is needed since h_start could be negative.
         new_img = img[..., max(0, h_start):h_start + self._img_sz, max(0, w_start):w_start + self._img_sz]
-        padding = np.array([[0, 0], [0, 0], [0, 0]])
+        padding = np.array([[0, 0]] * len(img.shape))
 
         if h_on_boundary:
             pad = self.get_begin_end_padding(h_start, H)
-            padding[1] = pad
+            padding[-2] = pad
         if w_on_boundary:
             pad = self.get_begin_end_padding(w_start, W)
-            padding[2] = pad
+            padding[-1] = pad
 
         if not np.all(padding == 0):
             new_img = np.pad(new_img, padding, **self._overlapping_padding_kwargs)
@@ -406,14 +406,33 @@ class MultiChDloader:
         return new_img.astype(np.float32)
 
 
-    def _load_img(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
-        if self._depth3D > 1:
-            return self._load_img3D(index)
-        else:
-            return self._load_img2D(index)
+    # def _load_img(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+    #     if self._depth3D > 1:
+    #         return self._load_img3D(index)
+    #     else:
+    #         return self._load_img2D(index)
     
 
-    def _load_img3D(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+    # def _load_img3D(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+    #     """
+    #     Returns the channels and also the respective noise channels.
+    #     """
+    #     if isinstance(index, int) or isinstance(index, np.int64):
+    #         idx = index
+    #     else:
+    #         idx = index[0]
+
+    #     tidx = self.idx_manager.get_t(idx)
+    #     imgs = self._data[tidx:tidx + self._depth3D]
+    #     loaded_imgs = [imgs[None, ..., i] for i in range(imgs.shape[-1])]
+    #     noise = []
+    #     if self._noise_data is not None and not self._disable_noise:
+    #         noise = [
+    #             self._noise_data[tidx:tidx+self._depth3D][None, ..., i] for i in range(self._noise_data.shape[-1])
+    #         ]
+    #     return tuple(loaded_imgs), tuple(noise)
+
+    def _load_img(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         """
         Returns the channels and also the respective noise channels.
         """
@@ -423,30 +442,15 @@ class MultiChDloader:
             idx = index[0]
 
         tidx = self.idx_manager.get_t(idx)
-        imgs = self._data[tidx:tidx + self._depth3D]
+        if self._depth3D > 1:
+            tidx = range(tidx, tidx + self._depth3D)
+        
+        imgs = self._data[tidx]
         loaded_imgs = [imgs[None, ..., i] for i in range(imgs.shape[-1])]
         noise = []
         if self._noise_data is not None and not self._disable_noise:
             noise = [
-                self._noise_data[tidx:tidx+self._depth3D][None, ..., i] for i in range(self._noise_data.shape[-1])
-            ]
-        return tuple(loaded_imgs), tuple(noise)
-
-    def _load_img2D(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Returns the channels and also the respective noise channels.
-        """
-        if isinstance(index, int) or isinstance(index, np.int64):
-            idx = index
-        else:
-            idx = index[0]
-
-        imgs = self._data[self.idx_manager.get_t(idx)]
-        loaded_imgs = [imgs[None, ..., i] for i in range(imgs.shape[-1])]
-        noise = []
-        if self._noise_data is not None and not self._disable_noise:
-            noise = [
-                self._noise_data[self.idx_manager.get_t(idx)][None, ..., i] for i in range(self._noise_data.shape[-1])
+                self._noise_data[tidx][None, ..., i] for i in range(self._noise_data.shape[-1])
             ]
         return tuple(loaded_imgs), tuple(noise)
 
@@ -644,38 +648,86 @@ class MultiChDloader:
     
     def _rotate3D(self, img_tuples, noise_tuples):
         img_kwargs = {}
-        for i in range(len(img_tuples)):
+        for i,img in enumerate(img_tuples):
             for j in range(self._depth3D):
-                img_kwargs[f'img{i}_{j}'] = img_tuples[i][0,j]
+                for k in range(len(img)):
+                    img_kwargs[f'img{i}_{j}_{k}'] = img[k,j]
+        
         noise_kwargs = {}
-        for i in range(len(noise_tuples)):
+        for i,nimg in enumerate(noise_tuples):
             for j in range(self._depth3D):
-                noise_kwargs[f'noise{i}_{j}'] = noise_tuples[i][0,j]
+                for k in range(len(nimg)):
+                    noise_kwargs[f'noise{i}_{j}_{k}'] = nimg[k,j]
             
         keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
         self._rotation_transform.add_targets({k: 'image' for k in keys})
         rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
         rotated_img_tuples = []
-        for i in range(len(img_tuples)):
-            rotated_img_tuples.append(np.concatenate([rot_dic[f'img{i}_{j}'][None,None] for j in range(self._depth3D)], axis=1))
+        for i,img in enumerate(img_tuples):
+            if len(img) == 1:
+                rotated_img_tuples.append(np.concatenate([rot_dic[f'img{i}_{j}_0'][None,None] for j in range(self._depth3D)], axis=1))
+            else:
+                temp_arr = []
+                for k in range(len(img)):
+                    temp_arr.append(np.concatenate([rot_dic[f'img{i}_{j}_{k}'][None,None] for j in range(self._depth3D)], axis=1))
+                rotated_img_tuples.append(np.concatenate(temp_arr, axis=0))
 
         rotated_noise_tuples = []
-        for i in range(len(noise_tuples)):
-            rotated_noise_tuples.append(np.concatenate([rot_dic[f'noise{i}_{j}'][None,None] for j in range(self._depth3D)], axis=1))
+        for i, nimg in enumerate(noise_tuples):
+            if len(nimg) == 1:
+                rotated_noise_tuples.append(np.concatenate([rot_dic[f'noise{i}_{j}_0'][None,None] for j in range(self._depth3D)], axis=1))
+            else:
+                temp_arr = []
+                for k in range(len(nimg)):
+                    temp_arr.append(np.concatenate([rot_dic[f'noise{i}_{j}_{k}'][None,None] for j in range(self._depth3D)], axis=1))
+                rotated_noise_tuples.append(np.concatenate(temp_arr, axis=0))
 
         return rotated_img_tuples, rotated_noise_tuples
 
     def _rotate2D(self, img_tuples, noise_tuples):
-        img_kwargs = {f'img{i}': img_tuples[i][0] for i in range(len(img_tuples))}
-        noise_kwargs = {f'noise{i}': noise_tuples[i][0] for i in range(len(noise_tuples))}
+        img_kwargs = {}
+        for i,img in enumerate(img_tuples):
+            for k in range(len(img)):
+                img_kwargs[f'img{i}_{k}'] = img[k]
+        
+        noise_kwargs = {}
+        for i,nimg in enumerate(noise_tuples):
+            for k in range(len(nimg)):
+                noise_kwargs[f'noise{i}_{k}'] = nimg[k]
+        
+
         keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
         self._rotation_transform.add_targets({k: 'image' for k in keys})
-        
         rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
-        print('rotated', img_kwargs.keys(), noise_kwargs.keys())
-        img_tuples = [rot_dic[f'img{i}'][None] for i in range(len(img_tuples))]
-        noise_tuples = [rot_dic[f'noise{i}'][None] for i in range(len(noise_tuples))]
-        return img_tuples, noise_tuples
+        rotated_img_tuples = []
+        for i,img in enumerate(img_tuples):
+            if len(img) == 1:
+                rotated_img_tuples.append(rot_dic[f'img{i}_0'][None])
+            else:
+                rotated_img_tuples.append(np.concatenate([rot_dic[f'img{i}_{k}'][None] for k in range(len(img))], axis=0))
+
+        rotated_noise_tuples = []
+        for i, nimg in enumerate(noise_tuples):
+            if len(nimg) == 1:
+                rotated_noise_tuples.append(rot_dic[f'noise{i}_0'][None])
+            else:
+                rotated_noise_tuples.append(np.concatenate([rot_dic[f'noise{i}_{k}'][None] for k in range(len(nimg))], axis=0))
+        
+        return rotated_img_tuples, rotated_noise_tuples
+
+
+
+
+        # img_kwargs = {f'img{i}': img_tuples[i][0] for i in range(len(img_tuples))}
+        # noise_kwargs = {f'noise{i}': noise_tuples[i][0] for i in range(len(noise_tuples))}
+        # keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
+        # self._rotation_transform.add_targets({k: 'image' for k in keys})
+        
+        # rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
+        # print('rotated', img_kwargs.keys(), noise_kwargs.keys())
+        # img_tuples = [rot_dic[f'img{i}'][None] for i in range(len(img_tuples))]
+        # noise_tuples = [rot_dic[f'noise{i}'][None] for i in range(len(noise_tuples))]
+        # return img_tuples, noise_tuples
     
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
@@ -741,7 +793,7 @@ if __name__ == '__main__':
         val_fraction=config.training.val_fraction,
         test_fraction=config.training.test_fraction,
         normalized_input=config.data.normalized_input,
-        enable_rotation_aug=config.data.normalized_input,
+        enable_rotation_aug=config.data.train_aug_rotate,
         enable_random_cropping=False,#config.data.deterministic_grid is False,
         use_one_mu_std=config.data.use_one_mu_std,
         allow_generation=False,
@@ -754,3 +806,16 @@ if __name__ == '__main__':
 
     inp, target = dset[0]
     print(inp.shape, target.shape)
+    import matplotlib.pyplot as plt
+    _,ax = plt.subplots(figsize=(9,9),ncols=3,nrows=3)
+    ax[0,0].imshow(inp[0,0])
+    ax[0,1].imshow(target[0,0])
+    ax[0,2].imshow(target[1,0])
+
+    ax[1,0].imshow(inp[0,1])
+    ax[1,1].imshow(target[0,1])
+    ax[1,2].imshow(target[1,1])
+
+    ax[2,0].imshow(inp[0,2])
+    ax[2,1].imshow(target[0,2])
+    ax[2,2].imshow(target[1,2])

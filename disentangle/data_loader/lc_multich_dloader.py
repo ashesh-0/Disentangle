@@ -92,11 +92,16 @@ class LCMultiChDloader(MultiChDloader):
             idx = index
         else:
             idx, _ = index
-        imgs = self._scaled_data[scaled_index][idx % self.N]
-        imgs = tuple([imgs[None, :, :, i] for i in range(imgs.shape[-1])])
+        
+        tidx = self.idx_manager.get_t(idx)
+        if self._depth3D > 1:
+            tidx = range(tidx, tidx + self._depth3D)
+        
+        imgs = self._scaled_data[scaled_index][tidx]
+        imgs = tuple([imgs[None,..., i] for i in range(imgs.shape[-1])])
         if self._noise_data is not None:
-            noisedata = self._scaled_noise_data[scaled_index][idx % self.N]
-            noise = tuple([noisedata[None, :, :, i] for i in range(noisedata.shape[-1])])
+            noisedata = self._scaled_noise_data[scaled_index][tidx]
+            noise = tuple([noisedata[None,..., i] for i in range(noisedata.shape[-1])])
             factor = np.sqrt(2) if self._input_is_sum else 1.0
             # since we are using this lowres images for just the input, we need to add the noise of the input.
             assert self._lowres_supervision is None or self._lowres_supervision is False
@@ -135,7 +140,6 @@ class LCMultiChDloader(MultiChDloader):
 
             h_start = h_center - self._img_sz // 2
             w_start = w_center - self._img_sz // 2
-
             scaled_cropped_img_tuples = [
                 self._crop_flip_img(img, h_start, w_start, False, False) for img in scaled_img_tuples
             ]
@@ -147,7 +151,10 @@ class LCMultiChDloader(MultiChDloader):
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]):
         img_tuples, noise_tuples = self._get_img(index)
-        assert self._enable_rotation is False
+
+        if self._enable_rotation:
+            # passing just the 2D input. 3rd dimension messes up things.
+            img_tuples, noise_tuples = self._rotate(img_tuples, noise_tuples)
 
         assert self._lowres_supervision != True
         if len(noise_tuples) > 0:
@@ -190,20 +197,20 @@ if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
     import matplotlib.pyplot as plt
 
-    from disentangle.configs.twotiff_config import get_config
+    from disentangle.configs.pavia_atn_3Dconfig import get_config
     config = get_config()
     padding_kwargs = {'mode': config.data.padding_mode}
     if 'padding_value' in config.data and config.data.padding_value is not None:
         padding_kwargs['constant_values'] = config.data.padding_value
 
     dset = LCMultiChDloader(config.data,
-                            '/group/jug/ashesh/data/ventura_gigascience_small/',
+                            '/group/jug/ashesh/data/microscopy/OptiMEM100x014_medium.tif',
                             DataSplitType.Train,
                             val_fraction=config.training.val_fraction,
                             test_fraction=config.training.test_fraction,
                             normalized_input=config.data.normalized_input,
                             enable_rotation_aug=config.data.train_aug_rotate,
-                            enable_random_cropping=config.data.deterministic_grid is False,
+                            enable_random_cropping=False,
                             use_one_mu_std=config.data.use_one_mu_std,
                             allow_generation=False,
                             num_scales=config.data.multiscale_lowres_count,
@@ -216,6 +223,9 @@ if __name__ == '__main__':
     dset.set_mean_std(mean, std)
 
     inp, tar = dset[0]
+    if config.data.get('depth3D', 1) > 1:
+        inp = inp[:,0]
+        tar = tar[:,0]
     print(inp.shape, tar.shape)
     _, ax = plt.subplots(figsize=(10, 2), ncols=5)
     ax[0].imshow(inp[0])
@@ -223,3 +233,24 @@ if __name__ == '__main__':
     ax[2].imshow(inp[2])
     ax[3].imshow(tar[0])
     ax[4].imshow(tar[1])
+
+
+    inp, tar = dset[0]
+    _, ax = plt.subplots(figsize=(10, 6), ncols=5,nrows=3)
+    ax[0,0].imshow(inp[0,0])
+    ax[0,1].imshow(inp[1,0])
+    ax[0,2].imshow(inp[2,0])
+    ax[0,3].imshow(tar[0,0])
+    ax[0,4].imshow(tar[1,0])
+
+    ax[1,0].imshow(inp[0,1])
+    ax[1,1].imshow(inp[1,1])
+    ax[1,2].imshow(inp[2,1])
+    ax[1,3].imshow(tar[0,1])
+    ax[1,4].imshow(tar[1,1])
+
+    ax[2,0].imshow(inp[0,2])
+    ax[2,1].imshow(inp[1,2])
+    ax[2,2].imshow(inp[2,2])
+    ax[2,3].imshow(tar[0,2])
+    ax[2,4].imshow(tar[1,2])
