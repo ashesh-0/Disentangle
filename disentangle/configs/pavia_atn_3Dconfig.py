@@ -12,11 +12,11 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 256
+    data.image_size = 128
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
-    data.depth = 3
+    data.depth3D = 3
 
     data.poisson_noise_factor = -1
     data.enable_gaussian_noise = False
@@ -39,7 +39,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = True
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -62,6 +62,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
+    model.mode_3D = True
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
@@ -101,7 +102,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_microscopy-OptiMEM100x014.tif__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname_format.format('2402/240')

@@ -119,8 +119,12 @@ class NormalStochasticBlock(nn.Module):
                 kl_elementwise = kl_divergence(q, p)
             else:
                 kl_elementwise = kl_normal_mc(z, p_params, q_params)
-            kl_samplewise = kl_elementwise.sum((1, 2, 3))
-            kl_channelwise = kl_elementwise.sum((2, 3))
+            
+            dims = list(range(len(kl_elementwise.shape)))
+            # kl_elementwise.shape: torch.Size([8, 128, 3, 8, 8]) for 3D
+            # kl_elementwise.shape: torch.Size([8, 128, 8, 8]) for 2D
+            kl_samplewise = kl_elementwise.sum(dims[1:])
+            kl_channelwise = kl_elementwise.sum(dims[2:])
             # Compute spatial KL analytically (but conditioned on samples from
             # previous layers)
             kl_spatial = kl_elementwise.sum(1)

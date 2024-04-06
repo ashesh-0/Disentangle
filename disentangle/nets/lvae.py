@@ -48,6 +48,7 @@ class LadderVAE(pl.LightningModule):
         self._stochastic_use_naive_exponential = config.model.decoder.get('stochastic_use_naive_exponential', False)
         self._enable_topdown_normalize_factor = config.model.get('enable_topdown_normalize_factor', True)
         self._mode_3D = config.model.get('mode_3D', False)
+        self._model_3D_depth = config.data.get('depth3D', 1)
 
         # can be used to tile the validation predictions
         self._val_idx_manager = val_idx_manager
@@ -1187,6 +1188,8 @@ class LadderVAE(pl.LightningModule):
         w = sz[1] // dwnsc
         c = self.z_dims[-1] * 2  # mu and logvar
         top_layer_shape = (n_imgs, c, h, w)
+        if self._model_3D_depth > 1:
+            top_layer_shape = (n_imgs, c, self._model_3D_depth, h, w)
         return top_layer_shape
 
     def log_images_for_tensorboard(self, pred, target, img_mmse, label):

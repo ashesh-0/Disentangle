@@ -44,6 +44,7 @@ class MultiChDloader:
         self._disable_noise = False
         self._poisson_noise_factor = None
         self._train_index_switcher = None
+        self._depth3D = data_config.get('depth3D',1)
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
         self._num_channels = data_config.get('num_channels', 2)
@@ -289,8 +290,13 @@ class MultiChDloader:
 
         self._img_sz = image_size
         self._grid_sz = grid_size
-        self.idx_manager = GridIndexManager(self._data.shape, self._grid_sz, self._img_sz, self._grid_alignment)
+        shape = self._data.shape
+
+        self.idx_manager = GridIndexManager((shape[0] - self._depth3D + 1, *shape[1:]), self._grid_sz, self._img_sz, self._grid_alignment)
         self.set_repeat_factor()
+
+    def __len__(self):
+        return (self.N -self._depth3D + 1) * self._repeat_factor
 
     def set_repeat_factor(self):
         if self._grid_sz > 1:
@@ -399,10 +405,34 @@ class MultiChDloader:
 
         return new_img.astype(np.float32)
 
-    def __len__(self):
-        return self.N * self._repeat_factor
 
     def _load_img(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+        if self._depth3D > 1:
+            return self._load_img3D(index)
+        else:
+            return self._load_img2D(index)
+    
+
+    def _load_img3D(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Returns the channels and also the respective noise channels.
+        """
+        if isinstance(index, int) or isinstance(index, np.int64):
+            idx = index
+        else:
+            idx = index[0]
+
+        tidx = self.idx_manager.get_t(idx)
+        imgs = self._data[tidx:tidx + self._depth3D]
+        loaded_imgs = [imgs[None, ..., i] for i in range(imgs.shape[-1])]
+        noise = []
+        if self._noise_data is not None and not self._disable_noise:
+            noise = [
+                self._noise_data[tidx:tidx+self._depth3D][None, ..., i] for i in range(self._noise_data.shape[-1])
+            ]
+        return tuple(loaded_imgs), tuple(noise)
+
+    def _load_img2D(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         """
         Returns the channels and also the respective noise channels.
         """
@@ -607,6 +637,35 @@ class MultiChDloader:
         return index
 
     def _rotate(self, img_tuples, noise_tuples):
+        if self._depth3D > 1:
+            return self._rotate3D(img_tuples, noise_tuples)
+        else:
+            return self._rotate2D(img_tuples, noise_tuples)
+    
+    def _rotate3D(self, img_tuples, noise_tuples):
+        img_kwargs = {}
+        for i in range(len(img_tuples)):
+            for j in range(self._depth3D):
+                img_kwargs[f'img{i}_{j}'] = img_tuples[i][0,j]
+        noise_kwargs = {}
+        for i in range(len(noise_tuples)):
+            for j in range(self._depth3D):
+                noise_kwargs[f'noise{i}_{j}'] = noise_tuples[i][0,j]
+            
+        keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
+        self._rotation_transform.add_targets({k: 'image' for k in keys})
+        rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
+        rotated_img_tuples = []
+        for i in range(len(img_tuples)):
+            rotated_img_tuples.append(np.concatenate([rot_dic[f'img{i}_{j}'][None,None] for j in range(self._depth3D)], axis=1))
+
+        rotated_noise_tuples = []
+        for i in range(len(noise_tuples)):
+            rotated_noise_tuples.append(np.concatenate([rot_dic[f'noise{i}_{j}'][None,None] for j in range(self._depth3D)], axis=1))
+
+        return rotated_img_tuples, rotated_noise_tuples
+
+    def _rotate2D(self, img_tuples, noise_tuples):
         img_kwargs = {f'img{i}': img_tuples[i][0] for i in range(len(img_tuples))}
         noise_kwargs = {f'noise{i}': noise_tuples[i][0] for i in range(len(noise_tuples))}
         keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
@@ -673,7 +732,7 @@ class MultiChDloader:
 
 if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
-    from disentangle.configs.pavia_atn_config import get_config
+    from disentangle.configs.pavia_atn_3Dconfig import get_config
     config = get_config()
     dset = MultiChDloader(
         config.data,
