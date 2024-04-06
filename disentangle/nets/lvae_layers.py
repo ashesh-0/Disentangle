@@ -10,8 +10,8 @@ from torch import nn
 
 from disentangle.core.data_utils import crop_img_tensor, pad_img_tensor
 from disentangle.core.nn_submodules import ResidualBlock, ResidualGatedBlock
-from disentangle.core.non_stochastic import NonStochasticBlock2d
-from disentangle.core.stochastic import NormalStochasticBlock2d
+from disentangle.core.non_stochastic import NonStochasticBlock
+from disentangle.core.stochastic import NormalStochasticBlock
 
 
 class TopDownLayer(nn.Module):
@@ -37,6 +37,7 @@ class TopDownLayer(nn.Module):
                  n_res_blocks: int,
                  n_filters: int,
                  is_top_layer: bool = False,
+                 mode_3D=False,
                  downsampling_steps: int = None,
                  nonlin=None,
                  merge_type: str = None,
@@ -125,7 +126,8 @@ class TopDownLayer(nn.Module):
                 TopDownDeterministicResBlock(
                     n_filters,
                     n_filters,
-                    nonlin,
+                    nonlin=nonlin,
+                    mode_3D=mode_3D,
                     upsample=do_resample,
                     batchnorm=batchnorm,
                     dropout=dropout,
@@ -140,19 +142,21 @@ class TopDownLayer(nn.Module):
 
         # Define stochastic block with 2d convolutions
         if self.non_stochastic_version:
-            self.stochastic = NonStochasticBlock2d(
+            self.stochastic = NonStochasticBlock(
                 c_in=n_filters,
                 c_vars=z_dim,
                 c_out=n_filters,
+                mode_3D=mode_3D,
                 transform_p_params=(not is_top_layer),
                 groups=groups,
                 conv2d_bias=conv2d_bias,
             )
         else:
-            self.stochastic = NormalStochasticBlock2d(
+            self.stochastic = NormalStochasticBlock(
                 c_in=n_filters,
                 c_vars=z_dim,
                 c_out=n_filters,
+                mode_3D=mode_3D,
                 transform_p_params=(not is_top_layer),
                 use_naive_exponential=stochastic_use_naive_exponential,
             )
@@ -165,6 +169,7 @@ class TopDownLayer(nn.Module):
                 channels=n_filters,
                 merge_type=merge_type,
                 nonlin=nonlin,
+                mode_3D=mode_3D,
                 batchnorm=batchnorm,
                 dropout=dropout,
                 res_block_type=res_block_type,
@@ -179,6 +184,7 @@ class TopDownLayer(nn.Module):
                     nonlin=nonlin,
                     batchnorm=batchnorm,
                     dropout=dropout,
+                    mode_3D=mode_3D,
                     res_block_type=res_block_type,
                     merge_type=merge_type,
                     conv2d_bias=conv2d_bias,
@@ -370,6 +376,7 @@ class BottomUpLayer(nn.Module):
                  n_filters: int,
                  downsampling_steps: int = 0,
                  nonlin=None,
+                 mode_3D=False,
                  batchnorm: bool = True,
                  dropout: Union[None, float] = None,
                  res_block_type: str = None,
@@ -419,6 +426,7 @@ class BottomUpLayer(nn.Module):
                 c_in=n_filters,
                 c_out=n_filters,
                 nonlin=nonlin,
+                mode_3D=mode_3D,
                 downsample=do_resample,
                 batchnorm=batchnorm,
                 dropout=dropout,
@@ -440,6 +448,7 @@ class BottomUpLayer(nn.Module):
             self._init_multiscale(
                 n_filters=n_filters,
                 nonlin=nonlin,
+                mode_3D=mode_3D,
                 batchnorm=batchnorm,
                 dropout=dropout,
                 res_block_type=res_block_type,
@@ -456,6 +465,7 @@ class BottomUpLayer(nn.Module):
                          n_filters=None,
                          nonlin=None,
                          batchnorm=None,
+                         mode_3D=False,
                          dropout=None,
                          res_block_type=None,
                          multiscale_retain_spatial_dims=None,
@@ -469,6 +479,7 @@ class BottomUpLayer(nn.Module):
             channels=n_filters,
             merge_type='residual',
             nonlin=nonlin,
+            mode_3D=mode_3D,
             batchnorm=batchnorm,
             dropout=dropout,
             res_block_type=res_block_type,
@@ -528,6 +539,7 @@ class ResBlockWithResampling(nn.Module):
                  resample=False,
                  res_block_kernel=None,
                  groups=1,
+                 mode_3D=False,
                  batchnorm=True,
                  res_block_type=None,
                  dropout=None,
@@ -542,27 +554,39 @@ class ResBlockWithResampling(nn.Module):
             min_inner_channels = 0
         inner_filters = max(c_out, min_inner_channels)
 
+        if mode_3D:
+            conv_cls = nn.Conv3d
+            conv_transpose_cls = nn.ConvTranspose3d
+            stride = (1, 2, 2)
+            padding = (1, 1, 1)
+            output_padding = (0, 1, 1)
+        else:
+            conv_cls = nn.Conv2d
+            conv_transpose_cls = nn.ConvTranspose2d
+            stride=2
+            padding = 1
+            output_padding = 1
         # Define first conv layer to change channels and/or up/downsample
         if resample:
             if mode == 'bottom-up':  # downsample
-                self.pre_conv = nn.Conv2d(in_channels=c_in,
+                self.pre_conv = conv_cls(in_channels=c_in,
                                           out_channels=inner_filters,
                                           kernel_size=3,
-                                          padding=1,
-                                          stride=2,
+                                          padding=padding,
+                                          stride=stride,
                                           groups=groups,
                                           bias=conv2d_bias)
             elif mode == 'top-down':  # upsample
-                self.pre_conv = nn.ConvTranspose2d(in_channels=c_in,
+                self.pre_conv = conv_transpose_cls(in_channels=c_in,
                                                    out_channels=inner_filters,
                                                    kernel_size=3,
-                                                   padding=1,
-                                                   stride=2,
+                                                   padding=padding,
+                                                   stride=stride,
                                                    groups=groups,
-                                                   output_padding=1,
+                                                   output_padding=output_padding,
                                                    bias=conv2d_bias)
         elif c_in != inner_filters:
-            self.pre_conv = nn.Conv2d(c_in, inner_filters, 1, groups=groups, bias=conv2d_bias)
+            self.pre_conv = conv_cls(c_in, inner_filters, 1, groups=groups, bias=conv2d_bias)
         else:
             self.pre_conv = None
 
@@ -571,6 +595,7 @@ class ResBlockWithResampling(nn.Module):
             channels=inner_filters,
             nonlin=nonlin,
             kernel=res_block_kernel,
+            mode_3D=mode_3D,
             groups=groups,
             batchnorm=batchnorm,
             dropout=dropout,
@@ -581,7 +606,7 @@ class ResBlockWithResampling(nn.Module):
         )
         # Define last conv layer to get correct num output channels
         if inner_filters != c_out:
-            self.post_conv = nn.Conv2d(inner_filters, c_out, 1, groups=groups, bias=conv2d_bias)
+            self.post_conv = conv_cls(inner_filters, c_out, 1, groups=groups, bias=conv2d_bias)
         else:
             self.post_conv = None
 
@@ -619,6 +644,7 @@ class MergeLayer(nn.Module):
                  channels,
                  merge_type,
                  nonlin=nn.LeakyReLU,
+                 mode_3D=False,
                  batchnorm=True,
                  dropout=None,
                  res_block_type=None,
@@ -635,15 +661,20 @@ class MergeLayer(nn.Module):
                 channels = [channels[0]] * 3
 
         # assert len(channels) == 3
+        if mode_3D:
+            conv_cls = nn.Conv3d
+        else:
+            conv_cls = nn.Conv2d
 
         if merge_type == 'linear':
-            self.layer = nn.Conv2d(sum(channels[:-1]), channels[-1], 1, bias=conv2d_bias)
+            self.layer = conv_cls(sum(channels[:-1]), channels[-1], 1, bias=conv2d_bias)
         elif merge_type == 'residual':
             self.layer = nn.Sequential(
-                nn.Conv2d(sum(channels[:-1]), channels[-1], 1, padding=0, bias=conv2d_bias),
+                conv_cls(sum(channels[:-1]), channels[-1], 1, padding=0, bias=conv2d_bias),
                 ResidualGatedBlock(
                     channels[-1],
                     nonlin,
+                    mode_3D=mode_3D,
                     batchnorm=batchnorm,
                     dropout=dropout,
                     block_type=res_block_type,
@@ -654,10 +685,11 @@ class MergeLayer(nn.Module):
             )
         elif merge_type == 'residual_ungated':
             self.layer = nn.Sequential(
-                nn.Conv2d(sum(channels[:-1]), channels[-1], 1, padding=0, bias=conv2d_bias),
+                conv_cls(sum(channels[:-1]), channels[-1], 1, padding=0, bias=conv2d_bias),
                 ResidualBlock(
                     channels[-1],
                     nonlin,
+                    mode_3D=mode_3D,
                     batchnorm=batchnorm,
                     dropout=dropout,
                     block_type=res_block_type,
@@ -684,14 +716,14 @@ class MergeLowRes(MergeLayer):
 
     def forward(self, latent, lowres):
         if self.retain_spatial_dims:
-            latent = pad_img_tensor(latent, lowres.shape[2:])
+            latent = pad_img_tensor(latent, lowres.shape[-2:])
         else:
             lh, lw = lowres.shape[-2:]
             h = lh // self.multiscale_lowres_size_factor
             w = lw // self.multiscale_lowres_size_factor
             h_pad = (lh - h) // 2
             w_pad = (lw - w) // 2
-            lowres = lowres[:, :, h_pad:-h_pad, w_pad:-w_pad]
+            lowres = lowres[..., h_pad:-h_pad, w_pad:-w_pad]
 
         return super().forward(latent, lowres)
 
@@ -707,14 +739,16 @@ class SkipConnectionMerger(MergeLayer):
                  batchnorm,
                  dropout,
                  res_block_type,
+                 mode_3D=False,
                  merge_type='residual',
                  conv2d_bias: bool = True,
                  res_block_kernel=None,
                  res_block_skip_padding=False):
         super().__init__(channels,
                          merge_type,
-                         nonlin,
-                         batchnorm,
+                         nonlin=nonlin,
+                         batchnorm=batchnorm,
+                         mode_3D=mode_3D,
                          dropout=dropout,
                          res_block_type=res_block_type,
                          res_block_kernel=res_block_kernel,

@@ -15,7 +15,7 @@ from disentangle.core.stable_dist_params import StableLogVar, StableMean
 from disentangle.core.stable_exp import log_prob
 
 
-class NonStochasticBlock2d(nn.Module):
+class NonStochasticBlock(nn.Module):
     """
     Non-stochastic version of the NormalStochasticBlock2d
     """
@@ -24,6 +24,7 @@ class NonStochasticBlock2d(nn.Module):
                  c_in: int,
                  c_vars: int,
                  c_out,
+                 mode_3D=False,
                  kernel: int = 3,
                  groups=1,
                  conv2d_bias: bool = True,
@@ -44,10 +45,15 @@ class NonStochasticBlock2d(nn.Module):
         self.c_out = c_out
         self.c_vars = c_vars
 
+        if mode_3D:
+            conv_cls = nn.Conv3d
+        else:
+            conv_cls = nn.Conv2d
+
         if transform_p_params:
-            self.conv_in_p = nn.Conv2d(c_in, 2 * c_vars, kernel, padding=pad, bias=conv2d_bias, groups=groups)
-        self.conv_in_q = nn.Conv2d(c_in, 2 * c_vars, kernel, padding=pad, bias=conv2d_bias, groups=groups)
-        self.conv_out = nn.Conv2d(c_vars, c_out, kernel, padding=pad, bias=conv2d_bias, groups=groups)
+            self.conv_in_p = conv_cls(c_in, 2 * c_vars, kernel, padding=pad, bias=conv2d_bias, groups=groups)
+        self.conv_in_q = conv_cls(c_in, 2 * c_vars, kernel, padding=pad, bias=conv2d_bias, groups=groups)
+        self.conv_out = conv_cls(c_vars, c_out, kernel, padding=pad, bias=conv2d_bias, groups=groups)
 
     def compute_kl_metrics(self, p, p_params, q, q_params, mode_pred, analytical_kl, z):
         """

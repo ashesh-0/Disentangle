@@ -15,7 +15,7 @@ from disentangle.core.stable_dist_params import StableLogVar, StableMean
 from disentangle.core.stable_exp import log_prob
 
 
-class NormalStochasticBlock2d(nn.Module):
+class NormalStochasticBlock(nn.Module):
     """
     Transform input parameters to q(z) with a convolution, optionally do the
     same for p(z), then sample z ~ q(z) and return conv(z).
@@ -26,6 +26,7 @@ class NormalStochasticBlock2d(nn.Module):
                  c_in: int,
                  c_vars: int,
                  c_out,
+                 mode_3D=False,
                  kernel: int = 3,
                  transform_p_params: bool = True,
                  use_naive_exponential=False):
@@ -45,11 +46,15 @@ class NormalStochasticBlock2d(nn.Module):
         self.c_out = c_out
         self.c_vars = c_vars
         self._use_naive_exponential = use_naive_exponential
-
+        if mode_3D:
+            conv_cls = nn.Conv3d
+        else:
+            conv_cls = nn.Conv2d
+        
         if transform_p_params:
-            self.conv_in_p = nn.Conv2d(c_in, 2 * c_vars, kernel, padding=pad)
-        self.conv_in_q = nn.Conv2d(c_in, 2 * c_vars, kernel, padding=pad)
-        self.conv_out = nn.Conv2d(c_vars, c_out, kernel, padding=pad)
+            self.conv_in_p = conv_cls(c_in, 2 * c_vars, kernel, padding=pad)
+        self.conv_in_q = conv_cls(c_in, 2 * c_vars, kernel, padding=pad)
+        self.conv_out = conv_cls(c_vars, c_out, kernel, padding=pad)
 
     # def forward_swapped(self, p_params, q_mu, q_lv):
     #

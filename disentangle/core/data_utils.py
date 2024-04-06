@@ -173,9 +173,9 @@ def _pad_crop_img(x, size, mode) -> torch.Tensor:
         The padded or cropped tensor
     """
 
-    assert x.dim() == 4 and len(size) == 2
+    assert x.dim() in [4,5] and len(size) == 2
     size = tuple(size)
-    x_size = x.size()[2:4]
+    x_size = x.size()[-2:]
     if mode == 'pad':
         cond = x_size[0] > size[0] or x_size[1] > size[1]
     elif mode == 'crop':
@@ -190,7 +190,7 @@ def _pad_crop_img(x, size, mode) -> torch.Tensor:
     if mode == 'pad':
         return nn.functional.pad(x, [dc1, dc2, dr1, dr2, 0, 0, 0, 0])
     elif mode == 'crop':
-        return x[:, :, dr1:x_size[0] - dr2, dc1:x_size[1] - dc2]
+        return x[..., dr1:x_size[0] - dr2, dc1:x_size[1] - dc2]
 
 
 def pad_img_tensor(x, size) -> torch.Tensor:

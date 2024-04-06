@@ -30,6 +30,7 @@ class ResidualBlock(nn.Module):
                  channels: int,
                  nonlin,
                  kernel=None,
+                 mode_3D=False,
                  groups=1,
                  batchnorm: bool = True,
                  block_type: str = None,
@@ -41,8 +42,8 @@ class ResidualBlock(nn.Module):
         if kernel is None:
             kernel = self.default_kernel_size
         elif isinstance(kernel, int):
-            kernel = (kernel, kernel)
-        elif len(kernel) != 2:
+            kernel = (kernel, kernel) if not mode_3D else (kernel, kernel, kernel)
+        elif len(kernel) not in [2,3]:
             raise ValueError("kernel has to be None, int, or an iterable of length 2")
         assert all([k % 2 == 1 for k in kernel]), "kernel sizes have to be odd"
         kernel = list(kernel)
@@ -52,40 +53,49 @@ class ResidualBlock(nn.Module):
         self.gated = gated
         modules = []
 
+        if mode_3D:
+            conv_cls = nn.Conv3d
+            batchnorm_cls = nn.BatchNorm3d
+            dropout_cls = nn.Dropout3d
+        else:
+            conv_cls = nn.Conv2d
+            batchnorm_cls = nn.BatchNorm2d
+            dropout_cls = nn.Dropout2d
+
         if block_type == 'cabdcabd':
             for i in range(2):
-                conv = nn.Conv2d(channels, channels, kernel[i], padding=pad[i], groups=groups, bias=conv2d_bias)
+                conv = conv_cls(channels, channels, kernel[i], padding=pad[i], groups=groups, bias=conv2d_bias)
                 modules.append(conv)
                 modules.append(nonlin())
                 if batchnorm:
-                    modules.append(nn.BatchNorm2d(channels))
+                    modules.append(batchnorm_cls(channels))
                 if dropout is not None:
-                    modules.append(nn.Dropout2d(dropout))
+                    modules.append(dropout_cls(dropout))
 
         elif block_type == 'bacdbac':
             for i in range(2):
                 if batchnorm:
-                    modules.append(nn.BatchNorm2d(channels))
+                    modules.append(batchnorm_cls(channels))
                 modules.append(nonlin())
-                conv = nn.Conv2d(channels, channels, kernel[i], padding=pad[i], groups=groups, bias=conv2d_bias)
+                conv = conv_cls(channels, channels, kernel[i], padding=pad[i], groups=groups, bias=conv2d_bias)
                 modules.append(conv)
                 if dropout is not None and i == 0:
-                    modules.append(nn.Dropout2d(dropout))
+                    modules.append(dropout_cls(dropout))
 
         elif block_type == 'bacdbacd':
             for i in range(2):
                 if batchnorm:
-                    modules.append(nn.BatchNorm2d(channels))
+                    modules.append(batchnorm_cls(channels))
                 modules.append(nonlin())
-                conv = nn.Conv2d(channels, channels, kernel[i], padding=pad[i], groups=groups, bias=conv2d_bias)
+                conv = conv_cls(channels, channels, kernel[i], padding=pad[i], groups=groups, bias=conv2d_bias)
                 modules.append(conv)
-                modules.append(nn.Dropout2d(dropout))
+                modules.append(dropout_cls(dropout))
 
         else:
             raise ValueError("unrecognized block type '{}'".format(block_type))
 
         if gated:
-            modules.append(GateLayer2d(channels, 1, nonlin))
+            modules.append(GateLayer(channels, 1, mode_3D=mode_3D, nonlin=nonlin))
         self.block = nn.Sequential(*modules)
 
     def forward(self, x):
@@ -103,17 +113,20 @@ class ResidualGatedBlock(ResidualBlock):
         super().__init__(*args, **kwargs, gated=True)
 
 
-class GateLayer2d(nn.Module):
+class GateLayer(nn.Module):
     """
     Double the number of channels through a convolutional layer, then use
     half the channels as gate for the other half.
     """
-
-    def __init__(self, channels, kernel_size, nonlin=nn.LeakyReLU):
+    def __init__(self, channels, kernel_size, mode_3D=False, nonlin=nn.LeakyReLU):
         super().__init__()
         assert kernel_size % 2 == 1
         pad = kernel_size // 2
-        self.conv = nn.Conv2d(channels, 2 * channels, kernel_size, padding=pad)
+        if mode_3D:
+            conv_cls = nn.Conv3d
+        else:
+            conv_cls = nn.Conv2d
+        self.conv = conv_cls(channels, 2 * channels, kernel_size, padding=pad)
         self.nonlin = nonlin()
 
     def forward(self, x):

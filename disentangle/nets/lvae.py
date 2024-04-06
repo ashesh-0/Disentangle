@@ -47,6 +47,8 @@ class LadderVAE(pl.LightningModule):
         self.ch2_recons_w = config.loss.get('ch2_recons_w', 1)
         self._stochastic_use_naive_exponential = config.model.decoder.get('stochastic_use_naive_exponential', False)
         self._enable_topdown_normalize_factor = config.model.get('enable_topdown_normalize_factor', True)
+        self._mode_3D = config.model.get('mode_3D', False)
+
         # can be used to tile the validation predictions
         self._val_idx_manager = val_idx_manager
         self._val_frame_creator = None
@@ -118,6 +120,11 @@ class LadderVAE(pl.LightningModule):
             self.data_std = data_std
         else:
             raise NotImplementedError('data_mean and data_std must be either a numpy array or a dictionary')
+
+        if self._mode_3D:
+            for key in data_mean.keys():
+                self.data_mean[key] = self.data_mean[key][...,None,:,:]
+                self.data_std[key] = self.data_std[key][...,None,:,:]
 
         self.noiseModel = get_noise_model(config)
         self.merge_type = config.model.merge_type
@@ -239,7 +246,11 @@ class LadderVAE(pl.LightningModule):
         # self.label2_psnr = RunningPSNR()
         self.channels_psnr = [RunningPSNR() for _ in range(target_ch)]
         logvar_ch_needed = self.predict_logvar is not None
-        self.output_layer = self.parameter_net = nn.Conv2d(self.decoder_n_filters,
+        if self._mode_3D:
+            conv_cls = nn.Conv3d
+        else:
+            conv_cls = nn.Conv2d
+        self.output_layer = self.parameter_net = conv_cls(self.decoder_n_filters,
                                                            self.target_ch * (1 + logvar_ch_needed),
                                                            kernel_size=3,
                                                            padding=1,
@@ -281,6 +292,7 @@ class LadderVAE(pl.LightningModule):
                     is_top_layer=is_top,
                     downsampling_steps=self.downsample[i],
                     nonlin=nonlin,
+                    mode_3D=self._mode_3D,
                     merge_type=self.merge_type,
                     batchnorm=self.topdown_batchnorm,
                     dropout=self.decoder_dropout,
@@ -336,6 +348,7 @@ class LadderVAE(pl.LightningModule):
                               nonlin=nonlin,
                               batchnorm=self.bottomup_batchnorm,
                               dropout=self.encoder_dropout,
+                              mode_3D=self._mode_3D,
                               res_block_type=self.res_block_type,
                               res_block_kernel=self.encoder_res_block_kernel,
                               res_block_skip_padding=self.encoder_res_block_skip_padding,
@@ -361,6 +374,7 @@ class LadderVAE(pl.LightningModule):
                     c_in=self.decoder_n_filters,
                     c_out=self.decoder_n_filters,
                     nonlin=self.get_nonlin(),
+                    mode_3D=self._mode_3D,
                     batchnorm=self.topdown_batchnorm,
                     dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
@@ -389,8 +403,12 @@ class LadderVAE(pl.LightningModule):
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
         nonlin = self.get_nonlin()
+        if self._mode_3D:
+            conv_cls = nn.Conv3d
+        else:
+            conv_cls = nn.Conv2d
         modules = [
-            nn.Conv2d(self.color_ch,
+            conv_cls(self.color_ch,
                       self.encoder_n_filters,
                       self.encoder_res_block_kernel,
                       padding=0 if self.encoder_res_block_skip_padding else self.encoder_res_block_kernel // 2,
@@ -403,6 +421,7 @@ class LadderVAE(pl.LightningModule):
                     c_in=self.encoder_n_filters,
                     c_out=self.encoder_n_filters,
                     nonlin=nonlin,
+                    mode_3D=self._mode_3D,
                     batchnorm=self.bottomup_batchnorm,
                     dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
@@ -427,14 +446,21 @@ class LadderVAE(pl.LightningModule):
 
         msg = "if multiscale is enabled, then we are just working with monocrome images."
         assert self._multiscale_count == 1 or self.color_ch == 1, msg
+
+        if self._mode_3D:
+            conv_cls = nn.Conv3d
+        else:
+            conv_cls = nn.Conv2d
+
         lowres_first_bottom_ups = []
         for _ in range(1, self._multiscale_count):
             first_bottom_up = nn.Sequential(
-                nn.Conv2d(self.color_ch, self.encoder_n_filters, 5, padding=2, stride=stride), nonlin(),
+                conv_cls(self.color_ch, self.encoder_n_filters, 5, padding=2, stride=stride), nonlin(),
                 BottomUpDeterministicResBlock(
                     c_in=self.encoder_n_filters,
                     c_out=self.encoder_n_filters,
                     nonlin=nonlin,
+                    mode_3D=self._mode_3D,
                     batchnorm=self.bottomup_batchnorm,
                     dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
@@ -830,8 +856,16 @@ class LadderVAE(pl.LightningModule):
 
         channels_rinvpsnr = []
         for i in range(recons_img.shape[1]):
-            self.channels_psnr[i].update(recons_img[:, i], target_normalized[:, i])
-            psnr = RangeInvariantPsnr(target_normalized[:, i].clone(), recons_img[:, i].clone())
+            if self._mode_3D:
+                tmp_psnr = []
+                for didx in range(recons_img.shape[2]):
+                    self.channels_psnr[i].update(recons_img[:, i, didx], target_normalized[:, i, didx])
+                    psnr = RangeInvariantPsnr(target_normalized[:, i, didx].clone(), recons_img[:, i, didx].clone())
+                    tmp_psnr.append(psnr)
+                psnr = torch_nanmean(torch.cat(tmp_psnr, dim=0))
+            else:
+                self.channels_psnr[i].update(recons_img[:, i], target_normalized[:, i])
+                psnr = RangeInvariantPsnr(target_normalized[:, i].clone(), recons_img[:, i].clone())
             channels_rinvpsnr.append(psnr)
             psnr = torch_nanmean(psnr).item()
             self.log(f'val_psnr_l{i+1}', psnr, on_epoch=True)
@@ -894,6 +928,7 @@ class LadderVAE(pl.LightningModule):
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
+        
         for i in range(0, self.skip_bottomk_buvalues):
             bu_values[i] = None
 
@@ -1111,12 +1146,8 @@ class LadderVAE(pl.LightningModule):
         """
 
         # Make size argument into (heigth, width)
-        if len(size) == 4:
-            size = size[2:]
-        if len(size) != 2:
-            msg = ("input size must be either (N, C, H, W) or (H, W), but it "
-                   "has length {} (size={})".format(len(size), size))
-            raise RuntimeError(msg)
+        assert len(size) in [2, 4,5]
+        size = size[-2:]
 
         if self.multiscale_decoder_retain_spatial_dims is True:
             # In this case, we can go much more deeper and so this is not required
@@ -1193,11 +1224,11 @@ if __name__ == '__main__':
         'target': data_std.repeat(1, 2, 1, 1)
     }, config)
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count
-    inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
+    inp = torch.rand((2, mc, 3, config.data.image_size, config.data.image_size))
     out, td_data = model(inp)
     batch = (
-        torch.rand((16, mc, config.data.image_size, config.data.image_size)),
-        torch.rand((16, 2, config.data.image_size, config.data.image_size)),
+        torch.rand((16, mc,3, config.data.image_size, config.data.image_size)),
+        torch.rand((16, 2, 3, config.data.image_size, config.data.image_size)),
     )
     model.training_step(batch, 0)
     model.validation_step(batch, 0)
