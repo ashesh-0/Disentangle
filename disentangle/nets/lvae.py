@@ -12,6 +12,7 @@ import wandb
 from torch import nn
 from torch.autograd import Variable
 
+from disentangle.core.nn_submodules import GateLayer
 from disentangle.analysis.pred_frame_creator import PredFrameCreator
 from disentangle.core.data_utils import Interpolate, crop_img_tensor, pad_img_tensor
 from disentangle.core.likelihoods import GaussianLikelihood, NoiseModelLikelihood
@@ -51,7 +52,8 @@ class LadderVAE(pl.LightningModule):
         self._model_3D_depth = config.data.get('depth3D', 1)
         self._decoder_mode_3D = config.model.decoder.get('mode_3D', self._mode_3D)
         assert self._mode_3D is True or self._decoder_mode_3D is False, 'Decoder cannot be 3D when encoder is 2D'
-
+        self._squish3d = self._mode_3D and not self._decoder_mode_3D
+        self._3D_squisher = None if not self._squish3d else nn.ModuleList([GateLayer(config.model.encoder.n_filters,3, True) for k in range(len(config.model.z_dims))])
         # can be used to tile the validation predictions
         self._val_idx_manager = val_idx_manager
         self._val_frame_creator = None
@@ -942,8 +944,8 @@ class LadderVAE(pl.LightningModule):
         for i in range(0, self.skip_bottomk_buvalues):
             bu_values[i] = None
 
-        if self._mode_3D is True and self._decoder_mode_3D is False:
-            bu_values = [torch.mean(bu_value, dim=2) for bu_value in bu_values]
+        if self._squish3d:
+            bu_values = [torch.mean(self._3D_squisher[k](bu_value), dim=2) for k,bu_value in enumerate(bu_values)]
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
         # Top-down inference/generation
