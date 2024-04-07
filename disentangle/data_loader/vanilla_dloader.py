@@ -183,7 +183,7 @@ class MultiChDloader:
             if data_config.get('input_has_dependant_noise', False):
                 msg += '. Moreover, input has dependent noise'
                 self._noise_data[..., 0] = np.mean(self._noise_data[..., 1:], axis=-1)
-            print(msg)
+        print(msg)
 
         self.N = len(self._data)
         assert self._data.shape[-1] == self._num_channels, 'Number of channels in data and config do not match.'

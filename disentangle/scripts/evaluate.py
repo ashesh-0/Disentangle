@@ -647,17 +647,14 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             mmse_count=1,
                                             predict_kth_frame=None):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/65',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/64',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/66',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/63',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/67',
-
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/68',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/69',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/72',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/70',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/71',
+        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/86',
+        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/84',
+        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/85',
+        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/83',
+        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/89',
+        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/88',
+        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/87',
+        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/90',
 
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
