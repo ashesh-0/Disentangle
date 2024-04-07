@@ -49,6 +49,8 @@ class LadderVAE(pl.LightningModule):
         self._enable_topdown_normalize_factor = config.model.get('enable_topdown_normalize_factor', True)
         self._mode_3D = config.model.get('mode_3D', False)
         self._model_3D_depth = config.data.get('depth3D', 1)
+        self._decoder_mode_3D = config.model.decoder.get('mode_3D', self._mode_3D)
+        assert self._mode_3D is True or self._decoder_mode_3D is False, 'Decoder cannot be 3D when encoder is 2D'
 
         # can be used to tile the validation predictions
         self._val_idx_manager = val_idx_manager
@@ -122,10 +124,10 @@ class LadderVAE(pl.LightningModule):
         else:
             raise NotImplementedError('data_mean and data_std must be either a numpy array or a dictionary')
 
-        if self._mode_3D:
+        if self._mode_3D and self._decoder_mode_3D:
             for key in data_mean.keys():
-                self.data_mean[key] = self.data_mean[key][...,None,:,:]
-                self.data_std[key] = self.data_std[key][...,None,:,:]
+                self.data_mean[key] = self.data_mean[key][..., None, :, :]
+                self.data_std[key] = self.data_std[key][..., None, :, :]
 
         self.noiseModel = get_noise_model(config)
         self.merge_type = config.model.merge_type
@@ -247,19 +249,19 @@ class LadderVAE(pl.LightningModule):
         # self.label2_psnr = RunningPSNR()
         self.channels_psnr = [RunningPSNR() for _ in range(target_ch)]
         logvar_ch_needed = self.predict_logvar is not None
-        if self._mode_3D:
+        if self._mode_3D and self._decoder_mode_3D:
             conv_cls = nn.Conv3d
         else:
             conv_cls = nn.Conv2d
         self.output_layer = self.parameter_net = conv_cls(self.decoder_n_filters,
-                                                           self.target_ch * (1 + logvar_ch_needed),
-                                                           kernel_size=3,
-                                                           padding=1,
-                                                           bias=self.topdown_conv2d_bias)
+                                                          self.target_ch * (1 + logvar_ch_needed),
+                                                          kernel_size=3,
+                                                          padding=1,
+                                                          bias=self.topdown_conv2d_bias)
 
         msg = f'[{self.__class__.__name__}] Stoc:{not self.non_stochastic_version} RecMode:{self.reconstruction_mode} TethInput:{self._tethered_to_input}'
         if self._model_3D_depth > 1:
-            msg += f' 3D:{self._model_3D_depth}'
+            msg += f' 3D:{self._model_3D_depth} 3D Decoder:{self._decoder_mode_3D}'
         print(msg)
 
     def create_top_down_layers(self):
@@ -294,7 +296,7 @@ class LadderVAE(pl.LightningModule):
                     is_top_layer=is_top,
                     downsampling_steps=self.downsample[i],
                     nonlin=nonlin,
-                    mode_3D=self._mode_3D,
+                    mode_3D=self._decoder_mode_3D,
                     merge_type=self.merge_type,
                     batchnorm=self.topdown_batchnorm,
                     dropout=self.decoder_dropout,
@@ -376,7 +378,7 @@ class LadderVAE(pl.LightningModule):
                     c_in=self.decoder_n_filters,
                     c_out=self.decoder_n_filters,
                     nonlin=self.get_nonlin(),
-                    mode_3D=self._mode_3D,
+                    mode_3D=self._decoder_mode_3D,
                     batchnorm=self.topdown_batchnorm,
                     dropout=self.decoder_dropout,
                     res_block_type=self.res_block_type,
@@ -411,10 +413,10 @@ class LadderVAE(pl.LightningModule):
             conv_cls = nn.Conv2d
         modules = [
             conv_cls(self.color_ch,
-                      self.encoder_n_filters,
-                      self.encoder_res_block_kernel,
-                      padding=0 if self.encoder_res_block_skip_padding else self.encoder_res_block_kernel // 2,
-                      stride=init_stride),
+                     self.encoder_n_filters,
+                     self.encoder_res_block_kernel,
+                     padding=0 if self.encoder_res_block_skip_padding else self.encoder_res_block_kernel // 2,
+                     stride=init_stride),
             nonlin()
         ]
         for _ in range(num_blocks):
@@ -707,6 +709,9 @@ class LadderVAE(pl.LightningModule):
             self.log('val_psnr', 1.0, on_epoch=True)
 
         x, target = batch[:2]
+        if self._mode_3D and not self._decoder_mode_3D:
+            target = target[:, :, 1]
+
         x_normalized = self.normalize_input(x)
         if self.reconstruction_mode:
             target_normalized = x_normalized[:, :1].repeat(1, 2, 1, 1)
@@ -825,6 +830,9 @@ class LadderVAE(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, target = batch[:2]
+        if self._mode_3D and not self._decoder_mode_3D:
+            target = target[:, :, 1]
+
         self.set_params_to_same_device_as(x)
         x_normalized = self.normalize_input(x)
         if self.reconstruction_mode:
@@ -858,7 +866,7 @@ class LadderVAE(pl.LightningModule):
 
         channels_rinvpsnr = []
         for i in range(recons_img.shape[1]):
-            if self._mode_3D:
+            if self._mode_3D and self._decoder_mode_3D:
                 tmp_psnr = []
                 for didx in range(recons_img.shape[2]):
                     self.channels_psnr[i].update(recons_img[:, i, didx], target_normalized[:, i, didx])
@@ -930,9 +938,12 @@ class LadderVAE(pl.LightningModule):
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
-        
+
         for i in range(0, self.skip_bottomk_buvalues):
             bu_values[i] = None
+
+        if self._mode_3D is True and self._decoder_mode_3D is False:
+            bu_values = [torch.mean(bu_value, dim=2) for bu_value in bu_values]
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
         # Top-down inference/generation
@@ -1148,7 +1159,7 @@ class LadderVAE(pl.LightningModule):
         """
 
         # Make size argument into (heigth, width)
-        assert len(size) in [2, 4,5]
+        assert len(size) in [2, 4, 5]
         size = size[-2:]
 
         if self.multiscale_decoder_retain_spatial_dims is True:
@@ -1189,7 +1200,7 @@ class LadderVAE(pl.LightningModule):
         w = sz[1] // dwnsc
         c = self.z_dims[-1] * 2  # mu and logvar
         top_layer_shape = (n_imgs, c, h, w)
-        if self._model_3D_depth > 1:
+        if self._model_3D_depth > 1 and self._decoder_mode_3D is True:
             top_layer_shape = (n_imgs, c, self._model_3D_depth, h, w)
         return top_layer_shape
 
@@ -1231,7 +1242,7 @@ if __name__ == '__main__':
     inp = torch.rand((2, mc, 3, config.data.image_size, config.data.image_size))
     out, td_data = model(inp)
     batch = (
-        torch.rand((16, mc,3, config.data.image_size, config.data.image_size)),
+        torch.rand((16, mc, 3, config.data.image_size, config.data.image_size)),
         torch.rand((16, 2, 3, config.data.image_size, config.data.image_size)),
     )
     model.training_step(batch, 0)

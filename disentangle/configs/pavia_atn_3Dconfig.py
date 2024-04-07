@@ -63,6 +63,8 @@ def get_config():
     model = config.model
     model.model_type = ModelType.LadderVae
     model.mode_3D = True
+    model.decoder.mode_3D = False
+
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
