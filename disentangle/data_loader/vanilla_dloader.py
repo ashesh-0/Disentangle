@@ -47,6 +47,9 @@ class MultiChDloader:
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
         self._num_channels = data_config.get('num_channels', 2)
+        self._input_idx = data_config.get('input_idx', None)
+        self._tar_idx_list = data_config.get('target_idx_list', None)
+
         if datasplit_type == DataSplitType.Train:
             self._datausage_fraction = data_config.get('trainig_datausage_fraction', 1.0)
             # assert self._datausage_fraction == 1.0, 'Not supported. Use validtarget_random_fraction and training_validtarget_fraction to get the same effect'
@@ -126,6 +129,8 @@ class MultiChDloader:
         self._mean = None
         self._std = None
         self._use_one_mu_std = use_one_mu_std
+        self._target_separate_normalization = data_config.target_separate_normalization
+
         self._enable_rotation = enable_rotation_aug
         self._enable_random_cropping = enable_random_cropping
         # Randomly rotate [-90,90]
@@ -429,6 +434,8 @@ class MultiChDloader:
 
     def normalize_img(self, *img_tuples):
         mean, std = self.get_mean_std()
+        mean = mean['target']
+        std = std['target']
         mean = mean.squeeze()
         std = std.squeeze()
         normalized_imgs = []
@@ -487,40 +494,57 @@ class MultiChDloader:
 
         return mean[None, :, None, None], std[None, :, None, None]
 
+    
     def compute_mean_std(self, allow_for_validation_data=False):
         """
         Note that we must compute this only for training data.
         """
         assert self._is_train is True or allow_for_validation_data, 'This is just allowed for training data'
-        if self._use_one_mu_std is True:
-            if self._input_is_sum:
-                assert self._noise_data is None, "This is not supported with noise"
-                mean = [np.mean(self._data[..., k:k + 1], keepdims=True) for k in range(self._num_channels)]
-                mean = np.sum(mean, keepdims=True)[0]
-                std = np.linalg.norm(
-                    [np.std(self._data[..., k:k + 1], keepdims=True) for k in range(self._num_channels)],
-                    keepdims=True)[0]
+        assert self._use_one_mu_std is True, 'This is the only supported case'
+
+        if self._input_idx is not None:
+            assert self._tar_idx_list is not None, 'tar_idx_list must be set if input_idx is set.'
+            assert self._noise_data is None, 'This is not supported with noise'
+            assert self._target_separate_normalization is True, 'This is not supported with target_separate_normalization=False'
+
+            mean, std = self.compute_individual_mean_std()
+            mean_dict = {'input':mean[:,self._input_idx:self._input_idx+1], 'target':mean[:,self._tar_idx_list]}
+            std_dict = {'input':std[:,self._input_idx:self._input_idx+1], 'target':std[:,self._tar_idx_list]}
+            return mean_dict, std_dict
+
+        if self._input_is_sum:
+            assert self._noise_data is None, "This is not supported with noise"
+            mean = [np.mean(self._data[..., k:k + 1], keepdims=True) for k in range(self._num_channels)]
+            mean = np.sum(mean, keepdims=True)[0]
+            std = np.linalg.norm(
+                [np.std(self._data[..., k:k + 1], keepdims=True) for k in range(self._num_channels)],
+                keepdims=True)[0]
+        else:
+            mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
+            if self._noise_data is not None:
+                std = np.std(self._data + self._noise_data[..., 1:], keepdims=True).reshape(1, 1, 1, 1)
             else:
-                mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
-                if self._noise_data is not None:
-                    std = np.std(self._data + self._noise_data[..., 1:], keepdims=True).reshape(1, 1, 1, 1)
-                else:
-                    std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
+                std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
 
-            mean = np.repeat(mean, self._num_channels, axis=1)
-            std = np.repeat(std, self._num_channels, axis=1)
+        mean = np.repeat(mean, self._num_channels, axis=1)
+        std = np.repeat(std, self._num_channels, axis=1)
 
-            if self._skip_normalization_using_mean:
-                mean = np.zeros_like(mean)
+        if self._skip_normalization_using_mean:
+            mean = np.zeros_like(mean)
+        
+        mean_dict = {'input':mean}#, 'target':mean}
+        std_dict = {'input':std}#, 'target':std}
+        
+        if self._target_separate_normalization:
+            mean, std = self.compute_individual_mean_std()
+        
+        mean_dict['target'] = mean
+        std_dict['target'] = std
+        return mean_dict, std_dict
 
-            return mean, std
+    
 
-        elif self._use_one_mu_std is False:
-            return self.compute_individual_mean_std()
-
-        elif self._use_one_mu_std is None:
-            return (np.array([0.0, 0.0]).reshape(1, self._num_channels, 1,
-                                                 1), np.array([1.0, 1.0]).reshape(1, self._num_channels, 1, 1))
+       
 
     def _get_random_hw(self, h: int, w: int):
         """
@@ -557,14 +581,39 @@ class MultiChDloader:
         return tuple(final_img_tuples)
 
     def get_mean_std_for_input(self):
-        return self.get_mean_std()
+        mean, std = self.get_mean_std()
+        return mean['input'], std['input']
 
+    def _compute_target(self, img_tuples, alpha):
+        if self._tar_idx_list is not None and isinstance(self._tar_idx_list, int):
+            target = img_tuples[self._tar_idx_list]
+        else:
+            if self._tar_idx_list is not None:
+                assert isinstance(self._tar_idx_list, list) or isinstance(self._tar_idx_list, tuple)
+                img_tuples = [img_tuples[i] for i in self._tar_idx_list]
+
+            if self._alpha_weighted_target:
+                assert self._input_is_sum is False
+                target = []
+                for i in range(len(img_tuples)):
+                    target.append(img_tuples[i] * alpha[i])
+                target = np.concatenate(target, axis=0)
+            else:
+                target = np.concatenate(img_tuples, axis=0)
+        return target
+    
     def _compute_input_with_alpha(self, img_tuples, alpha):
-        assert self._normalized_input is True, "normalization should happen here"
-        inp = 0
-        for alpha, img in zip(alpha, img_tuples):
-            inp += img * alpha
+        # assert self._normalized_input is True, "normalization should happen here"
+        if self._input_idx is not None:
+            inp = img_tuples[self._input_idx]
+        else:
+            inp = 0
+            for alpha, img in zip(alpha, img_tuples):
+                inp += img * alpha
 
+            if self._normalized_input is False:
+                return inp.astype(np.float32)
+    
         mean, std = self.get_mean_std_for_input()
         mean = mean.squeeze()
         std = std.squeeze()
@@ -572,7 +621,6 @@ class MultiChDloader:
             mean = mean.reshape(1, )
             std = std.reshape(1, )
 
-        assert len(mean) == len(img_tuples)
         for i in range(len(mean)):
             assert mean[0] == mean[i]
             assert std[0] == std[i]
@@ -639,14 +687,7 @@ class MultiChDloader:
         if len(noise_tuples) >= 1:
             img_tuples = [x + noise for x, noise in zip(img_tuples, noise_tuples[1:])]
 
-        if self._alpha_weighted_target:
-            assert self._input_is_sum is False
-            target = []
-            for i in range(len(img_tuples)):
-                target.append(img_tuples[i] * alpha[i])
-            target = np.concatenate(target, axis=0)
-        else:
-            target = np.concatenate(img_tuples, axis=0)
+        target = self._compute_target(img_tuples, alpha)
 
         output = [inp, target]
 

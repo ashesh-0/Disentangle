@@ -22,6 +22,7 @@ from disentangle.data_loader.sinosoid_threecurve_dloader import train_val_data a
 from disentangle.data_loader.sox2golgi_rawdata_loader import get_train_val_data as _loadsox2golgi
 from disentangle.data_loader.sox2golgi_v2_rawdata_loader import get_train_val_data as _loadsox2golgi_v2
 from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data as _loadseparatetiff
+from disentangle.data_loader.nikola_7D_rawdata_loader import get_train_val_data as _loadnikola7D
 
 
 def get_train_val_data(data_config,
@@ -134,5 +135,7 @@ def get_train_val_data(data_config,
                                      test_fraction=test_fraction)
     elif data_config.data_type == DataType.Pavia3SeqData:
         return _loadpavia3(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
+    elif data_config.data_type == DataType.NicolaData:
+        return _loadnikola7D(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')

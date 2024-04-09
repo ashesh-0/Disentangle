@@ -11,9 +11,11 @@ def get_config():
     data = config.data
     data.image_size = 128
     data.data_type = DataType.NicolaData
-    data.dset_type = 'high'
-    data.num_channels = 2
+    data.dset_type = 'high' # high, mid, low, verylow
+    data.num_channels = 3
     data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B, NikolaChannelList.Ch_AB]
+    data.input_idx = 2
+    data.target_idx_list = [0, 1]
 
     data.enable_gaussian_noise = False
     data.trainig_datausage_fraction = 1.0
@@ -81,6 +83,7 @@ def get_config():
     config.model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
+    model.num_targets = 2
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.stochastic_skip = True
@@ -100,7 +103,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     fname = '/home/ashesh.ashesh/training/noise_model/2404/13/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-06_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname
