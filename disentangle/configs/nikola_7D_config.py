@@ -11,9 +11,9 @@ def get_config():
     data = config.data
     data.image_size = 128
     data.data_type = DataType.NicolaData
-    data.dset_type = 'low' # high, mid, low, verylow
+    data.dset_type = 'high' # high, mid, low, verylow
     data.num_channels = 3
-    data.channel_idx_list = [NikolaChannelList.Ch_B, NikolaChannelList.Ch_D, NikolaChannelList.Ch_BD]
+    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_D, NikolaChannelList.Ch_AD]
     data.input_idx = 2
     data.target_idx_list = [0, 1]
 
