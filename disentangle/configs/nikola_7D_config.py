@@ -13,7 +13,7 @@ def get_config():
     data.data_type = DataType.NicolaData
     data.dset_type = 'low' # high, mid, low, verylow
     data.num_channels = 3
-    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B, NikolaChannelList.Ch_AB]
+    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_C, NikolaChannelList.Ch_AC]
     data.input_idx = 2
     data.target_idx_list = [0, 1]
 
