@@ -59,6 +59,7 @@ def get_raw_files_dict():
 
 
 def load_7D(fpath):    
+    print(f'Loading from {fpath}')
     with nd2.ND2File(fpath) as nd2file:
         # Stdout: ND2 dimensions: {'P': 20, 'C': 19, 'Y': 1608, 'X': 1608}; RGB: False; datatype: uint16; legacy: False
         data = read_nd2file(nd2file)
