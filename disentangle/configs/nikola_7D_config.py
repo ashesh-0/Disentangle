@@ -13,7 +13,7 @@ def get_config():
     data.data_type = DataType.NicolaData
     data.dset_type = 'low' # high, mid, low, verylow
     data.num_channels = 3
-    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_C, NikolaChannelList.Ch_AC]
+    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B, NikolaChannelList.Ch_AB]
     data.input_idx = 2
     data.target_idx_list = [0, 1]
 
@@ -49,7 +49,7 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # this is not uSplit.
-    loss.kl_loss_formulation = ''
+    loss.kl_loss_formulation = 'usplit'
 
     # loss.mixed_rec_weight = 1
 
@@ -97,7 +97,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None  #'pixelwise' #'channelwise'
+    model.predict_logvar = 'pixelwise' #'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
@@ -105,9 +105,9 @@ def get_config():
 
     model.enable_noise_model = False
     model.noise_model_type = 'gmm'
-    fname = '/home/ashesh.ashesh/training/noise_model/2404/13/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-06_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname
-    model.noise_model_ch2_fpath = fname
+    # fname = '/home/ashesh.ashesh/training/noise_model/2404/13/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-06_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/27/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_lowSNR_channel0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2404/28/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_lowSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
     assert model.enable_noise_model == False or model.predict_logvar is None
@@ -127,5 +127,5 @@ def get_config():
     training.val_fraction = 0.1
     training.test_fraction = 0.1
     training.earlystop_patience = 200
-    # training.precision = 16
+    training.precision = 16
     return config
