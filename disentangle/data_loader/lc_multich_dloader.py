@@ -147,18 +147,17 @@ class LCMultiChDloader(MultiChDloader):
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]):
         img_tuples, noise_tuples = self._get_img(index)
+        assert len(noise_tuples) == 0, 'Synthetic noise is not supported for LC'
 
         if self._enable_rotation:
             img_tuples, noise_tuples = self._rotate(img_tuples, noise_tuples)
 
         assert self._lowres_supervision != True
-        assert len(noise_tuples) == 0, 'Synthetic noise is not supported for LC'
         input_tuples = img_tuples
         inp, alpha = self._compute_input(input_tuples)
         assert self._alpha_weighted_target in [False, None]
         target_tuples = [img[:1] for img in img_tuples]
         target = self._compute_target(target_tuples, None)
-
 
         output = [inp, target]
 
@@ -171,12 +170,6 @@ class LCMultiChDloader(MultiChDloader):
         _, grid_size = index
         output.append(grid_size)
         return tuple(output)
-
-        # if isinstance(index, int):
-        #     return inp, target
-
-        # _, grid_size = index
-        # return inp, target, grid_size
 
 
 if __name__ == '__main__':
