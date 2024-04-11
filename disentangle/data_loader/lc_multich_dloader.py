@@ -147,16 +147,30 @@ class LCMultiChDloader(MultiChDloader):
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]):
         img_tuples, noise_tuples = self._get_img(index)
-        assert len(noise_tuples) == 0, 'Synthetic noise is not supported for LC'
+        # assert len(noise_tuples) == 0, 'Synthetic noise is not supported for LC'
 
         if self._enable_rotation:
             img_tuples, noise_tuples = self._rotate(img_tuples, noise_tuples)
 
         assert self._lowres_supervision != True
-        input_tuples = img_tuples
+        # add noise to input
+        if len(noise_tuples) > 0:
+            factor = np.sqrt(2) if self._input_is_sum else 1.0
+            input_tuples = []
+            for x in img_tuples:
+                # NOTE: other LC levels already have noise added. So, we just need to add noise to the highest resolution.
+                x[0] = x[0] + noise_tuples[0] * factor
+                input_tuples.append(x)
+        else:
+            input_tuples = img_tuples
+
         inp, alpha = self._compute_input(input_tuples)
         assert self._alpha_weighted_target in [False, None]
         target_tuples = [img[:1] for img in img_tuples]
+        # add noise to target.
+        if len(noise_tuples) >= 1:
+            target_tuples = [x + noise for x, noise in zip(target_tuples, noise_tuples[1:])]
+
         target = self._compute_target(target_tuples, None)
 
         output = [inp, target]
@@ -176,14 +190,14 @@ if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
     import matplotlib.pyplot as plt
 
-    from disentangle.configs.twotiff_config import get_config
+    from disentangle.configs.biosr_config import get_config
     config = get_config()
     padding_kwargs = {'mode': config.data.padding_mode}
     if 'padding_value' in config.data and config.data.padding_value is not None:
         padding_kwargs['constant_values'] = config.data.padding_value
 
     dset = LCMultiChDloader(config.data,
-                            '/group/jug/ashesh/data/ventura_gigascience_small/',
+                            '/group/jug/ashesh/data/BioSR/',
                             DataSplitType.Train,
                             val_fraction=config.training.val_fraction,
                             test_fraction=config.training.test_fraction,
