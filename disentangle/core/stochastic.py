@@ -121,6 +121,7 @@ class NormalStochasticBlock2d(nn.Module):
             # compute KL only on the portion of the latent space that is used for prediction. 
             if self._restricted_kl:
                 pad = (kl_elementwise.shape[-1] - self._vanilla_latent_hw)//2
+                assert pad > 0, 'Disable restricted kl since there is no restriction.'
                 kl_elementwise = kl_elementwise[..., pad:-pad, pad:-pad]
             
             kl_samplewise = kl_elementwise.sum((1, 2, 3))
