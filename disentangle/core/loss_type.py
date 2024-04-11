@@ -10,3 +10,4 @@ class LossType:
     ElboSemiSupMixedReconstruction = 5
     ElboCL = 6
     ElboRestrictedReconstruction = 7
+    DenoiSplitMuSplit = 8

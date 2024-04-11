@@ -160,6 +160,12 @@ class LadderVAE(pl.LightningModule):
         self.enable_mixed_rec = False
         self.nbr_consistency_w = 0
         self._exclusion_loss_weight = config.loss.get('exclusion_loss_weight', 0)
+        
+        self._denoisplit_w = self._usplit_w = None
+        if self.loss_type == LossType.DenoiSplitMuSplit:
+            self._denoisplit_w = config.loss.denoisplit_w
+            self._usplit_w = config.loss.usplit_w
+            assert self._denoisplit_w + self._usplit_w == 1
 
         if self.loss_type in [
                 LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction,
@@ -383,6 +389,9 @@ class LadderVAE(pl.LightningModule):
                                             conv2d_bias=self.topdown_conv2d_bias)
         self.likelihood_NM = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std,
                                               self.noiseModel)
+        if self.loss_type == LossType.DenoiSplitMuSplit:
+            return self.likelihood_gm
+        
         return self.likelihood_NM
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
@@ -716,26 +725,31 @@ class LadderVAE(pl.LightningModule):
             if enable_logging:
                 self.log('exclusion_loss', exclusion_loss, on_epoch=True)
 
-        elif self.loss_type == LossType.ElboWithNbrConsistency:
-            assert len(batch) == 4
-            grid_sizes = batch[-1]
-            nbr_cons_loss = self.nbr_consistency_w * self.nbr_consistency_loss.get(imgs, grid_sizes=grid_sizes)
-            self.log('nbr_cons_loss', nbr_cons_loss.item(), on_epoch=True)
-            recons_loss += nbr_cons_loss
+        assert self.loss_type != LossType.ElboWithNbrConsistency
 
         if self.non_stochastic_version:
             kl_loss = torch.Tensor([0.0]).cuda()
             net_loss = recons_loss
         else:
-            if self.kl_loss_formulation == 'usplit':
+            if self.loss_type == LossType.DenoiSplitMuSplit:
+                assert self.kl_loss_formulation == 'denoisplit_usplit'
+                assert self._denoisplit_w is not None and self._usplit_w is not None
+
+                if self.predict_logvar is not None:
+                    out_mean, _ = out.chunk(2, dim=1)
+                else:
+                    out_mean  = out
+                kl_loss = self._denoisplit_w * self.get_kl_divergence_loss(td_data) + self._usplit_w * self.get_kl_divergence_loss_usplit(td_data)
+                kl_loss = self.kl_weight * kl_loss
+
+                recons_loss_nm = -1*self.likelihood_NM(out_mean, target_normalized)[0].mean()
+                recons_loss_gm = -1*self.likelihood_gm(out, target_normalized)[0].mean()
+                recons_loss = self._denoisplit_w * recons_loss_nm + self._usplit_w * recons_loss_gm
+                
+            elif self.kl_loss_formulation == 'usplit':
                 kl_loss = self.get_kl_weight() * self.get_kl_divergence_loss_usplit(td_data)
             elif self.kl_loss_formulation in ['', 'denoisplit']:
                 kl_loss = self.get_kl_weight() * self.get_kl_divergence_loss(td_data)
-            elif self.kl_loss_formulation == 'denoisplit_usplit':
-                kl_loss = self.kl_weight * self.get_kl_divergence_loss(td_data) + self.usplit_kl_weight * self.get_kl_divergence_loss_usplit(td_data)
-                recons_loss_nm = -1*self.likelihood_NM(out, target_normalized)[0].mean()
-                recons_loss_gm = -1*self.likelihood_gm(out, target_normalized)[0].mean()
-                recons_loss = self.kl_weight * recons_loss_nm + self.usplit_kl_weight * recons_loss_gm
             net_loss = recons_loss + kl_loss
 
         if enable_logging:
