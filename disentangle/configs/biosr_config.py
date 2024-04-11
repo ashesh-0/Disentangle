@@ -52,7 +52,7 @@ def get_config():
     loss.kl_loss_formulation = 'usplit'
 
     # loss.mixed_rec_weight = 1
-    loss.restricted_kl = True
+    loss.restricted_kl = False
     loss.kl_weight = 1.0
     loss.reconstruction_weight = 1.0
     loss.kl_annealing = False
