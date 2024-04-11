@@ -47,6 +47,7 @@ class LadderVAE(pl.LightningModule):
         self.ch2_recons_w = config.loss.get('ch2_recons_w', 1)
         self._stochastic_use_naive_exponential = config.model.decoder.get('stochastic_use_naive_exponential', False)
         self._enable_topdown_normalize_factor = config.model.get('enable_topdown_normalize_factor', True)
+        self.likelihood_gm = self.likelihood_NM = None
         # can be used to tile the validation predictions
         self._val_idx_manager = val_idx_manager
         self._val_frame_creator = None
@@ -79,7 +80,7 @@ class LadderVAE(pl.LightningModule):
 
         self.kl_loss_formulation = config.loss.get('kl_loss_formulation', None)
         assert self.kl_loss_formulation in [None, '',
-                                            'usplit'], f'Invalid kl_loss_formulation. {self.kl_loss_formulation}'
+                                            'usplit','denoisplit','denoisplit_usplit'], f'Invalid kl_loss_formulation. {self.kl_loss_formulation}'
         self.n_layers = len(self.z_dims)
         self.stochastic_skip = config.model.stochastic_skip
         self.bottomup_batchnorm = config.model.encoder.batchnorm
@@ -140,6 +141,8 @@ class LadderVAE(pl.LightningModule):
         # loss related
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
+        self.usplit_kl_weight = config.loss.get('usplit_kl_weight', None)
+
         self.free_bits = config.loss.free_bits
         self.reconstruction_weight = config.loss.get('reconstruction_weight', 1.0)
 
@@ -373,19 +376,14 @@ class LadderVAE(pl.LightningModule):
 
     def create_likelihood_module(self):
         # Define likelihood
-        if self.likelihood_form == 'gaussian':
-            likelihood = GaussianLikelihood(self.decoder_n_filters,
+        self.likelihood_gm = GaussianLikelihood(self.decoder_n_filters,
                                             self.target_ch,
                                             predict_logvar=self.predict_logvar,
                                             logvar_lowerbound=self.logvar_lowerbound,
                                             conv2d_bias=self.topdown_conv2d_bias)
-        elif self.likelihood_form == 'noise_model':
-            likelihood = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std,
+        self.likelihood_NM = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std,
                                               self.noiseModel)
-        else:
-            msg = "Unrecognized likelihood '{}'".format(self.likelihood_form)
-            raise RuntimeError(msg)
-        return likelihood
+        return self.likelihood_NM
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
         nonlin = self.get_nonlin()
@@ -656,7 +654,7 @@ class LadderVAE(pl.LightningModule):
             # topdown_layer_data_dict['z'][2].shape[-3:] = 128 * 32 * 32
             kl[:, i] = kl[:, i] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
 
-        kl_loss = free_bits_kl(kl, self.free_bits).mean()
+        kl_loss = free_bits_kl(kl, 0.0).mean()
         return kl_loss
 
     def get_kl_divergence_loss(self, topdown_layer_data_dict):
@@ -729,12 +727,17 @@ class LadderVAE(pl.LightningModule):
             kl_loss = torch.Tensor([0.0]).cuda()
             net_loss = recons_loss
         else:
-            kl_loss = self.get_kl_divergence_loss(
-                td_data) if self.kl_loss_formulation != 'usplit' else self.get_kl_divergence_loss_usplit(td_data)
+            if self.kl_loss_formulation == 'usplit':
+                kl_loss = self.get_kl_weight() * self.get_kl_divergence_loss_usplit(td_data)
+            elif self.kl_loss_formulation in ['', 'denoisplit']:
+                kl_loss = self.get_kl_weight() * self.get_kl_divergence_loss(td_data)
+            elif self.kl_loss_formulation == 'denoisplit_usplit':
+                kl_loss = self.kl_weight * self.get_kl_divergence_loss(td_data) + self.usplit_kl_weight * self.get_kl_divergence_loss_usplit(td_data)
+                recons_loss_nm = -1*self.likelihood_NM(out, target_normalized)[0].mean()
+                recons_loss_gm = -1*self.likelihood_gm(out, target_normalized)[0].mean()
+                recons_loss = self.kl_weight * recons_loss_nm + self.usplit_kl_weight * recons_loss_gm
+            net_loss = recons_loss + kl_loss
 
-            net_loss = recons_loss + self.get_kl_weight() * kl_loss
-
-        # print(f'rec:{recons_loss_dict["loss"]:.3f} mix: {recons_loss_dict.get("mixed_loss",0):.3f} KL: {kl_loss:.3f}')
         if enable_logging:
             for i, x in enumerate(td_data['debug_qvar_max']):
                 self.log(f'qvar_max:{i}', x.item(), on_epoch=True)

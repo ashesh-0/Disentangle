@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'CCPs/GT_all.mrc'
     data.num_channels = 2
 
-    data.poisson_noise_factor = 4000
+    data.poisson_noise_factor = 1000
 
     data.enable_gaussian_noise = False
     data.trainig_datausage_fraction = 1.0
@@ -49,11 +49,12 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # this is not uSplit.
-    loss.kl_loss_formulation = ''
+    loss.kl_loss_formulation = 'denoisplit_usplit'
 
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1.0
+    loss.usplit_kl_weight = 1 - loss.kl_weight
     loss.reconstruction_weight = 1.0
     loss.kl_annealing = False
     loss.kl_annealtime = 10
@@ -104,7 +105,7 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname = '/home/ashesh.ashesh/training/noise_model/2404/13/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-06_UpNone_Norm0_bootstrap.npz'
+    fname = '/home/ashesh.ashesh/training/noise_model/2404/22/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-06_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname
     model.noise_model_ch2_fpath = fname
 
