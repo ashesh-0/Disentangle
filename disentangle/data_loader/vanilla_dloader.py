@@ -653,6 +653,40 @@ class MultiChDloader:
             else:
                 index = self._train_index_switcher.get_invalid_target_index()
         return index
+    
+    def _rotate(self, img_tuples, noise_tuples):
+        return self._rotate2D(img_tuples, noise_tuples)
+
+    def _rotate2D(self, img_tuples, noise_tuples):
+        img_kwargs = {}
+        for i,img in enumerate(img_tuples):
+            for k in range(len(img)):
+                img_kwargs[f'img{i}_{k}'] = img[k]
+        
+        noise_kwargs = {}
+        for i,nimg in enumerate(noise_tuples):
+            for k in range(len(nimg)):
+                noise_kwargs[f'noise{i}_{k}'] = nimg[k]
+        
+
+        keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
+        self._rotation_transform.add_targets({k: 'image' for k in keys})
+        rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
+        rotated_img_tuples = []
+        for i,img in enumerate(img_tuples):
+            if len(img) == 1:
+                rotated_img_tuples.append(rot_dic[f'img{i}_0'][None])
+            else:
+                rotated_img_tuples.append(np.concatenate([rot_dic[f'img{i}_{k}'][None] for k in range(len(img))], axis=0))
+
+        rotated_noise_tuples = []
+        for i, nimg in enumerate(noise_tuples):
+            if len(nimg) == 1:
+                rotated_noise_tuples.append(rot_dic[f'noise{i}_0'][None])
+            else:
+                rotated_noise_tuples.append(np.concatenate([rot_dic[f'noise{i}_{k}'][None] for k in range(len(nimg))], axis=0))
+        
+        return rotated_img_tuples, rotated_noise_tuples
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         if self._train_index_switcher is not None:
@@ -666,14 +700,7 @@ class MultiChDloader:
                 img_tuples = self.replace_with_empty_patch(img_tuples)
 
         if self._enable_rotation:
-            # passing just the 2D input. 3rd dimension messes up things.
-            img_kwargs = {f'img{i}': img_tuples[i][0] for i in range(len(img_tuples))}
-            noise_kwargs = {f'noise{i}': noise_tuples[i][0] for i in range(len(noise_tuples))}
-            keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
-            self._rotation_transform.add_targets({k: 'image' for k in keys})
-            rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
-            img_tuples = [rot_dic[f'img{i}'][None] for i in range(len(img_tuples))]
-            noise_tuples = [rot_dic[f'noise{i}'][None] for i in range(len(noise_tuples))]
+            img_tuples, noise_tuples = self._rotate(img_tuples, noise_tuples)
 
         # add noise to input
         if len(noise_tuples) > 0:
