@@ -75,7 +75,11 @@ class LCMultiChDloader(MultiChDloader):
             shape = self._scaled_data[-1].shape
             assert len(shape) == 4
             new_shape = (shape[0], shape[1] // 2, shape[2] // 2, shape[3])
-            ds_data = resize(self._scaled_data[-1], new_shape)
+            ds_data = resize(self._scaled_data[-1].astype(np.float32), new_shape).astype(self._scaled_data[-1].dtype)
+            # NOTE: These asserts are important. the resize method expects np.float32. otherwise, one gets weird results.
+            assert ds_data.max()/self._scaled_data[-1].max() < 5, 'Downsampled image should not have very different values'
+            assert ds_data.max()/self._scaled_data[-1].max() > 0.2, 'Downsampled image should not have very different values'
+
             self._scaled_data.append(ds_data)
             # do the same for noise
             if self._noise_data is not None:
