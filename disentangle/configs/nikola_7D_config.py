@@ -107,10 +107,8 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    # fname = '/home/ashesh.ashesh/training/noise_model/2404/13/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-06_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/27/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_lowSNR_channel0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2404/28/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_lowSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-
     model.noise_model_learnable = False
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
