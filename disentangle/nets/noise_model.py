@@ -33,11 +33,65 @@ class DisentNoiseModel(nn.Module):
 def last2path(fpath):
     return os.path.join(*fpath.split('/')[-2:])
 
-
-def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None):
+def get_nm_config(noise_model_fpath):
     config_fpath = os.path.join(os.path.dirname(noise_model_fpath), 'config.json')
     with open(config_fpath, 'r') as f:
         noise_model_config = json.load(f)
+    return noise_model_config
+
+def nm_config_sanity_check_target_idx_list(config):
+    nm1 = config.model.noise_model_ch1_fpath
+    nm2 = config.model.noise_model_ch2_fpath
+    nm1_config = get_nm_config(nm1)
+    nm2_config = get_nm_config(nm2)
+    
+    def get_channel(fname):
+        assert isinstance(fname, list)
+        assert len(fname) == 2
+        assert fname[1] == ''
+        fname = fname[0]
+        token = fname.replace('.tif','').split('_')[-1]
+        assert token.startswith('channel')
+        return int(token[len('channel'):])
+    
+    def get_dset_type(fname):
+        """
+        Everything except the channel token.
+        """
+        assert isinstance(fname, list)
+        assert len(fname) == 2
+        assert fname[1] == ''
+        fname = fname[0]
+        fname = fname.replace('.tif','')
+        # uSplit_14022025_lowSNR_channel0
+        tokens = fname.split('_')
+        token = tokens[-2]
+        # lowSNR
+        return token.replace('SNR','')
+
+    fname1 = nm1_config['fname']
+    fname2 = nm2_config['fname']
+    ch1 = get_channel(fname1)
+    ch2 = get_channel(fname2)
+    
+    assert len(config.data.target_idx_list) == 2
+    assert config.data.target_idx_list[0] == ch1, f'{config.data.target_idx_list[0]} != {ch1}'
+    assert config.data.target_idx_list[1] == ch2, f'{config.data.target_idx_list[1]} != {ch2}'
+    # check low, mid, high, verylow
+    dsettype1 = get_dset_type(fname1)
+    dsettype2 = get_dset_type(fname2)
+    assert dsettype1 == dsettype2, f'{dsettype1} != {dsettype2}'
+    assert dsettype1 == config.data.dset_type, f'{dsettype1} != {config.data.dset_type}'
+
+
+def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None):
+    if 'target_idx_list' in config.data and config.data.target_idx_list is not None:
+        return nm_config_sanity_check_target_idx_list(config)
+    
+    config_fpath = os.path.join(os.path.dirname(noise_model_fpath), 'config.json')
+    with open(config_fpath, 'r') as f:
+        noise_model_config = json.load(f)
+    
     # make sure that the amount of noise is consistent.
     if 'add_gaussian_noise_std' in noise_model_config:
         # data.enable_gaussian_noise = False
@@ -161,3 +215,9 @@ def get_noise_model(config):
 
         return DisentNoiseModel(nmodel1, nmodel2)
     return None
+
+
+if __name__ =='__main__':
+    from disentangle.configs.nikola_7D_config import get_config
+    config = get_config()
+    noise_model_config_sanity_check(config.model.noise_model_ch1_fpath, config)
