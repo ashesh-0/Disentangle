@@ -422,9 +422,9 @@ def main(
         **dloader_kwargs)
 
     # For normalizing, we should be using the training data's mean and std.
-    mean_val, std_val = train_dset.compute_mean_std()
-    train_dset.set_mean_std(mean_val, std_val)
-    val_dset.set_mean_std(mean_val, std_val)
+    mean_dict, std_dict = train_dset.compute_mean_std()
+    train_dset.set_mean_std(mean_dict, std_dict)
+    val_dset.set_mean_std(mean_dict, std_dict)
 
     if evaluate_train:
         val_dset = train_dset
@@ -436,26 +436,7 @@ def main(
         ] and old_image_size is not None:
             config.data.image_size = old_image_size
 
-    mean_dict = {'input': None, 'target': None}
-    std_dict = {'input': None, 'target': None}
-    inp_fr_mean, inp_fr_std = train_dset.get_mean_std()
-    mean_sq = inp_fr_mean.squeeze()
-    std_sq = inp_fr_std.squeeze()
-    assert mean_sq[0] == mean_sq[1] and len(mean_sq) == config.data.get('num_channels', 2)
-    assert std_sq[0] == std_sq[1] and len(std_sq) == config.data.get('num_channels', 2)
-    mean_dict['input'] = np.mean(inp_fr_mean, axis=1, keepdims=True)
-    std_dict['input'] = np.mean(inp_fr_std, axis=1, keepdims=True)
-
-    if config.data.target_separate_normalization is True:
-        target_data_mean, target_data_std = train_dset.compute_individual_mean_std()
-    else:
-        target_data_mean, target_data_std = train_dset.get_mean_std()
-
-    mean_dict['target'] = target_data_mean
-    std_dict['target'] = target_data_std
-    ######
-
-    model = create_model(config, mean_dict, std_dict)
+    model = create_model(config, deepcopy(mean_dict), deepcopy(std_dict))
 
     ckpt_fpath = get_best_checkpoint(ckpt_dir)
     checkpoint = torch.load(ckpt_fpath)
@@ -647,16 +628,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             mmse_count=1,
                                             predict_kth_frame=None):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/118',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/117',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/116',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/115',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/114',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/119',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/121',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/122',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/120',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/123',
+        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L0/146',
 
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
