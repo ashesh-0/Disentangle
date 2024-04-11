@@ -54,7 +54,6 @@ def get_config():
     # loss.mixed_rec_weight = 1
     loss.restricted_kl = True
     loss.kl_weight = 1.0
-    loss.usplit_kl_weight = 1 - loss.kl_weight
     loss.reconstruction_weight = 1.0
     loss.kl_annealing = False
     loss.kl_annealtime = 10

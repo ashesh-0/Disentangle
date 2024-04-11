@@ -43,6 +43,7 @@ class LadderVAE(pl.LightningModule):
         super().__init__()
         self.lr = config.training.lr
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
+        self.enable_noise_model = config.model.enable_noise_model
         self.ch1_recons_w = config.loss.get('ch1_recons_w', 1)
         self.ch2_recons_w = config.loss.get('ch2_recons_w', 1)
         self._stochastic_use_naive_exponential = config.model.decoder.get('stochastic_use_naive_exponential', False)
@@ -390,9 +391,11 @@ class LadderVAE(pl.LightningModule):
                                             predict_logvar=self.predict_logvar,
                                             logvar_lowerbound=self.logvar_lowerbound,
                                             conv2d_bias=self.topdown_conv2d_bias)
-        self.likelihood_NM = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std,
-                                              self.noiseModel)
-        if self.loss_type == LossType.DenoiSplitMuSplit:
+        self.likelihood_NM = None
+        if self.enable_noise_model:
+            self.likelihood_NM = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std,
+                                                self.noiseModel)
+        if self.loss_type == LossType.DenoiSplitMuSplit or self.likelihood_NM is None:
             return self.likelihood_gm
         
         return self.likelihood_NM
