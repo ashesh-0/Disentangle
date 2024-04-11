@@ -54,6 +54,8 @@ class TopDownLayer(nn.Module):
                  bottomup_no_padding_mode=False,
                  topdown_no_padding_mode=False,
                  retain_spatial_dims: bool = False,
+                 restricted_kl=False,
+                 vanilla_latent_hw: int = None,
                  non_stochastic_version=False,
                  input_image_shape: Union[None, Tuple[int, int]] = None,
                  normalize_latent_factor=1.0,
@@ -105,6 +107,8 @@ class TopDownLayer(nn.Module):
         self.latent_shape = input_image_shape if self.retain_spatial_dims else None
         self.non_stochastic_version = non_stochastic_version
         self.normalize_latent_factor = normalize_latent_factor
+        self._vanilla_latent_hw = vanilla_latent_hw
+        
         # Define top layer prior parameters, possibly learnable
         if is_top_layer:
             self.top_prior_params = nn.Parameter(torch.zeros(top_prior_param_shape), requires_grad=learn_top_prior)
@@ -154,6 +158,8 @@ class TopDownLayer(nn.Module):
                 c_vars=z_dim,
                 c_out=n_filters,
                 transform_p_params=(not is_top_layer),
+                vanilla_latent_hw=vanilla_latent_hw,
+                restricted_kl=restricted_kl,
                 use_naive_exponential=stochastic_use_naive_exponential,
             )
 

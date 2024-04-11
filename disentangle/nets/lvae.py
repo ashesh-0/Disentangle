@@ -48,6 +48,7 @@ class LadderVAE(pl.LightningModule):
         self._stochastic_use_naive_exponential = config.model.decoder.get('stochastic_use_naive_exponential', False)
         self._enable_topdown_normalize_factor = config.model.get('enable_topdown_normalize_factor', True)
         self.likelihood_gm = self.likelihood_NM = None
+        self._restricted_kl = config.loss.get('restricted_kl', False)
         # can be used to tile the validation predictions
         self._val_idx_manager = val_idx_manager
         self._val_frame_creator = None
@@ -301,6 +302,8 @@ class LadderVAE(pl.LightningModule):
                     res_block_skip_padding=self.decoder_res_block_skip_padding,
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
+                    restricted_kl=self._restricted_kl,
+                    vanilla_latent_hw = self.get_latent_spatial_size(i),
                     # in no_padding_mode, what gets passed from the encoder are not multiples of 2 and so merging operation does not work natively.
                     bottomup_no_padding_mode=self.encoder_no_padding_mode,
                     topdown_no_padding_mode=self.decoder_no_padding_mode,
@@ -661,7 +664,12 @@ class LadderVAE(pl.LightningModule):
         nlayers = kl.shape[1]
         for i in range(nlayers):
             # topdown_layer_data_dict['z'][2].shape[-3:] = 128 * 32 * 32
-            kl[:, i] = kl[:, i] / np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
+            norm_factor = np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
+            if self._restricted_kl:
+                pow = np.power(2,min(i + 1, self._multiscale_count-1))
+                norm_factor /= pow * pow
+            
+            kl[:, i] = kl[:, i] / norm_factor
 
         kl_loss = free_bits_kl(kl, 0.0).mean()
         return kl_loss
@@ -1158,6 +1166,18 @@ class LadderVAE(pl.LightningModule):
         _, likelihood_data = self.likelihood(out, None)
 
         return likelihood_data['sample']
+
+    def get_latent_spatial_size(self, level_idx):
+        """
+        level_idx: 0 is the bottommost layer, the highest resolution one.
+        """
+        actual_downsampling = level_idx + 1
+        dwnsc = 2**actual_downsampling
+        sz = self.get_padded_size(self.img_shape)
+        h = sz[0] // dwnsc
+        w = sz[1] // dwnsc
+        assert h == w
+        return h
 
     def get_top_prior_param_shape(self, n_imgs=1):
         # TODO num channels depends on random variable we're using

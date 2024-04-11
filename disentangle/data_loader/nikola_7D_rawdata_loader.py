@@ -50,7 +50,6 @@ def get_raw_files_dict():
     # check that the order is correct
     keys = ['high', 'mid', 'low', 'verylow']
     for key1 in keys:
-
         filetokens1 = list(map (lambda x: x.replace(key1, ''), files_dict[key1]))
         for key2 in keys:
             filetokens2 = list(map (lambda x: x.replace(key2, ''), files_dict[key2]))

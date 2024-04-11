@@ -28,6 +28,8 @@ class NormalStochasticBlock2d(nn.Module):
                  c_out,
                  kernel: int = 3,
                  transform_p_params: bool = True,
+                 vanilla_latent_hw: int = None,
+                 restricted_kl:bool = False,
                  use_naive_exponential=False):
         """
         Args:
@@ -45,6 +47,8 @@ class NormalStochasticBlock2d(nn.Module):
         self.c_out = c_out
         self.c_vars = c_vars
         self._use_naive_exponential = use_naive_exponential
+        self._vanilla_latent_hw = vanilla_latent_hw
+        self._restricted_kl = restricted_kl
 
         if transform_p_params:
             self.conv_in_p = nn.Conv2d(c_in, 2 * c_vars, kernel, padding=pad)
@@ -114,6 +118,11 @@ class NormalStochasticBlock2d(nn.Module):
                 kl_elementwise = kl_divergence(q, p)
             else:
                 kl_elementwise = kl_normal_mc(z, p_params, q_params)
+            # compute KL only on the portion of the latent space that is used for prediction. 
+            if self._restricted_kl:
+                pad = (kl_elementwise.shape[-1] - self._vanilla_latent_hw)//2
+                kl_elementwise = kl_elementwise[..., pad:-pad, pad:-pad]
+            
             kl_samplewise = kl_elementwise.sum((1, 2, 3))
             kl_channelwise = kl_elementwise.sum((2, 3))
             # Compute spatial KL analytically (but conditioned on samples from
