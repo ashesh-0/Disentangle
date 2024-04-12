@@ -16,9 +16,9 @@ def get_config():
     data.ch2_fname = 'Microtubules/GT_all.mrc'
     data.num_channels = 2
 
-    data.poisson_noise_factor = 1000
+    data.poisson_noise_factor = -1
 
-    data.enable_gaussian_noise = True
+    data.enable_gaussian_noise = False
     data.trainig_datausage_fraction = 1.0
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
@@ -39,7 +39,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -49,7 +49,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.DenoiSplitMuSplit
-    loss.usplit_w = 0
+    loss.usplit_w = 1
     loss.denoisplit_w = 1 - loss.usplit_w
     loss.kl_loss_formulation = 'denoisplit_usplit'
 
@@ -105,7 +105,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     fname = '/group/jug/ashesh/training_pre_eccv/noise_model/2403/143/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname
