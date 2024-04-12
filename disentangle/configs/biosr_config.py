@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 128
     data.data_type = DataType.BioSR_MRC
     # data.channel_1 = 0
     # data.channel_2 = 1
@@ -39,7 +39,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 3
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -52,7 +52,6 @@ def get_config():
     loss.usplit_w = 0
     loss.denoisplit_w = 1 - loss.usplit_w
     loss.kl_loss_formulation = 'denoisplit_usplit'
-
 
     # loss.mixed_rec_weight = 1
     loss.restricted_kl = False
@@ -107,7 +106,7 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname = '/home/ashesh.ashesh/training/noise_model/2404/41/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    fname = '/home/ubuntu/ashesh/training_hpc/noise_model/2404/41/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname
     model.noise_model_ch2_fpath = fname
 
