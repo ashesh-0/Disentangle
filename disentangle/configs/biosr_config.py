@@ -39,7 +39,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = False
     data.randomized_channels = False
-    data.multiscale_lowres_count = 3
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -52,7 +52,6 @@ def get_config():
     loss.usplit_w = 0
     loss.denoisplit_w = 1 - loss.usplit_w
     loss.kl_loss_formulation = 'denoisplit_usplit'
-
 
     # loss.mixed_rec_weight = 1
     loss.restricted_kl = False
