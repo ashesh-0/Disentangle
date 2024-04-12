@@ -8,7 +8,7 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 128
     data.data_type = DataType.BioSR_MRC
     # data.channel_1 = 0
     # data.channel_2 = 1
@@ -54,7 +54,7 @@ def get_config():
     loss.kl_loss_formulation = 'denoisplit_usplit'
 
     # loss.mixed_rec_weight = 1
-    loss.restricted_kl = True
+    loss.restricted_kl = False
     loss.kl_weight = 1.0
     loss.reconstruction_weight = 1.0
     loss.kl_annealing = False
