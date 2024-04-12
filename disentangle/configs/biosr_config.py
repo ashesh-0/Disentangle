@@ -16,7 +16,7 @@ def get_config():
     data.ch2_fname = 'Microtubules/GT_all.mrc'
     data.num_channels = 2
 
-    data.poisson_noise_factor = -1
+    data.poisson_noise_factor = 4000
 
     data.enable_gaussian_noise = False
     data.trainig_datausage_fraction = 1.0
@@ -48,10 +48,10 @@ def get_config():
     data.input_is_sum = False
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.DenoiSplitMuSplit
     loss.usplit_w = 1
     loss.denoisplit_w = 1 - loss.usplit_w
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = 'denoisplit_usplit'
 
 
     # loss.mixed_rec_weight = 1
@@ -105,15 +105,14 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname = '/group/jug/ashesh/training_pre_eccv/noise_model/2403/143/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    fname = '/home/ashesh.ashesh/training/noise_model/2404/41/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname
     model.noise_model_ch2_fpath = fname
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
-
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
     # model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
     model.non_stochastic_version = False

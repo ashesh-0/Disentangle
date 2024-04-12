@@ -19,3 +19,5 @@ conda install seaborn -c conda-forge -y
 conda install nbconvert -y
 conda install -c anaconda ipykernel -y
 conda install -c conda-forge czifile -y
+pip install nd2
+pip install nis2pyr
