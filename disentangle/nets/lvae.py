@@ -677,10 +677,10 @@ class LadderVAE(pl.LightningModule):
         kl_loss = free_bits_kl(kl, 0.0).mean()
         return kl_loss
 
-    def get_kl_divergence_loss(self, topdown_layer_data_dict):
+    def get_kl_divergence_loss(self, topdown_layer_data_dict, kl_key='kl'):
         # kl[i] for each i has length batch_size
         # resulting kl shape: (batch_size, layers)
-        kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']], dim=1)
+        kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict[kl_key]], dim=1)
         # As compared to uSplit kl divergence,
         # more by a factor of 4 just because we do sum and not mean.
         kl_loss = free_bits_kl(kl, self.free_bits).sum()
@@ -750,7 +750,11 @@ class LadderVAE(pl.LightningModule):
                     out_mean, _ = out.chunk(2, dim=1)
                 else:
                     out_mean  = out
-                kl_loss = self._denoisplit_w * self.get_kl_divergence_loss(td_data) + self._usplit_w * self.get_kl_divergence_loss_usplit(td_data)
+                
+                kl_key_denoisplit = 'kl_restricted' if self._restricted_kl else 'kl'
+                denoisplit_kl = self.get_kl_divergence_loss(td_data, kl_key=kl_key_denoisplit)
+                usplit_kl = self.get_kl_divergence_loss_usplit(td_data)
+                kl_loss = self._denoisplit_w * denoisplit_kl + self._usplit_w * usplit_kl
                 kl_loss = self.kl_weight * kl_loss
 
                 recons_loss_nm = -1*self.likelihood_NM(out_mean, target_normalized)[0].mean()
@@ -1045,6 +1049,8 @@ class LadderVAE(pl.LightningModule):
 
         # KL divergence of each layer
         kl = [None] * self.n_layers
+        # Kl divergence restricted, only for the LC enabled setup denoiSplit. 
+        kl_restricted = [None] * self.n_layers
 
         # mean from which z is sampled.
         q_mu = [None] * self.n_layers
@@ -1095,6 +1101,7 @@ class LadderVAE(pl.LightningModule):
                                                             var_clip_max=self._var_clip_max)
             z[i] = aux['z']  # sampled variable at this layer (batch, ch, h, w)
             kl[i] = aux['kl_samplewise']  # (batch, )
+            kl_restricted[i] = aux['kl_samplewise_restricted']
             kl_spatial[i] = aux['kl_spatial']  # (batch, h, w)
             q_mu[i] = aux['q_mu']
             q_lv[i] = aux['q_lv']
@@ -1111,6 +1118,7 @@ class LadderVAE(pl.LightningModule):
         data = {
             'z': z,  # list of tensors with shape (batch, ch[i], h[i], w[i])
             'kl': kl,  # list of tensors with shape (batch, )
+            'kl_restricted': kl_restricted, # list of tensors with shape (batch, )
             'kl_spatial': kl_spatial,  # list of tensors w shape (batch, h[i], w[i])
             'kl_channelwise': kl_channelwise,  # list of tensors with shape (batch, ch[i])
             # 'logprob_p': logprob_p,  # scalar, mean over batch

@@ -348,6 +348,7 @@ class TopDownLayer(nn.Module):
         keys = [
             'z',
             'kl_samplewise',
+            'kl_samplewise_restricted',
             'kl_spatial',
             'kl_channelwise',
             # 'logprob_p',
