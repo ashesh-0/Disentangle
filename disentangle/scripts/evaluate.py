@@ -241,6 +241,9 @@ def main(
         data_dir = f'{DATA_ROOT}/ventura_gigascience'
     elif dtype == DataType.BioSR_MRC:
         data_dir = f'{DATA_ROOT}/BioSR/'
+    elif dtype == DataType.NicolaData:
+        data_dir = f'{DATA_ROOT}/nikola_data/raw'
+        
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -381,7 +384,7 @@ def main(
         data_class = MultiChDloader
     if config.data.data_type in [
             DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.AllenCellMito,
-            DataType.SeparateTiffData, DataType.SemiSupBloodVesselsEMBL, DataType.BioSR_MRC
+            DataType.SeparateTiffData, DataType.SemiSupBloodVesselsEMBL, DataType.BioSR_MRC, DataType.NicolaData,
     ]:
         datapath = data_dir
     elif config.data.data_type == DataType.OptiMEM100_014:
@@ -437,7 +440,6 @@ def main(
             config.data.image_size = old_image_size
 
     model = create_model(config, deepcopy(mean_dict), deepcopy(std_dict))
-
     ckpt_fpath = get_best_checkpoint(ckpt_dir)
     checkpoint = torch.load(ckpt_fpath)
 
@@ -508,6 +510,10 @@ def main(
 
     pred = ignore_pixels(pred)
     tar = ignore_pixels(tar)
+    if 'target_idx_list' in config.data and config.data.target_idx_list is not None:
+        tar = tar[...,config.data.target_idx_list]
+        pred = pred[...,:(tar.shape[-1])]
+
     print('Stitched predictions shape after', pred.shape)
 
     sep_mean, sep_std = model.data_mean['target'], model.data_std['target']
@@ -548,6 +554,9 @@ def main(
     highres_data = get_highsnr_data(config, data_dir, eval_datasplit_type)
     if predict_kth_frame is not None and highres_data is not None:
         highres_data = highres_data[[predict_kth_frame]].copy()
+
+    if 'target_idx_list' in config.data and config.data.target_idx_list is not None:
+        highres_data = highres_data[...,config.data.target_idx_list]
 
     if highres_data is None:
         # Computing the output statistics.
@@ -628,8 +637,11 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             mmse_count=1,
                                             predict_kth_frame=None):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L8/7',
-        '/home/ashesh.ashesh/training/disentangle/2404/D16-M3-S0-L8/8',
+        '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/29',
+        '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/30',
+        '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/31',
+        '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/32',
+        '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/33',
     ]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
@@ -640,18 +652,24 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
 
-    patchsz_gridsz_tuples = [(None, 64)]
+    patchsz_gridsz_tuples = [(None, 32)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
-                if data_type in [
-                        DataType.OptiMEM100_014, DataType.SemiSupBloodVesselsEMBL, DataType.Pavia2VanillaSplitting,
-                        DataType.ExpansionMicroscopyMitoTub, DataType.ShroffMitoEr, DataType.HTIba1Ki67
-                ]:
-                    ignored_last_pixels = 32
+                if data_type in [DataType.OptiMEM100_014,
+                                                                    DataType.SemiSupBloodVesselsEMBL, 
+                                                                    DataType.Pavia2VanillaSplitting,
+                                                                    DataType.ExpansionMicroscopyMitoTub,
+                                                                    DataType.ShroffMitoEr,
+                                                                    DataType.HTIba1Ki67]:
+                    ignored_last_pixels = 32 
                 elif data_type == DataType.BioSR_MRC:
                     ignored_last_pixels = 44
+                    # assert val_dset.get_img_sz() == 64
+                    # ignored_last_pixels = 108
+                elif data_type == DataType.NicolaData:
+                    ignored_last_pixels = 8
                 else:
                     ignored_last_pixels = 0
 
@@ -670,7 +688,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                     image_size_for_grid_centers=image_size_for_grid_centers,
                     mmse_count=mmse_count,
                     custom_image_size=custom_image_size,
-                    batch_size=24,
+                    batch_size=64,
                     num_workers=4,
                     COMPUTE_LOSS=False,
                     use_deterministic_grid=None,
@@ -726,7 +744,23 @@ if __name__ == '__main__':
                                                 predict_kth_frame=args.predict_kth_frame)
     else:
         mmse_count = 1
-        ignored_last_pixels = 32 if os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:] == '3' else 0
+        data_type = int(os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:])
+        if data_type in [DataType.OptiMEM100_014,
+                                                      DataType.SemiSupBloodVesselsEMBL, 
+                                                      DataType.Pavia2VanillaSplitting,
+                                                      DataType.ExpansionMicroscopyMitoTub,
+                                                      DataType.ShroffMitoEr,
+                                                      DataType.HTIba1Ki67]:
+            ignored_last_pixels = 32 
+        elif data_type == DataType.BioSR_MRC:
+            ignored_last_pixels = 44
+            # assert val_dset.get_img_sz() == 64
+            # ignored_last_pixels = 108
+        elif data_type == DataType.NicolaData:
+            ignored_last_pixels = 8
+        else:
+            ignored_last_pixels = 0
+
         OUTPUT_DIR = ''
         eval_datasplit_type = DataSplitType.Test
 
