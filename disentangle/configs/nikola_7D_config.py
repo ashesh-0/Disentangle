@@ -53,7 +53,7 @@ def get_config():
     loss.restricted_kl = True
 
     # loss.mixed_rec_weight = 1
-    loss.usplit_w = 0.1
+    loss.usplit_w = 1.0
     loss.denoisplit_w = 1 - loss.usplit_w
 
     loss.kl_weight = 1.0
