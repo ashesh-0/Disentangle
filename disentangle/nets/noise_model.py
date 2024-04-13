@@ -14,20 +14,31 @@ from disentangle.nets.hist_noise_model import HistNoiseModel
 
 class DisentNoiseModel(nn.Module):
 
-    def __init__(self, n1model, n2model):
+    def __init__(self, *nmodels):
         super().__init__()
-        self.n1model = n1model
-        self.n2model = n2model
+        # self.nmodels = nmodels
+        for i, nmodel in enumerate(nmodels):
+            if nmodel is not None:
+                self.add_module(f'nmodel_{i}', nmodel)
+            
+        self._nm_cnt = 0 
+        for nmodel in nmodels:
+            if nmodel is not None:
+                self._nm_cnt += 1
+            
+        print(f'[{self.__class__.__name__}] Nmodels count:{self._nm_cnt}')
 
     def likelihood(self, obs, signal):
         if obs.shape[1] == 1:
             assert signal.shape[1] == 1
             assert self.n2model is None
-            return self.n1model.likelihood(obs, signal)
-
-        ll1 = self.n1model.likelihood(obs[:, :1], signal[:, :1])
-        ll2 = self.n2model.likelihood(obs[:, 1:], signal[:, 1:])
-        return torch.cat([ll1, ll2], dim=1)
+            return self.nmodel_0.likelihood(obs, signal)
+        assert obs.shape[1] == self._nm_cnt, f'{obs.shape[1]} != {self._nm_cnt}'
+        ll_list = []
+        for ch_idx in range(obs.shape[1]):
+            nmodel = getattr(self, f'nmodel_{ch_idx}')
+            ll_list.append(nmodel.likelihood(obs[:, ch_idx:ch_idx + 1], signal[:, ch_idx:ch_idx + 1]))
+        return torch.cat(ll_list, dim=1)
 
 
 def last2path(fpath):
@@ -40,10 +51,6 @@ def get_nm_config(noise_model_fpath):
     return noise_model_config
 
 def nm_config_sanity_check_target_idx_list(config):
-    nm1 = config.model.noise_model_ch1_fpath
-    nm2 = config.model.noise_model_ch2_fpath
-    nm1_config = get_nm_config(nm1)
-    nm2_config = get_nm_config(nm2)
     
     def get_channel(fname):
         assert isinstance(fname, list)
@@ -69,19 +76,41 @@ def nm_config_sanity_check_target_idx_list(config):
         # lowSNR
         return token.replace('SNR','')
 
-    fname1 = nm1_config['fname']
-    fname2 = nm2_config['fname']
-    ch1 = get_channel(fname1)
-    ch2 = get_channel(fname2)
+    fname_list = []
+    ch_list = []
+    dsettype_list = []
+    for ch_idx in range(len(config.data.target_idx_list)):
+        nm = config.model[f'noise_model_ch{ch_idx+1}_fpath']
+        nm_config = get_nm_config(nm)
+        fname = nm_config['fname']
+        ch = get_channel(fname)
+        ch_list.append(ch)
+        fname_list.append(fname)
+        assert config.data.target_idx_list[ch_idx] == ch, f'{config.data.target_idx_list[0]} != {ch}'
+        dsettype = get_dset_type(fname)
+        dsettype_list.append(dsettype)
+
+    assert len(set(dsettype_list)) == 1, f'{dsettype_list} should be just one'
+    assert dsettype == config.data.dset_type, f'{dsettype} != {config.data.dset_type}'
+
+    # nm1 = config.model.noise_model_ch1_fpath
+    # nm2 = config.model.noise_model_ch2_fpath
+    # nm1_config = get_nm_config(nm1)
+    # nm2_config = get_nm_config(nm2)
+
+    # fname1 = nm1_config['fname']
+    # fname2 = nm2_config['fname']
+    # ch1 = get_channel(fname1)
+    # ch2 = get_channel(fname2)
     
-    assert len(config.data.target_idx_list) == 2
-    assert config.data.target_idx_list[0] == ch1, f'{config.data.target_idx_list[0]} != {ch1}'
-    assert config.data.target_idx_list[1] == ch2, f'{config.data.target_idx_list[1]} != {ch2}'
-    # check low, mid, high, verylow
-    dsettype1 = get_dset_type(fname1)
-    dsettype2 = get_dset_type(fname2)
-    assert dsettype1 == dsettype2, f'{dsettype1} != {dsettype2}'
-    assert dsettype1 == config.data.dset_type, f'{dsettype1} != {config.data.dset_type}'
+    # assert len(config.data.target_idx_list) == 2
+    # assert config.data.target_idx_list[0] == ch1, f'{config.data.target_idx_list[0]} != {ch1}'
+    # assert config.data.target_idx_list[1] == ch2, f'{config.data.target_idx_list[1]} != {ch2}'
+    # # check low, mid, high, verylow
+    # dsettype1 = get_dset_type(fname1)
+    # dsettype2 = get_dset_type(fname2)
+    # assert dsettype1 == dsettype2, f'{dsettype1} != {dsettype2}'
+    # assert dsettype1 == config.data.dset_type, f'{dsettype1} != {config.data.dset_type}'
 
 
 def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None):
@@ -129,6 +158,7 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
 
 def get_noise_model(config):
     if 'enable_noise_model' in config.model and config.model.enable_noise_model:
+        nmodels = []
         if config.model.model_type == ModelType.Denoiser:
             if config.model.noise_model_type == 'hist':
                 if config.model.denoise_channel == 'Ch1':
@@ -136,16 +166,19 @@ def get_noise_model(config):
                     hist1 = np.load(config.model.noise_model_ch1_fpath)
                     nmodel1 = HistNoiseModel(hist1)
                     nmodel2 = None
+                    nmodels = [nmodel1, nmodel2]
                 elif config.model.denoise_channel == 'Ch2':
                     print(f'Noise model Ch2: {config.model.noise_model_ch2_fpath}')
                     hist2 = np.load(config.model.noise_model_ch2_fpath)
                     nmodel1 = HistNoiseModel(hist2)
                     nmodel2 = None
+                    nmodels = [nmodel1, nmodel2]
                 elif config.model.denoise_channel == 'input':
                     print(f'Noise model Ch1: {config.model.noise_model_ch1_fpath}')
                     hist1 = np.load(config.model.noise_model_ch1_fpath)
                     nmodel1 = HistNoiseModel(hist1)
                     nmodel2 = None
+                    nmodels = [nmodel1, nmodel2]
             elif config.model.noise_model_type == 'gmm':
                 if config.model.denoise_channel == 'Ch1':
                     nmodel_fpath = config.model.noise_model_ch1_fpath
@@ -153,18 +186,21 @@ def get_noise_model(config):
                     nmodel1 = GaussianMixtureNoiseModel(params=np.load(nmodel_fpath))
                     noise_model_config_sanity_check(nmodel_fpath, config, 'ch1_fname')
                     nmodel2 = None
+                    nmodels = [nmodel1, nmodel2]
                 elif config.model.denoise_channel == 'Ch2':
                     nmodel_fpath = config.model.noise_model_ch2_fpath
                     print(f'Noise model Ch2: {nmodel_fpath}')
                     nmodel1 = GaussianMixtureNoiseModel(params=np.load(nmodel_fpath))
                     noise_model_config_sanity_check(nmodel_fpath, config, 'ch2_fname')
                     nmodel2 = None
+                    nmodels = [nmodel1, nmodel2]
                 elif config.model.denoise_channel == 'input':
                     nmodel_fpath = config.model.noise_model_ch1_fpath
                     print(f'Noise model input: {nmodel_fpath}')
                     nmodel1 = GaussianMixtureNoiseModel(params=np.load(nmodel_fpath))
                     noise_model_config_sanity_check(nmodel_fpath, config)
                     nmodel2 = None
+                    nmodels = [nmodel1, nmodel2]
             else:
                 raise ValueError(f'Invalid denoise_channel: {config.model.denoise_channel}')
         elif config.model.noise_model_type == 'hist':
@@ -175,6 +211,7 @@ def get_noise_model(config):
             nmodel1 = HistNoiseModel(hist1)
             hist2 = np.load(config.model.noise_model_ch2_fpath)
             nmodel2 = HistNoiseModel(hist2)
+            nmodels = [nmodel1, nmodel2]
         elif config.model.noise_model_type == 'histgmm':
             print(f'Noise model Ch1: {config.model.noise_model_ch1_fpath}')
             print(f'Noise model Ch2: {config.model.noise_model_ch2_fpath}')
@@ -189,6 +226,7 @@ def get_noise_model(config):
             hist2 = np.load(config.model.noise_model_ch2_fpath)
             nmodel2 = HistGMMNoiseModel(hist2)
             nmodel2.fit()
+            nmodels = [nmodel1, nmodel2]
         elif config.model.noise_model_type == 'deepgmm':
             print(f'Noise model Ch1: {config.model.noise_model_ch1_fpath}')
             print(f'Noise model Ch2: {config.model.noise_model_ch2_fpath}')
@@ -197,23 +235,29 @@ def get_noise_model(config):
             nmodel2 = DeepGMMNoiseModel(params=np.load(config.model.noise_model_ch2_fpath))
             nmodel1.make_learnable()
             nmodel2.make_learnable()
+            nmodels = [nmodel1, nmodel2]
         elif config.model.noise_model_type == 'gmm':
             print(f'Noise model Ch1: {config.model.noise_model_ch1_fpath}')
             print(f'Noise model Ch2: {config.model.noise_model_ch2_fpath}')
 
             nmodel1 = GaussianMixtureNoiseModel(params=np.load(config.model.noise_model_ch1_fpath))
             nmodel2 = GaussianMixtureNoiseModel(params=np.load(config.model.noise_model_ch2_fpath))
+            
             noise_model_config_sanity_check(config.model.noise_model_ch1_fpath, config, 'ch1_fname')
             noise_model_config_sanity_check(config.model.noise_model_ch2_fpath, config, 'ch2_fname')
-            # nmodel1 = DeepGMMNoiseModel(params=np.load(config.model.noise_model_ch1_fpath))
-            # nmodel2 = DeepGMMNoiseModel(params=np.load(config.model.noise_model_ch2_fpath))
+            if 'noise_model_ch3_fpath' in config.model:
+                print(f'Noise model Ch3: {config.model.noise_model_ch3_fpath}')
+                nmodel3 = GaussianMixtureNoiseModel(params=np.load(config.model.noise_model_ch3_fpath))
+                nmodels = [nmodel1, nmodel2, nmodel3]
+            else:
+                nmodels = [nmodel1, nmodel2]
 
         if config.model.get('noise_model_learnable', False):
-            nmodel1.make_learnable()
-            if nmodel2 is not None:
-                nmodel2.make_learnable()
+            for nmodel in nmodels:
+                if nmodel is not None:
+                    nmodel.make_learnable()
 
-        return DisentNoiseModel(nmodel1, nmodel2)
+        return DisentNoiseModel(*nmodels)
     return None
 
 

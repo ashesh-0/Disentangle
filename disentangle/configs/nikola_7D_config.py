@@ -12,10 +12,10 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.NicolaData
     data.dset_type = 'high' # high, mid, low, verylow
-    data.num_channels = 3
-    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B,  NikolaChannelList.Ch_AB]
-    data.input_idx = 2
-    data.target_idx_list = [0, 1]
+    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B,NikolaChannelList.Ch_C, NikolaChannelList.Ch_ABC]
+    data.num_channels = len(data.channel_idx_list)
+    data.input_idx = len(data.channel_idx_list) -1
+    data.target_idx_list = list(range(len(data.channel_idx_list) - 1))
 
     data.enable_gaussian_noise = False
     data.trainig_datausage_fraction = 1.0
@@ -86,7 +86,7 @@ def get_config():
     config.model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
-    model.num_targets = 2
+    model.num_targets = len(data.target_idx_list)
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.stochastic_skip = True
@@ -110,6 +110,7 @@ def get_config():
     model.noise_model_type = 'gmm'
     model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/33/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_highSNR_channel0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2404/34/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_highSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2404/32/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_highSNR_channel2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
