@@ -213,7 +213,7 @@ if __name__ == '__main__':
                             num_scales=config.data.multiscale_lowres_count,
                             max_val=None,
                             padding_kwargs=padding_kwargs,
-                            grid_alignment=GridAlignement.LeftTop,
+                            grid_alignment=GridAlignement.Center,
                             overlapping_padding_kwargs=None)
 
     mean, std = dset.compute_mean_std()

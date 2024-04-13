@@ -13,7 +13,7 @@ def get_config():
     data.data_type = DataType.NicolaData
     data.dset_type = 'verylow' # high, mid, low, verylow
     data.num_channels = 3
-    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B, NikolaChannelList.Ch_AB]
+    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B,  NikolaChannelList.Ch_AB]
     data.input_idx = 2
     data.target_idx_list = [0, 1]
 
@@ -37,7 +37,7 @@ def get_config():
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
-    data.train_aug_rotate = False
+    data.train_aug_rotate = True
     data.randomized_channels = False
     data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
