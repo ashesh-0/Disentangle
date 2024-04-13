@@ -117,12 +117,12 @@ def upperclip_data(data, max_val):
     return True
 
 
-def compute_max_val(data, config):
-    if config.data.get('channelwise_quantile', False):
-        max_val_arr = [np.quantile(data[..., i], config.data.clip_percentile) for i in range(data.shape[-1])]
+def compute_max_val(data, data_config):
+    if data_config.get('channelwise_quantile', False):
+        max_val_arr = [np.quantile(data[..., i], data_config.clip_percentile) for i in range(data.shape[-1])]
         return max_val_arr
     else:
-        return np.quantile(data, config.data.clip_percentile)
+        return np.quantile(data, data_config.clip_percentile)
 
 
 def compute_high_snr_stats(config, highres_data, pred_unnorm):
@@ -153,15 +153,17 @@ def get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type):
         data_config.poisson_noise_factor = -1
     if 'synthetic_gaussian_scale' in data_config:
         data_config.synthetic_gaussian_scale = None
+    return _get_highres_data_internal(data_dir, data_config, config.training, eval_datasplit_type)
 
-    highres_data = get_train_val_data(data_config, data_dir, DataSplitType.Train, config.training.val_fraction,
-                                      config.training.test_fraction)
+def _get_highres_data_internal(data_dir, data_config, training_config, eval_datasplit_type):
+    highres_data = get_train_val_data(data_config, data_dir, DataSplitType.Train, training_config.val_fraction,
+                                      training_config.test_fraction)
 
-    hres_max_val = compute_max_val(highres_data, config)
+    hres_max_val = compute_max_val(highres_data, data_config)
     del highres_data
 
-    highres_data = get_train_val_data(data_config, data_dir, eval_datasplit_type, config.training.val_fraction,
-                                      config.training.test_fraction)
+    highres_data = get_train_val_data(data_config, data_dir, eval_datasplit_type, training_config.val_fraction,
+                                      training_config.test_fraction)
 
     # highres_data = highres_data[::5].copy()
     upperclip_data(highres_data, hres_max_val)
@@ -176,7 +178,7 @@ def get_highres_data_ventura(data_dir, config, eval_datasplit_type):
     highres_data = get_train_val_data(data_config, data_dir, DataSplitType.Train, config.training.val_fraction,
                                       config.training.test_fraction)
 
-    hres_max_val = compute_max_val(highres_data, config)
+    hres_max_val = compute_max_val(highres_data, config.data)
     del highres_data
 
     highres_data = get_train_val_data(data_config, data_dir, eval_datasplit_type, config.training.val_fraction,
@@ -624,6 +626,11 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
     highres_data = None
     if config.model.model_type == ModelType.DenoiserSplitter or config.data.data_type == DataType.SeparateTiffData:
         highres_data = get_highres_data_ventura(data_dir, config, eval_datasplit_type)
+    elif config.data.data_type == DataType.NicolaData:
+        new_config = deepcopy(config)
+        new_config.data.dset_type = 'high'
+        highres_data = _get_highres_data_internal(data_dir, new_config.data, config.training, eval_datasplit_type)
+        import pdb;pdb.set_trace()   
     elif 'synthetic_gaussian_scale' in config.data or 'enable_poisson_noise' in config.data:
         if config.data.data_type == DataType.OptiMEM100_014:
             data_dir = os.path.join(data_dir, 'OptiMEM100x014.tif')
