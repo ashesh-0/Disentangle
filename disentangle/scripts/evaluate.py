@@ -630,7 +630,6 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
         new_config = deepcopy(config)
         new_config.data.dset_type = 'high'
         highres_data = _get_highres_data_internal(data_dir, new_config.data, config.training, eval_datasplit_type)
-        import pdb;pdb.set_trace()   
     elif 'synthetic_gaussian_scale' in config.data or 'enable_poisson_noise' in config.data:
         if config.data.data_type == DataType.OptiMEM100_014:
             data_dir = os.path.join(data_dir, 'OptiMEM100x014.tif')

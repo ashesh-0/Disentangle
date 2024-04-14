@@ -65,7 +65,7 @@ def load_7D(fpath):
     return data
 
 def load_one_fpath(fpath, channel_list):
-    data = load_7D(fpath)
+    data = load_7D(fpath)    
     # data.shape: (1, 20, 1, 19, 1608, 1608, 1) 
     data = data[0, :, 0, :, :, :, 0]
     # data.shape: (20, 19, 1608, 1608)
@@ -74,6 +74,12 @@ def load_one_fpath(fpath, channel_list):
     # swap the second and fourth axis
     data = np.swapaxes(data[...,None], 1, 4)[:,0]
     
+    fname_prefix = '_'.join(os.path.basename(fpath).split('.')[0].split('_')[:-1])
+    if fname_prefix == 'uSplit_20022025_001':
+        data = np.delete(data, 2, axis=0)
+    elif fname_prefix == 'uSplit_14022025':
+        data = np.delete(data, [17, 19], axis=0)
+
     # data.shape: (20, 1608, 1608, C)
     return data
 
@@ -84,7 +90,10 @@ def load_data(datadir, dset_type, channel_list):
         fpath = os.path.join(datadir, fname)
         data = load_one_fpath(fpath, channel_list)
         data_list.append(data)
-    data = np.concatenate(data_list, axis=0)
+    if len(data_list) > 1:
+        data = np.concatenate(data_list, axis=0)
+    else:
+        data = data_list[0]
     return data
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):

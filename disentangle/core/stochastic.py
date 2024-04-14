@@ -113,6 +113,7 @@ class NormalStochasticBlock2d(nn.Module):
         """
         Compute KL (analytical or MC estimate) and then process it in multiple ways.
         """
+        kl_samplewise_restricted = None
         if mode_pred is False:  # if not predicting
             if analytical_kl:
                 kl_elementwise = kl_divergence(q, p)
@@ -120,7 +121,6 @@ class NormalStochasticBlock2d(nn.Module):
                 kl_elementwise = kl_normal_mc(z, p_params, q_params)
             
             # compute KL only on the portion of the latent space that is used for prediction. 
-            kl_samplewise_restricted = None
             if self._restricted_kl:
                 pad = (kl_elementwise.shape[-1] - self._vanilla_latent_hw)//2
                 assert pad > 0, 'Disable restricted kl since there is no restriction.'
