@@ -29,22 +29,22 @@ class NikolaChannelList(Enum):
 def get_raw_files_dict():
     files_dict = {
         'high':[
-            # 'uSplit_14022025_highSNR.nd2',
-            # 'uSplit_20022025_highSNR.nd2',
+            'uSplit_14022025_highSNR.nd2',
+            'uSplit_20022025_highSNR.nd2',
             'uSplit_20022025_001_highSNR.nd2',],
         'mid':[
-            # 'uSplit_14022025_midSNR.nd2',
-            # 'uSplit_20022025_midSNR.nd2',
+            'uSplit_14022025_midSNR.nd2',
+            'uSplit_20022025_midSNR.nd2',
             'uSplit_20022025_001_midSNR.nd2',],
         'low':[
             
-            # 'uSplit_14022025_lowSNR.nd2',
-            # 'uSplit_20022025_lowSNR.nd2',
+            'uSplit_14022025_lowSNR.nd2',
+            'uSplit_20022025_lowSNR.nd2',
             'uSplit_20022025_001_lowSNR.nd2',],
         'verylow':[
             
-            # 'uSplit_14022025_verylowSNR.nd2',
-            # 'uSplit_20022025_verylowSNR.nd2',
+            'uSplit_14022025_verylowSNR.nd2',
+            'uSplit_20022025_verylowSNR.nd2',
             'uSplit_20022025_001_verylowSNR.nd2',
             ]}
     # check that the order is correct
