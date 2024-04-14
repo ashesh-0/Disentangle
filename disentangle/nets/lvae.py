@@ -668,9 +668,9 @@ class LadderVAE(pl.LightningModule):
         for i in range(nlayers):
             # topdown_layer_data_dict['z'][2].shape[-3:] = 128 * 32 * 32
             norm_factor = np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
-            if self._restricted_kl:
-                pow = np.power(2,min(i + 1, self._multiscale_count-1))
-                norm_factor /= pow * pow
+            # if self._restricted_kl:
+            #     pow = np.power(2,min(i + 1, self._multiscale_count-1))
+            #     norm_factor /= pow * pow
             
             kl[:, i] = kl[:, i] / norm_factor
 
