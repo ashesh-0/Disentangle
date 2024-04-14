@@ -641,14 +641,20 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             save_prediction=False,
                                             mmse_count=1,
-                                            predict_kth_frame=None):
-    ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/29',
-        '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/30',
-        '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/31',
-        '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/32',
-        '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/33',
-    ]
+                                            predict_kth_frame=None,
+                                            ckpt_dir=None,
+                                            patch_size=None,
+                                            grid_size=32):
+    if ckpt_dir is None:
+        ckpt_dirs = [
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/29',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/30',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/31',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/32',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/33',
+        ]
+    else:
+        ckpt_dirs = [ckpt_dir]
     if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
         OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
     elif ckpt_dirs[0].startswith('/home/ubuntu/ashesh'):
@@ -658,7 +664,8 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
 
-    patchsz_gridsz_tuples = [(None, 32)]
+    patchsz_gridsz_tuples = [(patch_size, grid_size)]
+    print('Using patch,grid size', patchsz_gridsz_tuples)
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
@@ -732,65 +739,20 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ckpt_dir', type=str)
-    parser.add_argument('--patch_size', type=int, default=64)
-    parser.add_argument('--grid_size', type=int, default=16)
-    parser.add_argument('--hardcoded', action='store_true')
+    parser.add_argument('--ckpt_dir', type=str, default=None)
+    parser.add_argument('--patch_size', type=int, default=None)
+    parser.add_argument('--grid_size', type=int, default=None)
     parser.add_argument('--normalized_ssim', action='store_true')
     parser.add_argument('--save_prediction', action='store_true')
     parser.add_argument('--mmse_count', type=int, default=1)
     parser.add_argument('--predict_kth_frame', type=int, default=None)
 
     args = parser.parse_args()
-    if args.hardcoded:
-        print('Ignoring ckpt_dir,patch_size and grid_size')
-        save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=args.normalized_ssim,
-                                                save_prediction=args.save_prediction,
-                                                mmse_count=args.mmse_count,
-                                                predict_kth_frame=args.predict_kth_frame)
-    else:
-        mmse_count = 1
-        data_type = int(os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:])
-        if data_type in [DataType.OptiMEM100_014,
-                                                      DataType.SemiSupBloodVesselsEMBL, 
-                                                      DataType.Pavia2VanillaSplitting,
-                                                      DataType.ExpansionMicroscopyMitoTub,
-                                                      DataType.ShroffMitoEr,
-                                                      DataType.HTIba1Ki67]:
-            ignored_last_pixels = 32 
-        elif data_type == DataType.BioSR_MRC:
-            ignored_last_pixels = 44
-            # assert val_dset.get_img_sz() == 64
-            # ignored_last_pixels = 108
-        elif data_type == DataType.NicolaData:
-            ignored_last_pixels = 8
-        else:
-            ignored_last_pixels = 0
+    save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=args.normalized_ssim,
+                                            save_prediction=args.save_prediction,
+                                            mmse_count=args.mmse_count,
+                                            predict_kth_frame=args.predict_kth_frame,
+                                            ckpt_dir=args.ckpt_dir,
+                                            patch_size=args.patch_size,
+                                            grid_size=args.grid_size)
 
-        OUTPUT_DIR = ''
-        eval_datasplit_type = DataSplitType.Test
-
-        data = main(
-            args.ckpt_dir,
-            image_size_for_grid_centers=args.grid_size,
-            mmse_count=mmse_count,
-            custom_image_size=args.patch_size,
-            batch_size=16,
-            num_workers=4,
-            COMPUTE_LOSS=False,
-            use_deterministic_grid=None,
-            threshold=None,  # 0.02,
-            compute_kl_loss=False,
-            evaluate_train=False,
-            eval_datasplit_type=eval_datasplit_type,
-            val_repeat_factor=None,
-            psnr_type='range_invariant',
-            ignored_last_pixels=ignored_last_pixels,
-            ignore_first_pixels=0,
-            normalized_ssim=args.normalized_ssim,
-        )
-
-        print('')
-        print('Paper Related Stats')
-        print('PSNR', np.mean(data['rangeinvpsnr']))
-        print('SSIM', np.mean(data['ssim'][:2]))
