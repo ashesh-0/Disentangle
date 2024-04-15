@@ -133,6 +133,9 @@ class MultiChDloader:
 
         self._enable_rotation = enable_rotation_aug
         self._enable_random_cropping = enable_random_cropping
+        self._uncorrelated_channels = data_config.get('uncorrelated_channels', False)
+        assert self._is_train or self._uncorrelated_channels is False
+        assert self._enable_random_cropping is True or self._uncorrelated_channels is False
         # Randomly rotate [-90,90]
 
         self._rotation_transform = None
@@ -311,8 +314,11 @@ class MultiChDloader:
         msg += f' Rot:{self._enable_rotation}'
         msg += f' RandCrop:{self._enable_random_cropping}'
         msg += f' Q:{self._quantile}'
-        msg += f' SummedInput:{self._input_is_sum}'
+        if self._input_is_sum:
+            msg += f' SummedInput:{self._input_is_sum}'
         msg += f' ReplaceWithRandSample:{self._empty_patch_replacement_enabled}'
+        if self._uncorrelated_channels:
+            msg += f' Uncorr:{self._uncorrelated_channels}'
         if self._empty_patch_replacement_enabled:
             msg += f'-{self._empty_patch_replacement_channel_idx}-{self._empty_patch_replacement_probab}'
 
@@ -693,6 +699,13 @@ class MultiChDloader:
             index = self._get_index_from_valid_target_logic(index)
 
         img_tuples, noise_tuples = self._get_img(index)
+        if self._uncorrelated_channels:
+            assert len(img_tuples) ==2 
+            assert len(noise_tuples) == 0
+            new_index = np.random.randint(len(self))
+            other_img_tuples, _ = self._get_img(new_index)
+            img_tuples = [img_tuples[0], other_img_tuples[1]]
+
         assert self._empty_patch_replacement_enabled != True, "This is not supported with noise"
 
         if self._empty_patch_replacement_enabled:

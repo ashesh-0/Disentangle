@@ -152,6 +152,13 @@ class LCMultiChDloader(MultiChDloader):
     def __getitem__(self, index: Union[int, Tuple[int, int]]):
         img_tuples, noise_tuples = self._get_img(index)
         # assert len(noise_tuples) == 0, 'Synthetic noise is not supported for LC'
+        if self._uncorrelated_channels:
+            assert len(img_tuples) ==2 
+            assert len(noise_tuples) == 0
+            new_index = np.random.randint(len(self))
+            other_img_tuples, _ = self._get_img(new_index)
+            img_tuples = [img_tuples[0], other_img_tuples[1]]
+
 
         if self._enable_rotation:
             img_tuples, noise_tuples = self._rotate(img_tuples, noise_tuples)
