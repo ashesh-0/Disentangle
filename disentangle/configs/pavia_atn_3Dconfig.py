@@ -16,7 +16,7 @@ def get_config():
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
-    data.depth3D = 5
+    data.depth3D = 3
 
     data.poisson_noise_factor = -1
     data.enable_gaussian_noise = False
