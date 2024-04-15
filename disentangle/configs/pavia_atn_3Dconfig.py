@@ -16,7 +16,7 @@ def get_config():
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
-    data.depth3D = 6
+    data.depth3D = 3
 
     data.poisson_noise_factor = -1
     data.enable_gaussian_noise = False
@@ -49,7 +49,7 @@ def get_config():
     loss = config.loss
     loss.loss_type = LossType.Elbo
     # this is not uSplit.
-    loss.kl_loss_formulation = ''
+    loss.kl_loss_formulation = 'usplit'
 
     # loss.mixed_rec_weight = 1
 
@@ -122,7 +122,7 @@ def get_config():
     training.lr_scheduler_patience = 15
     training.max_epochs = 200
     training.batch_size = 32
-    training.num_workers = 4
+    training.num_workers = 6
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
