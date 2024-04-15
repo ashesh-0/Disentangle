@@ -231,13 +231,21 @@ class MultiFileDset:
         return self.dsets[0].get_img_sz()
 
     def compute_mean_std(self):
-        cum_mean = 0
-        cum_std = 0
+        cur_mean= {'target':0, 'input':0}
+        cur_std = {'target':0, 'input':0}
         for dset in self.dsets:
             mean, std = dset.compute_mean_std()
-            cum_mean += mean
-            cum_std += std
-        return cum_mean / len(self.dsets), cum_std / len(self.dsets)
+            cur_mean['target'] += mean['target']
+            cur_mean['input'] += mean['input']
+
+            cur_std['target'] += std['target']
+            cur_std['input'] += std['input']
+
+        cur_mean['target'] /= len(self.dsets)
+        cur_mean['input'] /= len(self.dsets)
+        cur_std['target'] /= len(self.dsets)
+        cur_std['input'] /= len(self.dsets)
+        return cur_mean , cur_std
 
     def compute_individual_mean_std(self):
         cum_mean = 0

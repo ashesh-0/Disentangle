@@ -53,10 +53,10 @@ def get_config():
     data.input_is_sum = False
 
     loss = config.loss
-    loss.loss_type = LossType.DenoiSplitMuSplit
+    loss.loss_type = LossType.Elbo
     loss.usplit_w = 0
     loss.denoisplit_w = 1 - loss.usplit_w
-    loss.kl_loss_formulation = 'denoisplit_usplit'
+    loss.kl_loss_formulation = 'usplit'
 
     # loss.mixed_rec_weight = 1
     loss.restricted_kl = False
@@ -109,7 +109,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     fname = '/home/ubuntu/ashesh/training_hpc/noise_model/2404/41/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname
