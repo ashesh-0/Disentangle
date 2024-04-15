@@ -51,6 +51,10 @@ class LadderVAE(pl.LightningModule):
         self._mode_3D = config.model.get('mode_3D', False)
         self._model_3D_depth = config.data.get('depth3D', 1)
         self._decoder_mode_3D = config.model.decoder.get('mode_3D', self._mode_3D)
+        
+        if self._mode_3D and not self._decoder_mode_3D:
+            assert self._model_3D_depth%2 ==1, '3D model depth should be odd'
+        
         assert self._mode_3D is True or self._decoder_mode_3D is False, 'Decoder cannot be 3D when encoder is 2D'
         self._squish3d = self._mode_3D and not self._decoder_mode_3D
         self._3D_squisher = None if not self._squish3d else nn.ModuleList([GateLayer(config.model.encoder.n_filters,3, True) for k in range(len(config.model.z_dims))])
@@ -712,7 +716,7 @@ class LadderVAE(pl.LightningModule):
 
         x, target = batch[:2]
         if self._mode_3D and not self._decoder_mode_3D:
-            target = target[:, :, 1]
+            target = target[:, :, self._decoder_mode_3D//2]
 
         x_normalized = self.normalize_input(x)
         if self.reconstruction_mode:
@@ -833,7 +837,7 @@ class LadderVAE(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, target = batch[:2]
         if self._mode_3D and not self._decoder_mode_3D:
-            target = target[:, :, 1]
+            target = target[:, :, self._decoder_mode_3D//2]
 
         self.set_params_to_same_device_as(x)
         x_normalized = self.normalize_input(x)
