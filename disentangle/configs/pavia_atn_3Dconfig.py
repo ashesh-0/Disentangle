@@ -17,6 +17,7 @@ def get_config():
     data.channel_1 = 2
     data.channel_2 = 3
     data.depth3D = 3
+    data.contiguous_splitting = True
 
     data.poisson_noise_factor = -1
     data.enable_gaussian_noise = False
@@ -62,7 +63,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.mode_3D = True
+    model.mode_3D = False
     model.decoder.mode_3D = False
 
     model.z_dims = [128, 128, 128, 128]
