@@ -125,7 +125,11 @@ def get_train_val_data(data_config,
                                  datasplit_type,
                                  val_fraction=val_fraction,
                                  test_fraction=test_fraction)
-    elif data_config.data_type == DataType.Dao3Channel:
+    elif data_config.data_type in [DataType.Dao3Channel, DataType.Dao3ChannelWithInput]:
+        # if data_config.data_type == DataType.Dao3ChannelWithInput:
+            # assert 'target_idx_list' in data_config, 'target_idx_list should be provided for Dao3ChannelWithInput'
+            # assert 'input_idx' in data_config, 'input_idx should be provided for Dao3ChannelWithInput'
+            
         return _loaddao3ch(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
     elif data_config.data_type == DataType.ExpMicroscopyV2:
         return _loadexp_microscopyv2(fpath,

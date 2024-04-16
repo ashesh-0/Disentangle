@@ -171,13 +171,13 @@ class LCMultiChDloader(MultiChDloader):
             input_tuples = img_tuples
 
         inp, alpha = self._compute_input(input_tuples)
-        assert self._alpha_weighted_target in [False, None]
+        # assert self._alpha_weighted_target in [False, None]
         target_tuples = [img[:1] for img in img_tuples]
         # add noise to target.
         if len(noise_tuples) >= 1:
             target_tuples = [x + noise for x, noise in zip(target_tuples, noise_tuples[1:])]
 
-        target = self._compute_target(target_tuples, None)
+        target = self._compute_target(target_tuples, alpha)
 
         output = [inp, target]
 

@@ -61,7 +61,11 @@ class SingleFileLCDset(LCMultiChDloader):
         self.N = len(self._data)
         if 'channel_1' in data_config and isinstance(data_config.channel_1, int):
             assert 'channel_2' in data_config
-            self._data = self._data[..., [data_config.channel_1, data_config.channel_2]].copy()
+            channel_idx_list = [data_config.channel_1, data_config.channel_2]
+            if 'channel_3' in data_config:
+                channel_idx_list.append(data_config.channel_3)
+                
+            self._data = self._data[..., channel_idx_list].copy()
 
 
 
@@ -110,7 +114,11 @@ class SingleFileDset(MultiChDloader):
         self._data = self._preloaded_data
         if 'channel_1' in data_config and isinstance(data_config.channel_1, int):
             assert 'channel_2' in data_config
-            self._data = self._data[..., [data_config.channel_1, data_config.channel_2]].copy()
+            channel_idx_list = [data_config.channel_1, data_config.channel_2]
+            if 'channel_3' in data_config:
+                channel_idx_list.append(data_config.channel_3)
+            
+            self._data = self._data[..., channel_idx_list].copy()
 
         self.N = len(self._data)
 

@@ -612,13 +612,13 @@ class MultiChDloader:
                 target = np.concatenate(img_tuples, axis=0)
         return target
     
-    def _compute_input_with_alpha(self, img_tuples, alpha):
+    def _compute_input_with_alpha(self, img_tuples, alpha_list):
         # assert self._normalized_input is True, "normalization should happen here"
         if self._input_idx is not None:
             inp = img_tuples[self._input_idx]
         else:
             inp = 0
-            for alpha, img in zip(alpha, img_tuples):
+            for alpha, img in zip(alpha_list, img_tuples):
                 inp += img * alpha
 
             if self._normalized_input is False:
@@ -639,9 +639,9 @@ class MultiChDloader:
         return inp.astype(np.float32)
 
     def _sample_alpha(self):
-        alpha_pos = np.random.rand()
         alpha_arr = []
         for i in range(self._num_channels):
+            alpha_pos = np.random.rand()
             alpha = self._start_alpha_arr[i] + alpha_pos * (self._end_alpha_arr[i] - self._start_alpha_arr[i])
             alpha_arr.append(alpha)
         return alpha_arr

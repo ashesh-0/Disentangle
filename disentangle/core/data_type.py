@@ -22,7 +22,7 @@ class DataType(Enum):
     TavernaSox2Golgi = 17
     Dao3Channel = 18
     ExpMicroscopyV2 = 19
-    Dao3ChannelV2 = 20
+    Dao3ChannelWithInput = 20
     TavernaSox2GolgiV2 = 21
     TwoDset = 22
     PredictedTiffData = 23
