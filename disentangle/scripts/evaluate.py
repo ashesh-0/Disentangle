@@ -36,26 +36,12 @@ from disentangle.data_loader.patch_index_manager import GridAlignement
 from disentangle.data_loader.vanilla_dloader import MultiChDloader, get_train_val_data
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.training import create_dataset, create_model
-from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
+from disentangle.core.ssim import range_invariant_multiscale_ssim, compute_multiscale_ssim
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 DATA_ROOT = 'PUT THE ROOT DIRECTORY FOR THE DATASET HERE'
 CODE_ROOT = 'PUT THE ROOT DIRECTORY FOR THE CODE HERE'
 
-
-def compute_multiscale_ssim(highres_data_, pred_):
-    """
-    Computes multiscale ssim for each channel.
-    """
-    ms_ssim_values = {i: None for i in range(highres_data_.shape[-1])}
-    for ch_idx in range(highres_data_.shape[-1]):
-        # tar_tmp = (highres_data_[...,ch_idx] - sep_mean_[...,ch_idx]) /sep_std_[...,ch_idx]
-        tar_tmp = highres_data_[..., ch_idx]
-        pred_tmp = pred_[..., ch_idx]
-        ms_ssim = MultiScaleStructuralSimilarityIndexMeasure(data_range=tar_tmp.max() - tar_tmp.min())
-        ms_ssim_values[ch_idx] = ms_ssim(torch.Tensor(pred_tmp[:, None]), torch.Tensor(tar_tmp[:, None]))
-    output = [ms_ssim_values[i].item() for i in range(highres_data_.shape[-1])]
-    return output
 
 
 def _avg_psnr(target, prediction, psnr_fn):
@@ -134,12 +120,14 @@ def compute_high_snr_stats(config, highres_data, pred_unnorm):
         avg_range_inv_psnr(highres_data[..., i].copy(), pred_unnorm[..., i].copy())
         for i in range(highres_data.shape[-1])
     ]
-    ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy())
+    ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy(), range_invariant=False)
+    rims_ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy(), range_invariant=True)
     # ssim1_hres_mean, ssim1_hres_std = avg_ssim(highres_data[..., 0], pred_unnorm[0])
     # ssim2_hres_mean, ssim2_hres_std = avg_ssim(highres_data[..., 1], pred_unnorm[1])
     print('PSNR on Highres', psnr_list)
     print('Multiscale SSIM on Highres', [np.round(ssim, 3) for ssim in ssim_list])
-    return {'rangeinvpsnr': psnr_list, 'ms_ssim': ssim_list}
+    print('Range Invariant Multiscale SSIM on Highres', [np.round(ssim, 3) for ssim in rims_ssim_list])
+    return {'rangeinvpsnr': psnr_list, 'ms_ssim': ssim_list, 'rims_ssim': rims_ssim_list}
 
 
 def get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type):
@@ -647,11 +635,11 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             grid_size=32):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/29',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/70',
             # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/30',
             # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/31',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/32',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/33',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/32',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/33',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
