@@ -694,18 +694,25 @@ class MultiChDloader:
         
         return rotated_img_tuples, rotated_noise_tuples
 
+    def get_uncorrelated_img_tuples(self, index):
+        img_tuples, noise_tuples = self._get_img(index)
+        assert len(noise_tuples) == 0
+        img_tuples = [img_tuples[0]]
+        for ch_idx in range(1,len(img_tuples)):
+            new_index = np.random.randint(len(self))
+            other_img_tuples, _ = self._get_img(new_index)
+            img_tuples.append(other_img_tuples[ch_idx])
+        return img_tuples, noise_tuples
+    
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         if self._train_index_switcher is not None:
             index = self._get_index_from_valid_target_logic(index)
 
-        img_tuples, noise_tuples = self._get_img(index)
         if self._uncorrelated_channels:
-            assert len(img_tuples) ==2 
-            assert len(noise_tuples) == 0
-            new_index = np.random.randint(len(self))
-            other_img_tuples, _ = self._get_img(new_index)
-            img_tuples = [img_tuples[0], other_img_tuples[1]]
-
+            img_tuples, noise_tuples = self.get_uncorrelated_img_tuples(index)
+        else:
+            img_tuples, noise_tuples = self._get_img(index)
+    
         assert self._empty_patch_replacement_enabled != True, "This is not supported with noise"
 
         if self._empty_patch_replacement_enabled:

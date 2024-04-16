@@ -150,15 +150,10 @@ class LCMultiChDloader(MultiChDloader):
         return output_img_tuples, cropped_noise_tuples
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]):
-        img_tuples, noise_tuples = self._get_img(index)
-        # assert len(noise_tuples) == 0, 'Synthetic noise is not supported for LC'
         if self._uncorrelated_channels:
-            assert len(img_tuples) ==2 
-            assert len(noise_tuples) == 0
-            new_index = np.random.randint(len(self))
-            other_img_tuples, _ = self._get_img(new_index)
-            img_tuples = [img_tuples[0], other_img_tuples[1]]
-
+            img_tuples, noise_tuples = self.get_uncorrelated_img_tuples(index)
+        else:
+            img_tuples, noise_tuples = self._get_img(index)
 
         if self._enable_rotation:
             img_tuples, noise_tuples = self._rotate(img_tuples, noise_tuples)
@@ -203,6 +198,7 @@ if __name__ == '__main__':
 
     from disentangle.configs.biosr_config import get_config
     config = get_config()
+    config.data.multiscale_lowres_count = 3
     padding_kwargs = {'mode': config.data.padding_mode}
     if 'padding_value' in config.data and config.data.padding_value is not None:
         padding_kwargs['constant_values'] = config.data.padding_value
