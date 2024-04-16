@@ -743,7 +743,8 @@ class LadderVAE(pl.LightningModule):
             net_loss = recons_loss
         else:
             if self.loss_type == LossType.DenoiSplitMuSplit:
-                assert self.kl_loss_formulation == 'denoisplit_usplit'
+                msg = f"For the loss type {LossType.name(self.loss_type)}, kl_loss_formulation must be denoisplit_usplit"
+                assert self.kl_loss_formulation == 'denoisplit_usplit', msg
                 assert self._denoisplit_w is not None and self._usplit_w is not None
 
                 if self.predict_logvar is not None:
