@@ -14,7 +14,7 @@ from disentangle.data_loader.multifile_raw_dloader import get_train_val_data as 
 
 
 def get_multi_channel_files():
-    return ['SIM1-100.tif', 'SIM101-200.tif', 'SIM201-263.tif']
+    return ['SIM1-49_merged.tif', 'SIM201-263_merged.tif']
 
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
