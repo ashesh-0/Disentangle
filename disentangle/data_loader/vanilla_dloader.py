@@ -307,22 +307,26 @@ class MultiChDloader:
             self._repeat_factor = self.idx_manager.grid_rows(self._img_sz) * self.idx_manager.grid_cols(self._img_sz)
 
     def _init_msg(self, ):
-        msg = f'[{self.__class__.__name__}] Sz:{self._img_sz}'
-        msg += f' Train:{int(self._is_train)} N:{self.N} NumPatchPerN:{self._repeat_factor}'
-        msg += f' NormInp:{self._normalized_input}'
-        msg += f' SingleNorm:{self._use_one_mu_std}'
+        msg = f'[{self.__class__.__name__}] Train:{int(self._is_train)} Sz:{self._img_sz}'
+        msg += f' N:{self.N} NumPatchPerN:{self._repeat_factor}'
+        # msg += f' NormInp:{self._normalized_input}'
+        # msg += f' SingleNorm:{self._use_one_mu_std}'
         msg += f' Rot:{self._enable_rotation}'
         msg += f' RandCrop:{self._enable_random_cropping}'
-        msg += f' Q:{self._quantile}'
+        msg += f' Channel:{self._num_channels}'
+        # msg += f' Q:{self._quantile}'
         if self._input_is_sum:
             msg += f' SummedInput:{self._input_is_sum}'
-        msg += f' ReplaceWithRandSample:{self._empty_patch_replacement_enabled}'
+        
+        if self._empty_patch_replacement_enabled:
+            msg += f' ReplaceWithRandSample:{self._empty_patch_replacement_enabled}'
         if self._uncorrelated_channels:
             msg += f' Uncorr:{self._uncorrelated_channels}'
         if self._empty_patch_replacement_enabled:
             msg += f'-{self._empty_patch_replacement_channel_idx}-{self._empty_patch_replacement_probab}'
-
-        msg += f' BckQ:{self._background_quantile}'
+        if self._background_quantile > 0.0:
+            msg += f' BckQ:{self._background_quantile}'
+        
         if self._start_alpha_arr is not None:
             msg += f' Alpha:[{self._start_alpha_arr},{self._end_alpha_arr}]'
         return msg
