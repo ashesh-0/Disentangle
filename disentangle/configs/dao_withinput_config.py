@@ -22,9 +22,9 @@ def get_config():
     data.num_channels = 3
     # data.input_idx = 3
     # data.target_idx_list = [0, 1, 2]
-    data.start_alpha = [0.28, 0.28, 0.28]
-    data.end_alpha = [0.38, 0.38, 0.38]
-    data.alpha_weighted_target = True
+    # data.start_alpha = [0.28, 0.28, 0.28]
+    # data.end_alpha = [0.38, 0.38, 0.38]
+    # data.alpha_weighted_target = True
 
 
     data.poisson_noise_factor = -1
