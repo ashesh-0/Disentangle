@@ -19,8 +19,8 @@ def get_multi_channel_files():
 
 def get_multi_channel_files_with_input():
     return [
-        # 'SIM_3color_1channel_group1.tif', 
-            'SIM_3color_1channel_group2_small.tif']
+        'SIM_3color_1channel_group1.tif', 
+        'SIM_3color_1channel_group2.tif']
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     assert data_config.subdset_type == SubDsetType.MultiChannel
