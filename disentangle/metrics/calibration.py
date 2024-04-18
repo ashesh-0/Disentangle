@@ -5,7 +5,7 @@ import math
 
 import numpy as np
 import torch
-
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 class Calibration:
 
@@ -55,7 +55,7 @@ class Calibration:
                 bin_matrix = bin_matrix.reshape(std_ch.shape)
                 stats[ch_idx]['bin_matrix'] = bin_matrix
                 error = (pred_ch - target_ch)**2
-                for bin_idx in range(self._bins):
+                for bin_idx in range(1, 1+self._bins):
                     bin_mask = bin_matrix == bin_idx
                     bin_error = error[bin_mask]
                     bin_size = np.sum(bin_mask)
@@ -97,6 +97,8 @@ def get_calibrated_factor_for_stdev(pred, pred_logvar, target, batch_size=32, ep
     # create a learnable scalar
     scalar = torch.nn.Parameter(torch.tensor(2.0))
     optimizer = torch.optim.Adam([scalar], lr=lr)
+    scheduler = ReduceLROnPlateau(optimizer, 'min', verbose=True, patience=200)
+    loss_arr = []
     # tqdm with text description as loss
     bar = tqdm(range(epochs))
     for _ in bar:
@@ -108,7 +110,9 @@ def get_calibrated_factor_for_stdev(pred, pred_logvar, target, batch_size=32, ep
 
         loss = torch.mean(nll(target_batch, pred_batch, pred_logvar_batch + torch.log(scalar)))
         loss.backward()
+        loss_arr.append(loss.item())
         optimizer.step()
-        bar.set_description(f'nll: {loss.item()} scalar: {scalar.item()}')
+        scheduler.step(loss)
+        bar.set_description(f'nll: {np.mean(loss_arr[-10:])} scalar: {scalar.item()}')
 
-    return np.sqrt(scalar.item())
+    return np.sqrt(scalar.item()), loss_arr
