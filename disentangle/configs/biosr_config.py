@@ -128,4 +128,5 @@ def get_config():
     training.test_fraction = 0.1
     training.earlystop_patience = 200
     training.precision = 16
+    training.limit_train_batches=2000
     return config
