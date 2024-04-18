@@ -231,7 +231,7 @@ class TopDownLayer(nn.Module):
         In case the padding is not used either (or both) in encoder and decoder, we could have a mismatch. Doing a centercrop to ensure that both remain aligned.
         """
         if bu_value.shape[-2:] != p_params.shape[-2:]:
-            assert self.bottomup_no_padding_mode is True
+            assert self.bottomup_no_padding_mode is True, f'{bu_value.shape[-2:]} != {p_params.shape[-2:]}'
             if self.topdown_no_padding_mode is False:
                 assert bu_value.shape[-1] > p_params.shape[-1]
                 bu_value = F.center_crop(bu_value, p_params.shape[-2:])

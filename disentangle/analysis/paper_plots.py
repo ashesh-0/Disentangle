@@ -81,6 +81,7 @@ def add_psnr_str(ax_, psnr):
 def get_predictions(idx, val_dset, model, mmse_count=50, patch_size=256):
     print(f'Predicting for {idx}')
     val_dset.set_img_sz(patch_size, 64)
+    model.reset_for_different_output_size(patch_size)
 
     with torch.no_grad():
         # val_dset.enable_noise()
@@ -98,8 +99,8 @@ def get_predictions(idx, val_dset, model, mmse_count=50, patch_size=256):
         for _ in range(mmse_count):
             recon_normalized, td_data = model(x_normalized)
             rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
-                                                           x_normalized,
                                                            tar_normalized,
+                                                           x_normalized,
                                                            return_predicted_img=True)
             imgs = model.unnormalize_target(imgs)
             recon_img_list.append(imgs.cpu().numpy()[0])

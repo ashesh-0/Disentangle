@@ -233,7 +233,10 @@ def main(
         data_dir = f'{DATA_ROOT}/BioSR/'
     elif dtype == DataType.NicolaData:
         data_dir = f'{DATA_ROOT}/nikola_data/raw'
-        
+    elif dtype == DataType.Dao3ChannelWithInput:
+        data_dir = f'{DATA_ROOT}/Dao4Channel/'
+    elif dtype == DataType.Dao3Channel:
+        data_dir = f'{DATA_ROOT}/Dao3Channel/'
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -363,56 +366,60 @@ def main(
         padding_kwargs['constant_values'] = config.data.get('padding_value', 0)
 
     dloader_kwargs = {'overlapping_padding_kwargs': padding_kwargs, 'grid_alignment': grid_alignment}
+    
+    train_dset, val_dset = create_dataset(config, data_dir, eval_datasplit_type=eval_datasplit_type,
+                                      kwargs_dict=dloader_kwargs)
+    # if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
+    #     data_class = LCMultiChDloader
+    #     dloader_kwargs['num_scales'] = config.data.multiscale_lowres_count
+    #     dloader_kwargs['padding_kwargs'] = padding_kwargs
+    # elif config.data.data_type == DataType.SemiSupBloodVesselsEMBL:
+    #     data_class = SingleChannelDloader
+    # else:
+    #     data_class = MultiChDloader
+    # if config.data.data_type in [
+    #         DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.AllenCellMito,
+    #         DataType.SeparateTiffData, DataType.SemiSupBloodVesselsEMBL, DataType.BioSR_MRC, DataType.NicolaData,
+    # ]:
+    #     datapath = data_dir
+    # elif config.data.data_type == DataType.OptiMEM100_014:
+    #     datapath = os.path.join(data_dir, 'OptiMEM100x014.tif')
+    # elif config.data.data_type == DataType.Prevedel_EMBL:
+    #     datapath = os.path.join(data_dir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
+    # else:
+    #     datapath = data_dir
 
-    if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
-        data_class = LCMultiChDloader
-        dloader_kwargs['num_scales'] = config.data.multiscale_lowres_count
-        dloader_kwargs['padding_kwargs'] = padding_kwargs
-    elif config.data.data_type == DataType.SemiSupBloodVesselsEMBL:
-        data_class = SingleChannelDloader
-    else:
-        data_class = MultiChDloader
-    if config.data.data_type in [
-            DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.AllenCellMito,
-            DataType.SeparateTiffData, DataType.SemiSupBloodVesselsEMBL, DataType.BioSR_MRC, DataType.NicolaData,
-    ]:
-        datapath = data_dir
-    elif config.data.data_type == DataType.OptiMEM100_014:
-        datapath = os.path.join(data_dir, 'OptiMEM100x014.tif')
-    elif config.data.data_type == DataType.Prevedel_EMBL:
-        datapath = os.path.join(data_dir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
+    # normalized_input = config.data.normalized_input
+    # use_one_mu_std = config.data.use_one_mu_std
+    # train_aug_rotate = config.data.train_aug_rotate
+    # enable_random_cropping = config.data.deterministic_grid is False
 
-    normalized_input = config.data.normalized_input
-    use_one_mu_std = config.data.use_one_mu_std
-    train_aug_rotate = config.data.train_aug_rotate
-    enable_random_cropping = config.data.deterministic_grid is False
-
-    train_dset = data_class(config.data,
-                            datapath,
-                            datasplit_type=DataSplitType.Train,
-                            val_fraction=config.training.val_fraction,
-                            test_fraction=config.training.test_fraction,
-                            normalized_input=normalized_input,
-                            use_one_mu_std=use_one_mu_std,
-                            enable_rotation_aug=train_aug_rotate,
-                            enable_random_cropping=enable_random_cropping,
-                            **dloader_kwargs)
-    import gc
-    gc.collect()
-    max_val = train_dset.get_max_val()
-    val_dset = data_class(
-        config.data,
-        datapath,
-        datasplit_type=eval_datasplit_type,
-        val_fraction=config.training.val_fraction,
-        test_fraction=config.training.test_fraction,
-        normalized_input=normalized_input,
-        use_one_mu_std=use_one_mu_std,
-        enable_rotation_aug=False,  # No rotation aug on validation
-        enable_random_cropping=False,
-        # No random cropping on validation. Validation is evaluated on determistic grids
-        max_val=max_val,
-        **dloader_kwargs)
+    # train_dset = data_class(config.data,
+    #                         datapath,
+    #                         datasplit_type=DataSplitType.Train,
+    #                         val_fraction=config.training.val_fraction,
+    #                         test_fraction=config.training.test_fraction,
+    #                         normalized_input=normalized_input,
+    #                         use_one_mu_std=use_one_mu_std,
+    #                         enable_rotation_aug=train_aug_rotate,
+    #                         enable_random_cropping=enable_random_cropping,
+    #                         **dloader_kwargs)
+    # import gc
+    # gc.collect()
+    # max_val = train_dset.get_max_val()
+    # val_dset = data_class(
+    #     config.data,
+    #     datapath,
+    #     datasplit_type=eval_datasplit_type,
+    #     val_fraction=config.training.val_fraction,
+    #     test_fraction=config.training.test_fraction,
+    #     normalized_input=normalized_input,
+    #     use_one_mu_std=use_one_mu_std,
+    #     enable_rotation_aug=False,  # No rotation aug on validation
+    #     enable_random_cropping=False,
+    #     # No random cropping on validation. Validation is evaluated on determistic grids
+    #     max_val=max_val,
+    #     **dloader_kwargs)
 
     # For normalizing, we should be using the training data's mean and std.
     mean_dict, std_dict = train_dset.compute_mean_std()
@@ -449,7 +456,7 @@ def main(
     # reducing the data here.
     if predict_kth_frame is not None:
         assert predict_kth_frame >= 0 and isinstance(predict_kth_frame, int), f'Invalid kth frame. {predict_kth_frame}'
-        if predict_kth_frame >= val_dset._data.shape[0]:
+        if predict_kth_frame >= val_dset.get_num_frames():
             return None, None
         else:
             val_dset.reduce_data([predict_kth_frame])
@@ -470,6 +477,9 @@ def main(
         pred_tiled = np.pad(pred_tiled, ((0, 0), (0, 0), (pad, pad), (pad, pad)))
 
     pred = stitch_predictions(pred_tiled, val_dset)
+    if isinstance(pred, list):
+        pred = np.concatenate(pred, axis=0)
+        
     if pred.shape[-1] == 2 and pred[..., 1].std() == 0:
         print('Denoiser model. Ignoring the second channel')
         pred = pred[..., :1].copy()
@@ -635,11 +645,13 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             grid_size=32):
     if ckpt_dir is None:
         ckpt_dirs = [
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/70',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/30',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/31',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/32',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/33',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D20-M3-S0-L0/13',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D20-M3-S0-L0/14',
+            '/home/ashesh.ashesh/training/disentangle/2404/D18-M3-S0-L0/26',
+            '/home/ashesh.ashesh/training/disentangle/2404/D18-M3-S0-L0/19',
+            '/home/ashesh.ashesh/training/disentangle/2404/D18-M3-S0-L0/18',
+            '/home/ashesh.ashesh/training/disentangle/2404/D18-M3-S0-L0/17',
+
         ]
     else:
         ckpt_dirs = [ckpt_dir]

@@ -267,6 +267,9 @@ class MultiChDloader:
     def get_img_sz(self):
         return self._img_sz
 
+    def get_num_frames(self):
+        return self._data.shape[0]
+    
     def reduce_data(self, t_list=None, h_start=None, h_end=None, w_start=None, w_end=None):
         if t_list is None:
             t_list = list(range(self._data.shape[0]))

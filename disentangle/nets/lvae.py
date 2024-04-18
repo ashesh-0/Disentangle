@@ -539,6 +539,9 @@ class LadderVAE(pl.LightningModule):
             return loss_dict
 
     def reset_for_different_output_size(self, output_size):
+        """
+        This should be called if we want to predict for a different input/output size.
+        """
         for i in range(self.n_layers):
             sz = output_size // 2**(1 + i)
             self.bottom_up_layers[i].output_expected_shape = (sz, sz)
@@ -1229,8 +1232,9 @@ if __name__ == '__main__':
     import torch
 
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
-    from disentangle.configs.biosr_supervised_config import get_config
+    from disentangle.configs.biosr_config import get_config
     config = get_config()
+    config.model.mode_pred=True
     data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
     # copy twice along 2nd dimensiion
     data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
@@ -1242,17 +1246,18 @@ if __name__ == '__main__':
         'target': data_std.repeat(1, 2, 1, 1)
     }, config)
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count
-    inp = torch.rand((2, mc, config.data.image_size, config.data.image_size))
+    model.reset_for_different_output_size(2*config.data.image_size)
+    inp = torch.rand((2, mc, 2*config.data.image_size, 2*config.data.image_size))
     out, td_data = model(inp)
-    batch = (
-        torch.rand((16, mc, config.data.image_size, config.data.image_size)),
-        torch.rand((16, 2, config.data.image_size, config.data.image_size)),
-    )
-    model.training_step(batch, 0)
-    model.validation_step(batch, 0)
+    # batch = (
+    #     torch.rand((16, mc, config.data.image_size, config.data.image_size)),
+    #     torch.rand((16, 2, config.data.image_size, config.data.image_size)),
+    # )
+    # model.training_step(batch, 0)
+    # model.validation_step(batch, 0)
 
-    ll = torch.ones((12, 2, 32, 32))
-    ll_new = model._get_weighted_likelihood(ll)
-    print(ll_new[:, 0].mean(), ll_new[:, 0].std())
-    print(ll_new[:, 1].mean(), ll_new[:, 1].std())
-    print('mar')
+    # ll = torch.ones((12, 2, 32, 32))
+    # ll_new = model._get_weighted_likelihood(ll)
+    # print(ll_new[:, 0].mean(), ll_new[:, 0].std())
+    # print(ll_new[:, 1].mean(), ll_new[:, 1].std())
+    # print('mar')
