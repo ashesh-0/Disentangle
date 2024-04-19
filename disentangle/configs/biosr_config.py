@@ -106,9 +106,9 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname = '/home/ubuntu/ashesh/training_hpc/noise_model/2404/41/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/group/jug/ashesh/training_pre_eccv/noise_model/2403/184/GMMNoiseModel_ER-GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/group/jug/ashesh/training_pre_eccv/noise_model/2403/182/GMMNoiseModel_Microtubules-GT_all__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    fname = '/home/ashesh.ashesh/training/noise_model/2404/42/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm1_bootstrap.npz'
+    model.noise_model_ch1_fpath = fname
+    model.noise_model_ch2_fpath = fname
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
