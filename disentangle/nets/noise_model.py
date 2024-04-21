@@ -86,7 +86,7 @@ def nm_config_sanity_check_target_idx_list(config):
         ch = get_channel(fname)
         ch_list.append(ch)
         fname_list.append(fname)
-        assert config.data.target_idx_list[ch_idx] == ch, f'{config.data.target_idx_list[0]} != {ch}'
+        assert config.data.channel_idx_list[config.data.target_idx_list[ch_idx]] == ch, f'{config.data.channel_idx_list[config.data.target_idx_list[ch_idx]]} != {ch}'
         dsettype = get_dset_type(fname)
         dsettype_list.append(dsettype)
 
