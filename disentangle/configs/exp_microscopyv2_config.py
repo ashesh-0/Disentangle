@@ -21,31 +21,26 @@ def get_config():
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
     data.normalized_input = True
-    data.clip_percentile = 0.995
+    data.clip_percentile = 1.0
     data.background_quantile = 0.0
     # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
     # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
     # the background noise is also a distribution. So, some amount of background noise will remain.
     data.clip_background_noise_to_zero = False
 
-    # we will not subtract the mean of the dataset from every patch. We just want to subtract the background and normalize using std. This way, background will be very close to 0.
-    # this will help in the all scaling related approaches where we want to multiply the frame with some factor and then add them. we will then effectively just do these scaling on the
-    # foreground pixels and the background will anyways will remain very close to 0.
-    data.skip_normalization_using_mean = False
-
     data.input_is_sum = False
 
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
-    data.train_aug_rotate = False
+    data.train_aug_rotate = True
     data.randomized_channels = False
     data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
-    data.target_separate_normalization = False
+    data.target_separate_normalization = True
 
     # This is for intensity augmentation
     # data.ch1_min_alpha = 0.4
