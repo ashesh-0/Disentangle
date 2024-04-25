@@ -12,10 +12,10 @@ def get_config():
     data.data_type = DataType.SeparateTiffData
     data.channel_1 = 0
     data.channel_2 = 1
-    data.ch1_fname = 'actin-60x-noise2-highsnr.tif'
-    data.ch2_fname = 'mito-60x-noise2-highsnr.tif'
-    data.poisson_noise_factor = 100
-    data.enable_gaussian_noise = True
+    data.ch1_fname = 'actin-60x-noise2-lowsnr.tif'
+    data.ch2_fname = 'mito-60x-noise2-lowsnr.tif'
+    data.poisson_noise_factor = -1
+    data.enable_gaussian_noise = False
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
     config.data.synthetic_gaussian_scale = 375
@@ -33,20 +33,24 @@ def get_config():
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
-    data.train_aug_rotate = False
+    data.train_aug_rotate = True
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
     data.input_is_sum = False
-    loss = config.loss
-    loss.loss_type = LossType.Elbo
-    # this is not uSplit.
-    loss.kl_loss_formulation = 'usplit'
 
+    loss = config.loss
+    loss.loss_type = LossType.DenoiSplitMuSplit
+    # this is not uSplit.
+    loss.kl_loss_formulation = 'denoisplit_usplit'
+    loss.usplit_w = 0.1
+    loss.denoisplit_w = 1 - loss.usplit_w
+    loss.restricted_kl = True
+    loss.reconstruction_weight = 1.0
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1.0
@@ -54,7 +58,7 @@ def get_config():
     loss.kl_annealtime = 10
     loss.kl_start = -1
     loss.kl_min = 1e-7
-    loss.free_bits = 0.0
+    loss.free_bits = 1.0
 
     model = config.model
     model.model_type = ModelType.LadderVae
@@ -95,15 +99,16 @@ def get_config():
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
-    model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
+    model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2402/483/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2402/483/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_microscopy-OptiMEM100x014.tif__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/78/GMMNoiseModel_ventura_gigascience-actin__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2404/79/GMMNoiseModel_ventura_gigascience-mito__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
-    assert model.enable_noise_model == False or model.predict_logvar is None
+    # assert model.enable_noise_model == False or model.predict_logvar is None
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
     # model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
@@ -121,5 +126,5 @@ def get_config():
     training.test_fraction = 0.1
     training.earlystop_patience = 100
     training.precision = 16
-
+    training.limit_train_batches=2000
     return config
