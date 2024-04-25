@@ -14,7 +14,7 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.OptiMEM100_014
-    data.channel_1 = 0
+    data.channel_1 = 2
     data.channel_2 = 3
     # data.uncorrelated_channels = True
 
@@ -107,7 +107,7 @@ def get_config():
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_microscopy-OptiMEM100x014.tif__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/75/GMMNoiseModel_microscopy-OptiMEM100x014__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/76/GMMNoiseModel_microscopy-OptiMEM100x014__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2404/74/GMMNoiseModel_microscopy-OptiMEM100x014__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
