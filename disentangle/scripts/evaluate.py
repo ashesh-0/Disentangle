@@ -29,6 +29,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.psnr import PSNR, RangeInvariantPsnr
+from disentangle.core.ssim import compute_multiscale_ssim, range_invariant_multiscale_ssim
 from disentangle.core.tiff_reader import load_tiff
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.patch_index_manager import GridAlignement
@@ -36,12 +37,10 @@ from disentangle.data_loader.patch_index_manager import GridAlignement
 from disentangle.data_loader.vanilla_dloader import MultiChDloader, get_train_val_data
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.training import create_dataset, create_model
-from disentangle.core.ssim import range_invariant_multiscale_ssim, compute_multiscale_ssim
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 DATA_ROOT = 'PUT THE ROOT DIRECTORY FOR THE DATASET HERE'
 CODE_ROOT = 'PUT THE ROOT DIRECTORY FOR THE CODE HERE'
-
 
 
 def _avg_psnr(target, prediction, psnr_fn):
@@ -111,22 +110,20 @@ def compute_max_val(data, data_config):
         return np.quantile(data, data_config.clip_percentile)
 
 
-def compute_high_snr_stats(config, highres_data, pred_unnorm):
+def compute_high_snr_stats(config, highres_data, pred_unnorm, verbose=True):
     """
     last dimension is the channel dimension
     """
-    # assert config.model.model_type == ModelType.DenoiserSplitter or config.data.data_type == DataType.SeparateTiffData
     psnr_list = [
         avg_range_inv_psnr(highres_data[..., i].copy(), pred_unnorm[..., i].copy())
         for i in range(highres_data.shape[-1])
     ]
     ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy(), range_invariant=False)
     rims_ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy(), range_invariant=True)
-    # ssim1_hres_mean, ssim1_hres_std = avg_ssim(highres_data[..., 0], pred_unnorm[0])
-    # ssim2_hres_mean, ssim2_hres_std = avg_ssim(highres_data[..., 1], pred_unnorm[1])
-    print('PSNR on Highres', psnr_list)
-    print('Multiscale SSIM on Highres', [np.round(ssim, 3) for ssim in ssim_list])
-    print('Range Invariant Multiscale SSIM on Highres', [np.round(ssim, 3) for ssim in rims_ssim_list])
+    if verbose:
+        print('PSNR on Highres', psnr_list)
+        print('Multiscale SSIM on Highres', [np.round(ssim, 3) for ssim in ssim_list])
+        print('Range Invariant Multiscale SSIM on Highres', [np.round(ssim, 3) for ssim in rims_ssim_list])
     return {'rangeinvpsnr': psnr_list, 'ms_ssim': ssim_list, 'rims_ssim': rims_ssim_list}
 
 
@@ -142,6 +139,7 @@ def get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type):
     if 'synthetic_gaussian_scale' in data_config:
         data_config.synthetic_gaussian_scale = None
     return _get_highres_data_internal(data_dir, data_config, config.training, eval_datasplit_type)
+
 
 def _get_highres_data_internal(data_dir, data_config, training_config, eval_datasplit_type):
     highres_data = get_train_val_data(data_config, data_dir, DataSplitType.Train, training_config.val_fraction,
@@ -366,9 +364,11 @@ def main(
         padding_kwargs['constant_values'] = config.data.get('padding_value', 0)
 
     dloader_kwargs = {'overlapping_padding_kwargs': padding_kwargs, 'grid_alignment': grid_alignment}
-    
-    train_dset, val_dset = create_dataset(config, data_dir, eval_datasplit_type=eval_datasplit_type,
-                                      kwargs_dict=dloader_kwargs)
+
+    train_dset, val_dset = create_dataset(config,
+                                          data_dir,
+                                          eval_datasplit_type=eval_datasplit_type,
+                                          kwargs_dict=dloader_kwargs)
     # if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
     #     data_class = LCMultiChDloader
     #     dloader_kwargs['num_scales'] = config.data.multiscale_lowres_count
@@ -479,7 +479,7 @@ def main(
     pred = stitch_predictions(pred_tiled, val_dset)
     if isinstance(pred, list):
         pred = np.concatenate(pred, axis=0)
-        
+
     if pred.shape[-1] == 2 and pred[..., 1].std() == 0:
         print('Denoiser model. Ignoring the second channel')
         pred = pred[..., :1].copy()
@@ -491,7 +491,11 @@ def main(
         if pred.shape[0] == 1:
             return 0
 
-        while (pred[:10, -ignored_pixels:, -ignored_pixels:, ].std() == 0):
+        while (pred[
+                :10,
+                -ignored_pixels:,
+                -ignored_pixels:,
+        ].std() == 0):
             ignored_pixels += 1
         ignored_pixels -= 1
         # print(f'In {pred.shape}, {ignored_pixels} many rows and columns are all zero.')
@@ -511,8 +515,8 @@ def main(
     pred = ignore_pixels(pred)
     tar = ignore_pixels(tar)
     if 'target_idx_list' in config.data and config.data.target_idx_list is not None:
-        tar = tar[...,config.data.target_idx_list]
-        pred = pred[...,:(tar.shape[-1])]
+        tar = tar[..., config.data.target_idx_list]
+        pred = pred[..., :(tar.shape[-1])]
 
     print('Stitched predictions shape after', pred.shape)
 
@@ -556,7 +560,7 @@ def main(
         highres_data = highres_data[[predict_kth_frame]].copy()
 
     if 'target_idx_list' in config.data and config.data.target_idx_list is not None:
-        highres_data = highres_data[...,config.data.target_idx_list]
+        highres_data = highres_data[..., config.data.target_idx_list]
 
     if highres_data is None:
         # Computing the output statistics.
@@ -651,7 +655,6 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
             '/home/ashesh.ashesh/training/disentangle/2404/D18-M3-S0-L0/19',
             '/home/ashesh.ashesh/training/disentangle/2404/D18-M3-S0-L0/18',
             '/home/ashesh.ashesh/training/disentangle/2404/D18-M3-S0-L0/17',
-
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -670,13 +673,11 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
-                if data_type in [DataType.OptiMEM100_014,
-                                                                    DataType.SemiSupBloodVesselsEMBL, 
-                                                                    DataType.Pavia2VanillaSplitting,
-                                                                    DataType.ExpansionMicroscopyMitoTub,
-                                                                    DataType.ShroffMitoEr,
-                                                                    DataType.HTIba1Ki67]:
-                    ignored_last_pixels = 32 
+                if data_type in [
+                        DataType.OptiMEM100_014, DataType.SemiSupBloodVesselsEMBL, DataType.Pavia2VanillaSplitting,
+                        DataType.ExpansionMicroscopyMitoTub, DataType.ShroffMitoEr, DataType.HTIba1Ki67
+                ]:
+                    ignored_last_pixels = 32
                 elif data_type == DataType.BioSR_MRC:
                     ignored_last_pixels = 44
                     # assert val_dset.get_img_sz() == 64
@@ -755,4 +756,3 @@ if __name__ == '__main__':
                                             ckpt_dir=args.ckpt_dir,
                                             patch_size=args.patch_size,
                                             grid_size=args.grid_size)
-
