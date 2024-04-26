@@ -10,7 +10,7 @@ from disentangle.nets.gmm_nnbased_noise_model import DeepGMMNoiseModel
 from disentangle.nets.gmm_noise_model import GaussianMixtureNoiseModel
 from disentangle.nets.hist_gmm_noise_model import HistGMMNoiseModel
 from disentangle.nets.hist_noise_model import HistNoiseModel
-
+from disentangle.core.data_type import DataType
 
 class DisentNoiseModel(nn.Module):
 
@@ -155,6 +155,20 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
     else:
         print(f'Warning: channel_key is not found in noise model config: {channel_key}')
 
+    if config.data.data_type == DataType.Pavia3SeqData:
+        # 'Cond_1-Main.tif'
+        fname = noise_model_config['fname'][0]
+        cond_str = {'Balanced': 'Cond_1', 'MediumSkew': 'Cond_2', 'HighSkew': 'Cond_3'}[config.data.alpha_level]
+        power_str = {'High': 'Main', 'Medium': 'Divided_2', 'Low': 'Divided_4'}[config.data.power_level]
+        assert fname.replace('.tif','') == f'{cond_str}-{power_str}', f'{fname} != {cond_str}-{power_str}'
+        # 0/1
+        channel_idx = noise_model_config['channel_idx'][0]
+        if channel_key == 'ch1_fname':
+            assert channel_idx ==0
+        elif channel_key == 'ch2_fname':
+            assert channel_idx ==1
+        else:
+            raise ValueError(f'Invalid channel_key: {channel_key}')
 
 def get_noise_model(config):
     if 'enable_noise_model' in config.model and config.model.enable_noise_model:
