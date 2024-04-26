@@ -639,6 +639,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
             # '/home/ashesh.ashesh/training/disentangle/2404/D20-M3-S0-L0/13',
             # '/home/ashesh.ashesh/training/disentangle/2404/D20-M3-S0-L0/14',
             '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/3',
+            '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5'
         ]
     else:
         ckpt_dirs = [ckpt_dir]
