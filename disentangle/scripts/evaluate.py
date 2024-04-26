@@ -235,6 +235,8 @@ def main(
         data_dir = f'{DATA_ROOT}/Dao4Channel/'
     elif dtype == DataType.Dao3Channel:
         data_dir = f'{DATA_ROOT}/Dao3Channel/'
+    elif dtype == DataType.ExpMicroscopyV2:
+        data_dir = f'{DATA_ROOT}/expansion_microscopy_v2/datafiles'
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -477,7 +479,8 @@ def main(
         pred_tiled = np.pad(pred_tiled, ((0, 0), (0, 0), (pad, pad), (pad, pad)))
 
     pred = stitch_predictions(pred_tiled, val_dset)
-    if isinstance(pred, list):
+    is_list_prediction = isinstance(pred, list)
+    if is_list_prediction:
         pred = np.concatenate(pred, axis=0)
 
     if pred.shape[-1] == 2 and pred[..., 1].std() == 0:
@@ -503,7 +506,10 @@ def main(
 
     actual_ignored_pixels = print_ignored_pixels()
     assert ignored_last_pixels >= actual_ignored_pixels, f'ignored_last_pixels: {ignored_last_pixels} < actual_ignored_pixels: {actual_ignored_pixels}'
-    tar = val_dset._data
+    # tar = val_dset._data
+    tar = val_dset._data if not is_list_prediction else [val_dset.dsets[i]._data for i in range(len(val_dset.dsets))]
+    if is_list_prediction:
+        tar = np.concatenate(tar, axis=0)
 
     def ignore_pixels(arr):
         if ignore_first_pixels:
@@ -564,32 +570,13 @@ def main(
 
     if highres_data is None:
         # Computing the output statistics.
+        stats_dict = compute_high_snr_stats(config, tar_normalized, pred)
         output_stats = {}
-        output_stats['rec_loss'] = rec_loss.mean()
-        output_stats['rmse'] = [np.mean(rmse1), np.array(0.0), np.array(0.0)]  #, np.mean(rmse2), np.mean(rmse)]
-        output_stats['psnr'] = [avg_psnr(tar1, pred1), np.array(0.0)]  #, avg_psnr(tar2, pred2)]
-        output_stats['rangeinvpsnr'] = [avg_range_inv_psnr(tar1, pred1),
-                                        np.array(0.0)]  #, avg_range_inv_psnr(tar2, pred2)]
-        # output_stats['ssim'] = [ssim1_mean, np.array(0.0), ssim1_std, np.array(0.0)]
+        output_stats['rangeinvpsnr'] = stats_dict['rangeinvpsnr']
+        output_stats['ms_ssim'] = stats_dict['ms_ssim']
+        output_stats['rims_ssim'] = stats_dict['rims_ssim']
+        print('')
 
-        if pred.shape[-1] == 2:
-            output_stats['rmse'][1] = np.mean(rmse2)
-            output_stats['psnr'][1] = avg_psnr(tar2, pred2)
-            output_stats['rangeinvpsnr'][1] = avg_range_inv_psnr(tar2, pred2)
-            # output_stats['ssim'] = [ssim1_mean, ssim2_mean, ssim1_std, ssim2_std]
-
-        output_stats['normalized_ssim'] = normalized_ssim
-
-        print(print_token)
-        print('Rec Loss', np.round(output_stats['rec_loss'], 3))
-        print('RMSE', output_stats['rmse'][0].round(3), output_stats['rmse'][1].round(3),
-              output_stats['rmse'][2].round(3))
-        print('PSNR', output_stats['psnr'][0], output_stats['psnr'][1])
-        print('RangeInvPSNR', output_stats['rangeinvpsnr'][0], output_stats['rangeinvpsnr'][1])
-        # ssim_str = 'SSIM normalized:' if normalized_ssim else 'SSIM:'
-        # print(ssim_str, output_stats['ssim'][0].round(3), output_stats['ssim'][1].round(3), '±',
-        #       np.mean(output_stats['ssim'][2:4]).round(4))
-        print()
     # highres data
     else:
         highres_data = ignore_pixels(highres_data)
@@ -651,10 +638,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
         ckpt_dirs = [
             # '/home/ashesh.ashesh/training/disentangle/2404/D20-M3-S0-L0/13',
             # '/home/ashesh.ashesh/training/disentangle/2404/D20-M3-S0-L0/14',
-            '/home/ashesh.ashesh/training/disentangle/2404/D18-M3-S0-L0/26',
-            '/home/ashesh.ashesh/training/disentangle/2404/D18-M3-S0-L0/19',
-            '/home/ashesh.ashesh/training/disentangle/2404/D18-M3-S0-L0/18',
-            '/home/ashesh.ashesh/training/disentangle/2404/D18-M3-S0-L0/17',
+            '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/3',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -684,6 +668,8 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                     # ignored_last_pixels = 108
                 elif data_type == DataType.NicolaData:
                     ignored_last_pixels = 8
+                elif data_type == DataType.ExpMicroscopyV2:
+                    ignored_last_pixels = 16
                 else:
                     ignored_last_pixels = 0
 
