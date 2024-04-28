@@ -58,9 +58,13 @@ if __name__ == '__main__':
     from disentangle.data_loader.multifile_raw_dloader import SubDsetType
     from ml_collections.config_dict import ConfigDict
     data_config = ConfigDict()
-    data_config.subdset_type = SubDsetType.OneChannel
+    data_config.subdset_type = SubDsetType.TwoChannel
     datadir = '/group/jug/ashesh/data/TavernaSox2Golgi/'
     data = get_train_val_data(datadir, data_config, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
     print(len(data))
     # for i in range(len(data)):
     # print(i, data[i].shape)
+    import matplotlib.pyplot as plt
+    _, ax = plt.subplots(figsize=(12, 6), ncols=2)
+    ax[0].imshow(data[0][0][..., 0])
+    ax[1].imshow(data[0][0][..., 1])
