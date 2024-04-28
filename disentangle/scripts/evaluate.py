@@ -237,6 +237,8 @@ def main(
         data_dir = f'{DATA_ROOT}/Dao3Channel/'
     elif dtype == DataType.ExpMicroscopyV2:
         data_dir = f'{DATA_ROOT}/expansion_microscopy_v2/datafiles'
+    elif dtype == DataType.Pavia3SeqData:
+        data_dir = f'{DATA_ROOT}/pavia3_sequential_raw/'
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -636,10 +638,15 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             grid_size=32):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # '/home/ashesh.ashesh/training/disentangle/2404/D20-M3-S0-L0/13',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D20-M3-S0-L0/14',
-            '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/3',
-            '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5'
+            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/8',
+            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/15',
+            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/14',
+            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/31',
+            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/32',
+            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/33',
+            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/30',
+            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/26',
+            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/25',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
