@@ -180,7 +180,7 @@ class MultiChDloader:
         if data_config.get('poisson_noise_factor', -1) > 0:
             self._poisson_noise_factor = data_config.poisson_noise_factor
             msg += f'Adding Poisson noise with factor {self._poisson_noise_factor}.\t'
-            self._data = np.random.poisson(self._data / self._poisson_noise_factor)
+            self._data = np.random.poisson(self._data / self._poisson_noise_factor) * self._poisson_noise_factor
 
         if data_config.get('enable_gaussian_noise', False):
             synthetic_scale = data_config.get('synthetic_gaussian_scale', 0.1)
@@ -269,7 +269,7 @@ class MultiChDloader:
 
     def get_num_frames(self):
         return self._data.shape[0]
-    
+
     def reduce_data(self, t_list=None, h_start=None, h_end=None, w_start=None, w_end=None):
         if t_list is None:
             t_list = list(range(self._data.shape[0]))
@@ -320,7 +320,7 @@ class MultiChDloader:
         # msg += f' Q:{self._quantile}'
         if self._input_is_sum:
             msg += f' SummedInput:{self._input_is_sum}'
-        
+
         if self._empty_patch_replacement_enabled:
             msg += f' ReplaceWithRandSample:{self._empty_patch_replacement_enabled}'
         if self._uncorrelated_channels:
@@ -329,7 +329,7 @@ class MultiChDloader:
             msg += f'-{self._empty_patch_replacement_channel_idx}-{self._empty_patch_replacement_probab}'
         if self._background_quantile > 0.0:
             msg += f' BckQ:{self._background_quantile}'
-        
+
         if self._start_alpha_arr is not None:
             msg += f' Alpha:[{self._start_alpha_arr},{self._end_alpha_arr}]'
         return msg
@@ -507,7 +507,6 @@ class MultiChDloader:
 
         return mean[None, :, None, None], std[None, :, None, None]
 
-    
     def compute_mean_std(self, allow_for_validation_data=False):
         """
         Note that we must compute this only for training data.
@@ -521,17 +520,16 @@ class MultiChDloader:
             assert self._target_separate_normalization is True, 'This is not supported with target_separate_normalization=False'
 
             mean, std = self.compute_individual_mean_std()
-            mean_dict = {'input':mean[:,self._input_idx:self._input_idx+1], 'target':mean[:,self._tar_idx_list]}
-            std_dict = {'input':std[:,self._input_idx:self._input_idx+1], 'target':std[:,self._tar_idx_list]}
+            mean_dict = {'input': mean[:, self._input_idx:self._input_idx + 1], 'target': mean[:, self._tar_idx_list]}
+            std_dict = {'input': std[:, self._input_idx:self._input_idx + 1], 'target': std[:, self._tar_idx_list]}
             return mean_dict, std_dict
 
         if self._input_is_sum:
             assert self._noise_data is None, "This is not supported with noise"
             mean = [np.mean(self._data[..., k:k + 1], keepdims=True) for k in range(self._num_channels)]
             mean = np.sum(mean, keepdims=True)[0]
-            std = np.linalg.norm(
-                [np.std(self._data[..., k:k + 1], keepdims=True) for k in range(self._num_channels)],
-                keepdims=True)[0]
+            std = np.linalg.norm([np.std(self._data[..., k:k + 1], keepdims=True) for k in range(self._num_channels)],
+                                 keepdims=True)[0]
         else:
             mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
             if self._noise_data is not None:
@@ -544,20 +542,16 @@ class MultiChDloader:
 
         if self._skip_normalization_using_mean:
             mean = np.zeros_like(mean)
-        
-        mean_dict = {'input':mean}#, 'target':mean}
-        std_dict = {'input':std}#, 'target':std}
-        
+
+        mean_dict = {'input': mean}  #, 'target':mean}
+        std_dict = {'input': std}  #, 'target':std}
+
         if self._target_separate_normalization:
             mean, std = self.compute_individual_mean_std()
-        
+
         mean_dict['target'] = mean
         std_dict['target'] = std
         return mean_dict, std_dict
-
-    
-
-       
 
     def _get_random_hw(self, h: int, w: int):
         """
@@ -614,7 +608,7 @@ class MultiChDloader:
             else:
                 target = np.concatenate(img_tuples, axis=0)
         return target
-    
+
     def _compute_input_with_alpha(self, img_tuples, alpha_list):
         # assert self._normalized_input is True, "normalization should happen here"
         if self._input_idx is not None:
@@ -626,7 +620,7 @@ class MultiChDloader:
 
             if self._normalized_input is False:
                 return inp.astype(np.float32)
-    
+
         mean, std = self.get_mean_std_for_input()
         mean = mean.squeeze()
         std = std.squeeze()
@@ -666,51 +660,52 @@ class MultiChDloader:
             else:
                 index = self._train_index_switcher.get_invalid_target_index()
         return index
-    
+
     def _rotate(self, img_tuples, noise_tuples):
         return self._rotate2D(img_tuples, noise_tuples)
 
     def _rotate2D(self, img_tuples, noise_tuples):
         img_kwargs = {}
-        for i,img in enumerate(img_tuples):
+        for i, img in enumerate(img_tuples):
             for k in range(len(img)):
                 img_kwargs[f'img{i}_{k}'] = img[k]
-        
+
         noise_kwargs = {}
-        for i,nimg in enumerate(noise_tuples):
+        for i, nimg in enumerate(noise_tuples):
             for k in range(len(nimg)):
                 noise_kwargs[f'noise{i}_{k}'] = nimg[k]
-        
 
         keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
         self._rotation_transform.add_targets({k: 'image' for k in keys})
         rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
         rotated_img_tuples = []
-        for i,img in enumerate(img_tuples):
+        for i, img in enumerate(img_tuples):
             if len(img) == 1:
                 rotated_img_tuples.append(rot_dic[f'img{i}_0'][None])
             else:
-                rotated_img_tuples.append(np.concatenate([rot_dic[f'img{i}_{k}'][None] for k in range(len(img))], axis=0))
+                rotated_img_tuples.append(
+                    np.concatenate([rot_dic[f'img{i}_{k}'][None] for k in range(len(img))], axis=0))
 
         rotated_noise_tuples = []
         for i, nimg in enumerate(noise_tuples):
             if len(nimg) == 1:
                 rotated_noise_tuples.append(rot_dic[f'noise{i}_0'][None])
             else:
-                rotated_noise_tuples.append(np.concatenate([rot_dic[f'noise{i}_{k}'][None] for k in range(len(nimg))], axis=0))
-        
+                rotated_noise_tuples.append(
+                    np.concatenate([rot_dic[f'noise{i}_{k}'][None] for k in range(len(nimg))], axis=0))
+
         return rotated_img_tuples, rotated_noise_tuples
 
     def get_uncorrelated_img_tuples(self, index):
         img_tuples, noise_tuples = self._get_img(index)
         assert len(noise_tuples) == 0
         img_tuples = [img_tuples[0]]
-        for ch_idx in range(1,len(img_tuples)):
+        for ch_idx in range(1, len(img_tuples)):
             new_index = np.random.randint(len(self))
             other_img_tuples, _ = self._get_img(new_index)
             img_tuples.append(other_img_tuples[ch_idx])
         return img_tuples, noise_tuples
-    
+
     def __getitem__(self, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
         if self._train_index_switcher is not None:
             index = self._get_index_from_valid_target_logic(index)
@@ -719,7 +714,7 @@ class MultiChDloader:
             img_tuples, noise_tuples = self.get_uncorrelated_img_tuples(index)
         else:
             img_tuples, noise_tuples = self._get_img(index)
-    
+
         assert self._empty_patch_replacement_enabled != True, "This is not supported with noise"
 
         if self._empty_patch_replacement_enabled:
