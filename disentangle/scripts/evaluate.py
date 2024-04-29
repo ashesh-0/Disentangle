@@ -635,18 +635,19 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             predict_kth_frame=None,
                                             ckpt_dir=None,
                                             patch_size=None,
-                                            grid_size=32):
+                                            grid_size=32,
+                                            overwrite_saved_predictions=True):
     if ckpt_dir is None:
         ckpt_dirs = [
-            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/8',
-            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/15',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/8',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/15',
             '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/14',
-            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/31',
-            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/32',
-            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/33',
-            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/30',
-            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/26',
-            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/25',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/31',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/32',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/33',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/30',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/26',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/25',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -727,7 +728,9 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                     offset = prediction.min()
                     prediction -= offset
                     prediction = prediction.astype(np.uint32)
-                    handler.dump_predictions(ckpt_dir, prediction, {'offset': str(offset)})
+                    handler.dump_predictions(ckpt_dir,
+                                             prediction, {'offset': str(offset)},
+                                             overwrite=overwrite_saved_predictions)
 
     return data, prediction
 
@@ -741,6 +744,7 @@ if __name__ == '__main__':
     parser.add_argument('--save_prediction', action='store_true')
     parser.add_argument('--mmse_count', type=int, default=1)
     parser.add_argument('--predict_kth_frame', type=int, default=None)
+    parser.add_argument('--preserve_older_prediction', action='store_true')
 
     args = parser.parse_args()
     save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=args.normalized_ssim,
@@ -749,4 +753,5 @@ if __name__ == '__main__':
                                             predict_kth_frame=args.predict_kth_frame,
                                             ckpt_dir=args.ckpt_dir,
                                             patch_size=args.patch_size,
-                                            grid_size=args.grid_size)
+                                            grid_size=args.grid_size,
+                                            overwrite_saved_predictions=not args.preserve_older_prediction)
