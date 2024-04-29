@@ -29,7 +29,7 @@ class NormalStochasticBlock2d(nn.Module):
                  kernel: int = 3,
                  transform_p_params: bool = True,
                  vanilla_latent_hw: int = None,
-                 restricted_kl:bool = False,
+                 restricted_kl: bool = False,
                  use_naive_exponential=False):
         """
         Args:
@@ -119,14 +119,14 @@ class NormalStochasticBlock2d(nn.Module):
                 kl_elementwise = kl_divergence(q, p)
             else:
                 kl_elementwise = kl_normal_mc(z, p_params, q_params)
-            
-            # compute KL only on the portion of the latent space that is used for prediction. 
+
+            # compute KL only on the portion of the latent space that is used for prediction.
             if self._restricted_kl:
-                pad = (kl_elementwise.shape[-1] - self._vanilla_latent_hw)//2
+                pad = (kl_elementwise.shape[-1] - self._vanilla_latent_hw) // 2
                 assert pad > 0, 'Disable restricted kl since there is no restriction.'
-                tmp = kl_elementwise[..., pad:-pad, pad:-pad]
-                kl_samplewise_restricted = tmp.sum((1, 2, 3))
-            
+                factor = self._vanilla_latent_hw / kl_elementwise.shape[-1]
+                kl_samplewise_restricted = kl_elementwise.sum((1, 2, 3)) * factor * factor
+
             kl_samplewise = kl_elementwise.sum((1, 2, 3))
             kl_channelwise = kl_elementwise.sum((2, 3))
             # Compute spatial KL analytically (but conditioned on samples from
