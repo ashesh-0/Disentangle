@@ -47,7 +47,7 @@ def get_config():
     loss.loss_type = LossType.DenoiSplitMuSplit
     # this is not uSplit.
     loss.kl_loss_formulation = 'denoisplit_usplit'
-    loss.usplit_w = 0.1
+    loss.usplit_w = 0.0
     loss.denoisplit_w = 1 - loss.usplit_w
     loss.restricted_kl = True
     loss.reconstruction_weight = 1.0

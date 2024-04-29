@@ -180,6 +180,16 @@ def get_train_val_data(datadir,
     else:
         raise Exception("invalid datasplit")
 
+    if 'channel_idx_list' in data_config:
+        assert isinstance(data_config.channel_idx_list, list) or isinstance(data_config.channel_idx_list,
+                                                                            tuple), 'channel_idx_list should be a list'
+        assert all([isinstance(data_config.channel_idx_list[i], int)
+                    for i in data_config.channel_idx_list]), f'Invalid channel_idx_list {data_config.channel_idx_list}'
+        print('Selecting channels', data_config.channel_idx_list)
+        dataA = [x[..., data_config.channel_idx_list] for x in dataA]
+        if dataB is not None:
+            dataB = [x[..., data_config.channel_idx_list] for x in dataB]
+
     if dset_subtype == SubDsetType.MultiChannel:
         data = MultiChannelData(dataA, paths=framewise_fpathsA)
     else:

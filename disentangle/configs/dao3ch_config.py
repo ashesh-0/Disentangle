@@ -16,9 +16,8 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.Dao3Channel
     data.subdset_type = SubDsetType.MultiChannel
-    data.channel_1 = None
-    data.channel_2 = None
-    data.num_channels = 4
+    data.channel_idx_list = [0, 1]  #[0, 1, 2, 3]
+    data.num_channels = len(data.channel_idx_list)
     data.uncorrelated_channels = True
 
     data.poisson_noise_factor = -1
@@ -133,6 +132,5 @@ def get_config():
     training.test_fraction = 0.1
     training.earlystop_patience = 120
     training.precision = 16
-    training.limit_train_batches=2000
+    training.limit_train_batches = 2000
     return config
-

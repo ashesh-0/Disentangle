@@ -59,14 +59,9 @@ class SingleFileLCDset(LCMultiChDloader):
     def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
         self._data = self._preloaded_data
         self.N = len(self._data)
-        if 'channel_1' in data_config and isinstance(data_config.channel_1, int):
-            assert 'channel_2' in data_config
-            channel_idx_list = [data_config.channel_1, data_config.channel_2]
-            if 'channel_3' in data_config:
-                channel_idx_list.append(data_config.channel_3)
-                
-            self._data = self._data[..., channel_idx_list].copy()
-
+        assert 'channel_1' not in data_config
+        assert 'channel_2' not in data_config
+        assert 'channel_3' not in data_config
 
 
 class SingleFileDset(MultiChDloader):
@@ -112,14 +107,9 @@ class SingleFileDset(MultiChDloader):
 
     def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
         self._data = self._preloaded_data
-        if 'channel_1' in data_config and isinstance(data_config.channel_1, int):
-            assert 'channel_2' in data_config
-            channel_idx_list = [data_config.channel_1, data_config.channel_2]
-            if 'channel_3' in data_config:
-                channel_idx_list.append(data_config.channel_3)
-            
-            self._data = self._data[..., channel_idx_list].copy()
-
+        assert 'channel_1' not in data_config, 'Outdated config file. Please remove channel_1, channel_2, channel_3 from the config file.'
+        assert 'channel_2' not in data_config, 'Outdated config file. Please remove channel_1, channel_2, channel_3 from the config file.'
+        assert 'channel_3' not in data_config, 'Outdated config file. Please remove channel_1, channel_2, channel_3 from the config file.'
         self.N = len(self._data)
 
 
@@ -243,8 +233,8 @@ class MultiFileDset:
         return self.dsets[0].get_img_sz()
 
     def compute_mean_std(self):
-        cur_mean= {'target':0, 'input':0}
-        cur_std = {'target':0, 'input':0}
+        cur_mean = {'target': 0, 'input': 0}
+        cur_std = {'target': 0, 'input': 0}
         for dset in self.dsets:
             mean, std = dset.compute_mean_std()
             cur_mean['target'] += mean['target']
@@ -257,7 +247,7 @@ class MultiFileDset:
         cur_mean['input'] /= len(self.dsets)
         cur_std['target'] /= len(self.dsets)
         cur_std['input'] /= len(self.dsets)
-        return cur_mean , cur_std
+        return cur_mean, cur_std
 
     def compute_individual_mean_std(self):
         cum_mean = 0
@@ -267,10 +257,10 @@ class MultiFileDset:
             cum_mean += mean
             cum_std += std
         return cum_mean / len(self.dsets), cum_std / len(self.dsets)
-    
+
     def get_num_frames(self):
         return len(self.dsets)
-    
+
     def reduce_data(self, t_list=None, h_start=None, h_end=None, w_start=None, w_end=None):
         assert h_start is None
         assert h_end is None
