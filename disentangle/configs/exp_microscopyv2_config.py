@@ -52,7 +52,7 @@ def get_config():
     loss.loss_type = LossType.DenoiSplitMuSplit
     # this is not uSplit.
     loss.kl_loss_formulation = 'denoisplit_usplit'
-    loss.usplit_w = 0.1
+    loss.usplit_w = 0.0
     loss.denoisplit_w = 1 - loss.usplit_w
     loss.restricted_kl = True
     loss.reconstruction_weight = 1.0
@@ -131,6 +131,6 @@ def get_config():
     training.test_fraction = 0.1
     training.earlystop_patience = 100
     training.precision = 16
-    training.limit_train_batches=2000
+    training.limit_train_batches = 2000
 
     return config
