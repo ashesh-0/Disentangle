@@ -177,6 +177,14 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
             assert channel_idx == 1
         else:
             raise ValueError(f'Invalid channel_key: {channel_key}')
+    elif config.data.data_type == DataType.TavernaSox2Golgi:
+        fname = os.path.basename(noise_model_fpath)
+        if channel_key == 'ch1_fname':
+            assert config.data.channel_1 in fname
+            assert config.data.channel_2 not in fname
+        elif channel_key == 'ch2_fname':
+            assert config.data.channel_2 in fname
+            assert config.data.channel_1 not in fname
 
 
 def get_noise_model(config):

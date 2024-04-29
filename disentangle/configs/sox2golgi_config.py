@@ -8,6 +8,7 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
 from disentangle.data_loader.multifile_raw_dloader import SubDsetType
+from disentangle.data_loader.sox2golgi_rawdata_loader import Sox2GolgiChannelList
 
 
 def get_config():
@@ -16,6 +17,8 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.TavernaSox2Golgi
     data.subdset_type = SubDsetType.TwoChannel
+    data.channel_1 = Sox2GolgiChannelList.Sox2
+    data.channel_2 = Sox2GolgiChannelList.Golgi
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
@@ -92,7 +95,7 @@ def get_config():
     config.model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
-    model.num_targets = len(data.target_idx_list)
+    # model.num_targets = len(data.target_idx_list)
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.stochastic_skip = True
@@ -114,8 +117,8 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/58/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_highSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2404/60/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_highSNR_channel2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/116/GMMNoiseModel_SOX2-C2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2404/115/GMMNoiseModel_GOLGI-C1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     # model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2404/32/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_highSNR_channel2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
 

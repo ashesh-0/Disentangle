@@ -13,6 +13,11 @@ from disentangle.data_loader.multifile_raw_dloader import SubDsetType
 from disentangle.data_loader.multifile_raw_dloader import get_train_val_data as get_train_val_data_twochannels
 
 
+class Sox2GolgiChannelList(Enum):
+    Sox2 = 'SOX2'
+    Golgi = 'GOLGI'
+
+
 def get_two_channel_files():
     arr = [71, 89, 92, 93, 94, 95, 96, 97, 98, 99, 100, 1752, 1757, 1758, 1760, 1761]
     sox2 = [f'SOX2/C2-Experiment-{i}.tif' for i in arr]
@@ -45,6 +50,9 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
         files_fn = get_one_channel_files
     elif data_config.subdset_type == SubDsetType.TwoChannel:
         files_fn = get_two_channel_files
+
+    assert data_config.channel_1 == Sox2GolgiChannelList.Sox2, 'Filenames have this order'
+    assert data_config.channel_2 == Sox2GolgiChannelList.Golgi
 
     return get_train_val_data_twochannels(datadir,
                                           data_config,
