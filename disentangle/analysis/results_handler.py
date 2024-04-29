@@ -39,9 +39,12 @@ class PaperResultsHandler:
         return basename
 
     @staticmethod
-    def get_pred_fname(ckpt_fpath):
+    def get_pred_fname(ckpt_fpath, postfix=''):
         assert ckpt_fpath[-1] != '/'
-        basename = '_'.join(ckpt_fpath.split("/")[4:]) + '.tif'
+        basename = '_'.join(ckpt_fpath.split("/")[4:])
+        if postfix != '':
+            basename = basename + '_' + postfix
+        basename += '.tif'
         basename = 'pred_' + basename
         return basename
 
@@ -66,9 +69,18 @@ class PaperResultsHandler:
         print(f'[{self.__class__.__name__}] Saved to {output_fpath}')
         return output_fpath
 
-    def dump_predictions(self, ckpt_fpath, predictions, hparam_dict):
-        fname = self.get_pred_fname(ckpt_fpath)
-        fpath = os.path.join(self.get_output_dir(), fname)
+    def get_pred_fpath(self, ckpt_fpath, overwrite):
+        suitable_fpath_notfound = True
+        postfix = '1'
+        while suitable_fpath_notfound:
+            fname = self.get_pred_fname(ckpt_fpath, postfix=postfix)
+            fpath = os.path.join(self.get_output_dir(), fname)
+            suitable_fpath_notfound = os.path.exists(fpath) and not overwrite
+            postfix = str(int(postfix) + 1)
+        return fpath
+
+    def dump_predictions(self, ckpt_fpath, predictions, hparam_dict, overwrite=True):
+        fpath = self.get_pred_fpath(ckpt_fpath, overwrite)
         save_tiff(fpath, predictions)
         print(f'Written {predictions.shape} to {fpath}')
         hparam_fpath = fpath.replace('.tif', '.json')
