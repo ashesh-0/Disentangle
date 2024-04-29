@@ -122,3 +122,7 @@ if __name__ == '__main__':
                               val_fraction=0.1,
                               test_fraction=0.1)
     print(len(data))
+    import matplotlib.pyplot as plt
+    _, ax = plt.subplots(figsize=(12, 6), ncols=2)
+    ax[0].imshow(data[0][..., 0])
+    ax[1].imshow(data[0][..., 1])
