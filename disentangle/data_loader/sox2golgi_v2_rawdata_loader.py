@@ -3,9 +3,16 @@ from functools import partial
 
 import numpy as np
 
+from disentangle.core.custom_enum import Enum
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.data_loader.multifile_raw_dloader import get_train_val_data as get_train_val_data_multichannel
 from nd2reader import ND2Reader
+
+
+class Sox2GolgiV2ChannelList(Enum):
+    GT_Cy5 = 'GT_Cy5'
+    GT_TRITC = 'GT_TRITC'
+    GT_555_647 = '555-647'
 
 
 def get_start_end_index(key):
@@ -88,14 +95,7 @@ def get_files():
 
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
-    channel_names = [data_config.channel_1,
-                     data_config.channel_2]  # There are 3 channels ['555-647', 'GT_Cy5', 'GT_TRITC']
-    load_data_fn = partial(load_nd2, channel_names=channel_names)
-
-    if set(channel_names) == set(['555-647']) and data_config.input_is_sum == False:
-        # input is (C1 + C2 )/2. So, we need to divide by 2 for the input as well
-        load_data_fn = partial(load_nd2, channel_names=channel_names, multiplicative_factor=0.5)
-
+    channel_names = data_config.channel_idx_list
     print(
         f'Loading data from {datadir} with channel names {channel_names}, datasplit_type {DataSplitType.name(datasplit_type)}'
     )
@@ -114,8 +114,13 @@ if __name__ == '__main__':
 
     config = ml_collections.ConfigDict()
     config.subdset_type = SubDsetType.MultiChannel
-    config.channel_1 = 'GT_Cy5'
-    config.channel_2 = 'GT_TRITC'
+    config.channel_idx_list = [
+        Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC, Sox2GolgiV2ChannelList.GT_555_647
+    ]
+    config.num_channels = len(config.channel_idx_list)
+    config.input_idx = 2
+    config.target_idx_list = [0, 1]
+
     data = get_train_val_data('/group/jug/ashesh/data/TavernaSox2Golgi/acquisition2/',
                               config,
                               DataSplitType.Train,
@@ -124,5 +129,5 @@ if __name__ == '__main__':
     print(len(data))
     import matplotlib.pyplot as plt
     _, ax = plt.subplots(figsize=(12, 6), ncols=2)
-    ax[0].imshow(data[0][..., 0])
-    ax[1].imshow(data[0][..., 1])
+    ax[0].imshow(data[0][0][..., 0])
+    ax[1].imshow(data[0][0][..., 1])

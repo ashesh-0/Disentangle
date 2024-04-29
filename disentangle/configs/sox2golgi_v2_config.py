@@ -8,6 +8,7 @@ from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
 from disentangle.data_loader.multifile_raw_dloader import SubDsetType
+from disentangle.data_loader.sox2golgi_v2_rawdata_loader import Sox2GolgiV2ChannelList
 
 
 def get_config():
@@ -17,8 +18,12 @@ def get_config():
     data.data_type = DataType.TavernaSox2GolgiV2
     data.subdset_type = SubDsetType.MultiChannel
     # all channels: ['555-647', 'GT_Cy5', 'GT_TRITC']
-    data.channel_1 = 'GT_Cy5'
-    data.channel_2 = 'GT_TRITC'
+    data.channel_idx_list = [
+        Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC, Sox2GolgiV2ChannelList.GT_555_647
+    ]
+    data.num_channels = len(data.channel_idx_list)
+    data.input_idx = 2
+    data.target_idx_list = [0, 1]
 
     data.sampler_type = SamplerType.DefaultSampler
     data.deterministic_grid = False
@@ -95,7 +100,7 @@ def get_config():
     config.model.decoder.conv2d_bias = True
 
     model.skip_nboundary_pixels_from_loss = None
-    # model.num_targets = len(data.target_idx_list)
+    model.num_targets = len(data.target_idx_list)
     model.nonlin = 'elu'
     model.merge_type = 'residual'
     model.stochastic_skip = True
