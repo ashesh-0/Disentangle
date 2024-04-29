@@ -78,9 +78,9 @@ def add_psnr_str(ax_, psnr):
              color='white')
 
 
-def get_predictions(idx, val_dset, model, mmse_count=50, patch_size=256):
+def get_predictions(idx, val_dset, model, mmse_count=50, patch_size=256, grid_size=64):
     print(f'Predicting for {idx}')
-    val_dset.set_img_sz(patch_size, 64)
+    val_dset.set_img_sz(patch_size, grid_size)
     model.reset_for_different_output_size(patch_size)
 
     with torch.no_grad():

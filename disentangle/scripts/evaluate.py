@@ -20,6 +20,7 @@ import ml_collections
 from disentangle.analysis.critic_notebook_utils import get_label_separated_loss, get_mmse_dict
 from disentangle.analysis.lvae_utils import get_img_from_forward_output
 from disentangle.analysis.mmse_prediction import get_dset_predictions
+from disentangle.analysis.paper_plots import get_predictions as get_patch_predictions
 from disentangle.analysis.plot_utils import clean_ax, get_k_largest_indices, plot_imgs_from_idx
 from disentangle.analysis.results_handler import PaperResultsHandler
 from disentangle.analysis.stitch_prediction import stitch_predictions
@@ -196,6 +197,7 @@ def main(
     normalized_ssim=True,
     save_to_file=False,
     predict_kth_frame=None,
+    predict_samples_N=None,
 ):
     global DATA_ROOT, CODE_ROOT
 
@@ -344,8 +346,8 @@ def main(
                 config.data.threshold = threshold
             if val_repeat_factor is not None:
                 config.training.val_repeat_factor = val_repeat_factor
-            config.model.mode_pred = not compute_kl_loss
 
+    config.model.mode_pred = not compute_kl_loss
     print(config)
     with config.unlocked():
         config.model.skip_nboundary_pixels_from_loss = None
@@ -467,6 +469,30 @@ def main(
 
     if config.data.multiscale_lowres_count is not None and custom_image_size is not None:
         model.reset_for_different_output_size(custom_image_size)
+
+    # Predict samples and return that.
+    if predict_samples_N is not None:
+        idx_list = []
+        inp_list = []
+        tar_list = []
+        recons_img_list = {}
+        for _ in range(predict_samples_N):
+            idx = np.random.randint(len(val_dset))
+            idx_list.append(idx)
+            inp_patch, tar_patch, recons_list = get_patch_predictions(idx,
+                                                                      val_dset,
+                                                                      model,
+                                                                      mmse_count=mmse_count,
+                                                                      patch_size=custom_image_size,
+                                                                      grid_size=image_size_for_grid_centers)
+            inp_list.append(inp_patch)
+            tar_list.append(tar_patch)
+            samples = np.concatenate([x[None] for x in recons_list], axis=0)
+            for channel_idx in range(tar_patch.shape[1]):
+                if channel_idx not in recons_img_list:
+                    recons_img_list[channel_idx] = []
+                recons_img_list[channel_idx].append(samples[:, channel_idx])
+        return {'inp': inp_list, 'tar': tar_list, 'pred': recons_img_list, 'idx': idx}, None
 
     pred_tiled, rec_loss, *_ = get_dset_predictions(
         model,
@@ -636,12 +662,13 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             ckpt_dir=None,
                                             patch_size=None,
                                             grid_size=32,
-                                            overwrite_saved_predictions=True):
+                                            overwrite_saved_predictions=True,
+                                            predict_samples_N=None):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/8',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/8'
             # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/15',
-            '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/14',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/97',
             # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/31',
             # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/32',
             # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/33',
@@ -712,6 +739,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                     print_token=handler.dirpath(),
                     normalized_ssim=normalized_ssim,
                     predict_kth_frame=predict_kth_frame,
+                    predict_samples_N=predict_samples_N,
                 )
                 if data is None:
                     return None, None
@@ -720,7 +748,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                 # except:
                 #     print('FAILED for ', handler.get_output_fpath(ckpt_dir))
                 #     continue
-                print(handler.load(fpath))
+                # print(handler.load(fpath))
                 print('')
                 print('')
                 print('')
@@ -745,6 +773,7 @@ if __name__ == '__main__':
     parser.add_argument('--mmse_count', type=int, default=1)
     parser.add_argument('--predict_kth_frame', type=int, default=None)
     parser.add_argument('--preserve_older_prediction', action='store_true')
+    parser.add_argument('--predict_samples_N', type=int, default=None)
 
     args = parser.parse_args()
     save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=args.normalized_ssim,
@@ -754,4 +783,5 @@ if __name__ == '__main__':
                                             ckpt_dir=args.ckpt_dir,
                                             patch_size=args.patch_size,
                                             grid_size=args.grid_size,
-                                            overwrite_saved_predictions=not args.preserve_older_prediction)
+                                            overwrite_saved_predictions=not args.preserve_older_prediction,
+                                            predict_samples_N=args.predict_samples_N)
