@@ -476,6 +476,7 @@ def main(
         inp_list = []
         tar_list = []
         recons_img_list = {}
+        np.random.seed(955)
         for _ in range(predict_samples_N):
             idx = np.random.randint(len(val_dset))
             idx_list.append(idx)
@@ -492,7 +493,7 @@ def main(
                 if channel_idx not in recons_img_list:
                     recons_img_list[channel_idx] = []
                 recons_img_list[channel_idx].append(samples[:, channel_idx])
-        return {'inp': inp_list, 'tar': tar_list, 'pred': recons_img_list, 'idx': idx}, None
+        return {'inp': inp_list, 'tar': tar_list, 'pred': recons_img_list, 'idx': idx_list}, None
 
     pred_tiled, rec_loss, *_ = get_dset_predictions(
         model,
@@ -666,15 +667,24 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             predict_samples_N=None):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/8'
-            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/15',
             '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/97',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/31',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/32',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/33',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/30',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/26',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D24-M3-S0-L8/25',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/120',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/111',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/125',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/139',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/143',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/96',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/119',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/115',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/126',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/138',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/142',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/94',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/117',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/113',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/124',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/136',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/140',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
