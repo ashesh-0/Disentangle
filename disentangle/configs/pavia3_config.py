@@ -13,7 +13,7 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.Pavia3SeqData
     data.num_channels = 2
-    data.power_level = Pavia3SeqPowerLevel.High
+    data.power_level = Pavia3SeqPowerLevel.Medium
     data.alpha_level = Pavia3SeqAlpha.Balanced
     data.subdset_type = SubDsetType.MultiChannel
 
