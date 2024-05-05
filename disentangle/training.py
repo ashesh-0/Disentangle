@@ -229,7 +229,6 @@ def create_dataset(config,
             DataType.HTIba1Ki67,
             DataType.BioSR_MRC,
             DataType.PredictedTiffData,
-            DataType.Pavia3SeqData,
             DataType.NicolaData,
     ]:
         if config.data.data_type == DataType.OptiMEM100_014:
@@ -374,8 +373,8 @@ def create_dataset(config,
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
     elif config.data.data_type in [
-            DataType.TavernaSox2Golgi, DataType.Dao3Channel, DataType.Dao3ChannelWithInput, 
-            DataType.ExpMicroscopyV2, DataType.TavernaSox2GolgiV2
+            DataType.TavernaSox2Golgi, DataType.Dao3Channel, DataType.Dao3ChannelWithInput, DataType.ExpMicroscopyV2,
+            DataType.TavernaSox2GolgiV2, DataType.Pavia3SeqData
     ]:
         datapath = datadir
         normalized_input = config.data.normalized_input
@@ -487,7 +486,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 #  profiler=profiler,
                 # overfit_batches=20,
                 callbacks=callbacks,
-                limit_train_batches = config.training.limit_train_batches,
+                limit_train_batches=config.training.limit_train_batches,
                 precision=config.training.precision)
         except:
             trainer = pl.Trainer(
@@ -501,7 +500,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 #  profiler=profiler,
                 # overfit_batches=20,
                 callbacks=callbacks,
-                limit_train_batches = config.training.limit_train_batches,
+                limit_train_batches=config.training.limit_train_batches,
                 precision=config.training.precision)
 
     else:
@@ -513,7 +512,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             callbacks=callbacks,
             # fast_dev_run=10,
             # overfit_batches=10,
-            limit_train_batches = config.training.limit_train_batches,
+            limit_train_batches=config.training.limit_train_batches,
             precision=config.training.precision)
     trainer.fit(model, train_loader, val_loader)
 

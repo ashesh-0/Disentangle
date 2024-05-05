@@ -3,6 +3,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
+from disentangle.data_loader.multifile_raw_dloader import SubDsetType
 from disentangle.data_loader.pavia3_rawdata_loader import Pavia3SeqAlpha, Pavia3SeqPowerLevel
 
 
@@ -14,6 +15,7 @@ def get_config():
     data.num_channels = 2
     data.power_level = Pavia3SeqPowerLevel.High
     data.alpha_level = Pavia3SeqAlpha.Balanced
+    data.subdset_type = SubDsetType.MultiChannel
 
     data.enable_gaussian_noise = False
     data.trainig_datausage_fraction = 1.0
@@ -43,7 +45,6 @@ def get_config():
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
     data.input_is_sum = False
-
 
     loss = config.loss
     loss.loss_type = LossType.DenoiSplitMuSplit
@@ -96,7 +97,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar =  'pixelwise'  #'pixelwise' #'channelwise'
+    model.predict_logvar = 'pixelwise'  #'pixelwise' #'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
@@ -125,5 +126,5 @@ def get_config():
     training.test_fraction = 0.1
     training.earlystop_patience = 200
     training.precision = 16
-    training.limit_train_batches=2000
+    training.limit_train_batches = 2000
     return config

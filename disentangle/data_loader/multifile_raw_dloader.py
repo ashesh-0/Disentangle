@@ -108,6 +108,7 @@ def get_train_val_data(datadir,
                        load_data_fn=None,
                        val_fraction=None,
                        test_fraction=None):
+    print('')
     dset_subtype = data_config.subdset_type
     if load_data_fn is None:
         load_data_fn = load_tiff
@@ -194,6 +195,5 @@ def get_train_val_data(datadir,
         data = MultiChannelData(dataA, paths=framewise_fpathsA)
     else:
         data = TwoChannelData(dataA, dataB, paths_data1=framewise_fpathsA, paths_data2=framewise_fpathsB)
-    print('Loaded from', SubDsetType.name(dset_subtype), datadir, len(data))
-    print('')
+    print('Loaded from', SubDsetType.name(dset_subtype), datadir, f'{len(data)}/{count} frames')
     return data
