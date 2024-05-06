@@ -184,12 +184,20 @@ def get_train_val_data(datadir,
     if 'channel_idx_list' in data_config:
         assert isinstance(data_config.channel_idx_list, list) or isinstance(data_config.channel_idx_list,
                                                                             tuple), 'channel_idx_list should be a list'
-        assert all([isinstance(data_config.channel_idx_list[i], int)
-                    for i in data_config.channel_idx_list]), f'Invalid channel_idx_list {data_config.channel_idx_list}'
-        print('Selecting channels', data_config.channel_idx_list)
-        dataA = [x[..., data_config.channel_idx_list] for x in dataA]
-        if dataB is not None:
-            dataB = [x[..., data_config.channel_idx_list] for x in dataB]
+        assert all([
+            isinstance(data_config.channel_idx_list[i], int) or isinstance(data_config.channel_idx_list[i], str)
+            for i in range(len(data_config.channel_idx_list))
+        ]), f'Invalid channel_idx_list {data_config.channel_idx_list}'
+
+        if isinstance(data_config.channel_idx_list[0], int):
+            print('Selecting channels', data_config.channel_idx_list)
+            dataA = [x[..., data_config.channel_idx_list] for x in dataA]
+            if dataB is not None:
+                dataB = [x[..., data_config.channel_idx_list] for x in dataB]
+        else:
+            print(
+                'Warning: channel_idx_list is not a list of integers, but a list of strings. No selection of channels is done'
+            )
 
     if dset_subtype == SubDsetType.MultiChannel:
         data = MultiChannelData(dataA, paths=framewise_fpathsA)

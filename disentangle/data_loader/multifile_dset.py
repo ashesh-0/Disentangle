@@ -59,9 +59,9 @@ class SingleFileLCDset(LCMultiChDloader):
     def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
         self._data = self._preloaded_data
         self.N = len(self._data)
-        assert 'channel_1' not in data_config
-        assert 'channel_2' not in data_config
-        assert 'channel_3' not in data_config
+        assert 'channel_1' not in data_config or isinstance(data_config.channel_1, str)
+        assert 'channel_2' not in data_config or isinstance(data_config.channel_2, str)
+        assert 'channel_3' not in data_config or isinstance(data_config.channel_3, str)
 
 
 class SingleFileDset(MultiChDloader):
