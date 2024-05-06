@@ -13,7 +13,7 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.Pavia3SeqData
     data.num_channels = 2
-    data.power_level = Pavia3SeqPowerLevel.Medium
+    data.power_level = Pavia3SeqPowerLevel.High
     data.alpha_level = Pavia3SeqAlpha.Balanced
     data.subdset_type = SubDsetType.MultiChannel
 
@@ -116,15 +116,15 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 30
-    training.max_epochs = 400
-    training.batch_size = 32
+    training.lr_scheduler_patience = 60
+    training.max_epochs = 800
+    training.batch_size = 8
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 200
+    training.earlystop_patience = 400
     training.precision = 16
     training.limit_train_batches = 2000
     return config
