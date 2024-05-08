@@ -18,7 +18,7 @@ def get_config():
     data.subdset_type = SubDsetType.MultiChannel
     data.channel_idx_list = [0, 1]  #[0, 1, 2, 3]
     data.num_channels = len(data.channel_idx_list)
-    data.uncorrelated_channels = True
+    # data.uncorrelated_channels = True
 
     data.poisson_noise_factor = -1
 
@@ -31,7 +31,7 @@ def get_config():
     config.data.input_has_dependant_noise = True
 
     data.sampler_type = SamplerType.DefaultSampler
-    data.threshold = 0.02
+    # data.threshold = 0.02
     # data.grid_size = 1
     data.deterministic_grid = False
     data.normalized_input = True
@@ -52,10 +52,10 @@ def get_config():
     data.input_is_sum = False
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
-    loss.usplit_w = 0
+    loss.loss_type = LossType.DenoiSplitMuSplit
+    loss.usplit_w = 0.1
     loss.denoisplit_w = 1 - loss.usplit_w
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = 'denoisplit_usplit'
 
     # loss.mixed_rec_weight = 1
     loss.restricted_kl = False
@@ -108,11 +108,11 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname = '/home/ubuntu/ashesh/training_hpc/noise_model/2404/41/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname
-    model.noise_model_ch2_fpath = fname
+    # fname = '/home/ubuntu/ashesh/training_hpc/noise_model/2404/41/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2405/4/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2405/5/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
