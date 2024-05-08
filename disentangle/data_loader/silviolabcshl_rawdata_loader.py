@@ -15,6 +15,18 @@ def get_dataset_types():
     ]
 
 
+def get_filenames_gm130(ch_idx):
+    """
+    /group/jug/ashesh/data/svilen_cshl2024/ctrl_GM130_s12_o1_c1010/GM130_NHS_1_500/TIF_imp/20231013_GM130_NHS568_s12_o1_c4_001.msr.tif
+    20231013_GM130_NHS568_s12_o1_c1_001.msr.tif 
+    """
+    fnames = []
+    for i in range(1, 6):
+        fname = f"20231013_GM130_NHS568_s12_o1_c{ch_idx}_{i:03d}.msr.tif"
+        fnames.append(fname)
+    return fnames
+
+
 def get_filenames_lamp1(ch_idx):
     """
     20232010_LAMP1_s1234_o1_c3_001.msr.tif
@@ -28,10 +40,16 @@ def get_filenames_lamp1(ch_idx):
 
 def load_data(dir, sub_data_type, ch_idx_list):
     data = []
+    assert sub_data_type in get_dataset_types(), f"sub_data_type {sub_data_type} not in {get_dataset_types()}"
     for ch_idx in ch_idx_list:
-        fnames = get_filenames_lamp1(ch_idx)
-        fpaths = [os.path.join(dir, sub_data_type, 'TIF_imp', fname) for fname in fnames]
-        print(fpaths[0])
+        if sub_data_type == 'ctrl_GM130_s12_o1_c1010':
+            fnames = get_filenames_gm130(ch_idx)
+            subdir = os.path.join(sub_data_type, 'GM130_NHS_1_500')
+        elif sub_data_type == 'ctrl_LAMP1_s1234_o1_c1111':
+            subdir = sub_data_type
+            fnames = get_filenames_lamp1(ch_idx)
+        print(f"Loading idx:{ch_idx} from {dir}/{subdir}")
+        fpaths = [os.path.join(dir, subdir, 'TIF_imp', fname) for fname in fnames]
         data.append(np.concatenate([load_tiff(fpath)[None, ..., None] for fpath in fpaths], axis=0))
     data = np.concatenate(data, axis=3)
     return data
@@ -54,6 +72,6 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
 
 if __name__ == '__main__':
     direc = '/group/jug/ashesh/data/svilen_cshl2024/'
-    data_type = 'ctrl_LAMP1_s1234_o1_c1111'
-    data = load_data(direc, data_type, [1, 2])
+    data_type = 'ctrl_GM130_s12_o1_c1010'
+    data = load_data(direc, data_type, [1, 3])
     print(data.shape)
