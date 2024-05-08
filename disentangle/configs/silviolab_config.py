@@ -44,10 +44,10 @@ def get_config():
     data.input_is_sum = False
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.DenoiSplitMuSplit
     loss.usplit_w = 0.1
     loss.denoisplit_w = 1 - loss.usplit_w
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = 'denoisplit_usplit'
 
     # loss.mixed_rec_weight = 1
     loss.restricted_kl = True
@@ -100,11 +100,11 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     # fname = '/home/ashesh.ashesh/training/noise_model/2404/10/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-06_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/group/jug/ashesh/training_pre_eccv/noise_model/2402/192/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/group/jug/ashesh/training_pre_eccv/noise_model/2402/154/GMMNoiseModel_Microtubules-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2405/8/GMMNoiseModel_ctrl_LAMP1_s1234_o1_c1111-ch1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2405/9/GMMNoiseModel_ctrl_LAMP1_s1234_o1_c1111-ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
