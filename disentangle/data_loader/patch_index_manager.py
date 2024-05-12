@@ -154,7 +154,7 @@ class GridIndexManager:
             grid_size = self._default_grid_size
 
         ncols = self.grid_cols(grid_size)
-        return index + self.N * ncols > self.grid_count(grid_size=grid_size)
+        return index + self.N * ncols >= self.grid_count(grid_size=grid_size)
 
     def on_boundary(self, idx, grid_size=None):
         if self.on_left_boundary(idx, grid_size=grid_size):

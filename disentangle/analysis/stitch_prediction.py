@@ -1,6 +1,7 @@
 import numpy as np
 
 from disentangle.data_loader.multifile_dset import MultiFileDset
+from disentangle.data_loader.patch_index_manager import GridAlignement
 
 
 class PatchLocation:
@@ -41,8 +42,9 @@ def get_location_from_idx(dset, dset_input_idx, pred_h, pred_w):
     Returns:
     """
     extra_padding = dset.per_side_overlap_pixelcount()
-    htw = dset.get_idx_manager().hwt_from_idx(dset_input_idx, grid_size=dset.get_grid_size())
-    return _get_location(extra_padding, htw, pred_h, pred_w)
+    htw = dset.idx_manager.hwt_from_idx(dset_input_idx, grid_size=dset.get_grid_size())
+    loc = _get_location(extra_padding, htw, pred_h, pred_w)
+    return loc
 
 
 def set_skip_boundary_pixels_mask(mask, loc, skip_count):
@@ -130,33 +132,71 @@ def _get_smoothing_mask(cropped_pred_shape, smoothening_pixelcount, loc, frame_s
     return mask
 
 
-def remove_pad(pred, loc, extra_padding, smoothening_pixelcount, frame_shape):
-    assert smoothening_pixelcount == 0
-    if extra_padding - smoothening_pixelcount > 0:
-        h_s = extra_padding - smoothening_pixelcount
+def remove_pad(pred, loc, extra_padding, frame_shape, on_h_boundary, on_w_boundary, full_prediction=False):
+    if extra_padding > 0:
+        h_s = extra_padding
 
         # rows
         h_N = frame_shape[0]
-        if loc.h_end > h_N:
-            assert loc.h_end - extra_padding + smoothening_pixelcount <= h_N
-        h_e = extra_padding - smoothening_pixelcount
+        if loc.h_end >= h_N:
+            assert loc.h_end - extra_padding <= h_N or full_prediction
+            if full_prediction:
+                h_e = loc.h_end - h_N
+            else:
+                h_e = extra_padding
+        elif on_h_boundary and full_prediction:
+            h_e = 0
+        else:
+            h_e = extra_padding
 
-        w_s = extra_padding - smoothening_pixelcount
+        w_s = extra_padding
 
         # columns
         w_N = frame_shape[1]
-        if loc.w_end > w_N:
-            assert loc.w_end - extra_padding + smoothening_pixelcount <= w_N
+        if loc.w_end >= w_N:
+            assert loc.w_end - extra_padding <= w_N or full_prediction
+            if full_prediction:
+                w_e = loc.w_end - w_N
+            else:
+                w_e = extra_padding
+        elif on_w_boundary and full_prediction:
+            w_e = 0
+        else:
+            w_e = extra_padding
 
-        w_e = extra_padding - smoothening_pixelcount
-
-        return pred[h_s:-h_e, w_s:-w_e]
+        if h_e > 0 and w_e > 0:
+            return pred[h_s:-h_e, w_s:-w_e]
+        elif h_e > 0:
+            return pred[h_s:-h_e, w_s:]
+        elif w_e > 0:
+            return pred[h_s:, w_s:-w_e]
 
     return pred
 
 
-def update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount):
-    extra_padding = extra_padding - smoothening_pixelcount
+def update_loc_for_final_insertion_full_pred(loc, extra_padding, frame_shape, on_h_boundary, on_w_boundary):
+    loc.h_start += extra_padding
+    loc.w_start += extra_padding
+    # rows
+    h_N = frame_shape[0]
+    if loc.h_end > h_N:
+        loc.h_end = h_N
+    elif on_h_boundary:
+        pass
+    else:
+        loc.h_end -= extra_padding
+
+    w_N = frame_shape[1]
+    if loc.w_end > w_N:
+        loc.w_end = w_N
+    elif on_w_boundary:
+        pass
+    else:
+        loc.w_end -= extra_padding
+    return loc
+
+
+def update_loc_for_final_insertion(loc, extra_padding):
     loc.h_start += extra_padding
     loc.w_start += extra_padding
     loc.h_end -= extra_padding
@@ -164,18 +204,18 @@ def update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount):
     return loc
 
 
-def stitch_predictions(predictions, dset, smoothening_pixelcount=0):
+def stitch_predictions(predictions, dset, full_prediction=False):
     """
     Args:
         smoothening_pixelcount: number of pixels which can be interpolated
     """
-    assert smoothening_pixelcount >= 0 and isinstance(smoothening_pixelcount, int)
     if isinstance(dset, MultiFileDset):
         cum_count = 0
         output = []
         for dset in dset.dsets:
             cnt = dset.idx_manager.grid_count()
-            output.append(stitch_predictions(predictions[cum_count:cum_count + cnt], dset, smoothening_pixelcount))
+            output.append(
+                stitch_predictions(predictions[cum_count:cum_count + cnt], dset, full_prediction=full_prediction))
             cum_count += cnt
         return output
 
@@ -190,35 +230,59 @@ def stitch_predictions(predictions, dset, smoothening_pixelcount=0):
         for dset_input_idx in range(predictions.shape[0]):
             loc = get_location_from_idx(dset, dset_input_idx, predictions.shape[-2], predictions.shape[-1])
 
-            mask = None
             cropped_pred_list = []
             for ch_idx in range(predictions.shape[1]):
                 # class i
-                cropped_pred_i = remove_pad(predictions[dset_input_idx, ch_idx], loc, extra_padding,
-                                            smoothening_pixelcount, frame_shape)
-
-                if mask is None:
-                    # NOTE: don't need to compute it for every patch.
-                    assert smoothening_pixelcount == 0, "For smoothing,enable the get_smoothing_mask. It is disabled since I don't use it and it needs modification to work with non-square images"
-                    mask = 1
-                    # mask = _get_smoothing_mask(cropped_pred_i.shape, smoothening_pixelcount, loc, frame_size)
-
+                cropped_pred_i = remove_pad(predictions[dset_input_idx, ch_idx],
+                                            loc,
+                                            extra_padding,
+                                            frame_shape,
+                                            dset.idx_manager.on_bottom_boundary(dset_input_idx),
+                                            dset.idx_manager.on_right_boundary(dset_input_idx),
+                                            full_prediction=full_prediction)
                 cropped_pred_list.append(cropped_pred_i)
 
-            loc = update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount)
+            if loc.t == 0:
+                print(loc, end='\t Now,just before updating')
+            if full_prediction:
+                loc = update_loc_for_final_insertion_full_pred(
+                    loc,
+                    extra_padding,
+                    frame_shape,
+                    dset.idx_manager.on_bottom_boundary(dset_input_idx),
+                    dset.idx_manager.on_right_boundary(dset_input_idx),
+                )
+            else:
+                loc = update_loc_for_final_insertion(loc, extra_padding)
+
+            if loc.t == 0:
+                print(loc, frame_shape)
             for ch_idx in range(predictions.shape[1]):
-                output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, ch_idx] += cropped_pred_list[ch_idx] * mask
+                output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, ch_idx] = cropped_pred_list[ch_idx]
 
         return output
+
+
+def remove_terminal_zeros(pred):
+    he = 1
+    we = 1
+    while pred[:, -he:, -we:].std() == 0:
+        he += 1
+        we += 1
+    he -= 1
+    we -= 1
+    if he == 0 and we == 0:
+        return pred
+    return pred[:, :-he, :-we]
 
 
 if __name__ == '__main__':
     from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
     grid_size = 32
-    patch_size = 64
-    data_shape = (1, 1550, 1920, 2)
+    patch_size = 128
+    data_shape = (10, 550, 920, 2)
     N = data_shape[0] * (data_shape[1] // grid_size) * (data_shape[2] // grid_size)
-    predictions = np.zeros((N, 2, patch_size, patch_size))
+    predictions = np.random.rand(*(N, 2, patch_size, patch_size))
     # data_shape, grid_size, patch_size, grid_alignement
     idx_manager = GridIndexManager(data_shape, grid_size, patch_size, GridAlignement.Center)
 
@@ -238,7 +302,10 @@ if __name__ == '__main__':
 
     dset = TestDataSet()
     # import pdb;pdb.set_trace()
-    stitch_predictions = stitch_predictions(predictions, dset, smoothening_pixelcount=0)
+    stitch_predictions = stitch_predictions(predictions, dset, full_prediction=True)
+    stitch_predictions = remove_terminal_zeros(stitch_predictions)
+    print('Data shape:', data_shape)
+    print('Stitched:', stitch_predictions.shape)
     # loc = PatchLocation((0, 32), (0, 32), 5)
     # extra_padding = 16
     # smoothening_pixelcount = 4

@@ -39,7 +39,7 @@ from disentangle.training import create_dataset, create_model
 from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
 
 torch.multiprocessing.set_sharing_strategy('file_system')
-DATA_ROOT = 'PUT THE ROOT DIRECTORY FOR THE DATASET HERE'
+DATA_ROOT = '/group/jug/ashesh/data/'
 CODE_ROOT = 'PUT THE ROOT DIRECTORY FOR THE CODE HERE'
 
 
@@ -208,6 +208,7 @@ def main(
     normalized_ssim=True,
     save_to_file=False,
     predict_kth_frame=None,
+    full_prediction=False,
 ):
     global DATA_ROOT, CODE_ROOT
 
@@ -241,6 +242,8 @@ def main(
         data_dir = f'{DATA_ROOT}/ventura_gigascience'
     elif dtype == DataType.BioSR_MRC:
         data_dir = f'{DATA_ROOT}/BioSR/'
+    elif dtype == DataType.Derain100H:
+        data_dir = f'{DATA_ROOT}/Rain100HCombined/'
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -389,37 +392,42 @@ def main(
     elif config.data.data_type == DataType.Prevedel_pqrsinstitute:
         datapath = os.path.join(data_dir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
 
-    normalized_input = config.data.normalized_input
-    use_one_mu_std = config.data.use_one_mu_std
-    train_aug_rotate = config.data.train_aug_rotate
-    enable_random_cropping = config.data.deterministic_grid is False
+    # normalized_input = config.data.normalized_input
+    # use_one_mu_std = config.data.use_one_mu_std
+    # train_aug_rotate = config.data.train_aug_rotate
+    # enable_random_cropping = config.data.deterministic_grid is False
 
-    train_dset = data_class(config.data,
-                            datapath,
-                            datasplit_type=DataSplitType.Train,
-                            val_fraction=config.training.val_fraction,
-                            test_fraction=config.training.test_fraction,
-                            normalized_input=normalized_input,
-                            use_one_mu_std=use_one_mu_std,
-                            enable_rotation_aug=train_aug_rotate,
-                            enable_random_cropping=enable_random_cropping,
-                            **dloader_kwargs)
-    import gc
-    gc.collect()
-    max_val = train_dset.get_max_val()
-    val_dset = data_class(
-        config.data,
-        datapath,
-        datasplit_type=eval_datasplit_type,
-        val_fraction=config.training.val_fraction,
-        test_fraction=config.training.test_fraction,
-        normalized_input=normalized_input,
-        use_one_mu_std=use_one_mu_std,
-        enable_rotation_aug=False,  # No rotation aug on validation
-        enable_random_cropping=False,
-        # No random cropping on validation. Validation is evaluated on determistic grids
-        max_val=max_val,
-        **dloader_kwargs)
+    # train_dset = data_class(config.data,
+    #                         datapath,
+    #                         datasplit_type=DataSplitType.Train,
+    #                         val_fraction=config.training.val_fraction,
+    #                         test_fraction=config.training.test_fraction,
+    #                         normalized_input=normalized_input,
+    #                         use_one_mu_std=use_one_mu_std,
+    #                         enable_rotation_aug=train_aug_rotate,
+    #                         enable_random_cropping=enable_random_cropping,
+    #                         **dloader_kwargs)
+    # import gc
+    # gc.collect()
+    # max_val = train_dset.get_max_val()
+    # val_dset = data_class(
+    #     config.data,
+    #     datapath,
+    #     datasplit_type=eval_datasplit_type,
+    #     val_fraction=config.training.val_fraction,
+    #     test_fraction=config.training.test_fraction,
+    #     normalized_input=normalized_input,
+    #     use_one_mu_std=use_one_mu_std,
+    #     enable_rotation_aug=False,  # No rotation aug on validation
+    #     enable_random_cropping=False,
+    #     # No random cropping on validation. Validation is evaluated on determistic grids
+    #     max_val=max_val,
+    #     **dloader_kwargs)
+
+    train_dset, val_dset = create_dataset(config,
+                                          data_dir,
+                                          eval_datasplit_type=eval_datasplit_type,
+                                          kwargs_dict=dloader_kwargs)
 
     # For normalizing, we should be using the training data's mean and std.
     mean_val, std_val = train_dset.compute_mean_std()
@@ -454,6 +462,10 @@ def main(
     mean_dict['target'] = target_data_mean
     std_dict['target'] = target_data_std
     ######
+    if 'tar_idx_list' in config.data:
+        tar_idx_list = config.data.tar_idx_list
+        mean_dict['target'] = mean_dict['target'][:, tar_idx_list]
+        std_dict['target'] = std_dict['target'][:, tar_idx_list]
 
     model = create_model(config, mean_dict, std_dict)
 
@@ -496,29 +508,50 @@ def main(
         pad = (val_dset.get_img_sz() - pred_tiled.shape[-1]) // 2
         pred_tiled = np.pad(pred_tiled, ((0, 0), (0, 0), (pad, pad), (pad, pad)))
 
-    pred = stitch_predictions(pred_tiled, val_dset)
-    if pred.shape[-1] == 2 and pred[..., 1].std() == 0:
+    pred = stitch_predictions(pred_tiled, val_dset, full_prediction=full_prediction)
+    if 'num_targets' in config.model:
+        assert isinstance(pred, list)
+        pred = [x[..., :config.model.num_targets] for x in pred]
+
+    if isinstance(pred, np.ndarray) and pred.shape[-1] == 2 and pred[..., 1].std() == 0:
         print('Denoiser model. Ignoring the second channel')
         pred = pred[..., :1].copy()
 
-    print('Stitched predictions shape before ignoring boundary pixels', pred.shape)
+    print('Stitched predictions shape before ignoring boundary pixels',
+          pred.shape if isinstance(pred, np.ndarray) else pred[0].shape)
 
-    def print_ignored_pixels():
+    def print_ignored_pixels(pred):
+        if isinstance(pred, list):
+            max_ignored_pixels = max([print_ignored_pixels(p) for p in pred])
+            if max_ignored_pixels == 0:
+                return 0
+            return max_ignored_pixels
+
         ignored_pixels = 1
         if pred.shape[0] == 1:
             return 0
 
-        while (pred[:10, -ignored_pixels:, -ignored_pixels:, ].std() == 0):
+        while (pred[
+                :10,
+                -ignored_pixels:,
+                -ignored_pixels:,
+        ].std() == 0):
             ignored_pixels += 1
         ignored_pixels -= 1
         # print(f'In {pred.shape}, {ignored_pixels} many rows and columns are all zero.')
         return ignored_pixels
 
-    actual_ignored_pixels = print_ignored_pixels()
+    actual_ignored_pixels = print_ignored_pixels(pred)
     assert ignored_last_pixels >= actual_ignored_pixels, f'ignored_last_pixels: {ignored_last_pixels} < actual_ignored_pixels: {actual_ignored_pixels}'
-    tar = val_dset._data
+    if hasattr(val_dset, '_data'):
+        tar = val_dset._data
+    else:
+        tar = [val_dset.dsets[i]._data[..., config.data.tar_idx_list] for i in range(len(val_dset.dsets))]
 
     def ignore_pixels(arr):
+        if isinstance(arr, list):
+            return [ignore_pixels(a) for a in arr]
+
         if ignore_first_pixels:
             arr = arr[:, ignore_first_pixels:, ignore_first_pixels:]
         if ignored_last_pixels:
@@ -527,36 +560,45 @@ def main(
 
     pred = ignore_pixels(pred)
     tar = ignore_pixels(tar)
-    print('Stitched predictions shape after', pred.shape)
+    print('Stitched predictions shape after', pred.shape if isinstance(pred, np.ndarray) else pred[0].shape)
 
     sep_mean, sep_std = model.data_mean['target'], model.data_std['target']
     sep_mean = sep_mean.squeeze().reshape(1, 1, 1, -1)
     sep_std = sep_std.squeeze().reshape(1, 1, 1, -1)
 
     # tar1, tar2 = val_dset.normalize_img(tar[...,0], tar[...,1])
-    tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
-    pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
-    ch1_pred_unnorm = pred_unnorm[..., 0]
-    # pred is already normalized. no need to do it.
-    pred1 = pred[..., 0].astype(np.float32)
-    tar1 = tar_normalized[..., 0]
-    rmse1 = np.sqrt(((pred1 - tar1)**2).reshape(len(pred1), -1).mean(axis=1))
-    rmse = rmse1
-    rmse2 = np.array([0])
-
-    # if not normalized_ssim:
-    #     ssim1_mean, ssim1_std = avg_ssim(tar[..., 0], ch1_pred_unnorm)
-    # else:
-    #     ssim1_mean, ssim1_std = avg_ssim(tar_normalized[..., 0], pred[..., 0])
-
-    pred2 = None
-    if pred.shape[-1] == 2:
-        ch2_pred_unnorm = pred_unnorm[..., 1]
+    if isinstance(tar, list):
+        tar_normalized = [(t - sep_mean.cpu().numpy()) / sep_std.cpu().numpy() for t in tar]
+        pred_unnorm = [p * sep_std.cpu().numpy() + sep_mean.cpu().numpy() for p in pred]
+        rmse = 0
+        rmse1 = 0
+        rmse2 = 0
+        pred1 = [p[..., :3].astype(np.float32) for p in pred]
+        tar1 = [t[..., :3] for t in tar_normalized]
+        pred2 = None
+    else:
+        tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
+        pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
         # pred is already normalized. no need to do it.
-        pred2 = pred[..., 1].astype(np.float32)
-        tar2 = tar_normalized[..., 1]
-        rmse2 = np.sqrt(((pred2 - tar2)**2).reshape(len(pred2), -1).mean(axis=1))
-        rmse = (rmse1 + rmse2) / 2
+        pred1 = pred[..., 0].astype(np.float32)
+        tar1 = tar_normalized[..., 0]
+        rmse1 = np.sqrt(((pred1 - tar1)**2).reshape(len(pred1), -1).mean(axis=1))
+        rmse = rmse1
+        rmse2 = np.array([0])
+
+        # if not normalized_ssim:
+        #     ssim1_mean, ssim1_std = avg_ssim(tar[..., 0], ch1_pred_unnorm)
+        # else:
+        #     ssim1_mean, ssim1_std = avg_ssim(tar_normalized[..., 0], pred[..., 0])
+
+        pred2 = None
+        if pred.shape[-1] == 2:
+            ch2_pred_unnorm = pred_unnorm[..., 1]
+            # pred is already normalized. no need to do it.
+            pred2 = pred[..., 1].astype(np.float32)
+            tar2 = tar_normalized[..., 1]
+            rmse2 = np.sqrt(((pred2 - tar2)**2).reshape(len(pred2), -1).mean(axis=1))
+            rmse = (rmse1 + rmse2) / 2
 
         # if not normalized_ssim:
         #     ssim2_mean, ssim2_std = avg_ssim(tar[..., 1], ch2_pred_unnorm)
@@ -568,7 +610,34 @@ def main(
     if predict_kth_frame is not None and highres_data is not None:
         highres_data = highres_data[[predict_kth_frame]].copy()
 
-    if highres_data is None:
+    if isinstance(pred1, list) and pred1[0].shape[-1] == 3:
+        output_stats = {}
+        output_stats['rec_loss'] = 0.0
+        output_stats['rmse'] = [np.array(0.0)] * 2  #, np.mean(rmse2), np.mean(rmse)]
+        red_tar = [t[..., 0] for t in tar1]
+        red_pred = [p[..., 0] for p in pred1]
+
+        green_tar = [t[..., 1] for t in tar1]
+        green_pred = [p[..., 1] for p in pred1]
+
+        blue_tar = [t[..., 2] for t in tar1]
+        blue_pred = [p[..., 2] for p in pred1]
+
+        output_stats['psnr'] = [
+            np.mean([avg_psnr(red_tar[i], red_pred[i]) for i in range(len(red_tar))]),
+            np.mean([avg_psnr(green_tar[i], red_pred[i]) for i in range(len(green_tar))]),
+            np.mean([avg_psnr(blue_tar[i], red_pred[i]) for i in range(len(blue_tar))])
+        ]
+
+        output_stats['rangeinvpsnr'] = [
+            np.mean([avg_range_inv_psnr(red_tar[i], red_pred[i]) for i in range(len(red_tar))]),
+            np.mean([avg_range_inv_psnr(green_tar[i], red_pred[i]) for i in range(len(green_tar))]),
+            np.mean([avg_range_inv_psnr(blue_tar[i], red_pred[i]) for i in range(len(blue_tar))])
+        ]
+
+        ssim_list = None  #compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy())
+
+    elif highres_data is None:
         # Computing the output statistics.
         output_stats = {}
         output_stats['rec_loss'] = rec_loss.mean()
@@ -578,7 +647,7 @@ def main(
                                         np.array(0.0)]  #, avg_range_inv_psnr(tar2, pred2)]
         # output_stats['ssim'] = [ssim1_mean, np.array(0.0), ssim1_std, np.array(0.0)]
 
-        if pred.shape[-1] == 2:
+        if pred2 is not None:
             output_stats['rmse'][1] = np.mean(rmse2)
             output_stats['psnr'][1] = avg_psnr(tar2, pred2)
             output_stats['rangeinvpsnr'][1] = avg_range_inv_psnr(tar2, pred2)
@@ -623,9 +692,11 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
     Get the high SNR data.
     """
     highres_data = None
+    gauss_enabled = 'enable_gaussian_noise' in config.data and config.data.enable_gaussian_noise and 'synthetic_gaussian_scale' in config.data and config.data.synthetic_gaussian_scale > 0
+    pois_enabled = 'poisson_noise_factor' in config.data and config.data.poisson_noise_factor > 0
     if config.model.model_type == ModelType.DenoiserSplitter or config.data.data_type == DataType.SeparateTiffData:
         highres_data = get_highres_data_ventura(data_dir, config, eval_datasplit_type)
-    elif 'synthetic_gaussian_scale' in config.data or 'enable_poisson_noise' in config.data:
+    elif gauss_enabled or pois_enabled:
         if config.data.data_type == DataType.OptiMEM100_014:
             data_dir = os.path.join(data_dir, 'OptiMEM100x014.tif')
         highres_data = get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type)
@@ -635,9 +706,10 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             save_prediction=False,
                                             mmse_count=1,
-                                            predict_kth_frame=None):
+                                            predict_kth_frame=None,
+                                            full_prediction=False):
     ckpt_dirs = [
-        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/38',
+        '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/27',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/36',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/39',
 
@@ -668,25 +740,9 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/56',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/55',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/52',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/30',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/38',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/31',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/39',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/32',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/43',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/33',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/41',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/48',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/52',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/49',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/53',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/51',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/55',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/54',
-        '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M3-S0-L0/50',
     ]
-    if ckpt_dirs[0].startswith('/home/ubuntu.ubuntu'):
-        OUTPUT_DIR = os.path.expanduser('/group/ubuntu/ubuntu/data/paper_stats/')
+    if ckpt_dirs[0].startswith('/home/ashesh.ashesh'):
+        OUTPUT_DIR = os.path.expanduser('/group/jug/ashesh/data/paper_stats/')
     elif ckpt_dirs[0].startswith('/home/ubuntu/ubuntu'):
         OUTPUT_DIR = os.path.expanduser('~/data/paper_stats/')
     else:
@@ -694,7 +750,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
 
-    patchsz_gridsz_tuples = [(None, 64)]
+    patchsz_gridsz_tuples = [(None, 16)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
@@ -713,6 +769,12 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                 if custom_image_size is None:
                     custom_image_size = load_config(ckpt_dir).data.image_size
 
+                if full_prediction:
+                    print(
+                        'Full prediction enabled. This means every pixel on boundary should get predicted. In case it fails, just increase the overlap in patches.'
+                    )
+                    ignored_last_pixels = 0
+
                 handler = PaperResultsHandler(OUTPUT_DIR,
                                               eval_datasplit_type,
                                               custom_image_size,
@@ -720,6 +782,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                               mmse_count,
                                               ignored_last_pixels,
                                               predict_kth_frame=predict_kth_frame)
+
                 data, prediction = main(
                     ckpt_dir,
                     image_size_for_grid_centers=image_size_for_grid_centers,
@@ -740,6 +803,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                     print_token=handler.dirpath(),
                     normalized_ssim=normalized_ssim,
                     predict_kth_frame=predict_kth_frame,
+                    full_prediction=full_prediction,
                 )
                 if data is None:
                     return None, None
@@ -753,6 +817,9 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                 print('')
                 print('')
                 if save_prediction:
+                    assert isinstance(prediction, np.ndarray) or (isinstance(prediction, list) and len(prediction) == 1)
+                    if isinstance(prediction, list):
+                        prediction = prediction[0]
                     offset = prediction.min()
                     prediction -= offset
                     prediction = prediction.astype(np.uint32)
@@ -769,6 +836,7 @@ if __name__ == '__main__':
     parser.add_argument('--hardcoded', action='store_true')
     parser.add_argument('--normalized_ssim', action='store_true')
     parser.add_argument('--save_prediction', action='store_true')
+    parser.add_argument('--full_prediction', action='store_true')
     parser.add_argument('--mmse_count', type=int, default=1)
     parser.add_argument('--predict_kth_frame', type=int, default=None)
 
@@ -778,7 +846,8 @@ if __name__ == '__main__':
         save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=args.normalized_ssim,
                                                 save_prediction=args.save_prediction,
                                                 mmse_count=args.mmse_count,
-                                                predict_kth_frame=args.predict_kth_frame)
+                                                predict_kth_frame=args.predict_kth_frame,
+                                                full_prediction=args.full_prediction)
     else:
         mmse_count = 1
         ignored_last_pixels = 32 if os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:] == '3' else 0
