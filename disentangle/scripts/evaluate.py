@@ -209,6 +209,7 @@ def main(
     save_to_file=False,
     predict_kth_frame=None,
     full_prediction=False,
+    skip_metrics=False,
 ):
     global DATA_ROOT, CODE_ROOT
 
@@ -543,10 +544,6 @@ def main(
 
     actual_ignored_pixels = print_ignored_pixels(pred)
     assert ignored_last_pixels >= actual_ignored_pixels, f'ignored_last_pixels: {ignored_last_pixels} < actual_ignored_pixels: {actual_ignored_pixels}'
-    if hasattr(val_dset, '_data'):
-        tar = val_dset._data
-    else:
-        tar = [val_dset.dsets[i]._data[..., config.data.tar_idx_list] for i in range(len(val_dset.dsets))]
 
     def ignore_pixels(arr):
         if isinstance(arr, list):
@@ -559,17 +556,35 @@ def main(
         return arr
 
     pred = ignore_pixels(pred)
-    tar = ignore_pixels(tar)
     print('Stitched predictions shape after', pred.shape if isinstance(pred, np.ndarray) else pred[0].shape)
 
     sep_mean, sep_std = model.data_mean['target'], model.data_std['target']
     sep_mean = sep_mean.squeeze().reshape(1, 1, 1, -1)
     sep_std = sep_std.squeeze().reshape(1, 1, 1, -1)
+    if isinstance(pred, list):
+        pred_unnorm = [p * sep_std.cpu().numpy() + sep_mean.cpu().numpy() for p in pred]
+    else:
+        pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
+    # save it here.
+    if skip_metrics:
+        print('Skipping metric computation. Returning the predictions.')
+        output_stats = {}
+        output_stats['rec_loss'] = 0.0
+        output_stats['rmse'] = [np.array(0.0)] * 2  #, np.mean(rmse2), np.mean(rmse)]
+        output_stats['psnr'] = [np.array(0.0)] * 3
+        output_stats['rangeinvpsnr'] = [np.array(0.0)] * 3
+        output_stats['ssim'] = [np.array(0.0)] * 3
+        return output_stats, pred_unnorm
+
+    if hasattr(val_dset, '_data'):
+        tar = val_dset._data
+    else:
+        tar = [val_dset.dsets[i]._data[..., config.data.tar_idx_list] for i in range(len(val_dset.dsets))]
+    tar = ignore_pixels(tar)
 
     # tar1, tar2 = val_dset.normalize_img(tar[...,0], tar[...,1])
     if isinstance(tar, list):
         tar_normalized = [(t - sep_mean.cpu().numpy()) / sep_std.cpu().numpy() for t in tar]
-        pred_unnorm = [p * sep_std.cpu().numpy() + sep_mean.cpu().numpy() for p in pred]
         rmse = 0
         rmse1 = 0
         rmse2 = 0
@@ -578,7 +593,6 @@ def main(
         pred2 = None
     else:
         tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
-        pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
         # pred is already normalized. no need to do it.
         pred1 = pred[..., 0].astype(np.float32)
         tar1 = tar_normalized[..., 0]
@@ -707,7 +721,8 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             save_prediction=False,
                                             mmse_count=1,
                                             predict_kth_frame=None,
-                                            full_prediction=False):
+                                            full_prediction=False,
+                                            skip_metrics=False):
     ckpt_dirs = [
         '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/27',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/36',
@@ -804,6 +819,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                     normalized_ssim=normalized_ssim,
                     predict_kth_frame=predict_kth_frame,
                     full_prediction=full_prediction,
+                    skip_metrics=skip_metrics,
                 )
                 if data is None:
                     return None, None
@@ -837,6 +853,7 @@ if __name__ == '__main__':
     parser.add_argument('--normalized_ssim', action='store_true')
     parser.add_argument('--save_prediction', action='store_true')
     parser.add_argument('--full_prediction', action='store_true')
+    parser.add_argument('--skip_metrics', action='store_true')
     parser.add_argument('--mmse_count', type=int, default=1)
     parser.add_argument('--predict_kth_frame', type=int, default=None)
 
@@ -847,7 +864,8 @@ if __name__ == '__main__':
                                                 save_prediction=args.save_prediction,
                                                 mmse_count=args.mmse_count,
                                                 predict_kth_frame=args.predict_kth_frame,
-                                                full_prediction=args.full_prediction)
+                                                full_prediction=args.full_prediction,
+                                                skip_metrics=args.skip_metrics)
     else:
         mmse_count = 1
         ignored_last_pixels = 32 if os.path.basename(os.path.dirname(args.ckpt_dir)).split('-')[0][1:] == '3' else 0
