@@ -9,6 +9,7 @@ if __name__ == '__main__':
     parser.add_argument('--mmse_count', type=int, default=1)
     parser.add_argument('--start_k', type=int, default=0)
     parser.add_argument('--end_k', type=int, default=1000)
+    parser.add_argument('--full_prediction', action='store_true')
 
     args = parser.parse_args()
     print('Evaluating between', args.start_k, args.end_k)
@@ -20,6 +21,7 @@ if __name__ == '__main__':
         output_stats, pred_unnorm = save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=args.normalized_ssim,
                                                                             save_prediction=args.save_prediction,
                                                                             mmse_count=args.mmse_count,
-                                                                            predict_kth_frame=i)
+                                                                            predict_kth_frame=i,
+                                                                            full_prediction=args.full_prediction)
         if output_stats is None:
             break
