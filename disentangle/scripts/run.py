@@ -199,6 +199,11 @@ def get_mean_std_dict_for_model(config, train_dset):
         mean_dict['target'] = data_mean
         std_dict['target'] = data_std
 
+    if 'tar_idx_list' in config.data:
+        tar_idx_list = config.data.tar_idx_list
+        mean_dict['target'] = mean_dict['target'][:, tar_idx_list]
+        std_dict['target'] = std_dict['target'][:, tar_idx_list]
+
     return mean_dict, std_dict
 
 

@@ -3,6 +3,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
+from disentangle.data_loader.multifile_raw_dloader import SubDsetType
 
 
 def get_config():
@@ -10,14 +11,16 @@ def get_config():
     data = config.data
     data.image_size = 128
     data.data_type = DataType.Derain100H
-    data.multichannel_input = 3
+    data.subdset_type = SubDsetType.MultiChannel
+    data.color_ch = 3
+    data.tar_idx_list = [3, 4, 5, 7]
     # data.channel_1 = 0
     # data.channel_2 = 1
-    data.num_channels = 2
+    data.num_channels = 8
 
-    data.poisson_noise_factor = 1000
+    data.poisson_noise_factor = -1
 
-    data.enable_gaussian_noise = True
+    data.enable_gaussian_noise = False
     data.trainig_datausage_fraction = 1.0
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
@@ -61,6 +64,7 @@ def get_config():
     loss.free_bits = 1.0
 
     model = config.model
+    model.num_targets = len(data.tar_idx_list)
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
 

@@ -47,6 +47,9 @@ class MultiChDloader:
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
         self._num_channels = data_config.get('num_channels', 2)
+        self._tar_idx_list = data_config.get('tar_idx_list', None)
+        self._color_ch = data_config.get('color_ch', None)
+
         if datasplit_type == DataSplitType.Train:
             self._datausage_fraction = data_config.get('trainig_datausage_fraction', 1.0)
             # assert self._datausage_fraction == 1.0, 'Not supported. Use validtarget_random_fraction and training_validtarget_fraction to get the same effect'
@@ -561,9 +564,6 @@ class MultiChDloader:
 
     def _compute_input_with_alpha(self, img_tuples, alpha):
         assert self._normalized_input is True, "normalization should happen here"
-        inp = 0
-        for alpha, img in zip(alpha, img_tuples):
-            inp += img * alpha
 
         mean, std = self.get_mean_std_for_input()
         mean = mean.squeeze()
@@ -577,7 +577,17 @@ class MultiChDloader:
             assert mean[0] == mean[i]
             assert std[0] == std[i]
 
-        inp = (inp - mean[0]) / std[0]
+        if self._color_ch is not None:
+            assert len(img_tuples) >= self._color_ch
+            inp = np.concatenate(img_tuples[:self._color_ch], axis=0)
+            inp = (inp - mean[:self._color_ch].reshape(-1, 1, 1)) / std[:self._color_ch].reshape(-1, 1, 1)
+        else:
+            inp = 0
+            for alpha, img in zip(alpha, img_tuples):
+                inp += img * alpha
+
+            inp = (inp - mean[0]) / std[0]
+
         return inp.astype(np.float32)
 
     def _sample_alpha(self):
@@ -645,6 +655,9 @@ class MultiChDloader:
             target = np.concatenate(target, axis=0)
         else:
             target = np.concatenate(img_tuples, axis=0)
+
+        if self._tar_idx_list:
+            target = target[self._tar_idx_list, ...]
 
         output = [inp, target]
 

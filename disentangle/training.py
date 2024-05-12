@@ -372,7 +372,8 @@ def create_dataset(config,
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
     elif config.data.data_type in [
-            DataType.TavernaSox2Golgi, DataType.Dao3Channel, DataType.ExpMicroscopyV2, DataType.TavernaSox2GolgiV2
+            DataType.TavernaSox2Golgi, DataType.Dao3Channel, DataType.ExpMicroscopyV2, DataType.TavernaSox2GolgiV2,
+            DataType.Derain100H
     ]:
         datapath = datadir
         normalized_input = config.data.normalized_input
@@ -425,7 +426,6 @@ def create_dataset(config,
         #     padding_kwargs = {'mode': config.data.padding_mode}
         #     if 'padding_value' in config.data and config.data.padding_value is not None:
         #         padding_kwargs['constant_values'] = config.data.padding_value
-
     return train_data, val_data
 
 
@@ -557,10 +557,10 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import numpy as np
 
-    from disentangle.configs.deepencoder_lvae_config import get_config
+    from disentangle.configs.derain100H_config import get_config
 
     config = get_config()
-    train_data, val_data = create_dataset(config, '/group/ubuntu/ubuntu/data/microscopy/')
+    train_data, val_data = create_dataset(config, '/group/jug/ashesh/data/Rain100HCombined/')
 
     dset = val_data
     idx = 0
