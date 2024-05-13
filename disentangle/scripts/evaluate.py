@@ -224,7 +224,7 @@ def main(
         CODE_ROOT = '/home/ubuntu/ubuntu/'
     elif (re.match('lin-ubuntu-\d{2}', nodename) or re.match('gnode\d{2}', nodename)
           or re.match('lin-ubuntu-m-\d{2}', nodename) or re.match('lin-ubuntu-l-\d{2}', nodename)):
-        DATA_ROOT = '/group/ubuntu/ubuntu/data/'
+        DATA_ROOT = '/group/jug/ashesh/data/'
         CODE_ROOT = '/home/ubuntu.ubuntu/'
 
     dtype = int(ckpt_dir.split('/')[-2].split('-')[0][1:])
