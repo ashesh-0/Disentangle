@@ -245,6 +245,7 @@ def main(
         data_dir = f'{DATA_ROOT}/BioSR/'
     elif dtype == DataType.Derain100H:
         data_dir = f'{DATA_ROOT}/Rain100HCombined/'
+        # data_dir = f'{DATA_ROOT}/Rain100HPractical/tiffs/'
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -260,6 +261,7 @@ def main(
     config = ml_collections.ConfigDict(config)
     old_image_size = None
     with config.unlocked():
+        # config.data.eval_on_real = True
         try:
             if 'batchnorm' not in config.model.encoder:
                 config.model.encoder.batchnorm = config.model.batchnorm

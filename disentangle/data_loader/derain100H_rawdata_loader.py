@@ -14,6 +14,15 @@ def get_multi_channel_files():
     return [f'data_{i}.tif' for i in range(1, 1801)]
 
 
+def get_multi_channel_practical_files():
+    fnames = [
+        'data_acc1.tif', 'data_acc22.tif', 'data_p2.tif', 'data_p23.tif', 'data_p28.tif', 'data_rain014.tif',
+        'data_rain016.tif', 'data_rain026.tif', 'data_acc19.tif', 'data_acc25.tif', 'data_p21.tif', 'data_p26.tif',
+        'data_rain013.tif', 'data_rain015.tif', 'data_rain020.tif'
+    ]
+    return fnames
+
+
 def load_tiff_last_ch(fpath):
     data = load_tiff(fpath)
     return data.transpose(1, 2, 0)[None]
@@ -21,10 +30,15 @@ def load_tiff_last_ch(fpath):
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     assert data_config.subdset_type == SubDsetType.MultiChannel
+    if data_config.get('eval_on_real', False):
+        files_fn = get_multi_channel_practical_files
+    else:
+        files_fn = get_multi_channel_files
+
     return get_train_val_data_twochannels(datadir,
                                           data_config,
                                           datasplit_type,
-                                          get_multi_channel_files,
+                                          files_fn,
                                           load_data_fn=load_tiff_last_ch,
                                           val_fraction=val_fraction,
                                           test_fraction=test_fraction)
