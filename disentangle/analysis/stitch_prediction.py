@@ -242,8 +242,8 @@ def stitch_predictions(predictions, dset, full_prediction=False):
                                             full_prediction=full_prediction)
                 cropped_pred_list.append(cropped_pred_i)
 
-            if loc.t == 0:
-                print(loc, end='\t Now,just before updating')
+            # if loc.t == 0:
+            # print(loc, end='\t Now,just before updating')
             if full_prediction:
                 loc = update_loc_for_final_insertion_full_pred(
                     loc,
@@ -255,8 +255,8 @@ def stitch_predictions(predictions, dset, full_prediction=False):
             else:
                 loc = update_loc_for_final_insertion(loc, extra_padding)
 
-            if loc.t == 0:
-                print(loc, frame_shape)
+            # if loc.t == 0:
+            # print(loc, frame_shape)
             for ch_idx in range(predictions.shape[1]):
                 output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, ch_idx] = cropped_pred_list[ch_idx]
 

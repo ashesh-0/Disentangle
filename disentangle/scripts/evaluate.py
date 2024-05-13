@@ -717,6 +717,18 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
     return highres_data
 
 
+def dump_predictions_to_file(handler, ckpt_dir, prediction):
+    offset = prediction.min()
+    prediction -= offset
+    prediction = prediction.astype(np.uint32)
+    handler.dump_predictions(ckpt_dir, prediction, {'offset': str(offset)})
+
+
+def dump_individual_predictions(handlers, ckpt_dir, prediction):
+    for handler, pred in zip(handlers, prediction):
+        dump_predictions_to_file(handler, ckpt_dir, pred)
+
+
 def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             save_prediction=False,
                                             mmse_count=1,
@@ -724,7 +736,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             full_prediction=False,
                                             skip_metrics=False):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/27',
+        '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/28',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/36',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/39',
 
@@ -833,13 +845,24 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                 print('')
                 print('')
                 if save_prediction:
-                    assert isinstance(prediction, np.ndarray) or (isinstance(prediction, list) and len(prediction) == 1)
                     if isinstance(prediction, list):
-                        prediction = prediction[0]
-                    offset = prediction.min()
-                    prediction -= offset
-                    prediction = prediction.astype(np.uint32)
-                    handler.dump_predictions(ckpt_dir, prediction, {'offset': str(offset)})
+                        shapes = set([x[0].shape for x in prediction])
+                        if len(shapes) == 1:
+                            prediction = np.concatenate(prediction, axis=0)
+                            dump_predictions_to_file(handler, ckpt_dir, prediction)
+                        else:
+                            handlers = [
+                                PaperResultsHandler(OUTPUT_DIR,
+                                                    eval_datasplit_type,
+                                                    custom_image_size,
+                                                    image_size_for_grid_centers,
+                                                    mmse_count,
+                                                    ignored_last_pixels,
+                                                    predict_kth_frame=i) for i in range(len(prediction))
+                            ]
+                            dump_individual_predictions(handlers, ckpt_dir, prediction)
+                    else:
+                        dump_predictions_to_file(handler, ckpt_dir, prediction)
 
     return data, prediction
 
