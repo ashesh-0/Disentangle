@@ -28,3 +28,13 @@ class DataType(Enum):
     PredictedTiffData = 23
     Derain100H = 30
     Dehaze4K = 31
+
+
+if __name__ == '__main__':
+    from disentangle.core.tiff_reader import load_tiff
+    data = load_tiff('/group/jug/ashesh/data/Rain1000HNew/combined/data_10.tif')
+    print(data.shape)
+    import matplotlib.pyplot as plt
+    _, ax = plt.subplots(figsize=(6, 3), ncols=2)
+    ax[0].imshow(data[:3].transpose(1, 2, 0))
+    ax[1].imshow(data[3:].transpose(1, 2, 0))
