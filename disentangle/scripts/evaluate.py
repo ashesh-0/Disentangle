@@ -244,8 +244,11 @@ def main(
     elif dtype == DataType.BioSR_MRC:
         data_dir = f'{DATA_ROOT}/BioSR/'
     elif dtype == DataType.Derain100H:
-        data_dir = f'{DATA_ROOT}/Rain100HCombined/'
-        # data_dir = f'{DATA_ROOT}/Rain100HPractical/tiffs/'
+        # data_dir = f'{DATA_ROOT}/Rain100H/Rain100HCombined/'
+        # data_dir = f'{DATA_ROOT}/Rain100H/Rain100HPractical/tiffs/'
+        data_dir = f'{DATA_ROOT}/Rain100H/Rain100HCombined_test/'
+    elif dtype == DataType.Dehaze4K:
+        data_dir = f'{DATA_ROOT}/Haze4KCombined/'
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -738,7 +741,8 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             full_prediction=False,
                                             skip_metrics=False):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/28',
+        # '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/4',
+        '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/28'
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/36',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/39',
 

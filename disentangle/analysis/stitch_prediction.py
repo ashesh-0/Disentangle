@@ -182,7 +182,7 @@ def update_loc_for_final_insertion_full_pred(loc, extra_padding, frame_shape, on
     if loc.h_end > h_N:
         loc.h_end = h_N
     elif on_h_boundary:
-        pass
+        assert loc.h_end == h_N
     else:
         loc.h_end -= extra_padding
 
@@ -190,7 +190,7 @@ def update_loc_for_final_insertion_full_pred(loc, extra_padding, frame_shape, on
     if loc.w_end > w_N:
         loc.w_end = w_N
     elif on_w_boundary:
-        pass
+        assert loc.w_end == w_N
     else:
         loc.w_end -= extra_padding
     return loc
