@@ -10,8 +10,12 @@ from disentangle.data_loader.multifile_raw_dloader import SubDsetType
 from disentangle.data_loader.multifile_raw_dloader import get_train_val_data as get_train_val_data_twochannels
 
 
-def get_multi_channel_files():
-    return [f'data_{i}.tif' for i in range(1, 1801)]
+def get_multi_channel_files_train():
+    return [f'data_{i}.tif' for i in range(1, 3000)]
+
+
+def get_multi_channel_files_test():
+    return [f'data_{i}.tif' for i in range(1, 1000)]
 
 
 def load_tiff_last_ch(fpath):
@@ -21,10 +25,13 @@ def load_tiff_last_ch(fpath):
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     assert data_config.subdset_type == SubDsetType.MultiChannel
-    if data_config.get('eval_on_real', False):
-        files_fn = get_multi_channel_practical_files
+    if datasplit_type in [DataSplitType.Train, DataSplitType.Val]:
+        datadir = os.path.join(datadir, 'train')
+        files_fn = get_multi_channel_files_train
     else:
-        files_fn = get_multi_channel_files
+        assert datasplit_type == DataSplitType.Test
+        datadir = os.path.join(datadir, 'test')
+        files_fn = get_multi_channel_files_test
 
     return get_train_val_data_twochannels(datadir,
                                           data_config,
@@ -36,18 +43,20 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
 
 
 if __name__ == '__main__':
-    direc = '/group/jug/ashesh/data/Haze4K/test'
-    idx = 10
-    cleanf = os.path.join(direc, f'gt/{idx}.png')
-    hazef = glob.glob(os.path.join(direc, f'haze/{idx}*.png'))
-    transf = os.path.join(direc, f'trans/{idx}.png')
-
-    clean = load_png(cleanf)
-    haze = load_png(hazef[0])
-    trans = load_png(transf)
     import matplotlib.pyplot as plt
 
-    _, ax = plt.subplots(figsize=(9, 3), ncols=3)
-    ax[0].imshow(clean)
-    ax[1].imshow(haze)
-    ax[2].imshow(trans)
+    from disentangle.configs.derain100H_config import get_config
+    from disentangle.core.data_type import DataType
+    from disentangle.core.loss_type import LossType
+    from disentangle.core.model_type import ModelType
+    from disentangle.core.sampler_type import SamplerType
+
+    data_dir = '/group/jug/ashesh/data/Haze4KCombined/'
+    config = get_config()
+    data = get_train_val_data(data_dir, config.data, DataSplitType.All, val_fraction=0.1, test_fraction=0.1)
+    _, ax = plt.subplots(figsize=(12, 3), ncols=4)
+    idx = 0
+    ax[0].imshow(data[idx, :3].transpose(1, 2, 0))
+    ax[1].imshow(data[idx, 3:6].transpose(1, 2, 0))
+    ax[2].imshow(data[idx, 6])
+    ax[3].imshow(data[idx, 7])

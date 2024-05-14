@@ -69,5 +69,14 @@ if __name__ == '__main__':
                         help='Directory to save the pre-processed dataset',
                         default='/group/jug/ashesh/data/Haze4KCombined/')
     args = parser.parse_args()
-    for dtypedir in ['train', 'test']:
-        transform_data(os.path.join(args.datadir, dtypedir), os.path.join(args.outputdatadir, dtypedir), 10)
+
+    for dtypedir, end_idx in zip(['train', 'test'], [3000, 1000]):
+        transform_data(os.path.join(args.datadir, dtypedir), os.path.join(args.outputdatadir, dtypedir), end_idx + 1)
+
+    # from disentangle.core.tiff_reader import load_tiff
+    # import matplotlib.pyplot as plt
+    # data = load_tiff('/group/jug/ashesh/data/Haze4KCombined/train/data_100.tif')
+    # _,ax = plt.subplots(figsize=(9,3),ncols=3)
+    # ax[0].imshow(data[:3].transpose(1,2,0))
+    # ax[1].imshow(data[3:6].transpose(1,2,0))
+    # ax[2].imshow(data[6:].transpose(1,2,0))

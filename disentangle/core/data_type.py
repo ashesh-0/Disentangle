@@ -27,3 +27,4 @@ class DataType(Enum):
     TwoDset = 22
     PredictedTiffData = 23
     Derain100H = 30
+    Dehaze4K = 31
