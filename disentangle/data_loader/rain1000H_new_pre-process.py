@@ -18,7 +18,7 @@ def load_png(fpath):
 
 def fnames(subdir):
     assert subdir in ['norain', 'rain']
-    max_idx = 1801
+    max_idx = 1800
     # return [f"{subdir}/{subdir}-{i:03d}.png" for i in range(1, 101)]
     if subdir == 'rain':
         return [f"{subdir}/X2/norain-{i}x2.png" for i in range(1, max_idx + 1)]
