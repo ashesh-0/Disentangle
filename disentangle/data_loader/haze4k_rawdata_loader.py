@@ -1,4 +1,5 @@
 import os
+from functools import partial
 
 import numpy as np
 
@@ -10,12 +11,12 @@ from disentangle.data_loader.multifile_raw_dloader import SubDsetType
 from disentangle.data_loader.multifile_raw_dloader import get_train_val_data as get_train_val_data_twochannels
 
 
-def get_multi_channel_files_train():
-    return [f'data_{i}.tif' for i in range(1, 3000)]
+def fname_schema():
+    return 'data_{:d}.tif'
 
 
-def get_multi_channel_files_test():
-    return [f'data_{i}.tif' for i in range(1, 1000)]
+def get_multi_channel_files(max_idx):
+    return [fname_schema().format(i) for i in range(1, max_idx + 1)]
 
 
 def load_tiff_last_ch(fpath):
@@ -23,15 +24,23 @@ def load_tiff_last_ch(fpath):
     return data.transpose(1, 2, 0)[None]
 
 
+def find_max_idx(datadir):
+    max_idx = 0
+    while os.path.exists(os.path.join(datadir, fname_schema().format(max_idx + 1))):
+        max_idx += 1
+    return max_idx
+
+
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     assert data_config.subdset_type == SubDsetType.MultiChannel
-    if datasplit_type in [DataSplitType.Train, DataSplitType.Val]:
-        datadir = os.path.join(datadir, 'train')
-        files_fn = get_multi_channel_files_train
-    else:
-        assert datasplit_type == DataSplitType.Test
-        datadir = os.path.join(datadir, 'test')
-        files_fn = get_multi_channel_files_test
+    max_idx = find_max_idx(datadir)
+    files_fn = partial(get_multi_channel_files, max_idx)
+    # if datasplit_type in [DataSplitType.Train, DataSplitType.Val]:
+    #     # datadir = os.path.join(datadir, 'train')
+    # else:
+    #     assert datasplit_type == DataSplitType.Test
+    #     datadir = os.path.join(datadir, 'test')
+    #     files_fn = get_multi_channel_files_test
 
     return get_train_val_data_twochannels(datadir,
                                           data_config,

@@ -248,7 +248,7 @@ def main(
         # data_dir = f'{DATA_ROOT}/Rain100H/Rain100HPractical/tiffs/'
         data_dir = f'{DATA_ROOT}/Rain100H/Rain100HCombined_test/'
     elif dtype == DataType.Dehaze4K:
-        data_dir = f'{DATA_ROOT}/Haze4KCombined/'
+        data_dir = f'{DATA_ROOT}/Haze4KCombined/test'
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -742,7 +742,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             skip_metrics=False):
     ckpt_dirs = [
         # '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/4',
-        '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/28'
+        '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/7'
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/36',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/39',
 
@@ -783,9 +783,9 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
 
-    patchsz_gridsz_tuples = [(None, 16)]
+    patchsz_gridsz_tuples = [(None, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Test]:
+        for eval_datasplit_type in [DataSplitType.All]:
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
                 if data_type in [
