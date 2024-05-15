@@ -617,7 +617,6 @@ class MultiChDloader:
         return index
 
     def _rotate(self, img_tuples, noise_tuples):
-        print('rotation enabled')
         return self._rotate2D(img_tuples, noise_tuples)
 
     def _rotate2D(self, img_tuples, noise_tuples):
