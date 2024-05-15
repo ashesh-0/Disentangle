@@ -9,7 +9,7 @@ from disentangle.data_loader.multifile_raw_dloader import SubDsetType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 256
     data.data_type = DataType.Derain100H
     data.subdset_type = SubDsetType.MultiChannel
     data.color_ch = 3
