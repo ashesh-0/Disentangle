@@ -248,6 +248,17 @@ class MultiFileDset:
             cum_std += std
         return cum_mean / len(self.dsets), cum_std / len(self.dsets)
 
+    def reduce_data(self, t_list=None, h_start=None, h_end=None, w_start=None, w_end=None):
+        assert h_start is None
+        assert h_end is None
+        assert w_start is None
+        assert w_end is None
+        self.dsets = [self.dsets[t] for t in t_list]
+        print(f'[{self.__class__.__name__}] Data reduced. New data count: {len(self.dsets)}')
+
+    def get_num_frames(self):
+        return len(self.dsets)
+
     def __len__(self):
         out = 0
         for dset in self.dsets:

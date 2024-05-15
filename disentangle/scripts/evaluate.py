@@ -493,9 +493,12 @@ def main(
     print(f'Model has {count_parameters(model)/1000_000:.3f}M parameters')
     # reducing the data here.
     if predict_kth_frame is not None:
-        assert predict_kth_frame >= 0 and isinstance(predict_kth_frame, int), f'Invalid kth frame. {predict_kth_frame}'
-        if predict_kth_frame >= val_dset._data.shape[0]:
+        # assert predict_kth_frame >= 0 and isinstance(predict_kth_frame, int), f'Invalid kth frame. {predict_kth_frame}'
+        if isinstance(predict_kth_frame, int) and predict_kth_frame >= val_dset.get_num_frames():
             return None, None
+        elif isinstance(predict_kth_frame, list):
+            predict_kth_frame = [x for x in predict_kth_frame if x < val_dset.get_num_frames()]
+            val_dset.reduce_data(predict_kth_frame)
         else:
             val_dset.reduce_data([predict_kth_frame])
 
@@ -627,7 +630,10 @@ def main(
 
     highres_data = get_highsnr_data(config, data_dir, eval_datasplit_type)
     if predict_kth_frame is not None and highres_data is not None:
-        highres_data = highres_data[[predict_kth_frame]].copy()
+        if isinstance(predict_kth_frame, list):
+            highres_data = highres_data[predict_kth_frame].copy()
+        else:
+            highres_data = highres_data[[predict_kth_frame]].copy()
 
     if isinstance(pred1, list) and pred1[0].shape[-1] == 3:
         output_stats = {}
@@ -783,7 +789,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
 
-    patchsz_gridsz_tuples = [(None, 64)]
+    patchsz_gridsz_tuples = [(None, 32)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.All]:
             for ckpt_dir in ckpt_dirs:
@@ -851,7 +857,18 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                 print('')
                 print('')
                 if save_prediction:
-                    if isinstance(prediction, list):
+                    if isinstance(predict_kth_frame, list):
+                        handlers = [
+                            PaperResultsHandler(OUTPUT_DIR,
+                                                eval_datasplit_type,
+                                                custom_image_size,
+                                                image_size_for_grid_centers,
+                                                mmse_count,
+                                                ignored_last_pixels,
+                                                predict_kth_frame=i) for i in predict_kth_frame
+                        ]
+                        dump_individual_predictions(handlers, ckpt_dir, [x for x in prediction])
+                    elif isinstance(prediction, list):
                         shapes = set([x[0].shape for x in prediction])
                         if len(shapes) == 1:
                             prediction = np.concatenate(prediction, axis=0)

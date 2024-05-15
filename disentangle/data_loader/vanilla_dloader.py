@@ -619,6 +619,9 @@ class MultiChDloader:
     def _rotate(self, img_tuples, noise_tuples):
         return self._rotate2D(img_tuples, noise_tuples)
 
+    def get_num_frames(self):
+        return self._data.shape[0]
+
     def _rotate2D(self, img_tuples, noise_tuples):
         img_kwargs = {}
         for i, img in enumerate(img_tuples):
