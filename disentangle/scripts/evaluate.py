@@ -246,7 +246,8 @@ def main(
     elif dtype == DataType.Derain100H:
         # data_dir = f'{DATA_ROOT}/Rain100H/Rain100HCombined/'
         # data_dir = f'{DATA_ROOT}/Rain100H/Rain100HPractical/tiffs/'
-        data_dir = f'{DATA_ROOT}/Rain100H/Rain100HCombined_test/'
+        # data_dir = f'{DATA_ROOT}/Rain100H/Rain100HCombined_test/'
+        data_dir = f'{DATA_ROOT}/Rain1000HNew/combined_test/'
     elif dtype == DataType.Dehaze4K:
         data_dir = f'{DATA_ROOT}/Haze4KCombined/test'
 
@@ -747,10 +748,10 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             full_prediction=False,
                                             skip_metrics=False):
     ckpt_dirs = [
-        # '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/4',
-        '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/7'
+        '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/37'
+        # '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/7'
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/36',
-        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/39',
+        # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/39'
 
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/44',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/42',
@@ -827,7 +828,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                     image_size_for_grid_centers=image_size_for_grid_centers,
                     mmse_count=mmse_count,
                     custom_image_size=custom_image_size,
-                    batch_size=24,
+                    batch_size=16,
                     num_workers=4,
                     COMPUTE_LOSS=False,
                     use_deterministic_grid=None,
@@ -848,11 +849,14 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                 if data is None:
                     return None, None
 
-                fpath = handler.save(ckpt_dir, data)
+                if isinstance(predict_kth_frame, list):
+                    pass
+                else:
+                    fpath = handler.save(ckpt_dir, data)
+                    print(handler.load(fpath))
                 # except:
                 #     print('FAILED for ', handler.get_output_fpath(ckpt_dir))
                 #     continue
-                print(handler.load(fpath))
                 print('')
                 print('')
                 print('')
