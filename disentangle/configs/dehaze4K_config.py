@@ -13,7 +13,7 @@ def get_config():
     data.data_type = DataType.Dehaze4K
     data.subdset_type = SubDsetType.MultiChannel
     data.color_ch = 3
-    data.tar_idx_list = [3, 4, 5, 6, 7, 8]
+    data.tar_idx_list = [3, 4, 5]
     # data.channel_1 = 0
     # data.channel_2 = 1
     data.num_channels = 9
@@ -39,7 +39,7 @@ def get_config():
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
-    data.train_aug_rotate = False
+    data.train_aug_rotate = True
     data.randomized_channels = False
     data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
@@ -103,7 +103,7 @@ def get_config():
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
-    model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
+    model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
     model.enable_noise_model = False
     model.noise_model_type = 'gmm'
