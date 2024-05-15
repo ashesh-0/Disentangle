@@ -13,10 +13,10 @@ def get_config():
     data.data_type = DataType.Derain100H
     data.subdset_type = SubDsetType.MultiChannel
     data.color_ch = 3
-    data.tar_idx_list = [3, 4, 5, 7]
+    data.tar_idx_list = [3, 4, 5]
     # data.channel_1 = 0
     # data.channel_2 = 1
-    data.num_channels = 8
+    data.num_channels = 6
 
     data.poisson_noise_factor = -1
 

@@ -32,7 +32,7 @@ class DataType(Enum):
 
 if __name__ == '__main__':
     from disentangle.core.tiff_reader import load_tiff
-    data = load_tiff('/group/jug/ashesh/data/Rain1000HNew/combined/data_10.tif')
+    data = load_tiff('/group/jug/ashesh/data/Rain1000HNew/combined/data_1800.tif')
     print(data.shape)
     import matplotlib.pyplot as plt
     _, ax = plt.subplots(figsize=(6, 3), ncols=2)
