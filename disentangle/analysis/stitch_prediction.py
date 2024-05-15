@@ -170,7 +170,8 @@ def remove_pad(pred, loc, extra_padding, frame_shape, on_h_boundary, on_w_bounda
             return pred[h_s:-h_e, w_s:]
         elif w_e > 0:
             return pred[h_s:, w_s:-w_e]
-
+        elif h_e == 0 and w_e == 0:
+            return pred[h_s:, w_s:]
     return pred
 
 
@@ -179,7 +180,7 @@ def update_loc_for_final_insertion_full_pred(loc, extra_padding, frame_shape, on
     loc.w_start += extra_padding
     # rows
     h_N = frame_shape[0]
-    if loc.h_end > h_N:
+    if loc.h_end >= h_N:
         loc.h_end = h_N
     elif on_h_boundary:
         assert loc.h_end == h_N
@@ -187,7 +188,7 @@ def update_loc_for_final_insertion_full_pred(loc, extra_padding, frame_shape, on
         loc.h_end -= extra_padding
 
     w_N = frame_shape[1]
-    if loc.w_end > w_N:
+    if loc.w_end >= w_N:
         loc.w_end = w_N
     elif on_w_boundary:
         assert loc.w_end == w_N
@@ -242,10 +243,8 @@ def stitch_predictions(predictions, dset, full_prediction=False):
                                             full_prediction=full_prediction)
                 cropped_pred_list.append(cropped_pred_i)
 
-            # if loc.t == 0:
-            # print(loc, end='\t Now,just before updating')
             if full_prediction:
-                loc = update_loc_for_final_insertion_full_pred(
+                final_loc = update_loc_for_final_insertion_full_pred(
                     loc,
                     extra_padding,
                     frame_shape,
@@ -253,12 +252,11 @@ def stitch_predictions(predictions, dset, full_prediction=False):
                     dset.idx_manager.on_right_boundary(dset_input_idx),
                 )
             else:
-                loc = update_loc_for_final_insertion(loc, extra_padding)
+                final_loc = update_loc_for_final_insertion(loc, extra_padding)
 
-            # if loc.t == 0:
-            # print(loc, frame_shape)
             for ch_idx in range(predictions.shape[1]):
-                output[loc.t, loc.h_start:loc.h_end, loc.w_start:loc.w_end, ch_idx] = cropped_pred_list[ch_idx]
+                output[final_loc.t, final_loc.h_start:final_loc.h_end, final_loc.w_start:final_loc.w_end,
+                       ch_idx] = cropped_pred_list[ch_idx]
 
         return output
 
