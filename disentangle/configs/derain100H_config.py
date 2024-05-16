@@ -16,7 +16,7 @@ def get_config():
     data.tar_idx_list = [3, 4, 5]
     # data.channel_1 = 0
     # data.channel_2 = 1
-    data.num_channels = 6
+    data.num_channels = 8
 
     data.poisson_noise_factor = -1
 

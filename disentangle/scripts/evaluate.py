@@ -245,9 +245,9 @@ def main(
         data_dir = f'{DATA_ROOT}/BioSR/'
     elif dtype == DataType.Derain100H:
         # data_dir = f'{DATA_ROOT}/Rain100H/Rain100HCombined/'
-        # data_dir = f'{DATA_ROOT}/Rain100H/Rain100HPractical/tiffs/'
+        data_dir = f'{DATA_ROOT}/Rain100H/Rain100HPractical/tiffs/'
         # data_dir = f'{DATA_ROOT}/Rain100H/Rain100HCombined_test/'
-        data_dir = f'{DATA_ROOT}/Rain1000HNew/combined_test/'
+        # data_dir = f'{DATA_ROOT}/Rain1000HNew/combined_test/'
     elif dtype == DataType.Dehaze4K:
         data_dir = f'{DATA_ROOT}/Haze4KCombined/test'
 
@@ -343,20 +343,16 @@ def main(
 
         if 'predict_logvar' not in config.model:
             config.model.predict_logvar = None
-        if config.data.data_type in [
-                DataType.OptiMEM100_014, DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve,
-                DataType.SeparateTiffData
-        ]:
-            if custom_image_size is not None:
-                old_image_size = config.data.image_size
-                config.data.image_size = custom_image_size
-            if use_deterministic_grid is not None:
-                config.data.deterministic_grid = use_deterministic_grid
-            if threshold is not None:
-                config.data.threshold = threshold
-            if val_repeat_factor is not None:
-                config.training.val_repeat_factor = val_repeat_factor
-            config.model.mode_pred = not compute_kl_loss
+        if custom_image_size is not None:
+            old_image_size = config.data.image_size
+            config.data.image_size = custom_image_size
+        if use_deterministic_grid is not None:
+            config.data.deterministic_grid = use_deterministic_grid
+        if threshold is not None:
+            config.data.threshold = threshold
+        if val_repeat_factor is not None:
+            config.training.val_repeat_factor = val_repeat_factor
+        config.model.mode_pred = not compute_kl_loss
 
     print(config)
     with config.unlocked():
@@ -474,6 +470,8 @@ def main(
         mean_dict['target'] = mean_dict['target'][:, tar_idx_list]
         std_dict['target'] = std_dict['target'][:, tar_idx_list]
 
+    if old_image_size is not None:
+        config.data.image_size = old_image_size
     model = create_model(config, mean_dict, std_dict)
 
     ckpt_fpath = get_best_checkpoint(ckpt_dir)
@@ -748,8 +746,9 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             full_prediction=False,
                                             skip_metrics=False):
     ckpt_dirs = [
-        '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/37'
-        # '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/7'
+        # '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/37'
+        '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/7'
+        # '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/28/'
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/36',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/39'
 
@@ -790,7 +789,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
 
-    patchsz_gridsz_tuples = [(None, 32)]
+    patchsz_gridsz_tuples = [(400, 400)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.All]:
             for ckpt_dir in ckpt_dirs:
@@ -828,7 +827,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                     image_size_for_grid_centers=image_size_for_grid_centers,
                     mmse_count=mmse_count,
                     custom_image_size=custom_image_size,
-                    batch_size=16,
+                    batch_size=4,
                     num_workers=4,
                     COMPUTE_LOSS=False,
                     use_deterministic_grid=None,

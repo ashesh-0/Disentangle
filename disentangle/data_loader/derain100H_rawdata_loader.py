@@ -12,8 +12,8 @@ from disentangle.data_loader.multifile_raw_dloader import get_train_val_data as 
 
 def get_multi_channel_files():
     # return [f'data_{i}.tif' for i in range(1, 101)]
-    # return [f'data_{i}.tif' for i in range(1, 201)]
-    return [f'data_{i}.tif' for i in range(1, 1801)]
+    return [f'data_{i}.tif' for i in range(1, 201)]
+    # return [f'data_{i}.tif' for i in range(1, 1801)]
 
 
 def get_multi_channel_practical_files():
