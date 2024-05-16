@@ -48,10 +48,11 @@ class PaperResultsHandler:
     def get_output_dir(self):
         outdir = self.dirpath()
         if self._predict_kth_frame is not None:
+            os.makedirs(outdir, exist_ok=True)
             outdir = os.path.join(outdir, f'kth_{self._predict_kth_frame}')
 
         if not os.path.isdir(outdir):
-            os.mkdir(outdir)
+            os.makedirs(outdir, exist_ok=True)
         return outdir
 
     def get_output_fpath(self, ckpt_fpath):
