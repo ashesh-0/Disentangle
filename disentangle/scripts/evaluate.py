@@ -789,7 +789,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
 
     ckpt_dirs = [x[:-1] if '/' == x[-1] else x for x in ckpt_dirs]
 
-    patchsz_gridsz_tuples = [(400, 400)]
+    patchsz_gridsz_tuples = [(400, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.All]:
             for ckpt_dir in ckpt_dirs:
