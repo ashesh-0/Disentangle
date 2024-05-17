@@ -119,14 +119,14 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 60
-    training.max_epochs = 800
+    training.lr_scheduler_patience = 100
+    training.max_epochs = 1600
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.0
-    training.earlystop_patience = 400
+    training.earlystop_patience = 800
     training.precision = 16
     return config
