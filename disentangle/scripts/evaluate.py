@@ -747,7 +747,8 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             skip_metrics=False):
     ckpt_dirs = [
         # '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/28'
-        '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/7'
+        # '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/7',
+        '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/8',
         # '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/28/'
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/36',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/39'
