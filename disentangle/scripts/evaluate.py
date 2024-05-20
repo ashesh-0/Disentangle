@@ -746,9 +746,9 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             full_prediction=False,
                                             skip_metrics=False):
     ckpt_dirs = [
-        # '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/28'
+        '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5'
         # '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/7',
-        '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/8',
+        # '/home/ashesh.ashesh/training/disentangle/2405/D31-M3-S0-L0/8',
         # '/home/ashesh.ashesh/training/disentangle/2405/D30-M3-S0-L0/28/'
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/36',
         # '/home/ubuntu.ubuntu/training/disentangle/2403/D16-M23-S0-L0/39'
@@ -792,7 +792,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
 
     patchsz_gridsz_tuples = [(400, 64)]
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.All]:
+        for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split('-')[0][1:])
                 if data_type in [
