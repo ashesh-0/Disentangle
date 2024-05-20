@@ -664,27 +664,11 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             patch_size=None,
                                             grid_size=32,
                                             overwrite_saved_predictions=True,
-                                            predict_samples_N=None):
+                                            predict_samples_N=None,
+                                            save_prediction_factor=1.0):
     if ckpt_dir is None:
         ckpt_dirs = [
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/97',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/120',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/111',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/125',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/139',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/143',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/96',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/119',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/115',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/126',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/138',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/142',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/94',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/117',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/113',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/124',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/136',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/140',
+            '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -765,9 +749,21 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                 if save_prediction:
                     offset = prediction.min()
                     prediction -= offset
-                    prediction = prediction.astype(np.uint32)
+                    if save_prediction_factor != 1.0:
+                        if save_prediction_factor == -1:
+                            save_prediction_factor = 65535 / prediction.max()
+                        if save_prediction_factor > 1:
+                            prediction = (prediction * save_prediction_factor).astype(np.uint32)
+                        else:
+                            prediction = prediction.astype(np.uint32)
+                    else:
+                        prediction = prediction.astype(np.uint32)
+
                     handler.dump_predictions(ckpt_dir,
-                                             prediction, {'offset': str(offset)},
+                                             prediction, {
+                                                 'offset': str(offset),
+                                                 'factor': str(save_prediction_factor)
+                                             },
                                              overwrite=overwrite_saved_predictions)
 
     return data, prediction
@@ -780,6 +776,7 @@ if __name__ == '__main__':
     parser.add_argument('--grid_size', type=int, default=None)
     parser.add_argument('--normalized_ssim', action='store_true')
     parser.add_argument('--save_prediction', action='store_true')
+    parser.add_argument('--save_prediction_factor', type=float, default=1.0)
     parser.add_argument('--mmse_count', type=int, default=1)
     parser.add_argument('--predict_kth_frame', type=int, default=None)
     parser.add_argument('--preserve_older_prediction', action='store_true')
@@ -794,4 +791,5 @@ if __name__ == '__main__':
                                             patch_size=args.patch_size,
                                             grid_size=args.grid_size,
                                             overwrite_saved_predictions=not args.preserve_older_prediction,
-                                            predict_samples_N=args.predict_samples_N)
+                                            predict_samples_N=args.predict_samples_N,
+                                            save_prediction_factor=args.save_prediction_factor)
