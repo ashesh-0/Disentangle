@@ -30,3 +30,4 @@ class DataType(Enum):
     # Here, we have 16 splitting tasks.
     NicolaData = 25
     SilvioLabCSHLData = 26
+    ExpMicroscopyV3 = 27
