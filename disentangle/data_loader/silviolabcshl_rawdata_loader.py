@@ -8,10 +8,17 @@ from disentangle.core.tiff_reader import load_tiff
 
 def get_dataset_types():
     return [
-        'ctrl_GM130_s1234_o1_c1111', 'ctrl_GM130_s12_o1_c1010', 'ctrl_beads_o1_c1111', 'ctrl_calnexin_s1234_o1_c1111',
-        'ctrl_s2_o1_c0010', 'ctrl_s4_o1_c0001'
-        'ctrl_GM130_s1234_o2_c1111', 'ctrl_LAMP1_s1234_o1_c1111', 'ctrl_beads_o2_c1111', 'ctrl_calnexin_s1234_o2_c1111',
-        'ctrl_s3_o1_c0100'
+        'ctrl_GM130_s1234_o1_c1111',
+        'ctrl_GM130_s12_o1_c1010',
+        'ctrl_beads_o1_c1111',
+        'ctrl_calnexin_s1234_o1_c1111',
+        'ctrl_s2_o1_c0010',
+        'ctrl_s4_o1_c0001',
+        'ctrl_GM130_s1234_o2_c1111',
+        'ctrl_LAMP1_s1234_o1_c1111',
+        'ctrl_beads_o2_c1111',
+        'ctrl_calnexin_s1234_o2_c1111',
+        'ctrl_s3_o1_c0100',
     ]
 
 
