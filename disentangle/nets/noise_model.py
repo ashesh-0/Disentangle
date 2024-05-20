@@ -276,12 +276,15 @@ def get_noise_model(config):
 
             noise_model_config_sanity_check(config.model.noise_model_ch1_fpath, config, 'ch1_fname')
             noise_model_config_sanity_check(config.model.noise_model_ch2_fpath, config, 'ch2_fname')
+            nmodels = [nmodel1, nmodel2]
             if 'noise_model_ch3_fpath' in config.model:
                 print(f'Noise model Ch3: {config.model.noise_model_ch3_fpath}')
                 nmodel3 = GaussianMixtureNoiseModel(params=np.load(config.model.noise_model_ch3_fpath))
                 nmodels = [nmodel1, nmodel2, nmodel3]
-            else:
-                nmodels = [nmodel1, nmodel2]
+                if 'noise_model_ch4_fpath' in config.model:
+                    print(f'Noise model Ch4: {config.model.noise_model_ch4_fpath}')
+                    nmodel4 = GaussianMixtureNoiseModel(params=np.load(config.model.noise_model_ch4_fpath))
+                    nmodels = [nmodel1, nmodel2, nmodel3, nmodel4]
 
         if config.model.get('noise_model_learnable', False):
             for nmodel in nmodels:
