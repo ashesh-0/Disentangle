@@ -10,7 +10,7 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.SilvioLabCSHLData
-    data.channel_idx_list = [1, 2, 3]  #[1, 2, 3, 4]
+    data.channel_idx_list = [2, 3, 4]  #[1, 2, 3, 4]
     data.num_channels = len(data.channel_idx_list)
     data.sub_data_type = 'ctrl_LAMP1_s1234_o1_c1111'
 
@@ -104,9 +104,9 @@ def get_config():
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     # fname = '/home/ashesh.ashesh/training/noise_model/2404/10/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-06_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2405/8/GMMNoiseModel_ctrl_LAMP1_s1234_o1_c1111-ch1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2405/9/GMMNoiseModel_ctrl_LAMP1_s1234_o1_c1111-ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2405/10/GMMNoiseModel_ctrl_LAMP1_s1234_o1_c1111-ch3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2405/9/GMMNoiseModel_ctrl_LAMP1_s1234_o1_c1111-ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2405/10/GMMNoiseModel_ctrl_LAMP1_s1234_o1_c1111-ch3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2405/11/GMMNoiseModel_ctrl_LAMP1_s1234_o1_c1111-ch4__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
