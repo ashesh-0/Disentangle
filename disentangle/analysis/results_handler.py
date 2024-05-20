@@ -17,6 +17,7 @@ class PaperResultsHandler:
         mmse_count,
         skip_last_pixels,
         predict_kth_frame=None,
+        multiplicative_factor=1,
     ):
         self._dtype = eval_datasplit_type
         self._outdir = output_dir
@@ -25,11 +26,13 @@ class PaperResultsHandler:
         self._mmseN = mmse_count
         self._skiplN = skip_last_pixels
         self._predict_kth_frame = predict_kth_frame
+        self._multiplicative_factor = multiplicative_factor
 
     def dirpath(self):
         return os.path.join(
             self._outdir,
-            f'{DataSplitType.name(self._dtype)}_P{self._patchN}_G{self._gridN}_M{self._mmseN}_Sk{self._skiplN}')
+            f'{DataSplitType.name(self._dtype)}_P{self._patchN}_G{self._gridN}_M{self._mmseN}_Sk{self._skiplN}_F{self._multiplicative_factor:.2f}'
+        )
 
     @staticmethod
     def get_fname(ckpt_fpath):

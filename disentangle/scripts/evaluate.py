@@ -712,7 +712,8 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                               image_size_for_grid_centers,
                                               mmse_count,
                                               ignored_last_pixels,
-                                              predict_kth_frame=predict_kth_frame)
+                                              predict_kth_frame=predict_kth_frame,
+                                              multiplicative_factor=save_prediction_factor)
                 data, prediction = main(
                     ckpt_dir,
                     image_size_for_grid_centers=image_size_for_grid_centers,
