@@ -173,8 +173,8 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
             # this is old code.
             assert fname.replace('.tif', '') == f'{cond_str}-{power_str}', f'{fname} != {cond_str}-{power_str}'
         else:
-            assert cond_str.lower().replace('_', '') in fname.split('_')
-            assert power_str.lower().replace('_', '') in fname
+            assert cond_str.lower().replace('_', '') in fname.split('_'), f'{cond_str} not in {fname}'
+            assert power_str.lower().replace('_', '') in fname.replace('div', 'divided'), f'{power_str} not in {fname}'
 
         # 0/1
         channel_idx = noise_model_config['channel_idx'][0]
