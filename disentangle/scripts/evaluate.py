@@ -599,7 +599,7 @@ def main(
     if predict_kth_frame is not None and highres_data is not None:
         highres_data = highres_data[[predict_kth_frame]].copy()
 
-    if 'target_idx_list' in config.data and config.data.target_idx_list is not None:
+    if highres_data is not None and 'target_idx_list' in config.data and config.data.target_idx_list is not None:
         highres_data = highres_data[..., config.data.target_idx_list]
 
     if highres_data is None:
@@ -674,7 +674,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             skip_highsnr=False):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/1',
+            '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/1',
             '/home/ashesh.ashesh/training/disentangle/2404/D17-M3-S0-L8/4',
             '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5',
             '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/97',
