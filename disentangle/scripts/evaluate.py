@@ -40,7 +40,7 @@ from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.training import create_dataset, create_model
 
 torch.multiprocessing.set_sharing_strategy('file_system')
-DATA_ROOT = 'PUT THE ROOT DIRECTORY FOR THE DATASET HERE'
+DATA_ROOT = '/group/jug/ashesh/data/'
 CODE_ROOT = 'PUT THE ROOT DIRECTORY FOR THE CODE HERE'
 
 
@@ -198,6 +198,7 @@ def main(
     save_to_file=False,
     predict_kth_frame=None,
     predict_samples_N=None,
+    compare_with_highsnr=True,
 ):
     global DATA_ROOT, CODE_ROOT
 
@@ -590,7 +591,7 @@ def main(
         #     ssim2_mean, ssim2_std = avg_ssim(tar_normalized[..., 1], pred[..., 1])
     rmse = np.round(rmse, 3)
 
-    highres_data = get_highsnr_data(config, data_dir, eval_datasplit_type)
+    highres_data = get_highsnr_data(config, data_dir, eval_datasplit_type) if compare_with_highsnr else None
     if predict_kth_frame is not None and highres_data is not None:
         highres_data = highres_data[[predict_kth_frame]].copy()
 
@@ -665,10 +666,26 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             grid_size=32,
                                             overwrite_saved_predictions=True,
                                             predict_samples_N=None,
-                                            save_prediction_factor=1.0):
+                                            save_prediction_factor=1.0,
+                                            skip_highsnr=False):
     if ckpt_dir is None:
         ckpt_dirs = [
-            '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5',
+            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/13',
+            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/14',
+            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/15',
+            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/10',
+            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/11',
+            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/12',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/1',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/6',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D17-M3-S0-L8/4',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/97',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/120',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/111',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/125',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/139',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/143',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -735,6 +752,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                     normalized_ssim=normalized_ssim,
                     predict_kth_frame=predict_kth_frame,
                     predict_samples_N=predict_samples_N,
+                    compare_with_highsnr=not skip_highsnr,
                 )
                 if data is None:
                     return None, None
@@ -782,6 +800,7 @@ if __name__ == '__main__':
     parser.add_argument('--predict_kth_frame', type=int, default=None)
     parser.add_argument('--preserve_older_prediction', action='store_true')
     parser.add_argument('--predict_samples_N', type=int, default=None)
+    parser.add_argument('--skip_highsnr', action='store_true')
 
     args = parser.parse_args()
     save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=args.normalized_ssim,
@@ -793,4 +812,5 @@ if __name__ == '__main__':
                                             grid_size=args.grid_size,
                                             overwrite_saved_predictions=not args.preserve_older_prediction,
                                             predict_samples_N=args.predict_samples_N,
-                                            save_prediction_factor=args.save_prediction_factor)
+                                            save_prediction_factor=args.save_prediction_factor,
+                                            skip_highsnr=args.skip_highsnr)
