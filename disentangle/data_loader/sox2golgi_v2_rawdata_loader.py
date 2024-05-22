@@ -95,7 +95,12 @@ def get_files():
 
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
-    channel_names = data_config.channel_idx_list
+    if 'channel_idx_list' in data_config:
+        channel_names = data_config.channel_idx_list
+    else:
+        assert 'channel_1' in data_config
+        assert 'channel_2' in data_config
+        channel_names = [data_config.channel_1, data_config.channel_2]
     print(
         f'Loading data from {datadir} with channel names {channel_names}, datasplit_type {DataSplitType.name(datasplit_type)}'
     )
