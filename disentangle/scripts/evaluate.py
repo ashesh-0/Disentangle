@@ -244,6 +244,8 @@ def main(
         data_dir = f'{DATA_ROOT}/pavia3_sequential_raw/'
     elif dtype == DataType.TavernaSox2GolgiV2:
         data_dir = f'{DATA_ROOT}/TavernaSox2Golgi/acquisition2/'
+    elif dtype == DataType.TavernaSox2Golgi:
+        data_dir = f'{DATA_ROOT}/TavernaSox2Golgi/'
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -672,7 +674,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             skip_highsnr=False):
     if ckpt_dir is None:
         ckpt_dirs = [
-            '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/1',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/1',
             '/home/ashesh.ashesh/training/disentangle/2404/D17-M3-S0-L8/4',
             '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5',
             '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/97',
@@ -719,6 +721,8 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                     ignored_last_pixels = 8
                 elif data_type == DataType.ExpMicroscopyV2:
                     ignored_last_pixels = 16
+                elif data_type == DataType.TavernaSox2GolgiV2:
+                    ignored_last_pixels = 8
                 else:
                     ignored_last_pixels = 0
 
