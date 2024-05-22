@@ -50,7 +50,8 @@ def get_datasplit_tuples(val_fraction: float, test_fraction: float, total_size: 
     if starting_test:
         # test => val => train
         test = list(range(0, int(total_size * test_fraction)))
-        val = list(range(test[-1] + 1, test[-1] + 1 + int(total_size * val_fraction)))
+        last_test_idx = -1 if len(test) == 0 else test[-1]
+        val = list(range(last_test_idx + 1, last_test_idx + 1 + int(total_size * val_fraction)))
         train = list(range(val[-1] + 1, total_size))
     else:
         # {test,val}=> train
