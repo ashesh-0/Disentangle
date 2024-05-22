@@ -164,11 +164,18 @@ def noise_model_config_sanity_check(noise_model_fpath, config, channel_key=None)
         print(f'Warning: channel_key is not found in noise model config: {channel_key}')
 
     if config.data.data_type == DataType.Pavia3SeqData:
-        # 'Cond_1-Main.tif'
-        fname = noise_model_config['fname'][0]
+
         cond_str = {'Balanced': 'Cond_1', 'MediumSkew': 'Cond_2', 'HighSkew': 'Cond_3'}[config.data.alpha_level]
         power_str = {'High': 'Main', 'Medium': 'Divided_2', 'Low': 'Divided_4'}[config.data.power_level]
-        assert fname.replace('.tif', '') == f'{cond_str}-{power_str}', f'{fname} != {cond_str}-{power_str}'
+        fname = noise_model_config['fname'][0]
+        # 'Cond_1-Main.tif'
+        if 'Deconvolved' not in noise_model_config['fname'][0]:
+            # this is old code.
+            assert fname.replace('.tif', '') == f'{cond_str}-{power_str}', f'{fname} != {cond_str}-{power_str}'
+        else:
+            assert cond_str.lower().replace('_', '') in fname.split('_')
+            assert power_str.lower().replace('_', '') in fname
+
         # 0/1
         channel_idx = noise_model_config['channel_idx'][0]
         if channel_key == 'ch1_fname':
