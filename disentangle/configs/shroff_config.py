@@ -104,8 +104,8 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2405/14/GMMNoiseModel_Main-DatasetA_cond1_main005_Deconvolved_18_iterations_Type_Richardson__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2405/15/GMMNoiseModel_Main-DatasetA_cond1_main005_Deconvolved_18_iterations_Type_Richardson__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2405/28/GMMNoiseModel_Mito-Mitotracker_Green_01__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2405/27/GMMNoiseModel_ER-ER__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
@@ -116,14 +116,14 @@ def get_config():
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 60
-    training.max_epochs = 800
+    training.max_epochs = 400
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.2
     training.test_fraction = 0.0
-    training.earlystop_patience = 400
+    training.earlystop_patience = 200
     training.precision = 16
     training.limit_train_batches = 2000
 
