@@ -29,10 +29,12 @@ class PaperResultsHandler:
         self._multiplicative_factor = multiplicative_factor
 
     def dirpath(self):
-        return os.path.join(
+        path = os.path.join(
             self._outdir,
-            f'{DataSplitType.name(self._dtype)}_P{self._patchN}_G{self._gridN}_M{self._mmseN}_Sk{self._skiplN}_F{self._multiplicative_factor:.2f}'
-        )
+            f'{DataSplitType.name(self._dtype)}_P{self._patchN}_G{self._gridN}_M{self._mmseN}_Sk{self._skiplN}')
+        if self._multiplicative_factor != 1:
+            path += '_F'
+        return path
 
     @staticmethod
     def get_fname(ckpt_fpath):
@@ -55,7 +57,6 @@ class PaperResultsHandler:
         outdir = self.dirpath()
         if self._predict_kth_frame is not None:
             os.makedirs(outdir, exist_ok=True)
-
             outdir = os.path.join(outdir, f'kth_{self._predict_kth_frame}')
 
         if not os.path.isdir(outdir):

@@ -176,6 +176,38 @@ def get_highres_data_ventura(data_dir, config, eval_datasplit_type):
     return highres_data
 
 
+def get_data_dir(dtype):
+    if dtype == DataType.CustomSinosoid:
+        data_dir = f'{DATA_ROOT}/sinosoid/'
+    elif dtype == DataType.CustomSinosoidThreeCurve:
+        data_dir = f'{DATA_ROOT}/sinosoid/'
+    elif dtype == DataType.OptiMEM100_014:
+        data_dir = f'{DATA_ROOT}/microscopy/'
+    elif dtype == DataType.Prevedel_EMBL:
+        data_dir = f'{DATA_ROOT}/Prevedel_EMBL/PKG_3P_dualcolor_stacks/NoAverage_NoRegistration/'
+    elif dtype == DataType.AllenCellMito:
+        data_dir = f'{DATA_ROOT}/allencell/2017_03_08_Struct_First_Pass_Seg/AICS-11/'
+    elif dtype == DataType.SeparateTiffData:
+        data_dir = f'{DATA_ROOT}/ventura_gigascience'
+    elif dtype == DataType.BioSR_MRC:
+        data_dir = f'{DATA_ROOT}/BioSR/'
+    elif dtype == DataType.NicolaData:
+        data_dir = f'{DATA_ROOT}/nikola_data/raw'
+    elif dtype == DataType.Dao3ChannelWithInput:
+        data_dir = f'{DATA_ROOT}/Dao4Channel/'
+    elif dtype == DataType.Dao3Channel:
+        data_dir = f'{DATA_ROOT}/Dao3Channel/'
+    elif dtype == DataType.ExpMicroscopyV2:
+        data_dir = f'{DATA_ROOT}/expansion_microscopy_v2/datafiles'
+    elif dtype == DataType.Pavia3SeqData:
+        data_dir = f'{DATA_ROOT}/pavia3_sequential_raw/'
+    elif dtype == DataType.TavernaSox2GolgiV2:
+        data_dir = f'{DATA_ROOT}/TavernaSox2Golgi/acquisition2/'
+    elif dtype == DataType.TavernaSox2Golgi:
+        data_dir = f'{DATA_ROOT}/TavernaSox2Golgi/'
+    return data_dir
+
+
 def main(
     ckpt_dir,
     image_size_for_grid_centers=64,
@@ -217,35 +249,7 @@ def main(
         CODE_ROOT = '/home/ashesh.ashesh/'
 
     dtype = int(ckpt_dir.split('/')[-2].split('-')[0][1:])
-
-    if dtype == DataType.CustomSinosoid:
-        data_dir = f'{DATA_ROOT}/sinosoid/'
-    elif dtype == DataType.CustomSinosoidThreeCurve:
-        data_dir = f'{DATA_ROOT}/sinosoid/'
-    elif dtype == DataType.OptiMEM100_014:
-        data_dir = f'{DATA_ROOT}/microscopy/'
-    elif dtype == DataType.Prevedel_EMBL:
-        data_dir = f'{DATA_ROOT}/Prevedel_EMBL/PKG_3P_dualcolor_stacks/NoAverage_NoRegistration/'
-    elif dtype == DataType.AllenCellMito:
-        data_dir = f'{DATA_ROOT}/allencell/2017_03_08_Struct_First_Pass_Seg/AICS-11/'
-    elif dtype == DataType.SeparateTiffData:
-        data_dir = f'{DATA_ROOT}/ventura_gigascience'
-    elif dtype == DataType.BioSR_MRC:
-        data_dir = f'{DATA_ROOT}/BioSR/'
-    elif dtype == DataType.NicolaData:
-        data_dir = f'{DATA_ROOT}/nikola_data/raw'
-    elif dtype == DataType.Dao3ChannelWithInput:
-        data_dir = f'{DATA_ROOT}/Dao4Channel/'
-    elif dtype == DataType.Dao3Channel:
-        data_dir = f'{DATA_ROOT}/Dao3Channel/'
-    elif dtype == DataType.ExpMicroscopyV2:
-        data_dir = f'{DATA_ROOT}/expansion_microscopy_v2/datafiles'
-    elif dtype == DataType.Pavia3SeqData:
-        data_dir = f'{DATA_ROOT}/pavia3_sequential_raw/'
-    elif dtype == DataType.TavernaSox2GolgiV2:
-        data_dir = f'{DATA_ROOT}/TavernaSox2Golgi/acquisition2/'
-    elif dtype == DataType.TavernaSox2Golgi:
-        data_dir = f'{DATA_ROOT}/TavernaSox2Golgi/'
+    data_dir = get_data_dir(dtype)
 
     homedir = os.path.expanduser('~')
     nodename = os.uname().nodename
@@ -674,22 +678,22 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             skip_highsnr=False):
     if ckpt_dir is None:
         ckpt_dirs = [
-            '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/1',
-            '/home/ashesh.ashesh/training/disentangle/2404/D17-M3-S0-L8/4',
-            '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/97',
-            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/13',
-            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/14',
-            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/15',
-            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/10',
-            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/11',
-            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/12',
-            '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/6',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/120',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/111',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/125',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/139',
-            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/143',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/1',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D17-M3-S0-L8/4',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/97',
+            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/13',
+            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/14',
+            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/15',
+            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/10',
+            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/11',
+            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/12',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/6',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/120',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/111',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/125',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/139',
+            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/143',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
