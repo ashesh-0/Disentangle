@@ -232,6 +232,10 @@ class MultiFileDset:
     def get_img_sz(self):
         return self.dsets[0].get_img_sz()
 
+    def set_img_sz(self, image_size, grid_size):
+        for dset in self.dsets:
+            dset.set_img_sz(image_size, grid_size)
+
     def compute_mean_std(self):
         cur_mean = {'target': 0, 'input': 0}
         cur_std = {'target': 0, 'input': 0}

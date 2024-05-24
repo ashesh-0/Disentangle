@@ -384,57 +384,6 @@ def main(
                                           data_dir,
                                           eval_datasplit_type=eval_datasplit_type,
                                           kwargs_dict=dloader_kwargs)
-    # if 'multiscale_lowres_count' in config.data and config.data.multiscale_lowres_count is not None:
-    #     data_class = LCMultiChDloader
-    #     dloader_kwargs['num_scales'] = config.data.multiscale_lowres_count
-    #     dloader_kwargs['padding_kwargs'] = padding_kwargs
-    # elif config.data.data_type == DataType.SemiSupBloodVesselsEMBL:
-    #     data_class = SingleChannelDloader
-    # else:
-    #     data_class = MultiChDloader
-    # if config.data.data_type in [
-    #         DataType.CustomSinosoid, DataType.CustomSinosoidThreeCurve, DataType.AllenCellMito,
-    #         DataType.SeparateTiffData, DataType.SemiSupBloodVesselsEMBL, DataType.BioSR_MRC, DataType.NicolaData,
-    # ]:
-    #     datapath = data_dir
-    # elif config.data.data_type == DataType.OptiMEM100_014:
-    #     datapath = os.path.join(data_dir, 'OptiMEM100x014.tif')
-    # elif config.data.data_type == DataType.Prevedel_EMBL:
-    #     datapath = os.path.join(data_dir, 'MS14__z0_8_sl4_fr10_p_10.1_lz510_z13_bin5_00001.tif')
-    # else:
-    #     datapath = data_dir
-
-    # normalized_input = config.data.normalized_input
-    # use_one_mu_std = config.data.use_one_mu_std
-    # train_aug_rotate = config.data.train_aug_rotate
-    # enable_random_cropping = config.data.deterministic_grid is False
-
-    # train_dset = data_class(config.data,
-    #                         datapath,
-    #                         datasplit_type=DataSplitType.Train,
-    #                         val_fraction=config.training.val_fraction,
-    #                         test_fraction=config.training.test_fraction,
-    #                         normalized_input=normalized_input,
-    #                         use_one_mu_std=use_one_mu_std,
-    #                         enable_rotation_aug=train_aug_rotate,
-    #                         enable_random_cropping=enable_random_cropping,
-    #                         **dloader_kwargs)
-    # import gc
-    # gc.collect()
-    # max_val = train_dset.get_max_val()
-    # val_dset = data_class(
-    #     config.data,
-    #     datapath,
-    #     datasplit_type=eval_datasplit_type,
-    #     val_fraction=config.training.val_fraction,
-    #     test_fraction=config.training.test_fraction,
-    #     normalized_input=normalized_input,
-    #     use_one_mu_std=use_one_mu_std,
-    #     enable_rotation_aug=False,  # No rotation aug on validation
-    #     enable_random_cropping=False,
-    #     # No random cropping on validation. Validation is evaluated on determistic grids
-    #     max_val=max_val,
-    #     **dloader_kwargs)
 
     # For normalizing, we should be using the training data's mean and std.
     mean_dict, std_dict = train_dset.compute_mean_std()
@@ -678,22 +627,22 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                                             skip_highsnr=False):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/1',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D17-M3-S0-L8/4',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/97',
-            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/13',
-            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/14',
-            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/15',
-            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/10',
-            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/11',
-            # '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/12',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/6',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/120',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/111',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/125',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/139',
-            # '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/143',
+            '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/1',
+            '/home/ashesh.ashesh/training/disentangle/2404/D17-M3-S0-L8/4',
+            '/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/97',
+            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/13',
+            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/14',
+            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/15',
+            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/10',
+            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/11',
+            '/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/12',
+            '/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/6',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/120',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/111',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/125',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/139',
+            '/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/143',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -775,7 +724,7 @@ def save_hardcoded_ckpt_evaluations_to_file(normalized_ssim=True,
                 print('')
                 print('')
                 print('')
-                if save_prediction:
+                if save_prediction and prediction is not None:
                     offset = prediction.min()
                     prediction -= offset
                     if save_prediction_factor != 1.0:
