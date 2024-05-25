@@ -70,7 +70,7 @@ def get_config():
     loss.kl_loss_formulation = 'denoisplit_usplit'
 
     # loss.mixed_rec_weight = 1
-    loss.restricted_kl = False
+    loss.restricted_kl = True
     loss.kl_weight = 1.0
     loss.reconstruction_weight = 1.0
     loss.kl_annealing = False
@@ -135,10 +135,10 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 20
+    training.lr_scheduler_patience = 30
     training.max_epochs = 200
     training.batch_size = 32
-    training.num_workers = 0
+    training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
