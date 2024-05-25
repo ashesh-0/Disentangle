@@ -16,16 +16,21 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.Dao3ChannelWithInput
     data.subdset_type = SubDsetType.MultiChannel
-    data.channel_1 = 0
-    data.channel_2 = 1
-    data.channel_3 = 2
+    # data.channel_1 = 0
+    # data.channel_2 = 1
+    # data.channel_3 = 2
+    data.channel_idx_list = [0, 1, 2, 3]
+    data.num_channels = len(data.channel_idx_list)
+    data.input_idx = len(data.channel_idx_list) - 1
+    data.target_idx_list = list(range(len(data.channel_idx_list) - 1))
+
     data.num_channels = 3
+    data.noise_level = 'low'
     # data.input_idx = 3
     # data.target_idx_list = [0, 1, 2]
     # data.start_alpha = [0.28, 0.28, 0.28]
     # data.end_alpha = [0.38, 0.38, 0.38]
     # data.alpha_weighted_target = True
-
 
     data.poisson_noise_factor = -1
 
@@ -59,10 +64,10 @@ def get_config():
     data.input_is_sum = False
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
-    loss.usplit_w = 0
+    loss.loss_type = LossType.DenoiSplitMuSplit
+    loss.usplit_w = 0.1
     loss.denoisplit_w = 1 - loss.usplit_w
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = 'denoisplit_usplit'
 
     # loss.mixed_rec_weight = 1
     loss.restricted_kl = False
@@ -76,7 +81,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    # model.num_targets = len(data.target_idx_list)
+    model.num_targets = len(data.target_idx_list)
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
@@ -116,11 +121,11 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname = '/home/ubuntu/ashesh/training_hpc/noise_model/2404/41/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname
-    model.noise_model_ch2_fpath = fname
+    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2405/34/GMMNoiseModel_Dao4Channel-SIM_3color_1channel_group1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2405/35/GMMNoiseModel_Dao4Channel-SIM_3color_1channel_group1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2405/36/GMMNoiseModel_Dao4Channel-SIM_3color_1channel_group1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
@@ -140,6 +145,5 @@ def get_config():
     training.test_fraction = 0.1
     training.earlystop_patience = 120
     training.precision = 16
-    training.limit_train_batches=2000
+    training.limit_train_batches = 2000
     return config
-

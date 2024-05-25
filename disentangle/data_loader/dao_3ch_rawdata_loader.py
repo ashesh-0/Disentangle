@@ -1,6 +1,7 @@
 import os
 from ast import literal_eval as make_tuple
 from collections.abc import Sequence
+from functools import partial
 from random import shuffle
 from typing import List
 
@@ -18,11 +19,11 @@ def get_multi_channel_files():
     return ['SIM1-49_merged.tif', 'SIM201-263_merged.tif']
 
 
-def get_multi_channel_files_with_input():
-    return [
-        'SIM_3color_1channel_group1.tif',
-        # 'SIM_3color_1channel_group2.tif' # This is a different noise level.
-    ]
+def get_multi_channel_files_with_input(noise_level):
+    if noise_level == 'low':
+        return ['SIM_3color_1channel_group1.tif']
+    elif noise_level == 'high':
+        return ['SIM_3color_1channel_group2.tif']  # This is a different noise level.
 
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
@@ -38,7 +39,7 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
         return get_train_val_data_twochannels(datadir,
                                               data_config,
                                               datasplit_type,
-                                              get_multi_channel_files_with_input,
+                                              partial(get_multi_channel_files_with_input, data_config.noise_level),
                                               val_fraction=val_fraction,
                                               test_fraction=test_fraction)
     else:

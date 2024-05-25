@@ -89,13 +89,16 @@ def nm_config_sanity_check_target_idx_list(config):
         nm = config.model[f'noise_model_ch{ch_idx+1}_fpath']
         nm_config = get_nm_config(nm)
         fname = nm_config['fname']
+        dsettype = get_dset_type(fname)
+        dsettype_list.append(dsettype)
         ch = get_channel(fname)
+        if ch is None:
+            print(f'Warning: {ch_idx} is None, skipping validation.')
+            continue
         ch_list.append(ch)
         fname_list.append(fname)
         assert config.data.channel_idx_list[config.data.target_idx_list[
             ch_idx]] == ch, f'{config.data.channel_idx_list[config.data.target_idx_list[ch_idx]]} != {ch}'
-        dsettype = get_dset_type(fname)
-        dsettype_list.append(dsettype)
 
     assert len(set(dsettype_list)) == 1, f'{dsettype_list} should be just one'
     if 'dset_type' in config.data:
