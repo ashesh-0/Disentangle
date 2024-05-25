@@ -11,10 +11,12 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.NicolaData
-    data.dset_type = 'high' # high, mid, low, verylow
-    data.channel_idx_list = [NikolaChannelList.Ch_B, NikolaChannelList.Ch_C, NikolaChannelList.Ch_BC]
+    data.dset_type = 'verylow'  # high, mid, low, verylow
+    data.channel_idx_list = [
+        NikolaChannelList.Ch_B, NikolaChannelList.Ch_C, NikolaChannelList.Ch_D, NikolaChannelList.Ch_BCD
+    ]
     data.num_channels = len(data.channel_idx_list)
-    data.input_idx = len(data.channel_idx_list) -1
+    data.input_idx = len(data.channel_idx_list) - 1
     data.target_idx_list = list(range(len(data.channel_idx_list) - 1))
 
     data.enable_gaussian_noise = False
@@ -100,7 +102,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'pixelwise' #'channelwise'
+    model.predict_logvar = 'pixelwise'  #'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
@@ -108,9 +110,9 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/58/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_highSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2404/60/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_highSNR_channel2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2404/32/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_highSNR_channel2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2404/61/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_verylowSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2404/65/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_verylowSNR_channel2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2404/68/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_verylowSNR_channel3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
@@ -129,5 +131,5 @@ def get_config():
     training.test_fraction = 0.1
     training.earlystop_patience = 200
     training.precision = 16
-    training.limit_train_batches=2000
+    training.limit_train_batches = 2000
     return config
