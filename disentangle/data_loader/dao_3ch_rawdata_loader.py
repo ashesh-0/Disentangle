@@ -17,29 +17,33 @@ from disentangle.data_loader.multifile_raw_dloader import get_train_val_data as 
 def get_multi_channel_files():
     return ['SIM1-49_merged.tif', 'SIM201-263_merged.tif']
 
+
 def get_multi_channel_files_with_input():
     return [
-        'SIM_3color_1channel_group1.tif', 
-        'SIM_3color_1channel_group2.tif']
+        'SIM_3color_1channel_group1.tif',
+        # 'SIM_3color_1channel_group2.tif' # This is a different noise level.
+    ]
+
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     assert data_config.subdset_type == SubDsetType.MultiChannel
     if data_config.data_type == DataType.Dao3Channel:
         return get_train_val_data_twochannels(datadir,
-                                            data_config,
-                                            datasplit_type,
-                                            get_multi_channel_files,
-                                            val_fraction=val_fraction,
-                                            test_fraction=test_fraction)
+                                              data_config,
+                                              datasplit_type,
+                                              get_multi_channel_files,
+                                              val_fraction=val_fraction,
+                                              test_fraction=test_fraction)
     elif data_config.data_type == DataType.Dao3ChannelWithInput:
         return get_train_val_data_twochannels(datadir,
-                                            data_config,
-                                            datasplit_type,
-                                            get_multi_channel_files_with_input,
-                                            val_fraction=val_fraction,
-                                            test_fraction=test_fraction)
+                                              data_config,
+                                              datasplit_type,
+                                              get_multi_channel_files_with_input,
+                                              val_fraction=val_fraction,
+                                              test_fraction=test_fraction)
     else:
         raise NotImplementedError(f"Data type {data_config.data_type} not implemented.")
+
 
 if __name__ == '__main__':
     from disentangle.data_loader.multifile_raw_dloader import SubDsetType
