@@ -680,26 +680,26 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            "/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/1",
-            "/home/ashesh.ashesh/training/disentangle/2404/D17-M3-S0-L8/4",
-            "/home/ashesh.ashesh/training/disentangle/2404/D19-M3-S0-L8/5",
-            "/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/97",
-            "/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/13",
-            "/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/14",
-            "/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/15",
-            "/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/10",
-            "/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/11",
-            "/home/ashesh.ashesh/training/disentangle/2405/D18-M3-S0-L8/12",
-            "/home/ashesh.ashesh/training/disentangle/2404/D21-M3-S0-L8/6",
-            "/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/120",
-            "/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/111",
-            "/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/125",
-            "/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/139",
-            "/home/ashesh.ashesh/training/disentangle/2404/D25-M3-S0-L8/143",
+            "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/1",
+            "/group/jug/ashesh/training/disentangle/2404/D17-M3-S0-L8/4",
+            "/group/jug/ashesh/training/disentangle/2404/D19-M3-S0-L8/5",
+            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/97",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/13",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/14",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/15",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/10",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/11",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/12",
+            "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6",
+            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/120",
+            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/111",
+            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/125",
+            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/139",
+            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/143",
         ]
     else:
         ckpt_dirs = [ckpt_dir]
-    if ckpt_dirs[0].startswith("/home/ashesh.ashesh"):
+    if ckpt_dirs[0].startswith("/group/jug/ashesh"):
         OUTPUT_DIR = os.path.expanduser("/group/jug/ashesh/data/paper_stats/")
     elif ckpt_dirs[0].startswith("/home/ubuntu/ashesh"):
         OUTPUT_DIR = os.path.expanduser("~/data/paper_stats/")
