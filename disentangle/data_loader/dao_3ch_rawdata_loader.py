@@ -21,7 +21,7 @@ def get_multi_channel_files():
 
 def get_multi_channel_files_with_input(noise_level):
     if noise_level == 'low':
-        return ['SIM_3color_1channel_group1.tif']
+        return ['SIM_3color_1channel_group1_small.tif']
     elif noise_level == 'high':
         return ['SIM_3color_1channel_group2.tif']  # This is a different noise level.
 

@@ -680,22 +680,23 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/1",
-            "/group/jug/ashesh/training/disentangle/2404/D17-M3-S0-L8/4",
-            "/group/jug/ashesh/training/disentangle/2404/D19-M3-S0-L8/5",
-            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/97",
-            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/13",
-            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/14",
-            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/15",
-            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/10",
-            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/11",
-            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/12",
-            "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6",
-            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/120",
-            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/111",
+            # "/group/jug/ashesh/training/disentangle/2405/D25-M3-S0-L8/3",
+            # "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/1",
+            # "/group/jug/ashesh/training/disentangle/2404/D17-M3-S0-L8/4",
+            # "/group/jug/ashesh/training/disentangle/2404/D19-M3-S0-L8/5",
+            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/97",
+            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/13",
+            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/14",
+            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/15",
+            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/10",
+            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/11",
+            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/12",
+            # "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6",
+            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/120",
+            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/111",
             "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/125",
             "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/139",
-            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/143",
+            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/143",
         ]
     else:
         ckpt_dirs = [ckpt_dir]
