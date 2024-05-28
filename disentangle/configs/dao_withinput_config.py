@@ -65,7 +65,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.DenoiSplitMuSplit
-    loss.usplit_w = 1.0
+    loss.usplit_w = 0.1
     loss.denoisplit_w = 1 - loss.usplit_w
     loss.kl_loss_formulation = 'denoisplit_usplit'
 
