@@ -75,7 +75,7 @@ class GaussianMixtureNoiseModel(nn.Module):
             max_signal = kwargs.get('max_signal')
             # self.device = kwargs.get('device')
             self.path = kwargs.get('path')
-            self.min_sigma = kwargs.get('min_sigma')
+            self._min_sigma_final = kwargs.get('min_sigma')
             if (weight is None):
                 weight = np.random.randn(n_gaussian * 3, n_coeff)
                 weight[n_gaussian:2 * n_gaussian, 1] = np.log(max_signal - min_signal)
@@ -97,12 +97,14 @@ class GaussianMixtureNoiseModel(nn.Module):
 
             self.weight = torch.nn.Parameter(torch.Tensor(params['trained_weight']),
                                              requires_grad=False)  #.to(self.device)
-            self.min_sigma = params['min_sigma'].item()
+            self._min_sigma_final = params['min_sigma'].item()
             self.n_gaussian = self.weight.shape[0] // 3
             self.n_coeff = self.weight.shape[1]
             self.tol = torch.Tensor([1e-10])  #.to(self.device)
             self.min_signal = torch.Tensor([self.min_signal])  #.to(self.device)
             self.max_signal = torch.Tensor([self.max_signal])  #.to(self.device)
+        
+        self.min_sigma = self._min_sigma_final
         print(f'[{self.__class__.__name__}] min_sigma: {self.min_sigma}')
 
     def make_learnable(self):
@@ -176,14 +178,15 @@ class GaussianMixtureNoiseModel(nn.Module):
                     Likelihood of observations given the signals and the GMM noise model
         """
         self.to_device(signals)
-        gaussianParameters = self.getGaussianParameters(signals)
         self._cur_step += 1
         factor = self._starting_factor - (self._starting_factor - self._ending_factor) * self._cur_step / self._stepN
         factor = max(factor, self._ending_factor)
+        self.min_sigma = self._min_sigma_final * factor
+        gaussianParameters = self.getGaussianParameters(signals)
         p = 0
         for gaussian in range(self.n_gaussian):
             mu = gaussianParameters[gaussian]
-            std = gaussianParameters[self.n_gaussian + gaussian] * factor
+            std = gaussianParameters[self.n_gaussian + gaussian]
             # print(std.min().item(), std.max().item(), std.mean().item(), observations.std().item())
             p += self.normalDens(observations, mu, std) * gaussianParameters[2 * self.n_gaussian + gaussian]
         return p + self.tol
