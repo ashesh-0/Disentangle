@@ -63,9 +63,9 @@ class GaussianMixtureNoiseModel(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         self._learnable = False
-        self._starting_factor = 100
-        self._ending_factor = 1
-        self._stepN = 10000
+        # self._starting_factor = 100
+        # self._ending_factor = 1
+        # self._stepN = 10000
         self._cur_step = 1
         if (kwargs.get('params') is None):
             weight = kwargs.get('weight')
@@ -179,15 +179,15 @@ class GaussianMixtureNoiseModel(nn.Module):
         """
         self.to_device(signals)
         self._cur_step += 1
-        factor = self._starting_factor - (self._starting_factor - self._ending_factor) * self._cur_step / self._stepN
-        factor = max(factor, self._ending_factor)
-        self.min_sigma = self._min_sigma_final * factor
+        # factor = self._starting_factor - (self._starting_factor - self._ending_factor) * self._cur_step / self._stepN
+        # factor = max(factor, self._ending_factor)
+        self.min_sigma = self._min_sigma_final
         gaussianParameters = self.getGaussianParameters(signals)
         p = 0
         for gaussian in range(self.n_gaussian):
             mu = gaussianParameters[gaussian]
             std = gaussianParameters[self.n_gaussian + gaussian]
-            # print(std.min().item(), std.max().item(), std.mean().item(), observations.std().item())
+            # print(f'{self._cur_step}, {std.min().item():.2f}, {std.max().item():.2f}, {std.mean().item():.2f}, {observations.std().item():.2f}')
             p += self.normalDens(observations, mu, std) * gaussianParameters[2 * self.n_gaussian + gaussian]
         return p + self.tol
 

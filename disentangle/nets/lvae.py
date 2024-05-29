@@ -763,6 +763,14 @@ class LadderVAE(pl.LightningModule):
 
                 recons_loss_nm = -1*self.likelihood_NM(out_mean, target_normalized)[0].mean()
                 recons_loss_gm = -1*self.likelihood_gm(out, target_normalized)[0].mean()
+                if recons_loss_gm >0 and recons_loss_nm > 0:
+                    factor = recons_loss_nm / recons_loss_gm
+                    if factor > 1:
+                        recons_loss_nm = recons_loss_nm / factor
+                    else:
+                        recons_loss_gm = recons_loss_gm * factor
+                    self.log('factor', factor.item(), on_epoch=True)
+                
                 self.log('recons_loss_nm', recons_loss_nm, on_epoch=True)
                 self.log('recons_loss_gm', recons_loss_gm, on_epoch=True)
                 recons_loss = self._denoisplit_w * recons_loss_nm + self._usplit_w * recons_loss_gm
