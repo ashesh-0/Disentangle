@@ -63,9 +63,9 @@ class GaussianMixtureNoiseModel(nn.Module):
     def __init__(self, **kwargs):
         super().__init__()
         self._learnable = False
-        self._starting_factor = 10
+        self._starting_factor = 100
         self._ending_factor = 1
-        self._stepN = 100000
+        self._stepN = 10000
         self._cur_step = 1
         if (kwargs.get('params') is None):
             weight = kwargs.get('weight')
