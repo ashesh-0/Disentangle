@@ -16,7 +16,7 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.Dao3Channel
     data.subdset_type = SubDsetType.MultiChannel
-    data.channel_idx_list = [0, 1]  #[0, 1, 2, 3]
+    data.channel_idx_list = [0, 1, 2]  #[0, 1, 2, 3]
     data.num_channels = len(data.channel_idx_list)
     # data.uncorrelated_channels = True
 
@@ -53,7 +53,7 @@ def get_config():
 
     loss = config.loss
     loss.loss_type = LossType.DenoiSplitMuSplit
-    loss.usplit_w = 0.1
+    loss.usplit_w = 1.0
     loss.denoisplit_w = 1 - loss.usplit_w
     loss.kl_loss_formulation = 'denoisplit_usplit'
 
@@ -113,6 +113,7 @@ def get_config():
     # fname = '/home/ubuntu/ashesh/training_hpc/noise_model/2404/41/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2405/4/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2405/5/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2405/7/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
