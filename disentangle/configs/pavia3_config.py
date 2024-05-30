@@ -10,7 +10,7 @@ from disentangle.data_loader.pavia3_rawdata_loader import Pavia3SeqAlpha, Pavia3
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 64
     data.data_type = DataType.Pavia3SeqData
     data.num_channels = 2
     data.power_level = Pavia3SeqPowerLevel.High
