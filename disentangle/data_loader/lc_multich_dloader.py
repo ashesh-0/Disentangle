@@ -158,7 +158,6 @@ class LCMultiChDloader(MultiChDloader):
         if self._is_train:
             if self._empty_patch_replacement_enabled:
                 if np.random.rand() < self._empty_patch_replacement_probab:
-                    print('replacing with empty patch')
                     img_tuples = self.replace_with_empty_patch(img_tuples)
 
 

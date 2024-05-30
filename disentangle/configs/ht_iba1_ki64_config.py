@@ -58,7 +58,7 @@ def get_config():
     loss.loss_type = LossType.DenoiSplitMuSplit
     loss.usplit_w = 0.1
     loss.denoisplit_w = 1 - loss.usplit_w
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = 'denoisplit_usplit'
 
     # loss.mixed_rec_weight = 1
     loss.restricted_kl = True
@@ -111,12 +111,11 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     # fname = '/home/ubuntu/ashesh/training_hpc/noise_model/2404/41/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2405/4/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2405/5/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2405/7/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2405/37/GMMNoiseModel_20230327_Ki67_and_Iba1_trainingdata-Iba1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2405/38/GMMNoiseModel_20230327_Ki67_and_Iba1_trainingdata-Iba1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
