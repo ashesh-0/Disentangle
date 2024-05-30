@@ -155,6 +155,13 @@ class LCMultiChDloader(MultiChDloader):
         else:
             img_tuples, noise_tuples = self._get_img(index)
 
+        if self._is_train:
+            if self._empty_patch_replacement_enabled:
+                if np.random.rand() < self._empty_patch_replacement_probab:
+                    print('replacing with empty patch')
+                    img_tuples = self.replace_with_empty_patch(img_tuples)
+
+
         if self._enable_rotation:
             img_tuples, noise_tuples = self._rotate(img_tuples, noise_tuples)
 
@@ -196,7 +203,7 @@ if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
     import matplotlib.pyplot as plt
 
-    from disentangle.configs.biosr_config import get_config
+    from disentangle.configs.ht_iba1_ki64_config import get_config
     config = get_config()
     config.data.multiscale_lowres_count = 3
     padding_kwargs = {'mode': config.data.padding_mode}
@@ -204,7 +211,7 @@ if __name__ == '__main__':
         padding_kwargs['constant_values'] = config.data.padding_value
 
     dset = LCMultiChDloader(config.data,
-                            '/group/jug/ashesh/data/BioSR/',
+                            '/group/jug/ashesh/data/Stefania/20230327_Ki67_and_Iba1_trainingdata/',
                             DataSplitType.Train,
                             val_fraction=config.training.val_fraction,
                             test_fraction=config.training.test_fraction,
@@ -216,17 +223,38 @@ if __name__ == '__main__':
                             num_scales=config.data.multiscale_lowres_count,
                             max_val=None,
                             padding_kwargs=padding_kwargs,
-                            grid_alignment=GridAlignement.Center,
+                            grid_alignment=GridAlignement.LeftTop,
                             overlapping_padding_kwargs=None)
 
     mean, std = dset.compute_mean_std()
     dset.set_mean_std(mean, std)
 
-    inp, tar = dset[0]
-    print(inp.shape, tar.shape)
+    for i in range(100):
+        inp, tar = dset[i]
+        print(inp.shape, tar.shape)
+
     _, ax = plt.subplots(figsize=(10, 2), ncols=5)
     ax[0].imshow(inp[0])
     ax[1].imshow(inp[1])
     ax[2].imshow(inp[2])
     ax[3].imshow(tar[0])
     ax[4].imshow(tar[1])
+
+
+    inp,tar = dset[0]
+    _,ax = plt.subplots(figsize=(9,3), ncols=3)
+    ax[0].imshow(inp[0])
+    ax[1].imshow(tar[0])
+    ax[2].imshow(tar[1])
+
+
+    # idx = dset._empty_patch_fetcher._idx_list[
+    #     np.random.randint(len(dset._empty_patch_fetcher._idx_list))
+    # ]#np.random.randint(len(dset))
+    # print(idx)
+    # inp,tar = dset[int(idx)]
+    # _,ax = plt.subplots(figsize=(9,3), ncols=3)
+    # ax[0].imshow(inp[0])
+    # ax[1].imshow(tar[0])
+    # ax[2].imshow(tar[1])
+    

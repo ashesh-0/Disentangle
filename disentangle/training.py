@@ -146,51 +146,51 @@ def create_dataset(config,
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
 
-    elif config.data.data_type == DataType.HTIba1Ki67 and config.model.model_type in [
-            ModelType.LadderVaeTwoDataSet, ModelType.LadderVaeTwoDatasetMultiBranch,
-            ModelType.LadderVaeTwoDatasetMultiOptim
-    ]:
-        # multi data setup.
-        datapath = datadir
-        normalized_input = config.data.normalized_input
-        use_one_mu_std = config.data.use_one_mu_std
-        train_aug_rotate = config.data.train_aug_rotate
-        enable_random_cropping = config.data.deterministic_grid is False
-        lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
+    # elif config.data.data_type == DataType.HTIba1Ki67 and config.model.model_type in [
+    #         ModelType.LadderVaeTwoDataSet, ModelType.LadderVaeTwoDatasetMultiBranch,
+    #         ModelType.LadderVaeTwoDatasetMultiOptim
+    # ]:
+    #     # multi data setup.
+    #     datapath = datadir
+    #     normalized_input = config.data.normalized_input
+    #     use_one_mu_std = config.data.use_one_mu_std
+    #     train_aug_rotate = config.data.train_aug_rotate
+    #     enable_random_cropping = config.data.deterministic_grid is False
+    #     lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
 
-        train_data_kwargs = {'allow_generation': False, **kwargs_dict}
-        val_data_kwargs = {'allow_generation': False, **kwargs_dict}
-        train_data_kwargs['enable_random_cropping'] = enable_random_cropping
-        val_data_kwargs['enable_random_cropping'] = False
+    #     train_data_kwargs = {'allow_generation': False, **kwargs_dict}
+    #     val_data_kwargs = {'allow_generation': False, **kwargs_dict}
+    #     train_data_kwargs['enable_random_cropping'] = enable_random_cropping
+    #     val_data_kwargs['enable_random_cropping'] = False
 
-        train_data = None if skip_train_dataset else IBA1Ki67DataLoader(config.data,
-                                                                        datapath,
-                                                                        datasplit_type=DataSplitType.Train,
-                                                                        val_fraction=config.training.val_fraction,
-                                                                        test_fraction=config.training.test_fraction,
-                                                                        normalized_input=normalized_input,
-                                                                        use_one_mu_std=use_one_mu_std,
-                                                                        enable_rotation_aug=train_aug_rotate,
-                                                                        **train_data_kwargs)
+    #     train_data = None if skip_train_dataset else IBA1Ki67DataLoader(config.data,
+    #                                                                     datapath,
+    #                                                                     datasplit_type=DataSplitType.Train,
+    #                                                                     val_fraction=config.training.val_fraction,
+    #                                                                     test_fraction=config.training.test_fraction,
+    #                                                                     normalized_input=normalized_input,
+    #                                                                     use_one_mu_std=use_one_mu_std,
+    #                                                                     enable_rotation_aug=train_aug_rotate,
+    #                                                                     **train_data_kwargs)
 
-        max_val = train_data.get_max_val()
-        val_data = IBA1Ki67DataLoader(
-            config.data,
-            datapath,
-            datasplit_type=eval_datasplit_type,
-            val_fraction=config.training.val_fraction,
-            test_fraction=config.training.test_fraction,
-            normalized_input=normalized_input,
-            use_one_mu_std=use_one_mu_std,
-            enable_rotation_aug=False,  # No rotation aug on validation
-            max_val=max_val,
-            **val_data_kwargs,
-        )
+    #     max_val = train_data.get_max_val()
+    #     val_data = IBA1Ki67DataLoader(
+    #         config.data,
+    #         datapath,
+    #         datasplit_type=eval_datasplit_type,
+    #         val_fraction=config.training.val_fraction,
+    #         test_fraction=config.training.test_fraction,
+    #         normalized_input=normalized_input,
+    #         use_one_mu_std=use_one_mu_std,
+    #         enable_rotation_aug=False,  # No rotation aug on validation
+    #         max_val=max_val,
+    #         **val_data_kwargs,
+    #     )
 
-        # For normalizing, we should be using the training data's mean and std.
-        mean_val, std_val = train_data.compute_mean_std()
-        train_data.set_mean_std(mean_val, std_val)
-        val_data.set_mean_std(mean_val, std_val)
+    #     # For normalizing, we should be using the training data's mean and std.
+    #     mean_val, std_val = train_data.compute_mean_std()
+    #     train_data.set_mean_std(mean_val, std_val)
+    #     val_data.set_mean_std(mean_val, std_val)
     elif config.data.data_type == DataType.TwoDset:
         cnf0 = ml_collections.ConfigDict(config)
         for key in config.data.dset0:

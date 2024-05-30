@@ -304,10 +304,7 @@ class MultiChDloader:
         self.set_repeat_factor()
 
     def set_repeat_factor(self):
-        if self._grid_sz > 1:
-            self._repeat_factor = self.idx_manager.grid_rows(self._grid_sz) * self.idx_manager.grid_cols(self._grid_sz)
-        else:
-            self._repeat_factor = self.idx_manager.grid_rows(self._img_sz) * self.idx_manager.grid_cols(self._img_sz)
+        self._repeat_factor = self.idx_manager.grid_rows(self._grid_sz) * self.idx_manager.grid_cols(self._grid_sz)
 
     def _init_msg(self, ):
         msg = f'[{self.__class__.__name__}] Train:{int(self._is_train)} Sz:{self._img_sz}'
@@ -584,7 +581,8 @@ class MultiChDloader:
 
     def replace_with_empty_patch(self, img_tuples):
         empty_index = self._empty_patch_fetcher.sample()
-        empty_img_tuples = self._get_img(empty_index)
+        empty_img_tuples, empty_img_noise_tuples = self._get_img(empty_index)
+        assert len(empty_img_noise_tuples) == 0, 'Noise is not supported with empty patch replacement'
         final_img_tuples = []
         for tuple_idx in range(len(img_tuples)):
             if tuple_idx == self._empty_patch_replacement_channel_idx:
@@ -685,6 +683,7 @@ class MultiChDloader:
         keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
         self._rotation_transform.add_targets({k: 'image' for k in keys})
         rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
+
         rotated_img_tuples = []
         for i,img in enumerate(img_tuples):
             if len(img) == 1:
@@ -782,4 +781,5 @@ if __name__ == '__main__':
     mean, std = dset.compute_mean_std()
     dset.set_mean_std(mean, std)
 
-    inp, target = dset[0]
+    for i in range(100):
+        inp, target = dset[i]
