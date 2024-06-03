@@ -110,9 +110,9 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2404/59/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_lowSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2404/63/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_lowSNR_channel2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2404/67/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_lowSNR_channel3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2406/10/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_2msSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2406/11/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_2msSNR_channel2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2406/1/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_2msSNR_channel3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
