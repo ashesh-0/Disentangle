@@ -1,9 +1,12 @@
-import nd2
-from nis2pyr.reader import read_nd2file
-import numpy as np
 import os
+
+import numpy as np
+
+import nd2
 from disentangle.core.custom_enum import Enum
 from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
+from nis2pyr.reader import read_nd2file
+
 
 class NikolaChannelList(Enum):
     Ch_A = 0
@@ -26,6 +29,9 @@ class NikolaChannelList(Enum):
     Ch_BCD = 17 
     Ch_ABCD = 18 
 
+def get_ms_based_datafiles(ms:str):
+    return [f'Set{i}/uSplit_{ms}.nd2' for i in range(1, 7)]
+
 def get_raw_files_dict():
     files_dict = {
         'high':[
@@ -46,7 +52,14 @@ def get_raw_files_dict():
             'uSplit_14022025_verylowSNR.nd2',
             'uSplit_20022025_verylowSNR.nd2',
             'uSplit_20022025_001_verylowSNR.nd2',
-            ]}
+            ],
+
+        '2ms': get_ms_based_datafiles('2ms'),
+        '3ms': get_ms_based_datafiles('3ms'),
+        '5ms': get_ms_based_datafiles('5ms'),
+        '20ms': get_ms_based_datafiles('20ms'),
+        '500ms': get_ms_based_datafiles('500ms'),
+        }
     # check that the order is correct
     keys = ['high', 'mid', 'low', 'verylow']
     for key1 in keys:
@@ -116,11 +129,12 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
+
     from disentangle.configs.nikola_7D_config import get_config
 
     config = get_config()
     config.data.enable_gaussian_noise = False
-    datadir = '/group/jug/ashesh/data/nicola_data/raw/'
+    datadir = '/group/jug/ashesh/data/nikola_data/20240531/'
     data = get_train_val_data(datadir, config.data, DataSplitType.Train,
                               config.training.val_fraction, config.training.test_fraction)
 

@@ -464,7 +464,7 @@ def main(
         if predict_kth_frame >= val_dset.get_num_frames():
             return None, None
         else:
-            val_dset.reduce_data([predict_kth_frame])
+            val_dset.reduce_data(t_list=[predict_kth_frame])
 
     if (config.data.multiscale_lowres_count is not None and custom_image_size is not None):
         model.reset_for_different_output_size(custom_image_size)
@@ -680,9 +680,9 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # "/group/jug/ashesh/training/disentangle/2405/D25-M3-S0-L8/3",
+            "/group/jug/ashesh/training/disentangle/2405/D25-M3-S0-L8/3",
             # "/group/jug/ashesh/training/disentangle/2405/D25-M3-S0-L8/2",
-            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/16",
+            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/16",
             # "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/1",
             # "/group/jug/ashesh/training/disentangle/2404/D17-M3-S0-L8/4",
             # "/group/jug/ashesh/training/disentangle/2404/D19-M3-S0-L8/5",
