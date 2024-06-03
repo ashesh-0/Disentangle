@@ -86,6 +86,24 @@ class LCMultiChDloader(MultiChDloader):
                 noise_data = resize(self._scaled_noise_data[-1], new_shape)
                 self._scaled_noise_data.append(noise_data)
 
+    def reduce_data(self, t_list=None, h_start=None, h_end=None, w_start=None, w_end=None):
+        assert t_list is not None
+        assert h_start is None
+        assert h_end is None
+        assert w_start is None
+        assert w_end is None
+
+        self._data = self._data[t_list].copy()
+        self._scaled_data = [self._scaled_data[i][t_list].copy() for i in range(len(self._scaled_data))]
+
+        if self._noise_data is not None:
+            self._noise_data = self._noise_data[t_list].copy()
+            self._scaled_noise_data = [self._scaled_noise_data[i][t_list].copy() for i in range(len(self._scaled_noise_data))]
+
+        self.N = len(t_list)
+        self.set_img_sz(self._img_sz, self._grid_sz)
+        print(f'[{self.__class__.__name__}] Data reduced. New data shape: {self._data.shape}')
+
     def _init_msg(self):
         msg = super()._init_msg()
         msg += f' Pad:{self._padding_kwargs}'
