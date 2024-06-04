@@ -236,9 +236,8 @@ def get_data_dir(dtype):
         data_dir = f'{DATA_ROOT}/Stefania/20230327_Ki67_and_Iba1_trainingdata/'
     return data_dir
 
-def get_calibration_factor(pred, pred_std, tar_normalized, epochs = 300, lr = 5.0, eps= 1e-8):
+def get_calibration_factor(pred, pred_std, tar_normalized, epochs = 3000, lr = 5.0, eps= 1e-8):
     from disentangle.metrics.calibration import get_calibrated_factor_for_stdev
-
     factors = []
     for col_idx in range(pred.shape[-1]):
         calib_factor, _ = get_calibrated_factor_for_stdev(pred[...,col_idx], np.log(eps + (pred_std[...,col_idx]**2)), tar_normalized[...,col_idx], 
@@ -582,11 +581,11 @@ def main(
 
     pred = ignore_pixels(pred)
     tar = ignore_pixels(tar)
+    pred_std = ignore_pixels(pred_std)
     if "target_idx_list" in config.data and config.data.target_idx_list is not None:
         tar = tar[..., config.data.target_idx_list]
         pred = pred[..., :(tar.shape[-1])]
         pred_std = pred_std[...,:(tar.shape[-1])]
-        pred_std = ignore_pixels(pred_std)
 
     print("Stitched predictions shape after", pred.shape)
 
@@ -717,11 +716,11 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6",
-            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/97",
-            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/111",
-            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/13",
-            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/14",
+            # "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6",
+            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/97",
+            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/111",
+            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/13",
+            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/14",
             "/group/jug/ashesh/training/disentangle/2404/D19-M3-S0-L8/5",
             "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/120",
             "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/125",
