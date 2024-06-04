@@ -5,11 +5,16 @@ import numpy as np
 from czifile import imread as imread_czi
 from disentangle.core.custom_enum import Enum
 from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
+from disentangle.core.tiff_reader import load_tiff
 
 
 class SubDsetType(Enum):
     OnlyIba1 = 'Iba1'
     Iba1Ki64 = 'Iba1_Ki67'
+    OnlyIba1P30 = 'Iba1NucPercent30'
+    OnlyIba1P50 = 'Iba1NucPercent50'
+    OnlyIba1P70 = 'Iba1NucPercent70'
+
 
 
 def get_iba1_ki67_files():
@@ -34,10 +39,12 @@ def load_czi(fpaths):
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     dset_subtype = data_config.subdset_type
 
-    if dset_subtype == SubDsetType.OnlyIba1:
+    if dset_subtype in [SubDsetType.OnlyIba1, SubDsetType.OnlyIba1P30, SubDsetType.OnlyIba1P50, SubDsetType.OnlyIba1P70]:
         fnames = get_iba1_only_files()
     elif dset_subtype == SubDsetType.Iba1Ki64:
         fnames = get_iba1_ki67_files()
+    else:
+        raise Exception(f"Invalid dset subtype: {dset_subtype}")
 
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(fnames))
     if datasplit_type == DataSplitType.All:
@@ -45,17 +52,45 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
     elif datasplit_type == DataSplitType.Train:
         print(train_idx)
         fnames = [fnames[i] for i in train_idx]
+        if dset_subtype in [SubDsetType.OnlyIba1P30,SubDsetType.OnlyIba1P50,SubDsetType.OnlyIba1P70, SubDsetType.OnlyIba1]:
+            fpaths = [os.path.join(datadir, SubDsetType.OnlyIba1, x) for x in fnames]
+        else:
+            assert dset_subtype == SubDsetType.Iba1Ki64
+            fpaths = [os.path.join(datadir, dset_subtype, x) for x in fnames]
+        data = load_czi(fpaths)
+
     elif datasplit_type == DataSplitType.Val:
         print(val_idx)
         fnames = [fnames[i] for i in val_idx]
+        fpaths = [os.path.join(datadir, dset_subtype, x) for x in fnames]
+        data = load_czi(fpaths)
     elif datasplit_type == DataSplitType.Test:
         print(test_idx)
-        fnames = [fnames[i] for i in test_idx]
+        fnames_iba1 = [fnames[i] for i in test_idx]
+        if dset_subtype in [SubDsetType.OnlyIba1P30,SubDsetType.OnlyIba1P50,SubDsetType.OnlyIba1P70, SubDsetType.OnlyIba1]:
+            fpaths_iba1 = [os.path.join(datadir, SubDsetType.OnlyIba1, x) for x in fnames_iba1]
+        elif dset_subtype == SubDsetType.Iba1Ki64:
+            fpaths_iba1 = [os.path.join(datadir, dset_subtype, x) for x in fnames_iba1]
+        else:
+            raise Exception(f"Invalid dset subtype: {dset_subtype}")
+
+        # it contains iba1/iba1ki67 and DAPI. 
+        data = load_czi(fpaths_iba1)
+
+        data_nuc = None
+        if dset_subtype in [SubDsetType.OnlyIba1P30,SubDsetType.OnlyIba1P50,SubDsetType.OnlyIba1P70]:
+            datadir_nuc = os.path.join(datadir, SubDsetType.OnlyIba1, f'synthetic_test/{dset_subtype}')
+            fnames_nuc = sorted(os.listdir(datadir_nuc))
+            fpaths_nuc = [os.path.join(datadir_nuc, x) for x in fnames_nuc]
+            data_nuc = np.concatenate([load_tiff(fpath_)[None] for fpath_ in fpaths_nuc], axis=0)[...,None]
+            data = np.tile(data[...,1:], (len(data_nuc), 1,1,1))
+            data = np.concatenate([data_nuc, data], axis=3)
+            
     else:
         raise Exception("invalid datasplit")
 
-    fpaths = [os.path.join(datadir, dset_subtype, x) for x in fnames]
-    data = load_czi(fpaths)
+    # fpaths = [os.path.join(datadir, dset_subtype, x) for x in fnames]
+    # data = load_czi(fpaths)
     print('Loaded from', SubDsetType.name(dset_subtype), datadir, data.shape)
     if dset_subtype == SubDsetType.Iba1Ki64:
         # We just need the combined channel. we don't need the nuclear channel.
