@@ -232,8 +232,21 @@ def get_data_dir(dtype):
         data_dir = f"{DATA_ROOT}/TavernaSox2Golgi/acquisition2/"
     elif dtype == DataType.TavernaSox2Golgi:
         data_dir = f"{DATA_ROOT}/TavernaSox2Golgi/"
+    elif dtype == DataType.HTIba1Ki67:
+        data_dir = f'{DATA_ROOT}/Stefania/20230327_Ki67_and_Iba1_trainingdata/'
     return data_dir
 
+def get_calibration_factor(pred, pred_std, tar_normalized, epochs = 300, lr = 5.0, eps= 1e-8):
+    from disentangle.metrics.calibration import get_calibrated_factor_for_stdev
+
+    factors = []
+    for col_idx in range(pred.shape[-1]):
+        calib_factor, _ = get_calibrated_factor_for_stdev(pred[...,col_idx], np.log(eps + (pred_std[...,col_idx]**2)), tar_normalized[...,col_idx], 
+                                                        batch_size=8, lr=lr, epochs=epochs)
+        factors.append(calib_factor)
+    
+    calib_factor = np.array(factors).reshape(1,1,1,pred.shape[-1])
+    return calib_factor
 
 def main(
     ckpt_dir,
@@ -258,6 +271,7 @@ def main(
     predict_kth_frame=None,
     predict_samples_N=None,
     compare_with_highsnr=True,
+    train_calibration=False,
 ):
     global DATA_ROOT, CODE_ROOT
 
@@ -390,6 +404,12 @@ def main(
             if val_repeat_factor is not None:
                 config.training.val_repeat_factor = val_repeat_factor
 
+
+    if dtype == DataType.HTIba1Ki67:
+        from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import SubDsetType
+        config.data.subdset_type = SubDsetType.OnlyIba1P30
+        config.data.empty_patch_replacement_enabled = False
+
     config.model.mode_pred = not compute_kl_loss
     print(config)
     with config.unlocked():
@@ -500,8 +520,10 @@ def main(
             "pred": recons_img_list,
             "idx": idx_list,
         }, None
+    
 
-    pred_tiled, rec_loss, *_ = get_dset_predictions(
+    
+    pred_tiled, rec_loss, logvar_tiled, patch_psnr_tuple, pred_std_tiled = get_dset_predictions(
         model,
         val_dset,
         batch_size,
@@ -514,13 +536,17 @@ def main(
         pred_tiled = np.pad(pred_tiled, ((0, 0), (0, 0), (pad, pad), (pad, pad)))
 
     pred = stitch_predictions(pred_tiled, val_dset)
+    pred_std = stitch_predictions(pred_std_tiled,val_dset)
+
     is_list_prediction = isinstance(pred, list)
     if is_list_prediction:
         pred = np.concatenate(pred, axis=0)
+        pred_std = np.concatenate(pred_std, axis=0)
 
     if pred.shape[-1] == 2 and pred[..., 1].std() == 0:
         print("Denoiser model. Ignoring the second channel")
         pred = pred[..., :1].copy()
+        pred_std = pred_std[..., :1].copy()
 
     print("Stitched predictions shape before ignoring boundary pixels", pred.shape)
 
@@ -559,8 +585,11 @@ def main(
     if "target_idx_list" in config.data and config.data.target_idx_list is not None:
         tar = tar[..., config.data.target_idx_list]
         pred = pred[..., :(tar.shape[-1])]
+        pred_std = pred_std[...,:(tar.shape[-1])]
+        pred_std = ignore_pixels(pred_std)
 
     print("Stitched predictions shape after", pred.shape)
+
 
     sep_mean, sep_std = model.data_mean["target"], model.data_std["target"]
     sep_mean = sep_mean.squeeze().reshape(1, 1, 1, -1)
@@ -568,6 +597,13 @@ def main(
 
     # tar1, tar2 = val_dset.normalize_img(tar[...,0], tar[...,1])
     tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
+    # train calibration model here. in that case, we just return post that. 
+    if train_calibration:
+        assert eval_datasplit_type == DataSplitType.Val, "Calibration model should be trained on the validation set."
+        calib_factors= get_calibration_factor(pred, pred_std, tar_normalized)
+        return {"calib_factor": calib_factors}, None
+
+
     pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
     ch1_pred_unnorm = pred_unnorm[..., 0]
     # pred is already normalized. no need to do it.
@@ -677,28 +713,29 @@ def save_hardcoded_ckpt_evaluations_to_file(
     predict_samples_N=None,
     save_prediction_factor=1.0,
     skip_highsnr=False,
+    train_calibration=False,
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
+            "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6",
+            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/97",
+            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/111",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/13",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/14",
+            "/group/jug/ashesh/training/disentangle/2404/D19-M3-S0-L8/5",
+            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/120",
+            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/125",
+            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/139",
+            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/143",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/15",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/10",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/11",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/12",
+            "/group/jug/ashesh/training/disentangle/2404/D17-M3-S0-L8/4",
+            "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/1",
             "/group/jug/ashesh/training/disentangle/2405/D25-M3-S0-L8/3",
-            # "/group/jug/ashesh/training/disentangle/2405/D25-M3-S0-L8/2",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/16",
-            # "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/1",
-            # "/group/jug/ashesh/training/disentangle/2404/D17-M3-S0-L8/4",
-            # "/group/jug/ashesh/training/disentangle/2404/D19-M3-S0-L8/5",
-            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/97",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/13",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/14",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/15",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/10",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/11",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/12",
-            # "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6",
-            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/120",
-            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/111",
-            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/125",
-            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/139",
-            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/143",
+            "/group/jug/ashesh/training/disentangle/2405/D25-M3-S0-L8/2",
+            "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/16",
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -714,7 +751,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
     patchsz_gridsz_tuples = [(patch_size, grid_size)]
     print("Using patch,grid size", patchsz_gridsz_tuples)
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Test]:
+        for eval_datasplit_type in [DataSplitType.Val]:
             for ckpt_dir in ckpt_dirs:
                 data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split("-")[0][1:])
                 if data_type in [
@@ -751,6 +788,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
                     ignored_last_pixels,
                     predict_kth_frame=predict_kth_frame,
                     multiplicative_factor=save_prediction_factor,
+                    is_calibration=train_calibration,
                 )
                 data, prediction = main(
                     ckpt_dir,
@@ -774,6 +812,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
                     predict_kth_frame=predict_kth_frame,
                     predict_samples_N=predict_samples_N,
                     compare_with_highsnr=not skip_highsnr,
+                    train_calibration=train_calibration,
                 )
                 if data is None:
                     return None, None
@@ -825,6 +864,7 @@ if __name__ == "__main__":
     parser.add_argument("--preserve_older_prediction", action="store_true")
     parser.add_argument("--predict_samples_N", type=int, default=None)
     parser.add_argument("--skip_highsnr", action="store_true")
+    parser.add_argument("--train_calibration", action="store_true")
 
     args = parser.parse_args()
     save_hardcoded_ckpt_evaluations_to_file(
@@ -839,4 +879,5 @@ if __name__ == "__main__":
         predict_samples_N=args.predict_samples_N,
         save_prediction_factor=args.save_prediction_factor,
         skip_highsnr=args.skip_highsnr,
+        train_calibration=args.train_calibration,
     )

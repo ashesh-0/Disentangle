@@ -18,6 +18,7 @@ class PaperResultsHandler:
         skip_last_pixels,
         predict_kth_frame=None,
         multiplicative_factor=1,
+        is_calibration=False
     ):
         self._dtype = eval_datasplit_type
         self._outdir = output_dir
@@ -27,7 +28,7 @@ class PaperResultsHandler:
         self._skiplN = skip_last_pixels
         self._predict_kth_frame = predict_kth_frame
         self._multiplicative_factor = multiplicative_factor
-
+        self._is_calibration = is_calibration
     def dirpath(self):
         path = os.path.join(
             self._outdir,
@@ -42,6 +43,10 @@ class PaperResultsHandler:
         basename = '_'.join(ckpt_fpath.split("/")[4:]) + '.pkl'
         basename = 'stats_' + basename
         return basename
+
+    @staticmethod
+    def get_calib_fname(ckpt_fpath):
+        return PaperResultsHandler.get_fname(ckpt_fpath).replace('stats_', 'calib_')
 
     @staticmethod
     def get_pred_fname(ckpt_fpath, postfix=''):
@@ -65,7 +70,10 @@ class PaperResultsHandler:
 
     def get_output_fpath(self, ckpt_fpath):
         outdir = self.get_output_dir()
-        output_fpath = os.path.join(outdir, self.get_fname(ckpt_fpath))
+        if self._is_calibration:
+            output_fpath = os.path.join(outdir, self.get_calib_fname(ckpt_fpath))
+        else:
+            output_fpath = os.path.join(outdir, self.get_fname(ckpt_fpath))
         return output_fpath
 
     def save(self, ckpt_fpath, ckpt_stats):
