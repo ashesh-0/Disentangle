@@ -18,7 +18,8 @@ class PaperResultsHandler:
         skip_last_pixels,
         predict_kth_frame=None,
         multiplicative_factor=1,
-        is_calibration=False
+        train_calibration=False,
+        eval_calibration=False,
     ):
         self._dtype = eval_datasplit_type
         self._outdir = output_dir
@@ -28,11 +29,15 @@ class PaperResultsHandler:
         self._skiplN = skip_last_pixels
         self._predict_kth_frame = predict_kth_frame
         self._multiplicative_factor = multiplicative_factor
-        self._is_calibration = is_calibration
-    def dirpath(self):
+        self._train_calibration = train_calibration
+        self._eval_calibration = eval_calibration
+
+    def dirpath(self, dtype=None):
+        if dtype is None:
+            dtype = self._dtype
         path = os.path.join(
             self._outdir,
-            f'{DataSplitType.name(self._dtype)}_P{self._patchN}_G{self._gridN}_M{self._mmseN}_Sk{self._skiplN}')
+            f'{DataSplitType.name(dtype)}_P{self._patchN}_G{self._gridN}_M{self._mmseN}_Sk{self._skiplN}')
         if self._multiplicative_factor != 1:
             path += '_F'
         return path
@@ -49,6 +54,10 @@ class PaperResultsHandler:
         return PaperResultsHandler.get_fname(ckpt_fpath).replace('stats_', 'calib_')
 
     @staticmethod
+    def get_calib_stats_fname(ckpt_fpath):
+        return PaperResultsHandler.get_fname(ckpt_fpath).replace('stats_', 'calib_stats_')
+    
+    @staticmethod
     def get_pred_fname(ckpt_fpath, postfix=''):
         assert ckpt_fpath[-1] != '/'
         basename = '_'.join(ckpt_fpath.split("/")[4:])
@@ -58,8 +67,8 @@ class PaperResultsHandler:
         basename = 'pred_' + basename
         return basename
 
-    def get_output_dir(self):
-        outdir = self.dirpath()
+    def get_output_dir(self, dtype=None):
+        outdir = self.dirpath(dtype=dtype)
         if self._predict_kth_frame is not None:
             os.makedirs(outdir, exist_ok=True)
             outdir = os.path.join(outdir, f'kth_{self._predict_kth_frame}')
@@ -68,10 +77,19 @@ class PaperResultsHandler:
             os.mkdir(outdir)
         return outdir
 
+    def get_calib_factors_path(self, ckpt_fpath):
+        """ Returns the path to the calibration factors file.
+        """
+        outdir = self.get_output_dir(DataSplitType.Val)
+        return os.path.join(outdir, self.get_calib_fname(ckpt_fpath))
+
+
     def get_output_fpath(self, ckpt_fpath):
         outdir = self.get_output_dir()
-        if self._is_calibration:
+        if self._train_calibration:
             output_fpath = os.path.join(outdir, self.get_calib_fname(ckpt_fpath))
+        elif self._eval_calibration:
+            output_fpath = os.path.join(outdir, self.get_calib_stats_fname(ckpt_fpath))
         else:
             output_fpath = os.path.join(outdir, self.get_fname(ckpt_fpath))
         return output_fpath

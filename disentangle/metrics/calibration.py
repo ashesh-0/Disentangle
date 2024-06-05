@@ -7,6 +7,7 @@ import numpy as np
 import torch
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+
 class Calibration:
 
     def __init__(self, num_bins=15, mode='pixelwise'):
@@ -113,6 +114,9 @@ def get_calibrated_factor_for_stdev(pred, pred_logvar, target, batch_size=32, ep
         loss_arr.append(loss.item())
         optimizer.step()
         scheduler.step(loss)
+        # if learning rate is below 1e-5, break
+        if optimizer.param_groups[0]['lr'] < 1e-4:
+            break
         bar.set_description(f'nll: {np.mean(loss_arr[-10:])} scalar: {scalar.item()}')
 
     return np.sqrt(scalar.item()), loss_arr
