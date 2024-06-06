@@ -110,6 +110,6 @@ if __name__ == '__main__':
     data_config.subdset_type = SubDsetType.MultiChannel
     data_config.power_level = Pavia3SeqPowerLevel.High
     data_config.alpha_level = Pavia3SeqAlpha.Balanced
-    datadir = '/group/jug/ashesh/data/pavia3_sequential_cropped'
-    data = get_train_val_data(datadir, data_config, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
+    datadir = '/group/jug/ashesh/data/pavia4_HighSNR_cropped/Deconvolved'
+    data = get_train_val_data(datadir, data_config, DataSplitType.Test, val_fraction=0.1, test_fraction=0.1)
     print(len(data))
