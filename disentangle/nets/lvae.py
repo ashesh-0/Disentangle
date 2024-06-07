@@ -695,6 +695,25 @@ class LadderVAE(pl.LightningModule):
         kl_loss = kl_loss / np.prod(self.img_shape)
         return kl_loss
 
+    def get_kl_loss_usplit_denoisplit(self, td_data):
+        kl_key_denoisplit = 'kl_restricted' if self._restricted_kl else 'kl'
+        denoisplit_kl = self.get_kl_divergence_loss(td_data, kl_key=kl_key_denoisplit)
+        usplit_kl = self.get_kl_divergence_loss_usplit(td_data)
+        kl_loss = self._denoisplit_w * denoisplit_kl + self._usplit_w * usplit_kl
+        kl_loss = self.kl_weight * kl_loss
+        return kl_loss
+    
+    def get_reconstruction_loss_usplit_denoisplit(self, out, target_normalized):
+        if self.predict_logvar is not None:
+            out_mean, _ = out.chunk(2, dim=1)
+        else:
+            out_mean  = out
+
+        recons_loss_nm = -1*self.likelihood_NM(out_mean, target_normalized)[0].mean()
+        recons_loss_gm = -1*self.likelihood_gm(out, target_normalized)[0].mean()
+        recons_loss = self._denoisplit_w * recons_loss_nm + self._usplit_w * recons_loss_gm
+        return recons_loss 
+
     def training_step(self, batch, batch_idx, enable_logging=True):
         if self.current_epoch == 0 and batch_idx == 0:
             self.log('val_psnr', 1.0, on_epoch=True)
@@ -750,20 +769,8 @@ class LadderVAE(pl.LightningModule):
                 assert self.kl_loss_formulation == 'denoisplit_usplit', msg
                 assert self._denoisplit_w is not None and self._usplit_w is not None
 
-                if self.predict_logvar is not None:
-                    out_mean, _ = out.chunk(2, dim=1)
-                else:
-                    out_mean  = out
-                
-                kl_key_denoisplit = 'kl_restricted' if self._restricted_kl else 'kl'
-                denoisplit_kl = self.get_kl_divergence_loss(td_data, kl_key=kl_key_denoisplit)
-                usplit_kl = self.get_kl_divergence_loss_usplit(td_data)
-                kl_loss = self._denoisplit_w * denoisplit_kl + self._usplit_w * usplit_kl
-                kl_loss = self.kl_weight * kl_loss
-
-                recons_loss_nm = -1*self.likelihood_NM(out_mean, target_normalized)[0].mean()
-                recons_loss_gm = -1*self.likelihood_gm(out, target_normalized)[0].mean()
-                recons_loss = self._denoisplit_w * recons_loss_nm + self._usplit_w * recons_loss_gm
+                kl_loss = self.get_kl_loss_usplit_denoisplit(td_data)
+                recons_loss = self.get_reconstruction_loss_usplit_denoisplit(out, target_normalized)
                 
             elif self.kl_loss_formulation == 'usplit':
                 kl_loss = self.get_kl_weight() * self.get_kl_divergence_loss_usplit(td_data)
@@ -872,28 +879,15 @@ class LadderVAE(pl.LightningModule):
             psnr = torch_nanmean(psnr).item()
             self.log(f'val_psnr_l{i+1}', psnr, on_epoch=True)
 
-        recons_loss = recons_loss_dict['loss']
+        if self.loss_type == LossType.DenoiSplitMuSplit:
+            recons_loss = self.get_reconstruction_loss_usplit_denoisplit(out, target_normalized)
+        else: 
+            recons_loss = recons_loss_dict['loss']
+        
         if torch.isnan(recons_loss).any():
             return
 
         self.log('val_loss', recons_loss, on_epoch=True)
-        # self.log('val_psnr', (val_psnr_l1 + val_psnr_l2) / 2, on_epoch=True)
-
-        # if batch_idx == 0 and self.power_of_2(self.current_epoch):
-        #     all_samples = []
-        #     for i in range(20):
-        #         sample, _ = self(x_normalized[0:1, ...])
-        #         sample = self.likelihood.get_mean_lv(sample)[0]
-        #         all_samples.append(sample[None])
-
-        #     all_samples = torch.cat(all_samples, dim=0)
-        #     all_samples = all_samples * self.data_std + self.data_mean
-        #     all_samples = all_samples.cpu()
-        #     img_mmse = torch.mean(all_samples, dim=0)[0]
-        #     self.log_images_for_tensorboard(all_samples[:, 0, 0, ...], target[0, 0, ...], img_mmse[0], 'label1')
-        #     self.log_images_for_tensorboard(all_samples[:, 0, 1, ...], target[0, 1, ...], img_mmse[1], 'label2')
-
-        # return net_loss
 
     def on_validation_epoch_end(self):
         psnr_arr = []
