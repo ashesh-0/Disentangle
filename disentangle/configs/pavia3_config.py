@@ -122,7 +122,7 @@ def get_config():
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
-    training.val_fraction = 0.2
+    training.val_fraction = 0.1
     training.test_fraction = 0.1
     training.earlystop_patience = 400
     training.precision = 16
