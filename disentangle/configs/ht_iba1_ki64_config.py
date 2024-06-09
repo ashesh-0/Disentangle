@@ -17,6 +17,7 @@ def get_config():
     data.data_type = DataType.HTIba1Ki67
     data.subdset_type = SubDsetType.OnlyIba1
 
+    data.background_quantile = 0.01
     data.enable_gaussian_noise = False
     data.trainig_datausage_fraction = 1.0
     # data.validtarget_random_fraction = 1.0
@@ -44,7 +45,7 @@ def get_config():
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
-    data.input_is_sum = False
+    data.input_is_sum = True
 
     # Replacing one channel's content with empty patch.
     # data.empty_patch_replacement_enabled_list = [True, False]

@@ -48,7 +48,8 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
 
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(fnames))
     if datasplit_type == DataSplitType.All:
-        pass
+        fpaths = [os.path.join(datadir, dset_subtype, x) for x in fnames]
+        data = load_czi(fpaths)
     elif datasplit_type == DataSplitType.Train:
         print(train_idx)
         fnames = [fnames[i] for i in train_idx]
