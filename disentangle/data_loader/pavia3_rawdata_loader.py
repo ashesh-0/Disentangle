@@ -92,13 +92,17 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
     assert power_level in [Pavia3SeqPowerLevel.High, Pavia3SeqPowerLevel.Medium, Pavia3SeqPowerLevel.Low], power_level
     assert alpha_level in [Pavia3SeqAlpha.Balanced, Pavia3SeqAlpha.MediumSkew, Pavia3SeqAlpha.HighSkew], alpha_level
     fpath_getter = partial(get_multi_channel_files, datadir, power_level, alpha_level)
+    test_idx = data_config.get('test_idx',None)
+    val_idx = data_config.get('val_idx',None)
     return get_train_val_data_twochannels(datadir,
                                           data_config,
                                           datasplit_type,
                                           fpath_getter,
                                           load_data_fn=load_one_file,
                                           val_fraction=val_fraction,
-                                          test_fraction=test_fraction)
+                                          test_fraction=test_fraction,
+                                          explicit_val_idx=val_idx,
+                                          explicit_test_idx=test_idx)
 
 
 if __name__ == '__main__':
@@ -110,6 +114,9 @@ if __name__ == '__main__':
     data_config.subdset_type = SubDsetType.MultiChannel
     data_config.power_level = Pavia3SeqPowerLevel.High
     data_config.alpha_level = Pavia3SeqAlpha.Balanced
-    datadir = '/group/jug/ashesh/data/pavia4_HighSNR_cropped/Deconvolved'
+    data_config.test_idx=[15,20]
+    data_config.val_idx=[11,16]
+    # datadir = '/group/jug/ashesh/data/pavia4_HighSNR_cropped/Deconvolved'
+    datadir = '/group/jug/ashesh/data/pavia3_sequential_cropped'
     data = get_train_val_data(datadir, data_config, DataSplitType.Test, val_fraction=0.1, test_fraction=0.1)
     print(len(data))
