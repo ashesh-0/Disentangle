@@ -16,8 +16,6 @@ def get_config():
     data.power_level = Pavia3SeqPowerLevel.High
     data.alpha_level = Pavia3SeqAlpha.Balanced
     data.subdset_type = SubDsetType.MultiChannel
-    data.val_idx = [11,16]
-    data.test_idx= [15,20]
 
     data.enable_gaussian_noise = False
     data.trainig_datausage_fraction = 1.0
@@ -124,8 +122,8 @@ def get_config():
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
-    training.val_fraction = None
-    training.test_fraction = None
+    training.val_fraction = 0.1
+    training.test_fraction = 0.1
     training.earlystop_patience = 400
     training.precision = 16
     training.limit_train_batches = 2000
