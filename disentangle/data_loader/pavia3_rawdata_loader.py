@@ -113,10 +113,15 @@ if __name__ == '__main__':
     data_config = ConfigDict()
     data_config.subdset_type = SubDsetType.MultiChannel
     data_config.power_level = Pavia3SeqPowerLevel.High
-    data_config.alpha_level = Pavia3SeqAlpha.Balanced
-    data_config.test_idx=[15,20]
-    data_config.val_idx=[11,16]
+    data_config.alpha_level = Pavia3SeqAlpha.MediumSkew
+    data_config.test_idx=[7,10]
+    data_config.val_idx=[8,11]
     # datadir = '/group/jug/ashesh/data/pavia4_HighSNR_cropped/Deconvolved'
     datadir = '/group/jug/ashesh/data/pavia3_sequential_cropped'
-    data = get_train_val_data(datadir, data_config, DataSplitType.Test, val_fraction=0.1, test_fraction=0.1)
+    data = get_train_val_data(datadir, data_config, DataSplitType.Val, val_fraction=0.1, test_fraction=0.1)
     print(len(data))
+
+    import matplotlib.pyplot as plt
+    _,ax = plt.subplots(figsize=(10,5),ncols=2)
+    ax[0].imshow(data._data[0][0,...,0])
+    ax[1].imshow(data._data[0][0,...,1])
