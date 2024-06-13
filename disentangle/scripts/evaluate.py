@@ -219,7 +219,8 @@ def get_data_dir(dtype):
     elif dtype == DataType.BioSR_MRC:
         data_dir = f"{DATA_ROOT}/BioSR/"
     elif dtype == DataType.NicolaData:
-        data_dir = f"{DATA_ROOT}/nikola_data/raw"
+        # data_dir = f"{DATA_ROOT}/nikola_data/raw"
+        data_dir = f"{DATA_ROOT}/nikola_data/20240531/"
     elif dtype == DataType.Dao3ChannelWithInput:
         data_dir = f"{DATA_ROOT}/Dao4Channel/"
     elif dtype == DataType.Dao3Channel:
@@ -227,7 +228,7 @@ def get_data_dir(dtype):
     elif dtype == DataType.ExpMicroscopyV2:
         data_dir = f"{DATA_ROOT}/expansion_microscopy_v2/datafiles"
     elif dtype == DataType.Pavia3SeqData:
-        data_dir = f"{DATA_ROOT}/pavia3_sequential_raw/"
+        data_dir = f"{DATA_ROOT}/pavia3_sequential_cropped/"
     elif dtype == DataType.TavernaSox2GolgiV2:
         data_dir = f"{DATA_ROOT}/TavernaSox2Golgi/acquisition2/"
     elif dtype == DataType.TavernaSox2Golgi:
@@ -727,25 +728,23 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6",
-            "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/97",
-            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/111",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/13", #D18 takes time. 6 hours. 
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/14",
-            # "/group/jug/ashesh/training/disentangle/2404/D19-M3-S0-L8/5",
-            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/120",
-            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/125",
-            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/139",
-            # "/group/jug/ashesh/training/disentangle/2404/D25-M3-S0-L8/143",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/15",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/10",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/11",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/12",
-            # "/group/jug/ashesh/training/disentangle/2404/D17-M3-S0-L8/4",
-            # "/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/1",
-            # "/group/jug/ashesh/training/disentangle/2405/D25-M3-S0-L8/3",
-            # "/group/jug/ashesh/training/disentangle/2405/D25-M3-S0-L8/2",
-            # "/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/16",
+            # Nikola
+            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4",
+            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5",
+            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6"
+            # Pavia
+            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/15",
+            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/17",
+            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/18",
+
+            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/20",
+            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/21",
+            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/22",
+            
+            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/23",
+            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/24",
+            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/25",
+            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/26",
         ]
     else:
         ckpt_dirs = [ckpt_dir]
