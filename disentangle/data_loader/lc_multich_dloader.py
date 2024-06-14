@@ -168,10 +168,13 @@ class LCMultiChDloader(MultiChDloader):
         return output_img_tuples, cropped_noise_tuples
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]):
+        
+        img_tuples, noise_tuples = self._get_img(index)
         if self._uncorrelated_channels:
-            img_tuples, noise_tuples = self.get_uncorrelated_img_tuples(index)
-        else:
-            img_tuples, noise_tuples = self._get_img(index)
+            assert len(img_tuples) == 2, 'This is only implemented for two channels'
+            new_index = np.random.randint(len(self))
+            img_tuples2, _ = self._get_img(new_index)
+            img_tuples = [img_tuples[0], img_tuples2[1]]
 
         if self._is_train:
             if self._empty_patch_replacement_enabled:
@@ -274,4 +277,11 @@ if __name__ == '__main__':
     # ax[0].imshow(inp[0])
     # ax[1].imshow(tar[0])
     # ax[2].imshow(tar[1])
-    
+    dset.set_img_sz(128,128)
+    _,ax = plt.subplots(figsize=(9,3),ncols=3)
+    idx = np.random.randint(len(dset))
+    imgs , _ = dset._get_img(idx)
+    ax[0].imshow(imgs[0][0])
+    ax[1].imshow(imgs[0][1])
+    ax[2].imshow(imgs[0][2])
+

@@ -135,7 +135,7 @@ class MultiChDloader:
         self._enable_random_cropping = enable_random_cropping
         self._uncorrelated_channels = data_config.get('uncorrelated_channels', False) and self._is_train
         assert self._is_train or self._uncorrelated_channels is False
-        assert self._enable_random_cropping is True or self._uncorrelated_channels is False
+        # assert self._enable_random_cropping is True or self._uncorrelated_channels is False
         # Randomly rotate [-90,90]
 
         self._rotation_transform = None
