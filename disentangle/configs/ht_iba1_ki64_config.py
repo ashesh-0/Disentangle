@@ -18,6 +18,7 @@ def get_config():
     data.subdset_type = SubDsetType.OnlyIba1
 
     data.background_quantile = 0.01
+    data.uncorrelated_channels = True
     data.enable_gaussian_noise = False
     data.trainig_datausage_fraction = 1.0
     # data.validtarget_random_fraction = 1.0
