@@ -172,9 +172,10 @@ class LCMultiChDloader(MultiChDloader):
         img_tuples, noise_tuples = self._get_img(index)
         if self._uncorrelated_channels:
             assert len(img_tuples) == 2, 'This is only implemented for two channels'
-            new_index = np.random.randint(len(self))
-            img_tuples2, _ = self._get_img(new_index)
-            img_tuples = [img_tuples[0], img_tuples2[1]]
+            if np.random.rand() < 0.5:
+                new_index = np.random.randint(len(self))
+                img_tuples2, _ = self._get_img(new_index)
+                img_tuples = [img_tuples[0], img_tuples2[1]]
 
         if self._is_train:
             if self._empty_patch_replacement_enabled:
