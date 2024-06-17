@@ -81,6 +81,7 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
         data_nuc = None
         if dset_subtype in [SubDsetType.OnlyIba1P30,SubDsetType.OnlyIba1P50,SubDsetType.OnlyIba1P70]:
             datadir_nuc = os.path.join(datadir, SubDsetType.OnlyIba1, f'synthetic_test/{dset_subtype}')
+            print("Loading nucleus from", datadir_nuc)
             fnames_nuc = sorted(os.listdir(datadir_nuc))
             fpaths_nuc = [os.path.join(datadir_nuc, x) for x in fnames_nuc]
             data_nuc = np.concatenate([load_tiff(fpath_)[None] for fpath_ in fpaths_nuc], axis=0)[...,None]
