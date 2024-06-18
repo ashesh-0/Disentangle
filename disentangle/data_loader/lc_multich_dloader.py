@@ -40,6 +40,8 @@ class LCMultiChDloader(MultiChDloader):
                         highest resolution.
         """
         self._padding_kwargs = padding_kwargs  # mode=padding_mode, constant_values=constant_value
+        self._uncorrelated_channel_probab =  data_config.get('uncorrelated_channel_probab', 0.5)
+
         if overlapping_padding_kwargs is not None:
             assert self._padding_kwargs == overlapping_padding_kwargs, 'During evaluation, overlapping_padding_kwargs should be same as padding_args. \
                 It should be so since we just use overlapping_padding_kwargs when it is not None'
@@ -172,7 +174,7 @@ class LCMultiChDloader(MultiChDloader):
         img_tuples, noise_tuples = self._get_img(index)
         if self._uncorrelated_channels:
             assert len(img_tuples) == 2, 'This is only implemented for two channels'
-            if np.random.rand() < 0.5:
+            if np.random.rand() < self._uncorrelated_channel_probab:
                 new_index = np.random.randint(len(self))
                 img_tuples2, _ = self._get_img(new_index)
                 img_tuples = [img_tuples[0], img_tuples2[1]]
