@@ -84,6 +84,7 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
             print("Loading nucleus from", datadir_nuc)
             fnames_nuc = sorted(os.listdir(datadir_nuc))
             fpaths_nuc = [os.path.join(datadir_nuc, x) for x in fnames_nuc]
+            fpaths_nuc = [fpath for fpath in fpaths_nuc if not os.path.isdir(fpath)]
             data_nuc = np.concatenate([load_tiff(fpath_)[None] for fpath_ in fpaths_nuc], axis=0)[...,None]
             data = np.tile(data[...,1:], (len(data_nuc), 1,1,1))
             data = np.concatenate([data_nuc, data], axis=3)
