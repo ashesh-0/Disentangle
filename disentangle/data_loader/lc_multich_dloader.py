@@ -109,6 +109,8 @@ class LCMultiChDloader(MultiChDloader):
     def _init_msg(self):
         msg = super()._init_msg()
         msg += f' Pad:{self._padding_kwargs}'
+        if self._uncorrelated_channels:
+            msg += f' UncorrChProbab:{self._uncorrelated_channel_probab}'
         return msg
 
     def _load_scaled_img(self, scaled_index, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
