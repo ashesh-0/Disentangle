@@ -1,5 +1,6 @@
 import argparse
 import glob
+import json
 import os
 import pickle
 import random
@@ -37,6 +38,7 @@ from disentangle.data_loader.patch_index_manager import GridAlignement
 # from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data
 from disentangle.data_loader.vanilla_dloader import MultiChDloader, get_train_val_data
 from disentangle.sampler.random_sampler import RandomSampler
+from disentangle.scripts.run import overwride_with_cmd_params
 from disentangle.training import create_dataset, create_model
 
 torch.multiprocessing.set_sharing_strategy("file_system")
@@ -279,6 +281,7 @@ def main(
     compare_with_highsnr=True,
     train_calibration=False,
     eval_calibration_factors=None,
+    override_kwargs=None,
 ):
     global DATA_ROOT, CODE_ROOT
 
@@ -316,6 +319,10 @@ def main(
 
     config = load_config(ckpt_dir)
     config = ml_collections.ConfigDict(config)
+    if override_kwargs is not None:
+        with config.unlocked():
+            overwride_with_cmd_params(config, json.loads(override_kwargs))
+
     old_image_size = None
     with config.unlocked():
         try:
@@ -725,12 +732,15 @@ def save_hardcoded_ckpt_evaluations_to_file(
     skip_highsnr=False,
     train_calibration=False,
     eval_calibration=False,
+    override_kwargs=None,
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # Pavia
-            "/group/jug/ashesh/training/disentangle/2406/D18-M3-S0-L8/2",
-            "/group/jug/ashesh/training/disentangle/2406/D18-M3-S0-L8/0",
+            # '/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/29',
+            # '/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/15',
+            # Daozheng
+            # "/group/jug/ashesh/training/disentangle/2406/D18-M3-S0-L8/2",
+            "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4",
 
         ]
     else:
@@ -818,6 +828,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
                     compare_with_highsnr=not skip_highsnr,
                     train_calibration=train_calibration,
                     eval_calibration_factors=eval_calibration_factors,
+                    override_kwargs=override_kwargs,
                 )
                 if data is None:
                     return None, None
@@ -871,6 +882,7 @@ if __name__ == "__main__":
     parser.add_argument("--skip_highsnr", action="store_true")
     parser.add_argument("--train_calibration", action="store_true")
     parser.add_argument("--eval_calibration", action="store_true")
+    parser.add_argument("--override_kwargs", type=str, default=None)
 
     args = parser.parse_args()
     save_hardcoded_ckpt_evaluations_to_file(
@@ -887,4 +899,5 @@ if __name__ == "__main__":
         skip_highsnr=args.skip_highsnr,
         train_calibration=args.train_calibration,
         eval_calibration=args.eval_calibration,
+        override_kwargs=args.override_kwargs,
     )
