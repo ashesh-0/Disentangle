@@ -728,23 +728,10 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # Nikola
-            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4",
-            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5",
-            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6"
             # Pavia
-            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/15",
-            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/17",
-            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/18",
+            "/group/jug/ashesh/training/disentangle/2406/D18-M3-S0-L8/2",
+            "/group/jug/ashesh/training/disentangle/2406/D18-M3-S0-L8/0",
 
-            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/20",
-            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/21",
-            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/22",
-            
-            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/23",
-            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/24",
-            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/25",
-            "/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/26",
         ]
     else:
         ckpt_dirs = [ckpt_dir]

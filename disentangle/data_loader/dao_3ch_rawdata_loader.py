@@ -21,7 +21,7 @@ def get_multi_channel_files():
 
 def get_multi_channel_files_with_input(noise_level):
     if noise_level == 'low':
-        return ['SIM_3color_1channel_group1_small.tif']
+        return ['SIM_3color_1channel_group1.tif']
     elif noise_level == 'high':
         return ['SIM_3color_1channel_group2.tif']  # This is a different noise level.
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     from ml_collections.config_dict import ConfigDict
     data_config = ConfigDict()
     data_config.subdset_type = SubDsetType.MultiChannel
-    datadir = '/group/jug/ashesh/data/Dao3ChannelReduced/'
+    datadir = '/group/jug/ashesh/data/Dao3Channel/'
     data = get_train_val_data(datadir, data_config, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
     print(len(data))
     for i in range(len(data)):
