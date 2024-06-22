@@ -20,6 +20,7 @@ class PaperResultsHandler:
         multiplicative_factor=1,
         train_calibration=False,
         eval_calibration=False,
+        override_kwargs = None,
     ):
         self._dtype = eval_datasplit_type
         self._outdir = output_dir
@@ -31,6 +32,7 @@ class PaperResultsHandler:
         self._multiplicative_factor = multiplicative_factor
         self._train_calibration = train_calibration
         self._eval_calibration = eval_calibration
+        self._override_kwargs = override_kwargs
 
     def dirpath(self, dtype=None):
         if dtype is None:
@@ -67,6 +69,13 @@ class PaperResultsHandler:
         basename = 'pred_' + basename
         return basename
 
+    def override_kwargs_subdir(self):
+        dict_ = json.loads(self._override_kwargs)
+        dict_str = ''
+        for key in sorted(dict_.keys()):
+            dict_str+= f'{key}-{dict_[key]}'
+        return dict_str
+
     def get_output_dir(self, dtype=None):
         outdir = self.dirpath(dtype=dtype)
         if self._predict_kth_frame is not None:
@@ -75,6 +84,13 @@ class PaperResultsHandler:
 
         if not os.path.isdir(outdir):
             os.mkdir(outdir)
+        if self._override_kwargs is not None:
+            key = self.override_kwargs_subdir()
+            outdir = os.path.join(outdir, key)
+            
+            if not os.path.isdir(outdir):
+                os.mkdir(outdir)
+
         return outdir
 
     def get_calib_factors_path(self, ckpt_fpath):

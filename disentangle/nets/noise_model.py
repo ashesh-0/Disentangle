@@ -101,7 +101,7 @@ def nm_config_sanity_check_target_idx_list(config):
             ch_idx]] == ch, f'{config.data.channel_idx_list[config.data.target_idx_list[ch_idx]]} != {ch}'
 
     assert len(set(dsettype_list)) == 1, f'{dsettype_list} should be just one'
-    if 'dset_type' in config.data:
+    if 'dset_type' in config.data and config.data.get('disable_checks', False) is False:
         assert dsettype == config.data.dset_type, f'{dsettype} != {config.data.dset_type}'
 
     # nm1 = config.model.noise_model_ch1_fpath

@@ -322,6 +322,7 @@ def main(
     if override_kwargs is not None:
         with config.unlocked():
             overwride_with_cmd_params(config, json.loads(override_kwargs))
+            config.data.disable_checks = True
 
     old_image_size = None
     with config.unlocked():
@@ -741,6 +742,10 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # Daozheng
             # "/group/jug/ashesh/training/disentangle/2406/D18-M3-S0-L8/2",
             "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4",
+            "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5",
+            "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6",
+            "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14",
+            "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17"
 
         ]
     else:
@@ -796,6 +801,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
                     multiplicative_factor=save_prediction_factor,
                     train_calibration=train_calibration,
                     eval_calibration=eval_calibration,
+                    override_kwargs=override_kwargs,
                 )
                 eval_calibration_factors = None
                 if eval_calibration:
