@@ -707,6 +707,10 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
     highres_data = None
     if (config.model.model_type == ModelType.DenoiserSplitter or config.data.data_type == DataType.SeparateTiffData):
         highres_data = get_highres_data_ventura(data_dir, config, eval_datasplit_type)
+    elif config.data.data_type == DataType.NicolaData and config.data.dset_type in ['2ms','3ms','5ms','20ms','500ms']:
+        new_config = deepcopy(config)
+        new_config.data.dset_type = "500ms"
+        highres_data = _get_highres_data_internal(data_dir, new_config.data, config.training, eval_datasplit_type)
     elif config.data.data_type == DataType.NicolaData:
         new_config = deepcopy(config)
         new_config.data.dset_type = "high"
