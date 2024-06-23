@@ -131,7 +131,6 @@ def compute_high_snr_stats(config, highres_data, pred_unnorm, verbose=True):
             return f'{np.round(ssim_tmp[0], 3)}+-{np.round(ssim_tmp[1], 4)}'
         def psnr_str(psnr_tmp):
             return f'{np.round(psnr_tmp[0], 2)}+-{np.round(psnr_tmp[1], 3)}'
-        breakpoint()
         print("PSNR on Highres", '\t'.join([psnr_str(psnr_tmp) for psnr_tmp in psnr_list]))
         print("Multiscale SSIM on Highres", '\t'.join([ssim_str(ssim) for ssim in ssim_list]))
         print("Range Invariant Multiscale SSIM on Highres", '\t'.join([ssim_str(ssim) for ssim in rims_ssim_list]))

@@ -1,8 +1,10 @@
+import numpy as np
 import torch
-from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
 
 from disentangle.core.numpy_decorator import allow_numpy
-from disentangle.core.psnr import zero_mean, fix
+from disentangle.core.psnr import fix, zero_mean
+from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
+
 
 @allow_numpy
 def range_invariant_multiscale_ssim(gt_, pred_):
@@ -37,11 +39,11 @@ def compute_multiscale_ssim(gt_, pred_, range_invariant=True):
         tar_tmp = gt_[..., ch_idx]
         pred_tmp = pred_[..., ch_idx]
         if range_invariant:
-            ms_ssim_values[ch_idx] = range_invariant_multiscale_ssim(tar_tmp, pred_tmp)
+            ms_ssim_values[ch_idx] = [range_invariant_multiscale_ssim(tar_tmp[i:i+1], pred_tmp[i:i+1]) for i in range(tar_tmp.shape[0])]
         else:
             ms_ssim = MultiScaleStructuralSimilarityIndexMeasure(data_range=tar_tmp.max() - tar_tmp.min())
-            ms_ssim_values[ch_idx] = ms_ssim(torch.Tensor(pred_tmp[:, None]), torch.Tensor(tar_tmp[:, None])).item()
+            ms_ssim_values[ch_idx] = [ms_ssim(torch.Tensor(pred_tmp[i:i+1, None]), torch.Tensor(tar_tmp[i:i+1, None])).item() for i in range(tar_tmp.shape[0])]
 
-    output = [ms_ssim_values[i] for i in range(gt_.shape[-1])]
+    output = [(np.mean(ms_ssim_values[i]), np.std(ms_ssim_values[i])) for i in range(gt_.shape[-1])]
     return output
 
