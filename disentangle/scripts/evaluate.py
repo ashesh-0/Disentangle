@@ -47,8 +47,10 @@ CODE_ROOT = "PUT THE ROOT DIRECTORY FOR THE CODE HERE"
 
 
 def _avg_psnr(target, prediction, psnr_fn):
-    output = np.mean([psnr_fn(target[i:i + 1], prediction[i:i + 1]).item() for i in range(len(prediction))])
-    return round(output, 2)
+    psnr_arr = [psnr_fn(target[i:i + 1], prediction[i:i + 1]).item() for i in range(len(prediction))]
+    mean_psnr = np.mean(psnr_arr)
+    std_psnr = np.std(psnr_arr)
+    return round(mean_psnr, 2), round(std_psnr, 3)
 
 
 def avg_range_inv_psnr(target, prediction):
@@ -123,13 +125,16 @@ def compute_high_snr_stats(config, highres_data, pred_unnorm, verbose=True):
     ]
     ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy(), range_invariant=False)
     rims_ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy(), range_invariant=True)
+
     if verbose:
-        print("PSNR on Highres", psnr_list)
-        print("Multiscale SSIM on Highres", [np.round(ssim, 3) for ssim in ssim_list])
-        print(
-            "Range Invariant Multiscale SSIM on Highres",
-            [np.round(ssim, 3) for ssim in rims_ssim_list],
-        )
+        def ssim_str(ssim_tmp):
+            return f'{np.round(ssim_tmp[0], 3)}+-{np.round(ssim_tmp[1], 4)}'
+        def psnr_str(psnr_tmp):
+            return f'{np.round(psnr_tmp[0], 2)}+-{np.round(psnr_tmp[1], 3)}'
+        breakpoint()
+        print("PSNR on Highres", '\t'.join([psnr_str(psnr_tmp) for psnr_tmp in psnr_list]))
+        print("Multiscale SSIM on Highres", '\t'.join([ssim_str(ssim) for ssim in ssim_list]))
+        print("Range Invariant Multiscale SSIM on Highres", '\t'.join([ssim_str(ssim) for ssim in rims_ssim_list]))
     return {
         "rangeinvpsnr": psnr_list,
         "ms_ssim": ssim_list,
@@ -685,6 +690,7 @@ def main(
         output_stats = {}
         output_stats["rangeinvpsnr"] = stats_dict["rangeinvpsnr"]
         output_stats["ms_ssim"] = stats_dict["ms_ssim"]
+        output_stats["rims_ssim"] = stats_dict["rims_ssim"]
         print("")
     return output_stats, pred_unnorm
 
