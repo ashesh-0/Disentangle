@@ -347,6 +347,8 @@ def main(
 
             if "input_is_sum" not in config.data:
                 config.data.input_is_sum = False
+            config.model.noise_model_ch1_fpath = config.model.noise_model_ch1_fpath.replace('/home/ashesh.ashesh/training/', '/group/jug/ashesh/training_pre_eccv/')
+            config.model.noise_model_ch2_fpath = config.model.noise_model_ch2_fpath.replace('/home/ashesh.ashesh/training/', '/group/jug/ashesh/training_pre_eccv/')
         except:
             pass
 
@@ -750,12 +752,12 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # '/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/15',
             # Daozheng
             # "/group/jug/ashesh/training/disentangle/2406/D18-M3-S0-L8/2",
-            "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4",
-            "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5",
-            "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6",
-            "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14",
-            "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17"
-
+            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4",
+            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5",
+            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6",
+            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14",
+            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17"
+            "/group/jug/ashesh/training_pre_eccv/disentangle/2402/D7-M3-S0-L0/108"
         ]
     else:
         ckpt_dirs = [ckpt_dir]

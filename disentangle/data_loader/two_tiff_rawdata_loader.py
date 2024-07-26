@@ -61,9 +61,30 @@ if __name__ == '__main__':
     config = get_config()
     config.data.enable_gaussian_noise = False
     # config.data.synthetic_gaussian_scale = 1000
-    data = get_train_val_data('/group/jug/ashesh/data/ventura_gigascience/', config.data, DataSplitType.Train,
+    data = get_train_val_data('/group/jug/ashesh/data/ventura_gigascience/', config.data, DataSplitType.Test,
                               config.training.val_fraction, config.training.test_fraction)
 
     _, ax = plt.subplots(figsize=(6, 3), ncols=2)
     ax[0].imshow(data[0, ..., 0])
     ax[1].imshow(data[0, ..., 1])
+
+    import json
+
+    from disentangle.core.tiff_reader import load_tiff, save_tiff
+    schema = '/group/jug/ashesh/data/paper_stats/Test_P128_G32_M50_Sk0/kth_{}/pred_training_pre_eccv_disentangle_2402_D7-M3-S0-L0_108_1.tif'
+    pred_data = []
+    for i in range(10):
+        fpath = schema.format(i)
+        pred_data.append(load_tiff(fpath))
+        json_fpath = fpath.replace('.tif', '.json')
+        # load the json
+        with open(json_fpath,'rb') as f:
+            json_data = json.load(f)
+            assert float(json_fpath['factor']) == 1.0
+            pred_data[-1] += float(json_data['offset'])
+        
+    pred_data = np.concatenate(pred_data, axis=0)
+    save_tiff('/group/jug/ashesh/downloads/Actin_HighSNR.tif', data[...,0])
+    save_tiff('/group/jug/ashesh/downloads/Mito_HighSNR.tif', data[...,1])
+    save_tiff('/group/jug/ashesh/downloads/Actin_pred.tif', pred_data[...,0])
+    save_tiff('/group/jug/ashesh/downloads/Mito_pred.tif', pred_data[...,1])
