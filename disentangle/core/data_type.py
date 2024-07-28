@@ -31,3 +31,4 @@ class DataType(Enum):
     NicolaData = 25
     SilvioLabCSHLData = 26
     ExpMicroscopyV3 = 27
+    MultiCropDset = 28
