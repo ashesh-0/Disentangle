@@ -35,7 +35,7 @@ def _load_train_val_data(datadir, datasplit_type, val_fraction, test_fraction, t
     train_idx = [i for i in range(len(data)) if i not in val_idx + test_idx]
     
     print(f"Train: {len(train_idx)} Val: {len(val_idx)} Test: {len(test_idx)}")
-    print(size_list[train_idx].sum(), size_list[val_idx].sum(), size_list[test_idx].sum())
+    # print(size_list[train_idx].sum(), size_list[val_idx].sum(), size_list[test_idx].sum())
     if datasplit_type == DataSplitType.Train:
         data = [data[i] for i in train_idx]
     elif datasplit_type == DataSplitType.Val:
@@ -61,4 +61,4 @@ if __name__ == '__main__':
     datadir = '/group/jug/ashesh/data/Elisa/patchdataset/'
     data_config = ml.ConfigDict()
     data_config.channel_list = ['puncta','foreground']
-    data = get_train_val_data(data_config,datadir, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
+    data = get_train_val_data(datadir,data_config, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)

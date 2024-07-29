@@ -24,6 +24,7 @@ from disentangle.data_loader.intensity_augm_tiff_dloader import IntensityAugCLTi
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.lc_multich_explicit_input_dloader import LCMultiChExplicitInputDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
+from disentangle.data_loader.multicrops_dset import MultiCropDset
 from disentangle.data_loader.multifile_dset import MultiFileDset
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
 from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
@@ -216,6 +217,15 @@ def create_dataset(config,
 
         train_data = TwoDsetDloader(train_dset0, train_dset1, config.data, config.data.use_one_mu_std)
         val_data = val_dset0
+    elif config.data.data_type == DataType.MultiCropDset:
+        train_data = MultiCropDset(config.data,datadir, DataSplitType.Train, val_fraction=config.training.val_fraction, 
+                                   test_fraction=config.training.test_fraction)
+        val_data = MultiCropDset(config.data,datadir, DataSplitType.Val, val_fraction=config.training.val_fraction,
+                                    test_fraction=config.training.test_fraction)
+        
+        mean, std = train_data.compute_mean_std()
+        train_data.set_mean_std(mean, std)
+        val_data.set_mean_std(mean, std)
 
     elif config.data.data_type in [
             DataType.OptiMEM100_014,

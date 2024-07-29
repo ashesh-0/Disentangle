@@ -14,6 +14,10 @@ from disentangle.data_loader.train_val_data import get_train_val_data
 from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 
+def l2(x):
+    return np.sqrt(np.mean(np.array(x)**2))
+
+
 class MultiCropDset:
     def __init__(self,
                  data_config,
@@ -44,23 +48,46 @@ class MultiCropDset:
 
 
     def compute_mean_std(self):
-        mean_dict = defaultdict(list)
-        std_dict = defaultdict(list)
+        mean_tar_dict = defaultdict(list)
+        std_tar_dict = defaultdict(list)
+        mean_inp = []
+        std_inp = []
+        for _ in range(30000):
+            crops = []
+            for ch_idx in range(len(self._data_arr)):
+                crop = self.sample_crop(ch_idx)
+                mean_tar_dict[ch_idx].append(np.mean(crop))
+                std_tar_dict[ch_idx].append(np.std(crop))
+                crops.append(crop)
 
-        for ch_idx in range(len(self._data_arr)):
-            mean_val = np.mean([x.mean() for x in self._data_arr[ch_idx]])
-            max_val = np.max([x.max() for x in self._data_arr[ch_idx]])
-            mean_dict['target'].append(mean_val)
-            std_dict['target'].append(max_val)
+            inp = 0
+            for img in crops:
+                inp += img
 
-        mean_dict['input'] = np.sum(mean_dict['target'])
-        std_dict['input'] = np.sum(std_dict['target'])
-        return mean_dict, std_dict
+            mean_inp.append(np.mean(inp))
+            std_inp.append(np.std(inp))
+
+        output_mean = defaultdict(list)
+        output_std = defaultdict(list)
+        NC = len(self._data_arr)
+        for ch_idx in range(NC):
+            output_mean['target'].append(np.mean(mean_tar_dict[ch_idx]))
+            output_std['target'].append(l2(std_tar_dict[ch_idx]))
+        
+        output_mean['target'] = np.array(output_mean['target']).reshape(-1,NC,1,1)
+        output_std['target'] = np.array(output_std['target']).reshape(-1,NC,1,1)
+
+        output_mean['input'] = np.array([np.mean(mean_inp)]).reshape(-1,1,1,1)
+        output_std['input'] = np.array([l2(std_inp)]).reshape(-1,1,1,1)
+        return dict(output_mean), dict(output_std)
 
     def set_mean_std(self, mean_dict, std_dict):
         self._data_mean = mean_dict
         self._data_std = std_dict
-    
+
+    def get_mean_std(self):
+        return self._data_mean, self._data_std
+
     @cache
     def crop_probablities(self, ch_idx):
         sizes = np.array([np.prod(x.shape) for x in self._data_arr[ch_idx]])
@@ -120,16 +147,18 @@ class MultiCropDset:
         return rotated_img_tuples
 
     def _compute_input(self, imgs):
-        inp = np.sum([x[None] for x in imgs],axis=0)
-        inp = (inp - self._data_mean['input'])/(self._data_std['input'])
-        return inp
+        inp = 0
+        for img in imgs:
+            inp += img
+        
+        inp = (inp - self._data_mean['input'].squeeze())/(self._data_std['input'].squeeze())
+        return inp[None]
 
     def _compute_target(self, imgs):
         return np.stack(imgs)
 
     def __getitem__(self, idx):
         imgs = self.imgs_for_patch()
-        print(imgs)
         if self._enable_rotation:
             imgs = self._rotate(imgs)
         
@@ -141,15 +170,17 @@ class MultiCropDset:
 
 if __name__ =='__main__':
     import ml_collections as ml
+    from disentangle.core.data_type import DataType
     datadir = '/group/jug/ashesh/data/Elisa/patchdataset/'
     data_config = ml.ConfigDict()
     data_config.channel_list = ['puncta','foreground']
-    data_config.image_size = 128
+    data_config.image_size = 64
     data_config.input_is_sum = True
     data_config.background_values = [100,100]
+    data_config.data_type = DataType.MultiCropDset
     data = MultiCropDset(data_config,datadir, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
     mean, std = data.compute_mean_std()
     data.set_mean_std(mean, std)
     inp, tar = data[0]
     print(data.compute_mean_std())
-    print(len(data))
+    print(inp.shape, tar.shape)
