@@ -219,7 +219,7 @@ def create_dataset(config,
         val_data = val_dset0
     elif config.data.data_type == DataType.MultiCropDset:
         train_data = MultiCropDset(config.data,datadir, DataSplitType.Train, val_fraction=config.training.val_fraction, 
-                                   test_fraction=config.training.test_fraction)
+                                   test_fraction=config.training.test_fraction, enable_rotation_aug=config.data.train_aug_rotate)
         val_data = MultiCropDset(config.data,datadir, DataSplitType.Val, val_fraction=config.training.val_fraction,
                                     test_fraction=config.training.test_fraction)
         
