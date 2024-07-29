@@ -33,7 +33,15 @@ class MultiCropDset:
         self._enable_rotation = enable_rotation_aug
         self._background_values = data_config.get('background_values', None)
         self._data_arr = get_train_val_data(data_config,fpath, datasplit_type, val_fraction, test_fraction)
-        
+
+        # remove upper quantiles, crucial for removing puncta
+        self.max_val = data_config.get('max_val', None)
+        if self.max_val is not None:
+            for ch_idx, data in enumerate(self._data_arr):
+                if self.max_val[ch_idx] is not None:
+                    for idx in range(len(data)):
+                        data[idx][data[idx] > self.max_val[ch_idx]] = self.max_val[ch_idx]
+
         # remove background values
         if self._background_values is not None:
             final_data_arr = []
@@ -177,6 +185,7 @@ if __name__ =='__main__':
     data_config.image_size = 64
     data_config.input_is_sum = True
     data_config.background_values = [100,100]
+    data_config.max_val = [None, 137]
     data_config.data_type = DataType.MultiCropDset
     data = MultiCropDset(data_config,datadir, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
     mean, std = data.compute_mean_std()
