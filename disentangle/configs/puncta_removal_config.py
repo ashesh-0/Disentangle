@@ -58,7 +58,7 @@ def get_config():
     loss.loss_type = LossType.Elbo
     # loss.usplit_w = 0.1
     # loss.denoisplit_w = 1 - loss.usplit_w
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = 'denoisplit'
 
     # loss.mixed_rec_weight = 1
     loss.restricted_kl = False
@@ -105,17 +105,17 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'pixelwise'  #'pixelwise' #'channelwise'
+    model.predict_logvar = None  #'pixelwise' #'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
-    # model.noise_model_type = 'gmm'
-    # fname = '/home/ashesh.ashesh/training/noise_model/2404/10/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-06_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch1_fpath = '/group/jug/ashesh/training_pre_eccv/noise_model/2402/192/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch2_fpath = '/group/jug/ashesh/training_pre_eccv/noise_model/2402/154/GMMNoiseModel_Microtubules-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.enable_noise_model = True
+    model.noise_model_type = 'gmm'
+    fname = '/home/ashesh.ashesh/training/noise_model/2407/3/GMMNoiseModel_N2V_Elisa-n2v_input__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = fname
+    model.noise_model_ch2_fpath = fname
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
