@@ -13,7 +13,7 @@ def get_config():
     data.channel_list = ['puncta','foreground']
     data.input_is_sum = True
     data.background_values = [0,0]
-    data.max_val = [None, 137]
+    data.max_val = [None, 200.0]
     data.num_channels = len(data.channel_list)
     data.sampler_type = SamplerType.DefaultSampler
     data.train_aug_rotate = True
@@ -126,7 +126,7 @@ def get_config():
     training = config.training
     training.lr = 0.001
     training.lr_scheduler_patience = 4
-    training.max_epochs = 100
+    training.max_epochs = 50
     training.batch_size = 16
     training.num_workers = 4
     training.val_repeat_factor = None
