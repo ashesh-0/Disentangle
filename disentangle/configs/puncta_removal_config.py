@@ -13,7 +13,7 @@ def get_config():
     data.channel_list = ['puncta','foreground']
     data.input_is_sum = True
     data.background_values = [0,0]
-    data.max_val = [None, 200.0]
+    data.max_val = [None, None]
     data.num_channels = len(data.channel_list)
     data.sampler_type = SamplerType.DefaultSampler
     data.train_aug_rotate = True
