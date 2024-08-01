@@ -40,6 +40,8 @@ class MultiChDloader:
         """
         self._fpath = fpath
         self._data = self.N = self._noise_data = None
+        self.Z = 1
+        self._5Ddata = False
         # by default, if the noise is present, add it to the input and target.
         self._disable_noise = False
         self._poisson_noise_factor = None
@@ -195,6 +197,13 @@ class MultiChDloader:
         print(msg)
 
         self.N = len(self._data)
+        self._5Ddata = len(self._data.shape) == 5
+        if self._5Ddata:
+            self.Z = self._data.shape[1]
+
+        if self._depth3D > 1:
+            assert self._5Ddata, 'Data must be 5D:NxZxHxWxC for 3D data'
+        
         assert self._data.shape[-1] == self._num_channels, 'Number of channels in data and config do not match.'
 
     def save_background(self, channel_idx, frame_idx, background_value):
@@ -272,6 +281,7 @@ class MultiChDloader:
         return self._data.shape[0]
     
     def reduce_data(self, t_list=None, h_start=None, h_end=None, w_start=None, w_end=None):
+        assert not self._5Ddata, 'This function is not supported for 3D data.'
         if t_list is None:
             t_list = list(range(self._data.shape[0]))
         if h_start is None:
@@ -302,12 +312,18 @@ class MultiChDloader:
         self._img_sz = image_size
         self._grid_sz = grid_size
         shape = self._data.shape
-
-        self.idx_manager = GridIndexManager((shape[0] - self._depth3D + 1, *shape[1:]), self._grid_sz, self._img_sz, self._grid_alignment)
+        if self._5Ddata:
+            self.idx_manager = GridIndexManager((shape[0]*(shape[1] - self._depth3D + 1), *shape[2:]), self._grid_sz, self._img_sz, self._grid_alignment)
+        else:
+            self.idx_manager = GridIndexManager(shape, self._grid_sz, self._img_sz, self._grid_alignment)
         self.set_repeat_factor()
 
     def __len__(self):
-        return (self.N -self._depth3D + 1) * self._repeat_factor
+        if self._5Ddata:
+            return self.N * (self.Z -self._depth3D + 1) * self._repeat_factor
+        else:
+            assert self._depth3D == 1
+            return self.N * self._repeat_factor
 
     def set_repeat_factor(self):
         self._repeat_factor = self.idx_manager.grid_rows(self._grid_sz) * self.idx_manager.grid_cols(self._grid_sz)
@@ -457,10 +473,15 @@ class MultiChDloader:
             idx = index[0]
 
         tidx = self.idx_manager.get_t(idx)
-        if self._depth3D > 1:
-            tidx = range(tidx, tidx + self._depth3D)
+        if self._5Ddata:
+            assert self._noise_data is None, 'Noise is not supported for 5D data'
+            n_idx = tidx // (self.Z - self._depth3D + 1)
+            z_idx = tidx % (self.Z - self._depth3D + 1)
+            tidx = range(z_idx, z_idx + self._depth3D)
+            imgs = self._data[n_idx, tidx]
+        else:
+            imgs = self._data[tidx]
         
-        imgs = self._data[tidx]
         loaded_imgs = [imgs[None, ..., i] for i in range(imgs.shape[-1])]
         noise = []
         if self._noise_data is not None and not self._disable_noise:
@@ -535,7 +556,9 @@ class MultiChDloader:
 
         mean = np.array(mean_arr)
         std = np.array(std_arr)
-
+        if self._depth3D > 1:
+            return mean[None, :, None, None, None], std[None, :, None, None, None]
+        
         return mean[None, :, None, None], std[None, :, None, None]
 
     
@@ -576,6 +599,10 @@ class MultiChDloader:
         if self._skip_normalization_using_mean:
             mean = np.zeros_like(mean)
         
+        if self._depth3D > 1:
+            mean = mean[:,:,None]
+            std = std[:,:,None]
+
         mean_dict = {'input':mean}#, 'target':mean}
         std_dict = {'input':std}#, 'target':std}
         

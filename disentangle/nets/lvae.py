@@ -134,11 +134,6 @@ class LadderVAE(pl.LightningModule):
         else:
             raise NotImplementedError('data_mean and data_std must be either a numpy array or a dictionary')
 
-        if self._mode_3D and self._decoder_mode_3D:
-            for key in data_mean.keys():
-                self.data_mean[key] = self.data_mean[key][..., None, :, :]
-                self.data_std[key] = self.data_std[key][..., None, :, :]
-
         self.noiseModel = get_noise_model(config)
         self.merge_type = config.model.merge_type
         self.analytical_kl = config.model.analytical_kl
@@ -715,6 +710,12 @@ class LadderVAE(pl.LightningModule):
             
             kl[:, i] = kl[:, i] / norm_factor
 
+        if self._mode_3D:
+            # In stochastic.py, we sum over all dimensions, including the Z dimension. 
+            # To not penalize the KL loss too much, we divide by the depth of the 3D model.
+            # NOTE: If we have downsampling in Z dimension, then this needs to change.
+            kl = kl/self._model_3D_depth
+        
         kl_loss = free_bits_kl(kl, 0.0).mean()
         return kl_loss
 
@@ -722,6 +723,12 @@ class LadderVAE(pl.LightningModule):
         # kl[i] for each i has length batch_size
         # resulting kl shape: (batch_size, layers)
         kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict[kl_key]], dim=1)
+        if self._mode_3D:
+            # In stochastic.py, we sum over all dimensions, including the Z dimension. 
+            # To not penalize the KL loss too much, we divide by the depth of the 3D model.
+            # NOTE: If we have downsampling in Z dimension, then this needs to change.
+            kl = kl/self._model_3D_depth
+
         # As compared to uSplit kl divergence,
         # more by a factor of 4 just because we do sum and not mean.
         kl_loss = free_bits_kl(kl, self.free_bits).sum()
@@ -1280,27 +1287,28 @@ if __name__ == '__main__':
     import torch
 
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
-    from disentangle.configs.biosr_config import get_config
+    from disentangle.configs.elisa3D_config import get_config
     config = get_config()
     config.model.mode_pred=True
-    data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1)
+    data_mean = torch.Tensor([0]).reshape(1, 1,1, 1, 1)
     # copy twice along 2nd dimensiion
-    data_std = torch.Tensor([1]).reshape(1, 1, 1, 1)
+    data_std = torch.Tensor([1]).reshape(1, 1,1, 1, 1)
     model = LadderVAE({
         'input': data_mean,
-        'target': data_mean.repeat(1, 2, 1, 1)
+        'target': data_mean.repeat(1, 2, 1,1, 1)
     }, {
         'input': data_std,
-        'target': data_std.repeat(1, 2, 1, 1)
+        'target': data_std.repeat(1, 2, 1,1, 1)
     }, config)
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count
     # 3D example
-    inp = torch.rand((2, mc, 3, config.data.image_size, config.data.image_size))
+    inp = torch.rand((2, mc, config.data.depth3D, config.data.image_size, config.data.image_size))
     out, td_data = model(inp)
     batch = (
-        torch.rand((16, mc, 3, config.data.image_size, config.data.image_size)),
-        torch.rand((16, 2, 3, config.data.image_size, config.data.image_size)),
+        torch.rand((16, mc, config.data.depth3D, config.data.image_size, config.data.image_size)),
+        torch.rand((16, 2, config.data.depth3D, config.data.image_size, config.data.image_size)),
     )
+    model.mode_pred=False
     model.training_step(batch, 0)
     model.validation_step(batch, 0)
 
@@ -1310,10 +1318,10 @@ if __name__ == '__main__':
     print(ll_new[:, 1].mean(), ll_new[:, 1].std())
     print('mar')
 
-    # 2D example.
-    model.reset_for_different_output_size(2*config.data.image_size)
-    inp = torch.rand((2, mc, 2*config.data.image_size, 2*config.data.image_size))
-    out, td_data = model(inp)
+    # # 2D example.
+    # model.reset_for_different_output_size(2*config.data.image_size)
+    # inp = torch.rand((2, mc, 2*config.data.image_size, 2*config.data.image_size))
+    # out, td_data = model(inp)
     # batch = (
     #     torch.rand((16, mc, config.data.image_size, config.data.image_size)),
     #     torch.rand((16, 2, config.data.image_size, config.data.image_size)),

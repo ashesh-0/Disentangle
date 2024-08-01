@@ -51,6 +51,8 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
         data = data[test_idx].astype(np.float32)
     else:
         raise Exception("invalid datasplit")
+    
+    data = np.transpose(data, (0,1,3,4,2))
     return data
 
 
