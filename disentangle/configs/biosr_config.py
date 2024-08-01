@@ -8,23 +8,23 @@ from disentangle.core.sampler_type import SamplerType
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 64
     data.data_type = DataType.BioSR_MRC
     # data.channel_1 = 0
     # data.channel_2 = 1
     data.ch1_fname = 'ER/GT_all.mrc'
-    data.ch2_fname = 'CCPs/GT_all.mrc'
+    data.ch2_fname = 'Microtubules/GT_all.mrc'
     data.num_channels = 2
 
-    data.poisson_noise_factor = 10000
+    data.poisson_noise_factor = -1
 
-    data.enable_gaussian_noise = False
+    data.enable_gaussian_noise = True
     data.trainig_datausage_fraction = 1.0
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 6675
+    config.data.synthetic_gaussian_scale = 4450
     # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
-    config.data.input_has_dependant_noise = True
+    config.data.input_has_dependant_noise = False
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -37,22 +37,24 @@ def get_config():
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
-    data.train_aug_rotate = False
+    data.train_aug_rotate = True
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
     data.input_is_sum = False
+
     loss = config.loss
-    loss.loss_type = LossType.Elbo
-    # this is not uSplit.
-    loss.kl_loss_formulation = ''
+    loss.loss_type = LossType.DenoiSplitMuSplit
+    loss.usplit_w = 0.1
+    loss.denoisplit_w = 1 - loss.usplit_w
+    loss.kl_loss_formulation = 'denoisplit_usplit'
 
     # loss.mixed_rec_weight = 1
-
+    loss.restricted_kl = True
     loss.kl_weight = 1.0
     loss.reconstruction_weight = 1.0
     loss.kl_annealing = False
@@ -96,21 +98,20 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None  #'pixelwise' #'channelwise'
+    model.predict_logvar = 'pixelwise'  #'pixelwise' #'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
-    model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
+    model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname = '/home/ashesh.ashesh/training/noise_model/2404/20/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-06_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname
-    model.noise_model_ch2_fpath = fname
+    # fname = '/home/ashesh.ashesh/training/noise_model/2404/10/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-06_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/group/jug/ashesh/training_pre_eccv/noise_model/2402/192/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/group/jug/ashesh/training_pre_eccv/noise_model/2402/154/GMMNoiseModel_Microtubules-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
-    assert model.enable_noise_model == False or model.predict_logvar is None
-
+    # assert model.enable_noise_model == False or model.predict_logvar is None
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
     # model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
     model.non_stochastic_version = False
@@ -127,4 +128,5 @@ def get_config():
     training.test_fraction = 0.1
     training.earlystop_patience = 200
     # training.precision = 16
+    training.limit_train_batches = 2000
     return config

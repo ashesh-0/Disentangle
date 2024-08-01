@@ -1,7 +1,7 @@
 from disentangle.core.custom_enum import Enum
 
 
-class LossType:
+class LossType(Enum):
     Elbo = 0
     ElboWithCritic = 1
     ElboMixedReconstruction = 2
@@ -10,3 +10,4 @@ class LossType:
     ElboSemiSupMixedReconstruction = 5
     ElboCL = 6
     ElboRestrictedReconstruction = 7
+    DenoiSplitMuSplit = 8

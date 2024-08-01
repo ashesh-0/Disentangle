@@ -55,6 +55,8 @@ class TopDownLayer(nn.Module):
                  bottomup_no_padding_mode=False,
                  topdown_no_padding_mode=False,
                  retain_spatial_dims: bool = False,
+                 restricted_kl=False,
+                 vanilla_latent_hw: int = None,
                  non_stochastic_version=False,
                  input_image_shape: Union[None, Tuple[int, int]] = None,
                  normalize_latent_factor=1.0,
@@ -106,6 +108,8 @@ class TopDownLayer(nn.Module):
         self.latent_shape = input_image_shape if self.retain_spatial_dims else None
         self.non_stochastic_version = non_stochastic_version
         self.normalize_latent_factor = normalize_latent_factor
+        self._vanilla_latent_hw = vanilla_latent_hw
+        
         # Define top layer prior parameters, possibly learnable
         if is_top_layer:
             self.top_prior_params = nn.Parameter(torch.zeros(top_prior_param_shape), requires_grad=learn_top_prior)
@@ -158,6 +162,8 @@ class TopDownLayer(nn.Module):
                 c_out=n_filters,
                 mode_3D=mode_3D,
                 transform_p_params=(not is_top_layer),
+                vanilla_latent_hw=vanilla_latent_hw,
+                restricted_kl=restricted_kl,
                 use_naive_exponential=stochastic_use_naive_exponential,
             )
 
@@ -231,7 +237,7 @@ class TopDownLayer(nn.Module):
         In case the padding is not used either (or both) in encoder and decoder, we could have a mismatch. Doing a centercrop to ensure that both remain aligned.
         """
         if bu_value.shape[-2:] != p_params.shape[-2:]:
-            assert self.bottomup_no_padding_mode is True
+            assert self.bottomup_no_padding_mode is True, f'{bu_value.shape[-2:]} != {p_params.shape[-2:]}'
             if self.topdown_no_padding_mode is False:
                 assert bu_value.shape[-1] > p_params.shape[-1]
                 bu_value = F.center_crop(bu_value, p_params.shape[-2:])
@@ -348,6 +354,7 @@ class TopDownLayer(nn.Module):
         keys = [
             'z',
             'kl_samplewise',
+            'kl_samplewise_restricted',
             'kl_spatial',
             'kl_channelwise',
             # 'logprob_p',

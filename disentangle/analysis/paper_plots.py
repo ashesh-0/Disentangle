@@ -13,12 +13,9 @@ from disentangle.core.psnr import RangeInvariantPsnr
 
 def get_plotoutput_dir(ckpt_dir, patch_size, mmse_count=50):
     plotsrootdir = f'/group/jug/ashesh/data/paper_figures/patch_{patch_size}_mmse_{mmse_count}'
-    rdate, rconfig, rid = ckpt_dir.split("/")[-3:]
-    fname_prefix = rdate + '-' + rconfig.replace('-', '')[:-2] + '-' + rid
-    plotsdir = os.path.join(plotsrootdir, fname_prefix)
-    os.makedirs(plotsdir, exist_ok=True)
-    print(plotsdir)
-    return plotsdir
+    os.makedirs(plotsrootdir, exist_ok=True)
+    print(plotsrootdir)
+    return plotsrootdir
 
 
 def get_last_index(bin_count, quantile):
@@ -81,9 +78,10 @@ def add_psnr_str(ax_, psnr):
              color='white')
 
 
-def get_predictions(idx, val_dset, model, mmse_count=50, patch_size=256):
+def get_predictions(idx, val_dset, model, mmse_count=50, patch_size=256, grid_size=64):
     print(f'Predicting for {idx}')
-    val_dset.set_img_sz(patch_size, 64)
+    val_dset.set_img_sz(patch_size, grid_size)
+    model.reset_for_different_output_size(patch_size)
 
     with torch.no_grad():
         # val_dset.enable_noise()
@@ -101,8 +99,8 @@ def get_predictions(idx, val_dset, model, mmse_count=50, patch_size=256):
         for _ in range(mmse_count):
             recon_normalized, td_data = model(x_normalized)
             rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
-                                                           x_normalized,
                                                            tar_normalized,
+                                                           x_normalized,
                                                            return_predicted_img=True)
             imgs = model.unnormalize_target(imgs)
             recon_img_list.append(imgs.cpu().numpy()[0])

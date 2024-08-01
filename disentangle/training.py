@@ -24,6 +24,7 @@ from disentangle.data_loader.intensity_augm_tiff_dloader import IntensityAugCLTi
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.lc_multich_explicit_input_dloader import LCMultiChExplicitInputDloader
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
+from disentangle.data_loader.multicrops_dset import MultiCropDset
 from disentangle.data_loader.multifile_dset import MultiFileDset
 from disentangle.data_loader.notmnist_dloader import NotMNISTNoisyLoader
 from disentangle.data_loader.pavia2_3ch_dloader import Pavia2ThreeChannelDloader
@@ -146,51 +147,51 @@ def create_dataset(config,
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
 
-    elif config.data.data_type == DataType.HTIba1Ki67 and config.model.model_type in [
-            ModelType.LadderVaeTwoDataSet, ModelType.LadderVaeTwoDatasetMultiBranch,
-            ModelType.LadderVaeTwoDatasetMultiOptim
-    ]:
-        # multi data setup.
-        datapath = datadir
-        normalized_input = config.data.normalized_input
-        use_one_mu_std = config.data.use_one_mu_std
-        train_aug_rotate = config.data.train_aug_rotate
-        enable_random_cropping = config.data.deterministic_grid is False
-        lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
+    # elif config.data.data_type == DataType.HTIba1Ki67 and config.model.model_type in [
+    #         ModelType.LadderVaeTwoDataSet, ModelType.LadderVaeTwoDatasetMultiBranch,
+    #         ModelType.LadderVaeTwoDatasetMultiOptim
+    # ]:
+    #     # multi data setup.
+    #     datapath = datadir
+    #     normalized_input = config.data.normalized_input
+    #     use_one_mu_std = config.data.use_one_mu_std
+    #     train_aug_rotate = config.data.train_aug_rotate
+    #     enable_random_cropping = config.data.deterministic_grid is False
+    #     lowres_supervision = config.model.model_type == ModelType.LadderVAEMultiTarget
 
-        train_data_kwargs = {'allow_generation': False, **kwargs_dict}
-        val_data_kwargs = {'allow_generation': False, **kwargs_dict}
-        train_data_kwargs['enable_random_cropping'] = enable_random_cropping
-        val_data_kwargs['enable_random_cropping'] = False
+    #     train_data_kwargs = {'allow_generation': False, **kwargs_dict}
+    #     val_data_kwargs = {'allow_generation': False, **kwargs_dict}
+    #     train_data_kwargs['enable_random_cropping'] = enable_random_cropping
+    #     val_data_kwargs['enable_random_cropping'] = False
 
-        train_data = None if skip_train_dataset else IBA1Ki67DataLoader(config.data,
-                                                                        datapath,
-                                                                        datasplit_type=DataSplitType.Train,
-                                                                        val_fraction=config.training.val_fraction,
-                                                                        test_fraction=config.training.test_fraction,
-                                                                        normalized_input=normalized_input,
-                                                                        use_one_mu_std=use_one_mu_std,
-                                                                        enable_rotation_aug=train_aug_rotate,
-                                                                        **train_data_kwargs)
+    #     train_data = None if skip_train_dataset else IBA1Ki67DataLoader(config.data,
+    #                                                                     datapath,
+    #                                                                     datasplit_type=DataSplitType.Train,
+    #                                                                     val_fraction=config.training.val_fraction,
+    #                                                                     test_fraction=config.training.test_fraction,
+    #                                                                     normalized_input=normalized_input,
+    #                                                                     use_one_mu_std=use_one_mu_std,
+    #                                                                     enable_rotation_aug=train_aug_rotate,
+    #                                                                     **train_data_kwargs)
 
-        max_val = train_data.get_max_val()
-        val_data = IBA1Ki67DataLoader(
-            config.data,
-            datapath,
-            datasplit_type=eval_datasplit_type,
-            val_fraction=config.training.val_fraction,
-            test_fraction=config.training.test_fraction,
-            normalized_input=normalized_input,
-            use_one_mu_std=use_one_mu_std,
-            enable_rotation_aug=False,  # No rotation aug on validation
-            max_val=max_val,
-            **val_data_kwargs,
-        )
+    #     max_val = train_data.get_max_val()
+    #     val_data = IBA1Ki67DataLoader(
+    #         config.data,
+    #         datapath,
+    #         datasplit_type=eval_datasplit_type,
+    #         val_fraction=config.training.val_fraction,
+    #         test_fraction=config.training.test_fraction,
+    #         normalized_input=normalized_input,
+    #         use_one_mu_std=use_one_mu_std,
+    #         enable_rotation_aug=False,  # No rotation aug on validation
+    #         max_val=max_val,
+    #         **val_data_kwargs,
+    #     )
 
-        # For normalizing, we should be using the training data's mean and std.
-        mean_val, std_val = train_data.compute_mean_std()
-        train_data.set_mean_std(mean_val, std_val)
-        val_data.set_mean_std(mean_val, std_val)
+    #     # For normalizing, we should be using the training data's mean and std.
+    #     mean_val, std_val = train_data.compute_mean_std()
+    #     train_data.set_mean_std(mean_val, std_val)
+    #     val_data.set_mean_std(mean_val, std_val)
     elif config.data.data_type == DataType.TwoDset:
         cnf0 = ml_collections.ConfigDict(config)
         for key in config.data.dset0:
@@ -216,6 +217,15 @@ def create_dataset(config,
 
         train_data = TwoDsetDloader(train_dset0, train_dset1, config.data, config.data.use_one_mu_std)
         val_data = val_dset0
+    elif config.data.data_type == DataType.MultiCropDset:
+        train_data = MultiCropDset(config.data,datadir, DataSplitType.Train, val_fraction=config.training.val_fraction, 
+                                   test_fraction=config.training.test_fraction, enable_rotation_aug=config.data.train_aug_rotate)
+        val_data = MultiCropDset(config.data,datadir, DataSplitType.Val, val_fraction=config.training.val_fraction,
+                                    test_fraction=config.training.test_fraction)
+        
+        mean, std = train_data.compute_mean_std()
+        train_data.set_mean_std(mean, std)
+        val_data.set_mean_std(mean, std)
 
     elif config.data.data_type in [
             DataType.OptiMEM100_014,
@@ -229,7 +239,8 @@ def create_dataset(config,
             DataType.HTIba1Ki67,
             DataType.BioSR_MRC,
             DataType.PredictedTiffData,
-            DataType.Pavia3SeqData,
+            DataType.NicolaData,
+            DataType.SilvioLabCSHLData,
     ]:
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')
@@ -373,7 +384,8 @@ def create_dataset(config,
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
     elif config.data.data_type in [
-            DataType.TavernaSox2Golgi, DataType.Dao3Channel, DataType.ExpMicroscopyV2, DataType.TavernaSox2GolgiV2
+            DataType.TavernaSox2Golgi, DataType.Dao3Channel, DataType.Dao3ChannelWithInput, DataType.ExpMicroscopyV2,
+            DataType.TavernaSox2GolgiV2, DataType.Pavia3SeqData, DataType.ExpMicroscopyV3
     ]:
         datapath = datadir
         normalized_input = config.data.normalized_input
@@ -485,6 +497,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 #  profiler=profiler,
                 # overfit_batches=20,
                 callbacks=callbacks,
+                limit_train_batches=config.training.limit_train_batches,
                 precision=config.training.precision)
         except:
             trainer = pl.Trainer(
@@ -498,6 +511,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
                 #  profiler=profiler,
                 # overfit_batches=20,
                 callbacks=callbacks,
+                limit_train_batches=config.training.limit_train_batches,
                 precision=config.training.precision)
 
     else:
@@ -509,6 +523,7 @@ def create_model_and_train(config, data_mean, data_std, logger, checkpoint_callb
             callbacks=callbacks,
             # fast_dev_run=10,
             # overfit_batches=10,
+            limit_train_batches=config.training.limit_train_batches,
             precision=config.training.precision)
     trainer.fit(model, train_loader, val_loader)
 

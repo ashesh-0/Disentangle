@@ -44,7 +44,12 @@ class EmptyPatchFetcher:
             h_start = empty_loc[1][idx]
             w_start = empty_loc[2][idx]
             # print(n_idx,h_start,w_start)
-            self._idx_list.append(self._idx_manager.idx_from_hwt(h_start, w_start, n_idx, grid_size=self._grid_size))
+            idx = self._idx_manager.idx_from_hwt(h_start, w_start, n_idx, grid_size=self._grid_size)
+            h,w,t = self._idx_manager.hwt_from_idx(idx, grid_size=self._grid_size)
+            assert h == h_start, f'{h} != {h_start}'
+            assert w == w_start, f'{w} != {w_start}'
+            assert t == n_idx, f'{t} != {n_idx}'
+            self._idx_list.append(idx)
         
         self._idx_list = np.array(self._idx_list)
         

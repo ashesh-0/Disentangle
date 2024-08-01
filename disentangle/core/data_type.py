@@ -22,10 +22,13 @@ class DataType(Enum):
     TavernaSox2Golgi = 17
     Dao3Channel = 18
     ExpMicroscopyV2 = 19
-    Dao3ChannelV2 = 20
+    Dao3ChannelWithInput = 20
     TavernaSox2GolgiV2 = 21
     TwoDset = 22
     PredictedTiffData = 23
     Pavia3SeqData = 24
     # Here, we have 16 splitting tasks.
     NicolaData = 25
+    SilvioLabCSHLData = 26
+    ExpMicroscopyV3 = 27
+    MultiCropDset = 28

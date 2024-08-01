@@ -16,6 +16,7 @@ import torch
 import torchvision
 from torch.utils.cpp_extension import CUDA_HOME
 from torch.utils.data import DataLoader
+from copy import deepcopy
 
 import git
 import ml_collections
@@ -180,26 +181,9 @@ def get_mean_std_dict_for_model(config, train_dset):
         std_dict['target'] = data_std
 
     else:
-        mean_dict = {'input': None, 'target': None}
-        std_dict = {'input': None, 'target': None}
-        inp_mean, inp_std = train_dset.get_mean_std()
-        mean_sq = inp_mean.squeeze()
-        std_sq = inp_std.squeeze()
-        for i in range(1, config.data.get('num_channels', 2)):
-            assert mean_sq[0] == mean_sq[i]
-            assert std_sq[0] == std_sq[i]
-        mean_dict['input'] = np.mean(inp_mean, axis=1, keepdims=True)
-        std_dict['input'] = np.mean(inp_std, axis=1, keepdims=True)
+        mean_dict, std_dict = train_dset.get_mean_std()
 
-        if config.data.target_separate_normalization is True:
-            data_mean, data_std = train_dset.compute_individual_mean_std()
-        else:
-            data_mean, data_std = train_dset.get_mean_std()
-
-        mean_dict['target'] = data_mean
-        std_dict['target'] = data_std
-
-    return mean_dict, std_dict
+    return deepcopy(mean_dict), deepcopy(std_dict)
 
 
 def main(argv):

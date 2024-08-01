@@ -8,7 +8,6 @@ from disentangle.core.tiff_reader import load_tiff
 
 def get_data_from_paths(fpaths1, fpaths2, enable_max_projection=False):
     data1 = [load_tiff(path)[..., None] for path in fpaths1]
-
     data2 = [load_tiff(path)[..., None] for path in fpaths2]
     if enable_max_projection:
         data1 = [np.max(x, axis=1, keepdims=True) for x in data1]
@@ -31,7 +30,6 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
     all_fpaths2 = [os.path.join(dirname, x) for x in er_channel_fnames()]
 
     assert len(all_fpaths1) == len(all_fpaths2), 'Currently, only same sized data in both channels is supported'
-
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction,
                                                         test_fraction,
                                                         len(all_fpaths1),
@@ -55,9 +53,12 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
 
 
 def mito_channel_fnames():
-    # return [f'Mitotracker_Green_0{i}.tif' for i in [1,2,3,4,5,6]]
-    return [f'Mitotracker_Green_0{i}.tif' for i in [1, 3, 4, 5, 6]]
+    return [f'Mito/Mitotracker_Green_0{i}.tif' for i in [1, 3, 4, 5, 6]]
 
 
 def er_channel_fnames():
-    return [f'ER-eGFP_only_0{i}.tif' for i in [1, 3, 4, 5, 6]]
+    return [f'ER/ER-eGFP_only_0{i}.tif' for i in [1, 3, 4, 5, 6]]
+
+
+def input_channel_fnames():
+    return [f'ER_Mito/ER_and_Mito_Green_0{i}.tif' for i in [1, 3, 4, 5]]

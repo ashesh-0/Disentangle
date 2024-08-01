@@ -29,6 +29,8 @@ class NormalStochasticBlock(nn.Module):
                  mode_3D=False,
                  kernel: int = 3,
                  transform_p_params: bool = True,
+                 vanilla_latent_hw: int = None,
+                 restricted_kl:bool = False,
                  use_naive_exponential=False):
         """
         Args:
@@ -51,6 +53,9 @@ class NormalStochasticBlock(nn.Module):
         else:
             conv_cls = nn.Conv2d
         
+        self._vanilla_latent_hw = vanilla_latent_hw
+        self._restricted_kl = restricted_kl
+
         if transform_p_params:
             self.conv_in_p = conv_cls(c_in, 2 * c_vars, kernel, padding=pad)
         self.conv_in_q = conv_cls(c_in, 2 * c_vars, kernel, padding=pad)
@@ -114,17 +119,22 @@ class NormalStochasticBlock(nn.Module):
         """
         Compute KL (analytical or MC estimate) and then process it in multiple ways.
         """
+        kl_samplewise_restricted = None
         if mode_pred is False:  # if not predicting
             if analytical_kl:
                 kl_elementwise = kl_divergence(q, p)
             else:
                 kl_elementwise = kl_normal_mc(z, p_params, q_params)
             
-            dims = list(range(len(kl_elementwise.shape)))
-            # kl_elementwise.shape: torch.Size([8, 128, 3, 8, 8]) for 3D
-            # kl_elementwise.shape: torch.Size([8, 128, 8, 8]) for 2D
-            kl_samplewise = kl_elementwise.sum(dims[1:])
-            kl_channelwise = kl_elementwise.sum(dims[2:])
+            # compute KL only on the portion of the latent space that is used for prediction. 
+            if self._restricted_kl:
+                pad = (kl_elementwise.shape[-1] - self._vanilla_latent_hw)//2
+                assert pad > 0, 'Disable restricted kl since there is no restriction.'
+                tmp = kl_elementwise[..., pad:-pad, pad:-pad]
+                kl_samplewise_restricted = tmp.sum((1, 2, 3))
+            
+            kl_samplewise = kl_elementwise.sum((1, 2, 3))
+            kl_channelwise = kl_elementwise.sum((2, 3))
             # Compute spatial KL analytically (but conditioned on samples from
             # previous layers)
             kl_spatial = kl_elementwise.sum(1)
@@ -134,6 +144,7 @@ class NormalStochasticBlock(nn.Module):
         kl_dict = {
             'kl_elementwise': kl_elementwise,  # (batch, ch, h, w)
             'kl_samplewise': kl_samplewise,  # (batch, )
+            'kl_samplewise_restricted': kl_samplewise_restricted,  # (batch, )
             'kl_spatial': kl_spatial,  # (batch, h, w)
             'kl_channelwise': kl_channelwise  # (batch, ch)
         }

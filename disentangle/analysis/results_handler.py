@@ -17,6 +17,10 @@ class PaperResultsHandler:
         mmse_count,
         skip_last_pixels,
         predict_kth_frame=None,
+        multiplicative_factor=1,
+        train_calibration=False,
+        eval_calibration=False,
+        override_kwargs = None,
     ):
         self._dtype = eval_datasplit_type
         self._outdir = output_dir
@@ -25,11 +29,20 @@ class PaperResultsHandler:
         self._mmseN = mmse_count
         self._skiplN = skip_last_pixels
         self._predict_kth_frame = predict_kth_frame
+        self._multiplicative_factor = multiplicative_factor
+        self._train_calibration = train_calibration
+        self._eval_calibration = eval_calibration
+        self._override_kwargs = override_kwargs
 
-    def dirpath(self):
-        return os.path.join(
+    def dirpath(self, dtype=None):
+        if dtype is None:
+            dtype = self._dtype
+        path = os.path.join(
             self._outdir,
-            f'{DataSplitType.name(self._dtype)}_P{self._patchN}_G{self._gridN}_M{self._mmseN}_Sk{self._skiplN}')
+            f'{DataSplitType.name(dtype)}_P{self._patchN}_G{self._gridN}_M{self._mmseN}_Sk{self._skiplN}')
+        if self._multiplicative_factor != 1:
+            path += '_F'
+        return path
 
     @staticmethod
     def get_fname(ckpt_fpath):
@@ -39,24 +52,62 @@ class PaperResultsHandler:
         return basename
 
     @staticmethod
-    def get_pred_fname(ckpt_fpath):
+    def get_calib_fname(ckpt_fpath):
+        return PaperResultsHandler.get_fname(ckpt_fpath).replace('stats_', 'calib_')
+
+    @staticmethod
+    def get_calib_stats_fname(ckpt_fpath):
+        return PaperResultsHandler.get_fname(ckpt_fpath).replace('stats_', 'calib_stats_')
+    
+    @staticmethod
+    def get_pred_fname(ckpt_fpath, postfix=''):
         assert ckpt_fpath[-1] != '/'
-        basename = '_'.join(ckpt_fpath.split("/")[4:]) + '.tif'
+        basename = '_'.join(ckpt_fpath.split("/")[4:])
+        if postfix != '':
+            basename = basename + '_' + postfix
+        basename += '.tif'
         basename = 'pred_' + basename
         return basename
 
-    def get_output_dir(self):
-        outdir = self.dirpath()
+    def override_kwargs_subdir(self):
+        dict_ = json.loads(self._override_kwargs)
+        dict_str = ''
+        for key in sorted(dict_.keys()):
+            dict_str+= f'{key}-{dict_[key]}'
+        return dict_str
+
+    def get_output_dir(self, dtype=None):
+        outdir = self.dirpath(dtype=dtype)
         if self._predict_kth_frame is not None:
+            os.makedirs(outdir, exist_ok=True)
             outdir = os.path.join(outdir, f'kth_{self._predict_kth_frame}')
 
         if not os.path.isdir(outdir):
             os.mkdir(outdir)
+        if self._override_kwargs is not None:
+            key = self.override_kwargs_subdir()
+            outdir = os.path.join(outdir, key)
+            
+            if not os.path.isdir(outdir):
+                os.mkdir(outdir)
+
         return outdir
+
+    def get_calib_factors_path(self, ckpt_fpath):
+        """ Returns the path to the calibration factors file.
+        """
+        outdir = self.get_output_dir(DataSplitType.Val)
+        return os.path.join(outdir, self.get_calib_fname(ckpt_fpath))
+
 
     def get_output_fpath(self, ckpt_fpath):
         outdir = self.get_output_dir()
-        output_fpath = os.path.join(outdir, self.get_fname(ckpt_fpath))
+        if self._train_calibration:
+            output_fpath = os.path.join(outdir, self.get_calib_fname(ckpt_fpath))
+        elif self._eval_calibration:
+            output_fpath = os.path.join(outdir, self.get_calib_stats_fname(ckpt_fpath))
+        else:
+            output_fpath = os.path.join(outdir, self.get_fname(ckpt_fpath))
         return output_fpath
 
     def save(self, ckpt_fpath, ckpt_stats):
@@ -66,9 +117,18 @@ class PaperResultsHandler:
         print(f'[{self.__class__.__name__}] Saved to {output_fpath}')
         return output_fpath
 
-    def dump_predictions(self, ckpt_fpath, predictions, hparam_dict):
-        fname = self.get_pred_fname(ckpt_fpath)
-        fpath = os.path.join(self.get_output_dir(), fname)
+    def get_pred_fpath(self, ckpt_fpath, overwrite):
+        suitable_fpath_notfound = True
+        postfix = '1'
+        while suitable_fpath_notfound:
+            fname = self.get_pred_fname(ckpt_fpath, postfix=postfix)
+            fpath = os.path.join(self.get_output_dir(), fname)
+            suitable_fpath_notfound = os.path.exists(fpath) and not overwrite
+            postfix = str(int(postfix) + 1)
+        return fpath
+
+    def dump_predictions(self, ckpt_fpath, predictions, hparam_dict, overwrite=True):
+        fpath = self.get_pred_fpath(ckpt_fpath, overwrite)
         save_tiff(fpath, predictions)
         print(f'Written {predictions.shape} to {fpath}')
         hparam_fpath = fpath.replace('.tif', '.json')

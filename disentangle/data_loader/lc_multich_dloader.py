@@ -40,6 +40,8 @@ class LCMultiChDloader(MultiChDloader):
                         highest resolution.
         """
         self._padding_kwargs = padding_kwargs  # mode=padding_mode, constant_values=constant_value
+        self._uncorrelated_channel_probab =  data_config.get('uncorrelated_channel_probab', 0.5)
+
         if overlapping_padding_kwargs is not None:
             assert self._padding_kwargs == overlapping_padding_kwargs, 'During evaluation, overlapping_padding_kwargs should be same as padding_args. \
                 It should be so since we just use overlapping_padding_kwargs when it is not None'
@@ -75,16 +77,40 @@ class LCMultiChDloader(MultiChDloader):
             shape = self._scaled_data[-1].shape
             assert len(shape) == 4
             new_shape = (shape[0], shape[1] // 2, shape[2] // 2, shape[3])
-            ds_data = resize(self._scaled_data[-1], new_shape)
+            ds_data = resize(self._scaled_data[-1].astype(np.float32), new_shape).astype(self._scaled_data[-1].dtype)
+            # NOTE: These asserts are important. the resize method expects np.float32. otherwise, one gets weird results.
+            assert ds_data.max()/self._scaled_data[-1].max() < 5, 'Downsampled image should not have very different values'
+            assert ds_data.max()/self._scaled_data[-1].max() > 0.2, 'Downsampled image should not have very different values'
+
             self._scaled_data.append(ds_data)
             # do the same for noise
             if self._noise_data is not None:
                 noise_data = resize(self._scaled_noise_data[-1], new_shape)
                 self._scaled_noise_data.append(noise_data)
 
+    def reduce_data(self, t_list=None, h_start=None, h_end=None, w_start=None, w_end=None):
+        assert t_list is not None
+        assert h_start is None
+        assert h_end is None
+        assert w_start is None
+        assert w_end is None
+
+        self._data = self._data[t_list].copy()
+        self._scaled_data = [self._scaled_data[i][t_list].copy() for i in range(len(self._scaled_data))]
+
+        if self._noise_data is not None:
+            self._noise_data = self._noise_data[t_list].copy()
+            self._scaled_noise_data = [self._scaled_noise_data[i][t_list].copy() for i in range(len(self._scaled_noise_data))]
+
+        self.N = len(t_list)
+        self.set_img_sz(self._img_sz, self._grid_sz)
+        print(f'[{self.__class__.__name__}] Data reduced. New data shape: {self._data.shape}')
+
     def _init_msg(self):
         msg = super()._init_msg()
         msg += f' Pad:{self._padding_kwargs}'
+        if self._uncorrelated_channels:
+            msg += f' UncorrChProbab:{self._uncorrelated_channel_probab}'
         return msg
 
     def _load_scaled_img(self, scaled_index, index: Union[int, Tuple[int, int]]) -> Tuple[np.ndarray, np.ndarray]:
@@ -151,28 +177,47 @@ class LCMultiChDloader(MultiChDloader):
 
     def __getitem__(self, index: Union[int, Tuple[int, int]]):
         img_tuples, noise_tuples = self._get_img(index)
+        if self._uncorrelated_channels:
+            assert self._input_idx is None, 'Uncorrelated channels is not implemented when there is a separate input channel.'
+            if np.random.rand() < self._uncorrelated_channel_probab:
+                img_tuples_new = [None] * len(img_tuples)
+                img_tuples_new[0] = img_tuples[0]
+                for i in range(1, len(img_tuples)):
+                    new_index = np.random.randint(len(self))
+                    img_tuples_tmp, _ = self._get_img(new_index)
+                    img_tuples_new[i] = img_tuples_tmp[i]
+                img_tuples = img_tuples_new
+                
+
+        if self._is_train:
+            if self._empty_patch_replacement_enabled:
+                if np.random.rand() < self._empty_patch_replacement_probab:
+                    img_tuples = self.replace_with_empty_patch(img_tuples)
+
 
         if self._enable_rotation:
-            # passing just the 2D input. 3rd dimension messes up things.
             img_tuples, noise_tuples = self._rotate(img_tuples, noise_tuples)
 
         assert self._lowres_supervision != True
-        if len(noise_tuples) > 0:
-            target = np.concatenate([img[:1] + noise for img, noise in zip(img_tuples, noise_tuples)], axis=0)
-        else:
-            target = np.concatenate([img[:1] for img in img_tuples], axis=0)
-
         # add noise to input
         if len(noise_tuples) > 0:
             factor = np.sqrt(2) if self._input_is_sum else 1.0
             input_tuples = []
             for x in img_tuples:
+                # NOTE: other LC levels already have noise added. So, we just need to add noise to the highest resolution.
                 x[0] = x[0] + noise_tuples[0] * factor
                 input_tuples.append(x)
         else:
             input_tuples = img_tuples
 
         inp, alpha = self._compute_input(input_tuples)
+        # assert self._alpha_weighted_target in [False, None]
+        target_tuples = [img[:1] for img in img_tuples]
+        # add noise to target.
+        if len(noise_tuples) >= 1:
+            target_tuples = [x + noise for x, noise in zip(target_tuples, noise_tuples[1:])]
+
+        target = self._compute_target(target_tuples, alpha)
 
         output = [inp, target]
 
@@ -186,12 +231,6 @@ class LCMultiChDloader(MultiChDloader):
         output.append(grid_size)
         return tuple(output)
 
-        # if isinstance(index, int):
-        #     return inp, target
-
-        # _, grid_size = index
-        # return inp, target, grid_size
-
 
 if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
@@ -199,6 +238,7 @@ if __name__ == '__main__':
 
     from disentangle.configs.pavia_atn_3Dconfig import get_config
     config = get_config()
+    config.data.multiscale_lowres_count = 3
     padding_kwargs = {'mode': config.data.padding_mode}
     if 'padding_value' in config.data and config.data.padding_value is not None:
         padding_kwargs['constant_values'] = config.data.padding_value

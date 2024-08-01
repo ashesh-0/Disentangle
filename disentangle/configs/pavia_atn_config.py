@@ -16,6 +16,7 @@ def get_config():
     data.data_type = DataType.OptiMEM100_014
     data.channel_1 = 2
     data.channel_2 = 3
+    # data.uncorrelated_channels = True
 
     data.poisson_noise_factor = -1
     data.enable_gaussian_noise = False
@@ -38,7 +39,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = True
     data.randomized_channels = False
-    data.multiscale_lowres_count = 5
+    data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -46,10 +47,13 @@ def get_config():
     data.target_separate_normalization = True
     data.input_is_sum = False
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.DenoiSplitMuSplit
     # this is not uSplit.
-    loss.kl_loss_formulation = ''
-
+    loss.kl_loss_formulation = 'denoisplit_usplit'
+    loss.usplit_w = 0.1
+    loss.denoisplit_w = 1 - loss.usplit_w
+    loss.restricted_kl = True
+    loss.reconstruction_weight = 1.0
     # loss.mixed_rec_weight = 1
 
     loss.kl_weight = 1.0
@@ -102,12 +106,12 @@ def get_config():
 
     model.enable_noise_model = False
     model.noise_model_type = 'gmm'
-    fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_microscopy-OptiMEM100x014.tif__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname_format.format('2402/240')
-    model.noise_model_ch2_fpath = fname_format.format('2402/244')
+    # fname_format = '/home/ashesh.ashesh/training/noise_model/{}/GMMNoiseModel_microscopy-OptiMEM100x014.tif__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/76/GMMNoiseModel_microscopy-OptiMEM100x014__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2404/74/GMMNoiseModel_microscopy-OptiMEM100x014__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
-    assert model.enable_noise_model == False or model.predict_logvar is None
+    # assert model.enable_noise_model == False or model.predict_logvar is None
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
     # model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
@@ -125,4 +129,6 @@ def get_config():
     training.test_fraction = 0.1
     training.earlystop_patience = 100
     training.precision = 16
+    training.limit_train_batches=2000
+
     return config

@@ -107,7 +107,10 @@ def get_train_val_data(datadir,
                        get_multi_channel_files_fn,
                        load_data_fn=None,
                        val_fraction=None,
-                       test_fraction=None):
+                       test_fraction=None,
+                       explicit_val_idx=None,
+                       explicit_test_idx=None):
+    print('')
     dset_subtype = data_config.subdset_type
     if load_data_fn is None:
         load_data_fn = load_tiff
@@ -155,7 +158,20 @@ def get_train_val_data(datadir,
         for onedata_B, onepath_B in zip(dataB, fpathsB):
             framewise_fpathsB += [onepath_B] * onedata_B.shape[0]
 
-    train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, count)
+    # explicit datasplit
+    if explicit_val_idx is not None:
+        assert explicit_test_idx is not None
+        train_idx = [i for i in range(count) if i not in explicit_val_idx and i not in explicit_test_idx]
+        val_idx = explicit_val_idx
+        test_idx = explicit_test_idx
+        if datasplit_type == DataSplitType.Val:
+            print('Explicit datasplit Val', val_idx)
+        elif datasplit_type == DataSplitType.Test:
+            print('Explicit datasplit Test', test_idx)
+        elif datasplit_type == DataSplitType.Train:
+            print('Explicit datasplit Train', train_idx)
+    else:
+        train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, count)
 
     if datasplit_type == DataSplitType.All:
         pass
@@ -180,10 +196,27 @@ def get_train_val_data(datadir,
     else:
         raise Exception("invalid datasplit")
 
+    if 'channel_idx_list' in data_config:
+        assert isinstance(data_config.channel_idx_list, list) or isinstance(data_config.channel_idx_list,
+                                                                            tuple), 'channel_idx_list should be a list'
+        assert all([
+            isinstance(data_config.channel_idx_list[i], int) or isinstance(data_config.channel_idx_list[i], str)
+            for i in range(len(data_config.channel_idx_list))
+        ]), f'Invalid channel_idx_list {data_config.channel_idx_list}'
+
+        if isinstance(data_config.channel_idx_list[0], int):
+            print('Selecting channels', data_config.channel_idx_list)
+            dataA = [x[..., data_config.channel_idx_list] for x in dataA]
+            if dataB is not None:
+                dataB = [x[..., data_config.channel_idx_list] for x in dataB]
+        else:
+            print(
+                'Warning: channel_idx_list is not a list of integers, but a list of strings. No selection of channels is done'
+            )
+
     if dset_subtype == SubDsetType.MultiChannel:
         data = MultiChannelData(dataA, paths=framewise_fpathsA)
     else:
         data = TwoChannelData(dataA, dataB, paths_data1=framewise_fpathsA, paths_data2=framewise_fpathsB)
-    print('Loaded from', SubDsetType.name(dset_subtype), datadir, len(data))
-    print('')
+    print('Loaded from', SubDsetType.name(dset_subtype), datadir, f'{len(data)}/{count} frames')
     return data
