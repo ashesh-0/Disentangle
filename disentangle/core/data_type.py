@@ -32,3 +32,4 @@ class DataType(Enum):
     SilvioLabCSHLData = 26
     ExpMicroscopyV3 = 27
     MultiCropDset = 28
+    Elisa3DData = 29
