@@ -715,7 +715,7 @@ class LadderVAE(pl.LightningModule):
             
             kl[:, i] = kl[:, i] / norm_factor
 
-        if self._mode_3D:
+        if self._mode_3D and self._decoder_mode_3D:
             # In stochastic.py, we sum over all dimensions, including the Z dimension. 
             # To not penalize the KL loss too much, we divide by the depth of the 3D model.
             # NOTE: If we have downsampling in Z dimension, then this needs to change.
@@ -728,7 +728,7 @@ class LadderVAE(pl.LightningModule):
         # kl[i] for each i has length batch_size
         # resulting kl shape: (batch_size, layers)
         kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict[kl_key]], dim=1)
-        if self._mode_3D:
+        if self._mode_3D and self._decoder_mode_3D:
             # In stochastic.py, we sum over all dimensions, including the Z dimension. 
             # To not penalize the KL loss too much, we divide by the depth of the 3D model.
             # NOTE: If we have downsampling in Z dimension, then this needs to change.
