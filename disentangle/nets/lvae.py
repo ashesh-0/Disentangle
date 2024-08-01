@@ -134,6 +134,11 @@ class LadderVAE(pl.LightningModule):
         else:
             raise NotImplementedError('data_mean and data_std must be either a numpy array or a dictionary')
 
+        if self._decoder_mode_3D is False and self._mode_3D:
+            assert len(self.data_mean['target'].shape) == 5
+            self.data_mean['target'] = self.data_mean['target'][...,0]
+            self.data_std['target'] = self.data_std['target'][...,0]
+        
         self.noiseModel = get_noise_model(config)
         self.merge_type = config.model.merge_type
         self.analytical_kl = config.model.analytical_kl
