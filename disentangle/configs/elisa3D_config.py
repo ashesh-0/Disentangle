@@ -15,8 +15,8 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.Elisa3DData
     data.channel_idx_list = [0,1]
-    data.zstart = 25
-    data.zstop = 40
+    data.zstart = 33
+    data.zstop = 34
     data.depth3D = data.zstop - data.zstart
 
 
@@ -68,7 +68,7 @@ def get_config():
 
     model = config.model
     model.mode_3D = True
-    model.decoder.mode_3D = False
+    model.decoder.mode_3D = model.mode_3D
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
 
