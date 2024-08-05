@@ -15,9 +15,9 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.Elisa3DData
     data.channel_idx_list = [0,1]
-    data.zstart = 23
-    data.zstop = 44
-    data.depth3D = 10
+    data.zstart = 25
+    data.zstop = 40
+    data.depth3D = 1
     assert data.depth3D <= data.zstop - data.zstart
 
 
