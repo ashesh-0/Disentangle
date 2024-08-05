@@ -197,7 +197,7 @@ class MultiChDloader:
         print(msg)
 
         self.N = len(self._data)
-        self._5Ddata = len(self._data.shape) == 5
+        self._5Ddata = len(self._data.shape) == 5 
         if self._5Ddata:
             self.Z = self._data.shape[1]
 
@@ -556,7 +556,7 @@ class MultiChDloader:
 
         mean = np.array(mean_arr)
         std = np.array(std_arr)
-        if self._depth3D > 1:
+        if self._5Ddata: #NOTE: IDEALLY this should be only when the model expects 3D data.
             return mean[None, :, None, None, None], std[None, :, None, None, None]
         
         return mean[None, :, None, None], std[None, :, None, None]
@@ -599,7 +599,7 @@ class MultiChDloader:
         if self._skip_normalization_using_mean:
             mean = np.zeros_like(mean)
         
-        if self._depth3D > 1:
+        if self._5Ddata:
             mean = mean[:,:,None]
             std = std[:,:,None]
 
