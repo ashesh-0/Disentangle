@@ -19,8 +19,11 @@ class GridIndexManager:
                 raise ValueError(f"Patch shape:{self.patch_shape} must be greater than or equal to grid shape:{self.grid_shape} in dimension {dim}")
             if pad % 2 != 0:
                 raise ValueError(f"Patch shape:{self.patch_shape} must have even padding in dimension {dim}")
+
+    def patch_offset(self):
+        return (np.array(self.patch_shape) - np.array(self.grid_shape))//2
     
-    def get_dim_individual_size(self, dim:int):
+    def get_individual_dim_grid_count(self, dim:int):
         """
         Returns the number of the grid in the specified dimension, ignoring all other dimensions.
         """
@@ -35,13 +38,13 @@ class GridIndexManager:
             excess_size = self.patch_shape[dim] - self.grid_shape[dim]
             return int(np.floor((self.data_shape[dim] - excess_size) / self.grid_shape[dim]))
     
-    def grid_count(self):
+    def total_grid_count(self):
         """
         Returns the total number of grids in the dataset.
         """
-        return self.get_dim_size(0) * self.get_dim_individual_size(0)
+        return self.grid_count(0) * self.get_individual_dim_grid_count(0)
     
-    def get_dim_size(self, dim:int):
+    def grid_count(self, dim:int):
         """
         Returns the total number of grids for one value in the specified dimension.
         """
@@ -50,9 +53,9 @@ class GridIndexManager:
         if dim == len(self.data_shape)-1:
             return 1
         
-        return self.get_dim_individual_size(dim+1) * self.get_dim_size(dim+1)
+        return self.get_individual_dim_grid_count(dim+1) * self.grid_count(dim+1)
     
-    def get_dim_index(self, dim:int, coordinate:int):
+    def get_grid_index(self, dim:int, coordinate:int):
         """
         Returns the index of the grid in the specified dimension.
         """
@@ -69,28 +72,36 @@ class GridIndexManager:
             # can be <0 if coordinate is in [0,grid_shape[dim]]
             return max(0, np.floor((coordinate - excess_size) / self.grid_shape[dim]))
         
-    def dataset_idx_from_dim_indices(self, dim_indices:tuple):
+    def dataset_idx_from_grid_idx(self, grid_idx:tuple):
         """
         Returns the index of the grid in the dataset.
         """
-        assert len(dim_indices) == len(self.data_shape), f"Dimension indices {dim_indices} must have the same dimension as data shape {self.data_shape}"
+        assert len(grid_idx) == len(self.data_shape), f"Dimension indices {grid_idx} must have the same dimension as data shape {self.data_shape}"
         index = 0
-        for dim in range(len(dim_indices)):
-            index += dim_indices[dim] * self.get_dim_size(dim)
+        for dim in range(len(grid_idx)):
+            index += grid_idx[dim] * self.grid_count(dim)
         return index
     
-    def dataset_idx_from_location(self, location:tuple):
-        assert len(location) == len(self.data_shape), f"Location {location} must have the same dimension as data shape {self.data_shape}"
-        dim_indices = [self.get_dim_index(dim, location[dim]) for dim in range(len(location))]
-        return self.dataset_idx_from_dim_indices(tuple(dim_indices))
-    
-    def get_topleft_location_from_dim_index(self, dim:int, dim_index:int):
+    def get_patch_location_from_dataset_idx(self, dataset_idx:int):
         """
-        Returns the top-left coordinate of the grid in the specified dimension.
+        Returns the patch location of the grid in the dataset.
+        """
+        location = self.get_location_from_dataset_idx(dataset_idx)
+        offset = self.patch_offset()
+        return tuple(np.array(location) - np.array(offset))
+    
+    def get_dataset_idx_from_grid_location(self, location:tuple):
+        assert len(location) == len(self.data_shape), f"Location {location} must have the same dimension as data shape {self.data_shape}"
+        grid_idx = [self.get_grid_index(dim, location[dim]) for dim in range(len(location))]
+        return self.dataset_idx_from_grid_idx(tuple(grid_idx))
+    
+    def get_gridstart_location_from_dim_index(self, dim:int, dim_index:int):
+        """
+        Returns the grid-start coordinate of the grid in the specified dimension.
         """
         assert dim < len(self.data_shape), f"Dimension {dim} is out of bounds for data shape {self.data_shape}"
         assert dim >= 0, "Dimension must be greater than or equal to 0"
-        assert dim_index < self.get_dim_individual_size(dim), f"Dimension index {dim_index} is out of bounds for data shape {self.data_shape}"
+        assert dim_index < self.get_individual_dim_grid_count(dim), f"Dimension index {dim_index} is out of bounds for data shape {self.data_shape}"
 
         if self.grid_shape[dim]==1 and self.patch_shape[dim]==1:
             return dim_index
@@ -101,11 +112,11 @@ class GridIndexManager:
             return dim_index * self.grid_shape[dim] + excess_size
 
     def get_location_from_dataset_idx(self, dataset_idx:int):
-        dim_indices = []
+        grid_idx = []
         for dim in range(len(self.data_shape)):
-            dim_indices.append(dataset_idx // self.get_dim_size(dim))
-            dataset_idx = dataset_idx % self.get_dim_size(dim)
-        location = [self.get_topleft_location_from_dim_index(dim, dim_indices[dim]) for dim in range(len(self.data_shape))]
+            grid_idx.append(dataset_idx // self.grid_count(dim))
+            dataset_idx = dataset_idx % self.grid_count(dim)
+        location = [self.get_gridstart_location_from_dim_index(dim, grid_idx[dim]) for dim in range(len(self.data_shape))]
         return tuple(location)
     
     def on_boundary(self, dataset_idx:int, dim:int):
@@ -114,8 +125,12 @@ class GridIndexManager:
         """
         assert dim < len(self.data_shape), f"Dimension {dim} is out of bounds for data shape {self.data_shape}"
         assert dim >= 0, "Dimension must be greater than or equal to 0"
-        dim_index = dataset_idx // self.get_dim_size(dim)
-        return dim_index == 0 or dim_index == self.get_dim_individual_size(dim) - 1
+        
+        if dim > 0:
+            dataset_idx = dataset_idx % self.grid_count(dim-1)
+
+        dim_index = dataset_idx // self.grid_count(dim)
+        return dim_index == 0 or dim_index == self.get_individual_dim_grid_count(dim) - 1
     
     def next_grid_along_dim(self, dataset_idx:int, dim:int):
         """
@@ -123,8 +138,8 @@ class GridIndexManager:
         """
         assert dim < len(self.data_shape), f"Dimension {dim} is out of bounds for data shape {self.data_shape}"
         assert dim >= 0, "Dimension must be greater than or equal to 0"
-        new_idx = dataset_idx + self.get_dim_size(dim)
-        if new_idx >= self.grid_count():
+        new_idx = dataset_idx + self.grid_count(dim)
+        if new_idx >= self.total_grid_count():
             return None
         return new_idx
     
@@ -134,18 +149,22 @@ class GridIndexManager:
         """
         assert dim < len(self.data_shape), f"Dimension {dim} is out of bounds for data shape {self.data_shape}"
         assert dim >= 0, "Dimension must be greater than or equal to 0"
-        new_idx = dataset_idx - self.get_dim_size(dim)
+        new_idx = dataset_idx - self.grid_count(dim)
         if new_idx < 0:
             return None
 
 if __name__ == '__main__':
-    data_shape = (1, 103, 103,2)
-    grid_shape = (1, 16,16, 2)
-    patch_shape = (1, 32, 32, 2)
-    trim_boundary = True
+    data_shape =   (1, 1, 103, 103,2)
+    grid_shape =   (1, 1, 16,16, 2)
+    patch_shape =  (1, 1, 32, 32, 2)
+    trim_boundary = False
     manager = GridIndexManager(data_shape, grid_shape, patch_shape, trim_boundary)
-    gc = manager.grid_count()
+    gc = manager.total_grid_count()
     for i in range(gc):
-        print(i, manager.get_location_from_dataset_idx(i))
+        loc = manager.get_location_from_dataset_idx(i)
+        print(i, loc)
+        inferred_i = manager.dataset_idx_from_location(loc)
+        assert i == inferred_i, f"Index mismatch: {i} != {inferred_i}"
     
-    
+    for i in range(5):
+        print(manager.on_boundary(40, i))

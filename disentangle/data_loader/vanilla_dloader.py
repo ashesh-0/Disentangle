@@ -6,7 +6,9 @@ import numpy as np
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.core.empty_patch_fetcher import EmptyPatchFetcher
-from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+# from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+from disentangle.data_loader.patch_index_manager import GridAlignement
+from disentangle.data_loader.patch_index_manager_v2 import GridIndexManager
 from disentangle.data_loader.target_index_switcher import IndexSwitcher
 from disentangle.data_loader.train_val_data import get_train_val_data
 
@@ -25,23 +27,22 @@ class MultiChDloader:
                  use_one_mu_std=None,
                  allow_generation=False,
                  max_val=None,
-                 grid_alignment=GridAlignement.LeftTop,
+                #  grid_alignment=GridAlignement.LeftTop,
+                trim_boundary=True,
                  overlapping_padding_kwargs=None,
                  print_vars=True):
         """
         Here, an image is split into grids of size img_sz.
         Args:
-            repeat_factor: Since we are doing a random crop, repeat_factor is
-                given which can repeatedly sample from the same image. If self.N=12
-                and repeat_factor is 5, then index upto 12*5 = 60 is allowed.
             use_one_mu_std: If this is set to true, then one mean and stdev is used
                 for both channels. Otherwise, two different meean and stdev are used.
 
         """
         self._fpath = fpath
-        self._data = self.N = self._noise_data = None
+        self._data  = self._noise_data = None
         self.Z = 1
         self._5Ddata = False
+        self._trim_boundary = trim_boundary
         # by default, if the noise is present, add it to the input and target.
         self._disable_noise = False
         self._poisson_noise_factor = None
@@ -79,12 +80,12 @@ class MultiChDloader:
 
         self._background_values = None
 
-        self._grid_alignment = grid_alignment
+        # self._grid_alignment = grid_alignment
         self._overlapping_padding_kwargs = overlapping_padding_kwargs
-        if self._grid_alignment == GridAlignement.LeftTop:
+        if self._trim_boundary:
             assert self._overlapping_padding_kwargs is None or data_config.multiscale_lowres_count is not None, "Padding is not used with this alignement style"
-        elif self._grid_alignment == GridAlignement.Center:
-            assert self._overlapping_padding_kwargs is not None, 'With Center grid alignment, padding is needed.'
+        else:
+            assert self._overlapping_padding_kwargs is not None, 'When not trimming boudnary, padding is needed.'
 
         self._is_train = datasplit_type == DataSplitType.Train
 
@@ -92,7 +93,7 @@ class MultiChDloader:
         # alpha is sampled randomly between these two extremes
         self._start_alpha_arr = self._end_alpha_arr = self._return_alpha = self._alpha_weighted_target = None
 
-        self._img_sz = self._grid_sz = self._repeat_factor = self.idx_manager = None
+        self._img_sz = self._grid_sz  = self.idx_manager = None
         if self._is_train:
             self._start_alpha_arr = data_config.get('start_alpha', None)
             self._end_alpha_arr = data_config.get('end_alpha', None)
@@ -196,7 +197,6 @@ class MultiChDloader:
                 self._noise_data[..., 0] = np.mean(self._noise_data[..., 1:], axis=-1)
         print(msg)
 
-        self.N = len(self._data)
         self._5Ddata = len(self._data.shape) == 5 
         if self._5Ddata:
             self.Z = self._data.shape[1]
@@ -297,9 +297,19 @@ class MultiChDloader:
         if self._noise_data is not None:
             self._noise_data = self._noise_data[t_list, h_start:h_end, w_start:w_end, :].copy()
 
-        self.N = len(t_list)
         self.set_img_sz(self._img_sz, self._grid_sz)
         print(f'[{self.__class__.__name__}] Data reduced. New data shape: {self._data.shape}')
+
+    def get_idx_manager_shapes(self, patch_size:int, grid_size:int):
+        numC = self._data.shape[-1]
+        if self._5Ddata:
+            grid_shape = (1, 1, grid_size, grid_size, numC)
+            patch_shape = (1, self._depth3D, patch_size, patch_size, numC)
+        else:
+            grid_shape = (1, grid_size, grid_size, numC)
+            patch_shape = (1, patch_size, patch_size, numC)
+
+        return patch_shape, grid_shape
 
     def set_img_sz(self, image_size, grid_size):
         """
@@ -312,25 +322,23 @@ class MultiChDloader:
         self._img_sz = image_size
         self._grid_sz = grid_size
         shape = self._data.shape
-        if self._5Ddata:
-            self.idx_manager = GridIndexManager((shape[0]*(shape[1] - self._depth3D + 1), *shape[2:]), self._grid_sz, self._img_sz, self._grid_alignment)
-        else:
-            self.idx_manager = GridIndexManager(shape, self._grid_sz, self._img_sz, self._grid_alignment)
-        self.set_repeat_factor()
+        
+        patch_shape, grid_shape = self.get_idx_manager_shapes(self._img_sz, self._grid_sz)
+        self.idx_manager = GridIndexManager(shape, grid_shape, patch_shape, self._trim_boundary)
+        # self.set_repeat_factor()
 
     def __len__(self):
-        if self._5Ddata:
-            return self.N * (self.Z -self._depth3D + 1) * self._repeat_factor
-        else:
-            assert self._depth3D == 1
-            return self.N * self._repeat_factor
+        return self.idx_manager.total_grid_count()
 
-    def set_repeat_factor(self):
-        self._repeat_factor = self.idx_manager.grid_rows(self._grid_sz) * self.idx_manager.grid_cols(self._grid_sz)
+    # def set_repeat_factor(self):
+    #     self._repeat_factor = self.idx_manager.grid_rows(self._grid_sz) * self.idx_manager.grid_cols(self._grid_sz)
 
     def _init_msg(self, ):
         msg = f'[{self.__class__.__name__}] Train:{int(self._is_train)} Sz:{self._img_sz}'
-        msg += f' N:{self.N} NumPatchPerN:{self._repeat_factor}'
+        dim_sizes = [self.idx_manager.get_individual_dim_grid_count(dim) for dim in range(len(self._data.shape))]
+        dim_sizes = ','.join([str(x) for x in dim_sizes])
+        msg += f'{self.idx_manager.total_grid_count()} DimSz:({dim_sizes})'
+        # msg += f' N:{self.N} NumPatchPerN:{self._repeat_factor}'
         # msg += f' NormInp:{self._normalized_input}'
         # msg += f' SingleNorm:{self._use_one_mu_std}'
         msg += f' Rot:{self._enable_rotation}'
@@ -376,13 +384,13 @@ class MultiChDloader:
         })
 
     def _crop_img(self, img: np.ndarray, h_start: int, w_start: int):
-        if self._grid_alignment == GridAlignement.LeftTop:
+        if self._trim_boundary:
             # In training, this is used.
             # NOTE: It is my opinion that if I just use self._crop_img_with_padding, it will work perfectly fine.
             # The only benefit this if else loop provides is that it makes it easier to see what happens during training.
             new_img = img[..., h_start:h_start + self._img_sz, w_start:w_start + self._img_sz]
             return new_img
-        elif self._grid_alignment == GridAlignement.Center:
+        else:
             # During evaluation, this is used. In this situation, we can have negative h_start, w_start. Or h_start +self._img_sz can be larger than frame
             # In these situations, we need some sort of padding. This is not needed  in the LeftTop alignement.
             return self._crop_img_with_padding(img, h_start, w_start)
@@ -472,21 +480,20 @@ class MultiChDloader:
         else:
             idx = index[0]
 
-        tidx = self.idx_manager.get_t(idx)
+        patch_loc_list = self.idx_manager.get_patch_location_from_dataset_idx(idx)
         if self._5Ddata:
             assert self._noise_data is None, 'Noise is not supported for 5D data'
-            n_idx = tidx // (self.Z - self._depth3D + 1)
-            z_idx = tidx % (self.Z - self._depth3D + 1)
-            tidx = range(z_idx, z_idx + self._depth3D)
-            imgs = self._data[n_idx, tidx]
+            n_loc, z_loc = patch_loc_list[:2]
+            z_loc_interval = range(z_loc, z_loc + self._depth3D)
+            imgs = self._data[n_loc, z_loc_interval]
         else:
-            imgs = self._data[tidx]
+            imgs = self._data[patch_loc_list[0]]
         
         loaded_imgs = [imgs[None, ..., i] for i in range(imgs.shape[-1])]
         noise = []
         if self._noise_data is not None and not self._disable_noise:
             noise = [
-                self._noise_data[tidx][None, ..., i] for i in range(self._noise_data.shape[-1])
+                self._noise_data[patch_loc_list[0]][None, ..., i] for i in range(self._noise_data.shape[-1])
             ]
         return tuple(loaded_imgs), tuple(noise)
 
@@ -521,22 +528,14 @@ class MultiChDloader:
     def on_boundary(self, cur_loc, frame_size):
         return cur_loc + self._img_sz > frame_size or cur_loc < 0
 
-    def _get_deterministic_hw(self, index: Union[int, Tuple[int, int]]):
+    def _get_deterministic_hw(self, index:int):
         """
         It returns the top-left corner of the patch corresponding to index.
         """
-        if isinstance(index, int) or isinstance(index, np.int64):
-            idx = index
-            grid_size = self._grid_sz
-        else:
-            idx, grid_size = index
-
-        h_start, w_start = self.idx_manager.get_deterministic_hw(idx, grid_size=grid_size)
-        if self._grid_alignment == GridAlignement.LeftTop:
-            return h_start, w_start
-        elif self._grid_alignment == GridAlignement.Center:
-            pad = self.per_side_overlap_pixelcount()
-            return h_start - pad, w_start - pad
+        loc_list = self.idx_manager.get_patch_location_from_dataset_idx(index)
+        # last dim is channel. we need to take the third and the second last element.
+        h_start, w_start = loc_list[-3:-1]
+        return h_start , w_start
 
     def compute_individual_mean_std(self):
         # numpy 1.19.2 has issues in computing for large arrays. https://github.com/numpy/numpy/issues/8869
@@ -726,8 +725,6 @@ class MultiChDloader:
                 index = self._train_index_switcher.get_invalid_target_index()
         return index
     
-    # def _rotate(self, img_tuples, noise_tuples):
-    #     return self._rotate2D(img_tuples, noise_tuples)
 
     def _rotate2D(self, img_tuples, noise_tuples):
         img_kwargs = {}
@@ -752,6 +749,15 @@ class MultiChDloader:
             else:
                 rotated_img_tuples.append(np.concatenate([rot_dic[f'img{i}_{k}'][None] for k in range(len(img))], axis=0))
 
+        rotated_noise_tuples = []
+        for i, nimg in enumerate(noise_tuples):
+            if len(nimg) == 1:
+                rotated_noise_tuples.append(rot_dic[f'noise{i}_0'][None])
+            else:
+                rotated_noise_tuples.append(np.concatenate([rot_dic[f'noise{i}_{k}'][None] for k in range(len(nimg))], axis=0))
+        
+        return rotated_img_tuples, rotated_noise_tuples
+    
     def _rotate(self, img_tuples, noise_tuples):
         if self._depth3D > 1:
             return self._rotate3D(img_tuples, noise_tuples)
@@ -796,39 +802,7 @@ class MultiChDloader:
 
         return rotated_img_tuples, rotated_noise_tuples
 
-    # def _rotate2D(self, img_tuples, noise_tuples):
-    #     img_kwargs = {}
-    #     for i,img in enumerate(img_tuples):
-    #         for k in range(len(img)):
-    #             img_kwargs[f'img{i}_{k}'] = img[k]
-        
-    #     noise_kwargs = {}
-    #     for i,nimg in enumerate(noise_tuples):
-    #         for k in range(len(nimg)):
-    #             noise_kwargs[f'noise{i}_{k}'] = nimg[k]
-        
-
-    #     keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
-    #     self._rotation_transform.add_targets({k: 'image' for k in keys})
-    #     rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
-    #     rotated_img_tuples = []
-    #     for i,img in enumerate(img_tuples):
-    #         if len(img) == 1:
-    #             rotated_img_tuples.append(rot_dic[f'img{i}_0'][None])
-    #         else:
-    #             rotated_img_tuples.append(np.concatenate([rot_dic[f'img{i}_{k}'][None] for k in range(len(img))], axis=0))
-
-# =======
-# >>>>>>> lc_variant
-        rotated_noise_tuples = []
-        for i, nimg in enumerate(noise_tuples):
-            if len(nimg) == 1:
-                rotated_noise_tuples.append(rot_dic[f'noise{i}_0'][None])
-            else:
-                rotated_noise_tuples.append(np.concatenate([rot_dic[f'noise{i}_{k}'][None] for k in range(len(nimg))], axis=0))
-        
-        return rotated_img_tuples, rotated_noise_tuples
-
+   
     def get_uncorrelated_img_tuples(self, index):
         img_tuples, noise_tuples = self._get_img(index)
         assert len(noise_tuples) == 0
@@ -889,11 +863,11 @@ class MultiChDloader:
 
 if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
-    from disentangle.configs.pavia_atn_3Dconfig import get_config
+    from disentangle.configs.elisa3D_config import get_config
     config = get_config()
     dset = MultiChDloader(
         config.data,
-        '/group/jug/ashesh/data/microscopy/OptiMEM100x014_medium.tif',
+        '/group/jug/ashesh/data/Elisa3D',
         DataSplitType.Train,
         val_fraction=config.training.val_fraction,
         test_fraction=config.training.test_fraction,
@@ -903,7 +877,7 @@ if __name__ == '__main__':
         use_one_mu_std=config.data.use_one_mu_std,
         allow_generation=False,
         max_val=None,
-        grid_alignment=GridAlignement.LeftTop,
+        # grid_alignment=GridAlignement.LeftTop,
         overlapping_padding_kwargs=None)
 
     mean, std = dset.compute_mean_std()
