@@ -83,7 +83,9 @@ class MultiChDloader:
         # self._grid_alignment = grid_alignment
         self._overlapping_padding_kwargs = overlapping_padding_kwargs
         if self._trim_boundary:
-            assert self._overlapping_padding_kwargs is None or data_config.multiscale_lowres_count is not None, "Padding is not used with this alignement style"
+            if self._overlapping_padding_kwargs is None or data_config.multiscale_lowres_count is not None:
+                # raise warning
+                print('Padding is not used with this alignement style') 
         else:
             assert self._overlapping_padding_kwargs is not None, 'When not trimming boudnary, padding is needed.'
 
@@ -367,35 +369,46 @@ class MultiChDloader:
             return (*img_tuples, {'h': [0, h], 'w': [0, w], 'hflip': False, 'wflip': False})
 
         if self._enable_random_cropping:
-            h_start, w_start = self._get_random_hw(h, w)
+            patch_start_loc = self._get_random_hw(h, w)
+            if self._5Ddata:
+                patch_start_loc = (np.random.choice(img_tuples[0].shape[-3] - self._depth3D),) + patch_start_loc
         else:
-            h_start, w_start = self._get_deterministic_hw(index)
+            patch_start_loc = self._get_deterministic_loc(index)
 
         cropped_imgs = []
         for img in img_tuples:
-            img = self._crop_flip_img(img, h_start, w_start, False, False)
+            img = self._crop_flip_img(img, patch_start_loc, False, False)
             cropped_imgs.append(img)
 
         return (*tuple(cropped_imgs), {
-            'h': [h_start, h_start + self._img_sz],
-            'w': [w_start, w_start + self._img_sz],
+            # 'h': [h_start, h_start + self._img_sz],
+            # 'w': [w_start, w_start + self._img_sz],
             'hflip': False,
             'wflip': False,
         })
 
-    def _crop_img(self, img: np.ndarray, h_start: int, w_start: int):
+    def _crop_img(self, img: np.ndarray, patch_start_loc:Tuple):
         if self._trim_boundary:
             # In training, this is used.
             # NOTE: It is my opinion that if I just use self._crop_img_with_padding, it will work perfectly fine.
             # The only benefit this if else loop provides is that it makes it easier to see what happens during training.
-            new_img = img[..., h_start:h_start + self._img_sz, w_start:w_start + self._img_sz]
+            patch_end_loc = np.array(patch_start_loc, dtype=np.int32) + self.idx_manager.patch_shape[1:-1]
+            if self._5Ddata:
+                z_start, h_start, w_start = patch_start_loc
+                z_end, h_end, w_end = patch_end_loc
+                new_img = img[..., z_start:z_end, h_start:h_end, w_start:w_end]
+            else:
+                h_start, w_start = patch_start_loc
+                h_end, w_end = patch_end_loc
+                new_img = img[..., h_start:h_end, w_start:w_end]
+
             return new_img
         else:
             # During evaluation, this is used. In this situation, we can have negative h_start, w_start. Or h_start +self._img_sz can be larger than frame
             # In these situations, we need some sort of padding. This is not needed  in the LeftTop alignement.
-            return self._crop_img_with_padding(img, h_start, w_start)
+            return self._crop_img_with_padding(img, patch_start_loc)
 
-    def get_begin_end_padding(self, start_pos, max_len):
+    def get_begin_end_padding(self, start_pos, end_pos, max_len):
         """
         The effect is that the image with size self._grid_sz is in the center of the patch with sufficient
         padding on all four sides so that the final patch size is self._img_sz.
@@ -405,38 +418,43 @@ class MultiChDloader:
         if start_pos < 0:
             pad_start = -1 * start_pos
 
-        pad_end = max(0, start_pos + self._img_sz - max_len)
+        pad_end = max(0, end_pos - max_len + 1)
 
         return pad_start, pad_end
 
-    def _crop_img_with_padding(self, img: np.ndarray, h_start: int, w_start: int):
-        *_, H, W = img.shape
-        h_on_boundary = self.on_boundary(h_start, H)
-        w_on_boundary = self.on_boundary(w_start, W)
-
-        assert h_start < H
-        assert w_start < W
-
-        assert h_start + self._img_sz <= H or h_on_boundary
-        assert w_start + self._img_sz <= W or w_on_boundary
+    def _crop_img_with_padding(self, img: np.ndarray, patch_start_loc: Tuple):
+        max_len_vals = self.idx_manager.data_shape[1:-1]
+        patch_end_loc = np.array(patch_start_loc, dtype=int) + np.array(self.idx_manager.patch_shape[1:-1], dtype=int)
+        on_boundary = []
+        valid_slice = []
+        padding = [[0,0]]
+        for start_idx, end_idx, max_len in zip(patch_start_loc, patch_end_loc, max_len_vals):
+            on_boundary.append(end_idx > max_len-1 or start_idx < 0)
+            valid_slice.append((max(0, start_idx), min(max_len-1, end_idx)))
+            pad = [0, 0]
+            if on_boundary[-1]:
+                pad = self.get_begin_end_padding(start_idx, end_idx, max_len)
+            padding.append(pad)
         # max() is needed since h_start could be negative.
-        new_img = img[..., max(0, h_start):h_start + self._img_sz, max(0, w_start):w_start + self._img_sz]
-        padding = np.array([[0, 0]] * len(img.shape))
-
-        if h_on_boundary:
-            pad = self.get_begin_end_padding(h_start, H)
-            padding[-2] = pad
-        if w_on_boundary:
-            pad = self.get_begin_end_padding(w_start, W)
-            padding[-1] = pad
-
+        if self._5Ddata:
+            new_img  = img[..., 
+                            valid_slice[0][0]:valid_slice[0][1], 
+                            valid_slice[1][0]:valid_slice[1][1], 
+                            valid_slice[2][0]:valid_slice[2][1]]
+        else:
+            new_img = img[..., 
+                            valid_slice[0][0]:valid_slice[0][1], 
+                            valid_slice[1][0]:valid_slice[1][1]]
+        
+        # print(np.array(padding).shape, new_img.shape)
+        # print(padding)
         if not np.all(padding == 0):
             new_img = np.pad(new_img, padding, **self._overlapping_padding_kwargs)
 
         return new_img
 
-    def _crop_flip_img(self, img: np.ndarray, h_start: int, w_start: int, h_flip: bool, w_flip: bool):
-        new_img = self._crop_img(img, h_start, w_start)
+    def _crop_flip_img(self, img: np.ndarray, patch_start_loc:Tuple, h_flip: bool, w_flip: bool):
+        new_img = self._crop_img(img, patch_start_loc)
         if h_flip:
             new_img = new_img[..., ::-1, :]
         if w_flip:
@@ -481,13 +499,14 @@ class MultiChDloader:
             idx = index[0]
 
         patch_loc_list = self.idx_manager.get_patch_location_from_dataset_idx(idx)
-        if self._5Ddata:
-            assert self._noise_data is None, 'Noise is not supported for 5D data'
-            n_loc, z_loc = patch_loc_list[:2]
-            z_loc_interval = range(z_loc, z_loc + self._depth3D)
-            imgs = self._data[n_loc, z_loc_interval]
-        else:
-            imgs = self._data[patch_loc_list[0]]
+        imgs = self._data[patch_loc_list[0]]
+        # if self._5Ddata:
+        #     assert self._noise_data is None, 'Noise is not supported for 5D data'
+        #     n_loc, z_loc = patch_loc_list[:2]
+        #     z_loc_interval = range(z_loc, z_loc + self._depth3D)
+        #     imgs = self._data[n_loc, z_loc_interval]
+        # else:
+        #     imgs = self._data[patch_loc_list[0]]
         
         loaded_imgs = [imgs[None, ..., i] for i in range(imgs.shape[-1])]
         noise = []
@@ -525,17 +544,16 @@ class MultiChDloader:
     def per_side_overlap_pixelcount(self):
         return (self._img_sz - self._grid_sz) // 2
 
-    def on_boundary(self, cur_loc, frame_size):
-        return cur_loc + self._img_sz > frame_size or cur_loc < 0
+    # def on_boundary(self, cur_loc, frame_size):
+    #     return cur_loc + self._img_sz > frame_size or cur_loc < 0
 
-    def _get_deterministic_hw(self, index:int):
+    def _get_deterministic_loc(self, index:int):
         """
         It returns the top-left corner of the patch corresponding to index.
         """
         loc_list = self.idx_manager.get_patch_location_from_dataset_idx(index)
         # last dim is channel. we need to take the third and the second last element.
-        h_start, w_start = loc_list[-3:-1]
-        return h_start , w_start
+        return loc_list[1:-1]
 
     def compute_individual_mean_std(self):
         # numpy 1.19.2 has issues in computing for large arrays. https://github.com/numpy/numpy/issues/8869

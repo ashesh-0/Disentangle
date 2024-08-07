@@ -1,211 +1,30 @@
+from dataclasses import dataclass
+from typing import Iterable
+
 import numpy as np
 
 from disentangle.data_loader.multifile_dset import MultiFileDset
-from disentangle.data_loader.patch_index_manager import GridAlignement
 
 
-class PatchLocation:
-    """
-    Encapsulates t_idx and spatial location.
-    """
+@dataclass
+class AlgebTuple:
+    """A tuple class that supports addition and subtraction."""
+    data: tuple
 
-    def __init__(self, h_idx_range, w_idx_range, t_idx):
-        self.t = t_idx
-        self.h_start, self.h_end = h_idx_range
-        self.w_start, self.w_end = w_idx_range
+    def __getitem__(self, idx):
+        return self.data[idx]
 
-    def __str__(self):
-        msg = f'T:{self.t} [{self.h_start}-{self.h_end}) [{self.w_start}-{self.w_end}) '
-        return msg
+    def __len__(self):
+        return len(self.data)
 
+    def __add__(self, other: Iterable): 
+        return AlgebTuple(tuple([self[i] + other[i] for i in range(len(self))]))
 
-def _get_location(extra_padding, hwt, pred_h, pred_w):
-    h_start, w_start, t_idx = hwt
-    h_start -= extra_padding
-    h_end = h_start + pred_h
-    w_start -= extra_padding
-    w_end = w_start + pred_w
-    return PatchLocation((h_start, h_end), (w_start, w_end), t_idx)
+    def __sub__(self, other: Iterable): 
+        return AlgebTuple(tuple([self[i] - other[i] for i in range(len(self))]))
 
-
-def get_location_from_idx(dset, dset_input_idx, pred_h, pred_w):
-    """
-    For a given idx of the dataset, it returns where exactly in the dataset, does this prediction lies. 
-    Note that this prediction also has padded pixels and so a subset of it will be used in the final prediction.
-    Which time frame, which spatial location (h_start, h_end, w_start,w_end)
-    Args:
-        dset:
-        dset_input_idx:
-        pred_h:
-        pred_w:
-
-    Returns:
-    """
-    extra_padding = dset.per_side_overlap_pixelcount()
-    htw = dset.idx_manager.hwt_from_idx(dset_input_idx, grid_size=dset.get_grid_size())
-    loc = _get_location(extra_padding, htw, pred_h, pred_w)
-    return loc
-
-
-def set_skip_boundary_pixels_mask(mask, loc, skip_count):
-    if skip_count == 0:
-        return mask
-    assert skip_count > 0
-    assert loc.h_end - skip_count >= 0
-    assert loc.w_end - skip_count >= 0
-    mask[loc.t, :, loc.h_start:loc.h_start + skip_count, loc.w_start:loc.w_end] = False
-    mask[loc.t, :, loc.h_end - skip_count:loc.h_end, loc.w_start:loc.w_end] = False
-    mask[loc.t, :, loc.h_start:loc.h_end, loc.w_start:loc.w_start + skip_count] = False
-    mask[loc.t, :, loc.h_start:loc.h_end, loc.w_end - skip_count:loc.w_end] = False
-
-
-def set_skip_central_pixels_mask(mask, loc, skip_count):
-    if skip_count == 0:
-        return mask
-    assert skip_count > 0
-    h_mid = (loc.h_start + loc.h_end) // 2
-    w_mid = (loc.w_start + loc.w_end) // 2
-    l_skip = skip_count // 2
-    r_skip = skip_count - l_skip
-    mask[loc.t, :, h_mid - l_skip:h_mid + r_skip, w_mid - l_skip:w_mid + r_skip] = False
-
-
-def stitched_prediction_mask(dset, padded_patch_shape, skip_boundary_pixel_count, skip_central_pixel_count):
-    """
-    Returns the boolean matrix. It will be 0 if it lies either in skipped boundaries or skipped central pixels
-    Args:
-        dset:
-        padded_patch_shape:
-        skip_boundary_pixel_count:
-        skip_central_pixel_count:
-
-    Returns:
-    """
-    N, H, W, C = dset.get_data_shape()
-    mask = np.full((N, C, H, W), True)
-    hN, wN = padded_patch_shape
-    for dset_input_idx in range(len(dset)):
-        loc = get_location_from_idx(dset, dset_input_idx, hN, wN)
-        set_skip_boundary_pixels_mask(mask, loc, skip_boundary_pixel_count)
-        set_skip_central_pixels_mask(mask, loc, skip_central_pixel_count)
-
-    old_img_sz = dset.get_img_sz()
-    dset.set_img_sz(dset._img_sz_for_hw)
-    mask = stitch_predictions(mask, dset)
-    dset.set_img_sz(old_img_sz)
-    return mask
-
-
-def _get_smoothing_mask(cropped_pred_shape, smoothening_pixelcount, loc, frame_size):
-    """
-    It returns a mask. If the mask is multipled with all predictions and predictions are then added to 
-    the overall frame at their corect location, it would simulate following scenario:
-    take all patches belonging to a row. join these patches by smoothening their vertical boundaries. 
-    Then take all these combined and smoothened rows. join them vertically by smoothening the horizontal boundaries.
-    For this to happen, one needs *= operation as used here.  
-    """
-    mask = np.ones(cropped_pred_shape)
-    on_leftb = loc.w_start == 0
-    on_rightb = loc.w_end >= frame_size
-    on_topb = loc.h_start == 0
-    on_bottomb = loc.h_end >= frame_size
-
-    if smoothening_pixelcount == 0:
-        return mask
-
-    assert 2 * smoothening_pixelcount <= min(cropped_pred_shape)
-    if (not on_leftb) and (not on_rightb) and (not on_topb) and (not on_bottomb):
-        assert 4 * smoothening_pixelcount <= min(cropped_pred_shape)
-
-    w_levels = np.arange(1, 0, step=-1 * 1 / (2 * smoothening_pixelcount + 1))[1:].reshape((1, -1))
-    if not on_rightb:
-        mask[:, -2 * smoothening_pixelcount:] *= w_levels
-    if not on_leftb:
-        mask[:, :2 * smoothening_pixelcount] *= w_levels[:, ::-1]
-
-    if not on_bottomb:
-        mask[-2 * smoothening_pixelcount:, :] *= w_levels.T
-
-    if not on_topb:
-        mask[:2 * smoothening_pixelcount, :] *= w_levels[:, ::-1].T
-
-    return mask
-
-
-def remove_pad(pred, loc, extra_padding, frame_shape, on_h_boundary, on_w_boundary, full_prediction=False):
-    if extra_padding > 0:
-        h_s = extra_padding
-
-        # rows
-        h_N = frame_shape[0]
-        if loc.h_end >= h_N:
-            assert loc.h_end - extra_padding <= h_N or full_prediction
-            if full_prediction:
-                h_e = loc.h_end - h_N
-            else:
-                h_e = extra_padding
-        elif on_h_boundary and full_prediction:
-            h_e = 0
-        else:
-            h_e = extra_padding
-
-        w_s = extra_padding
-
-        # columns
-        w_N = frame_shape[1]
-        if loc.w_end >= w_N:
-            assert loc.w_end - extra_padding <= w_N or full_prediction
-            if full_prediction:
-                w_e = loc.w_end - w_N
-            else:
-                w_e = extra_padding
-        elif on_w_boundary and full_prediction:
-            w_e = 0
-        else:
-            w_e = extra_padding
-
-        if h_e > 0 and w_e > 0:
-            return pred[h_s:-h_e, w_s:-w_e]
-        elif h_e > 0:
-            return pred[h_s:-h_e, w_s:]
-        elif w_e > 0:
-            return pred[h_s:, w_s:-w_e]
-        elif h_e == 0 and w_e == 0:
-            return pred[h_s:, w_s:]
-    return pred
-
-
-def update_loc_for_final_insertion_full_pred(loc, extra_padding, frame_shape, on_h_boundary, on_w_boundary):
-    loc.h_start += extra_padding
-    loc.w_start += extra_padding
-    # rows
-    h_N = frame_shape[0]
-    if loc.h_end >= h_N:
-        loc.h_end = h_N
-    elif on_h_boundary:
-        assert loc.h_end == h_N
-    else:
-        loc.h_end -= extra_padding
-
-    w_N = frame_shape[1]
-    if loc.w_end >= w_N:
-        loc.w_end = w_N
-    elif on_w_boundary:
-        assert loc.w_end == w_N
-    else:
-        loc.w_end -= extra_padding
-    return loc
-
-
-def update_loc_for_final_insertion(loc, extra_padding):
-    loc.h_start += extra_padding
-    loc.w_start += extra_padding
-    loc.h_end -= extra_padding
-    loc.w_end -= extra_padding
-    return loc
-
-
-def stitch_predictions(predictions, dset, full_prediction=False):
+# from disentangle.analysis.stitch_prediction import * 
+def stitch_predictions(predictions, dset):
     """
     Args:
         smoothening_pixelcount: number of pixels which can be interpolated
@@ -214,118 +33,65 @@ def stitch_predictions(predictions, dset, full_prediction=False):
         cum_count = 0
         output = []
         for dset in dset.dsets:
-            cnt = dset.idx_manager.grid_count()
+            cnt = dset.idx_manager.total_grid_count()
             output.append(
-                stitch_predictions(predictions[cum_count:cum_count + cnt], dset, full_prediction=full_prediction))
+                stitch_predictions(predictions[cum_count:cum_count + cnt], dset))
             cum_count += cnt
         return output
 
     else:
-        extra_padding = dset.per_side_overlap_pixelcount()
+        mng = dset.idx_manager
+        
         # if there are more channels, use all of them.
         shape = list(dset.get_data_shape())
         shape[-1] = max(shape[-1], predictions.shape[1])
 
         output = np.zeros(shape, dtype=predictions.dtype)
-        frame_shape = dset.get_data_shape()[1:3]
-        for dset_input_idx in range(predictions.shape[0]):
-            loc = get_location_from_idx(dset, dset_input_idx, predictions.shape[-2], predictions.shape[-1])
+        # frame_shape = dset.get_data_shape()[:-1]
+        for dset_idx in range(predictions.shape[0]):
+            # loc = get_location_from_idx(dset, dset_idx, predictions.shape[-2], predictions.shape[-1])
+            # grid start, grid end
+            gs = AlgebTuple(mng.get_location_from_dataset_idx(dset_idx))
+            ge = gs + mng.grid_shape
 
-            cropped_pred_list = []
+            # patch start, patch end
+            ps = gs - mng.patch_offset()
+            pe = ps + mng.patch_shape
+            # print('PS')
+            # print(ps)
+            # print(pe)
+
+            # valid grid start, valid grid end
+            vgs = AlgebTuple([max(0,x) for x in gs])
+            vge = AlgebTuple([min(x,y) for x,y in zip(ge, mng.data_shape)])
+            # print('VGS')
+            # print(gs)
+            # print(ge)
+
+            # relative start, relative end. This will be used on pred_tiled
+            rs = vgs - ps
+            re = rs + ( vge - vgs)
+            # print('RS')
+            # print(rs)
+            # print(re)
+            
+            # print(output.shape)
+            # print(predictions.shape)
             for ch_idx in range(predictions.shape[1]):
-                # class i
-                cropped_pred_i = remove_pad(predictions[dset_input_idx, ch_idx],
-                                            loc,
-                                            extra_padding,
-                                            frame_shape,
-                                            dset.idx_manager.on_bottom_boundary(dset_input_idx),
-                                            dset.idx_manager.on_right_boundary(dset_input_idx),
-                                            full_prediction=full_prediction)
-                cropped_pred_list.append(cropped_pred_i)
-
-            if full_prediction:
-                final_loc = update_loc_for_final_insertion_full_pred(
-                    loc,
-                    extra_padding,
-                    frame_shape,
-                    dset.idx_manager.on_bottom_boundary(dset_input_idx),
-                    dset.idx_manager.on_right_boundary(dset_input_idx),
-                )
-            else:
-                final_loc = update_loc_for_final_insertion(loc, extra_padding)
-
-            for ch_idx in range(predictions.shape[1]):
-                output[final_loc.t, final_loc.h_start:final_loc.h_end, final_loc.w_start:final_loc.w_end,
-                       ch_idx] = cropped_pred_list[ch_idx]
-
+                if len(output.shape) == 4:
+                    # channel dimension is the last one.
+                    output[vgs[0]:vge[0],
+                        vgs[1]:vge[1],
+                        vgs[2]:vge[2],
+                        ch_idx] = predictions[dset_idx][ch_idx,rs[1]:re[1], rs[2]:re[2]]
+                elif len(output.shape) == 5:
+                    # channel dimension is the last one.
+                    output[vgs[0],
+                        vgs[1]:vge[1],
+                        vgs[2]:vge[2],
+                        vgs[3]:vge[3],
+                        ch_idx] = predictions[dset_idx][ch_idx, rs[1]:re[1], rs[2]:re[2], rs[3]:re[3]]
+                else:
+                    raise ValueError(f'Unsupported shape {output.shape}')
+                
         return output
-
-
-def remove_terminal_zeros(pred):
-    he = 1
-    we = 1
-    while pred[:, -he:, -we:].std() == 0:
-        he += 1
-        we += 1
-    he -= 1
-    we -= 1
-    if he == 0 and we == 0:
-        return pred
-    return pred[:, :-he, :-we]
-
-
-if __name__ == '__main__':
-    from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
-    grid_size = 32
-    patch_size = 128
-    data_shape = (10, 550, 920, 2)
-    N = data_shape[0] * (data_shape[1] // grid_size) * (data_shape[2] // grid_size)
-    predictions = np.random.rand(*(N, 2, patch_size, patch_size))
-    # data_shape, grid_size, patch_size, grid_alignement
-    idx_manager = GridIndexManager(data_shape, grid_size, patch_size, GridAlignement.Center)
-
-    class TestDataSet:
-
-        def __init__(self) -> None:
-            self.idx_manager = idx_manager
-
-        def per_side_overlap_pixelcount(self):
-            return (patch_size - grid_size) // 2
-
-        def get_data_shape(self):
-            return data_shape
-
-        def get_grid_size(self):
-            return grid_size
-
-    dset = TestDataSet()
-    # import pdb;pdb.set_trace()
-    stitch_predictions = stitch_predictions(predictions, dset, full_prediction=True)
-    stitch_predictions = remove_terminal_zeros(stitch_predictions)
-    print('Data shape:', data_shape)
-    print('Stitched:', stitch_predictions.shape)
-    # loc = PatchLocation((0, 32), (0, 32), 5)
-    # extra_padding = 16
-    # smoothening_pixelcount = 4
-    # frame_size = 2720
-    # out = remove_pad(np.ones((64, 64)), loc, extra_padding, smoothening_pixelcount, frame_size)
-    # mask = _get_smoothing_mask(out.shape, smoothening_pixelcount, loc, frame_size)
-    # print(loc)
-    # loc = update_loc_for_final_insertion(loc, extra_padding, smoothening_pixelcount, frame_size)
-    # print(loc, mask.shape, out.shape)
-
-    # import matplotlib.pyplot as plt
-    # plt.imshow(mask, cmap='hot')
-    # plt.show()
-    # extra_padding = 0
-    # hwt1 = (0, 0, 0)
-    # pred_h = 4
-    # pred_w = 4
-    # hwt2 = (pred_h, pred_w, 2)
-    # loc1 = _get_location(extra_padding, hwt1, pred_h, pred_w)
-    # loc2 = _get_location(extra_padding, hwt2, pred_h, pred_w)
-    # mask = np.full((10, 8, 8), 1)
-    # set_skip_boundary_pixels_mask(mask, loc1, 1)
-    # set_skip_boundary_pixels_mask(mask, loc2, 1)
-    # print(mask[hwt1[-1]])
-    # print(mask[hwt2[-1]])
