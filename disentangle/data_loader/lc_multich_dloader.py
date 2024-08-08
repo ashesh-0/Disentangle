@@ -30,7 +30,7 @@ class LCMultiChDloader(MultiChDloader):
         allow_generation: bool = False,
         lowres_supervision=None,
         max_val=None,
-        grid_alignment=GridAlignement.LeftTop,
+        # grid_alignment=GridAlignement.LeftTop,
         overlapping_padding_kwargs=None,
         print_vars=True,
     ):
@@ -60,7 +60,7 @@ class LCMultiChDloader(MultiChDloader):
                          use_one_mu_std=use_one_mu_std,
                          allow_generation=allow_generation,
                          max_val=max_val,
-                         grid_alignment=grid_alignment,
+                        #  grid_alignment=grid_alignment,
                          overlapping_padding_kwargs=overlapping_padding_kwargs,
                          print_vars=print_vars)
         self.num_scales = num_scales
@@ -119,14 +119,14 @@ class LCMultiChDloader(MultiChDloader):
         else:
             idx, _ = index
         
-        tidx = self.idx_manager.get_t(idx)
-        if self._depth3D > 1:
-            tidx = range(tidx, tidx + self._depth3D)
-        
-        imgs = self._scaled_data[scaled_index][tidx]
+        # tidx = self.idx_manager.get_t(idx)
+        patch_loc_list = self.idx_manager.get_patch_location_from_dataset_idx(idx)
+        nidx = patch_loc_list[0]
+
+        imgs = self._scaled_data[scaled_index][nidx]
         imgs = tuple([imgs[None,..., i] for i in range(imgs.shape[-1])])
         if self._noise_data is not None:
-            noisedata = self._scaled_noise_data[scaled_index][tidx]
+            noisedata = self._scaled_noise_data[scaled_index][nidx]
             noise = tuple([noisedata[None,..., i] for i in range(noisedata.shape[-1])])
             factor = np.sqrt(2) if self._input_is_sum else 1.0
             # since we are using this lowres images for just the input, we need to add the noise of the input.
@@ -134,12 +134,12 @@ class LCMultiChDloader(MultiChDloader):
             imgs = tuple([img + noise[0] * factor for img in imgs])
         return imgs
 
-    def _crop_img(self, img: np.ndarray, h_start: int, w_start: int):
+    def _crop_img(self, img: np.ndarray, patch_start_loc:Tuple):
         """
         Here, h_start, w_start could be negative. That simply means we need to pick the content from 0. So,
         the cropped image will be smaller than self._img_sz * self._img_sz
         """
-        return self._crop_img_with_padding(img, h_start, w_start)
+        return self._crop_img_with_padding(img, patch_start_loc)
 
     def _get_img(self, index: int):
         """
@@ -149,12 +149,16 @@ class LCMultiChDloader(MultiChDloader):
         assert self._img_sz is not None
         h, w = img_tuples[0].shape[-2:]
         if self._enable_random_cropping:
-            h_start, w_start = self._get_random_hw(h, w)
+            patch_start_loc = self._get_random_hw(h, w)
+            if self._5Ddata:
+                patch_start_loc = (np.random.choice(img_tuples[0].shape[-3] - self._depth3D),) + patch_start_loc
         else:
-            h_start, w_start = self._get_deterministic_hw(index)
+            patch_start_loc = self._get_deterministic_loc(index)
 
-        cropped_img_tuples = [self._crop_flip_img(img, h_start, w_start, False, False) for img in img_tuples]
-        cropped_noise_tuples = [self._crop_flip_img(noise, h_start, w_start, False, False) for noise in noise_tuples]
+        cropped_img_tuples = [self._crop_flip_img(img, patch_start_loc, False, False) for img in img_tuples]
+        cropped_noise_tuples = [self._crop_flip_img(noise, patch_start_loc, False, False) for noise in noise_tuples]
+        patch_start_loc = list(patch_start_loc)
+        h_start, w_start = patch_start_loc[-2], patch_start_loc[-1]
         h_center = h_start + self._img_sz // 2
         w_center = w_start + self._img_sz // 2
         allres_versions = {i: [cropped_img_tuples[i]] for i in range(len(cropped_img_tuples))}
@@ -166,8 +170,9 @@ class LCMultiChDloader(MultiChDloader):
 
             h_start = h_center - self._img_sz // 2
             w_start = w_center - self._img_sz // 2
+            patch_start_loc[-2:] = [h_start, w_start]
             scaled_cropped_img_tuples = [
-                self._crop_flip_img(img, h_start, w_start, False, False) for img in scaled_img_tuples
+                self._crop_flip_img(img, patch_start_loc, False, False) for img in scaled_img_tuples
             ]
             for ch_idx in range(len(img_tuples)):
                 allres_versions[ch_idx].append(scaled_cropped_img_tuples[ch_idx])
@@ -236,7 +241,7 @@ if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
     import matplotlib.pyplot as plt
 
-    from disentangle.configs.pavia_atn_3Dconfig import get_config
+    from disentangle.configs.biosr_config import get_config
     config = get_config()
     config.data.multiscale_lowres_count = 3
     padding_kwargs = {'mode': config.data.padding_mode}
@@ -244,7 +249,7 @@ if __name__ == '__main__':
         padding_kwargs['constant_values'] = config.data.padding_value
 
     dset = LCMultiChDloader(config.data,
-                            '/group/jug/ashesh/data/microscopy/OptiMEM100x014_medium.tif',
+                            '/group/jug/ashesh/data/BioSR/',
                             DataSplitType.Train,
                             val_fraction=config.training.val_fraction,
                             test_fraction=config.training.test_fraction,
@@ -256,13 +261,14 @@ if __name__ == '__main__':
                             num_scales=config.data.multiscale_lowres_count,
                             max_val=None,
                             padding_kwargs=padding_kwargs,
-                            grid_alignment=GridAlignement.LeftTop,
+                            # grid_alignment=GridAlignement.LeftTop,
                             overlapping_padding_kwargs=None)
 
     mean, std = dset.compute_mean_std()
     dset.set_mean_std(mean, std)
 
     inp, tar = dset[0]
+    print(inp.shape, tar.shape)
     if config.data.get('depth3D', 1) > 1:
         inp = inp[:,0]
         tar = tar[:,0]
