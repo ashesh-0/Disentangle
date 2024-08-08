@@ -340,7 +340,7 @@ class MultiChDloader:
         dim_sizes = [self.idx_manager.get_individual_dim_grid_count(dim) for dim in range(len(self._data.shape))]
         dim_sizes = ','.join([str(x) for x in dim_sizes])
         msg += f'{self.idx_manager.total_grid_count()} DimSz:({dim_sizes})'
-        # msg += f' N:{self.N} NumPatchPerN:{self._repeat_factor}'
+        msg += f' TrimB:{self._trim_boundary}'
         # msg += f' NormInp:{self._normalized_input}'
         # msg += f' SingleNorm:{self._use_one_mu_std}'
         msg += f' Rot:{self._enable_rotation}'
@@ -422,8 +422,9 @@ class MultiChDloader:
 
         return pad_start, pad_end
 
-    def _crop_img_with_padding(self, img: np.ndarray, patch_start_loc: Tuple):
-        max_len_vals = self.idx_manager.data_shape[1:-1]
+    def _crop_img_with_padding(self, img: np.ndarray, patch_start_loc: Tuple, max_len_vals=None):
+        if max_len_vals is None:
+            max_len_vals = self.idx_manager.data_shape[1:-1]
         patch_end_loc = np.array(patch_start_loc, dtype=int) + np.array(self.idx_manager.patch_shape[1:-1], dtype=int)
         on_boundary = []
         valid_slice = []
@@ -882,10 +883,13 @@ class MultiChDloader:
 if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
     from disentangle.configs.elisa3D_config import get_config
+
+    # from disentangle.configs.biosr_config import get_config
     config = get_config()
     dset = MultiChDloader(
         config.data,
         '/group/jug/ashesh/data/Elisa3D',
+        # '/group/jug/ashesh/data/BioSR',
         DataSplitType.Train,
         val_fraction=config.training.val_fraction,
         test_fraction=config.training.test_fraction,

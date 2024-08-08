@@ -30,6 +30,7 @@ class LCMultiChDloader(MultiChDloader):
         allow_generation: bool = False,
         lowres_supervision=None,
         max_val=None,
+        trim_boundary=True,
         # grid_alignment=GridAlignement.LeftTop,
         overlapping_padding_kwargs=None,
         print_vars=True,
@@ -60,6 +61,7 @@ class LCMultiChDloader(MultiChDloader):
                          use_one_mu_std=use_one_mu_std,
                          allow_generation=allow_generation,
                          max_val=max_val,
+                         trim_boundary=trim_boundary,
                         #  grid_alignment=grid_alignment,
                          overlapping_padding_kwargs=overlapping_padding_kwargs,
                          print_vars=print_vars)
@@ -139,7 +141,9 @@ class LCMultiChDloader(MultiChDloader):
         Here, h_start, w_start could be negative. That simply means we need to pick the content from 0. So,
         the cropped image will be smaller than self._img_sz * self._img_sz
         """
-        return self._crop_img_with_padding(img, patch_start_loc)
+        max_len_vals = list(self.idx_manager.data_shape[1:-1])
+        max_len_vals[-2:]= img.shape[-2:]
+        return self._crop_img_with_padding(img, patch_start_loc, max_len_vals=max_len_vals)
 
     def _get_img(self, index: int):
         """

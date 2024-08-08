@@ -27,7 +27,7 @@ class SingleFileLCDset(LCMultiChDloader):
                  allow_generation: bool = False,
                  lowres_supervision=None,
                  max_val=None,
-                 grid_alignment=GridAlignement.LeftTop,
+                 trim_boundary=True,
                  overlapping_padding_kwargs=None,
                  print_vars=True):
         self._preloaded_data = preloaded_data
@@ -45,7 +45,7 @@ class SingleFileLCDset(LCMultiChDloader):
                          allow_generation=allow_generation,
                          lowres_supervision=lowres_supervision,
                          max_val=max_val,
-                         grid_alignment=grid_alignment,
+                         trim_boundary=trim_boundary,
                          overlapping_padding_kwargs=overlapping_padding_kwargs,
                          print_vars=print_vars)
 
@@ -79,7 +79,7 @@ class SingleFileDset(MultiChDloader):
                  use_one_mu_std=None,
                  allow_generation=False,
                  max_val=None,
-                 grid_alignment=GridAlignement.LeftTop,
+                 trim_boundary=True,
                  overlapping_padding_kwargs=None,
                  print_vars=True):
         self._preloaded_data = preloaded_data
@@ -94,7 +94,7 @@ class SingleFileDset(MultiChDloader):
                          use_one_mu_std=use_one_mu_std,
                          allow_generation=allow_generation,
                          max_val=max_val,
-                         grid_alignment=grid_alignment,
+                         trim_boundary=trim_boundary,
                          overlapping_padding_kwargs=overlapping_padding_kwargs,
                          print_vars=print_vars)
 
@@ -129,7 +129,7 @@ class MultiFileDset:
                  enable_random_cropping: bool = False,
                  use_one_mu_std=None,
                  max_val=None,
-                 grid_alignment=GridAlignement.LeftTop,
+                 trim_boundary=True,
                  padding_kwargs=None,
                  overlapping_padding_kwargs=None):
 
@@ -160,7 +160,7 @@ class MultiFileDset:
                                      allow_generation=False,
                                      num_scales=data_config.multiscale_lowres_count,
                                      max_val=max_val,
-                                     grid_alignment=grid_alignment,
+                                     trim_boundary=trim_boundary,
                                      padding_kwargs=padding_kwargs,
                                      overlapping_padding_kwargs=overlapping_padding_kwargs,
                                      print_vars=i == len(data) - 1))
@@ -179,7 +179,7 @@ class MultiFileDset:
                                    use_one_mu_std=use_one_mu_std,
                                    allow_generation=False,
                                    max_val=max_val,
-                                   grid_alignment=grid_alignment,
+                                   trim_boundary=trim_boundary,
                                    overlapping_padding_kwargs=overlapping_padding_kwargs,
                                    print_vars=i == len(data) - 1))
 
