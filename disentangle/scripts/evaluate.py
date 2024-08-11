@@ -114,18 +114,35 @@ def compute_max_val(data, data_config):
     else:
         return np.quantile(data, data_config.clip_percentile)
 
+def _high_snr_stats(highres_data, pred_unnorm): 
+    assert len(highres_data.shape) == 4, "expected batch x H x W x C"
+    psnr_list = [
+            avg_range_inv_psnr(highres_data[..., i].copy(), pred_unnorm[..., i].copy())
+            for i in range(highres_data.shape[-1])
+        ]
+    ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy(), range_invariant=False)
+    rims_ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy(), range_invariant=True)
+    return psnr_list, ssim_list, rims_ssim_list
+
 
 def compute_high_snr_stats(config, highres_data, pred_unnorm, verbose=True):
     """
     last dimension is the channel dimension
     """
-    psnr_list = [
-        avg_range_inv_psnr(highres_data[..., i].copy(), pred_unnorm[..., i].copy())
-        for i in range(highres_data.shape[-1])
-    ]
-    ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy(), range_invariant=False)
-    rims_ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy(), range_invariant=True)
-
+    is_5D = len(highres_data.shape) == 5
+    if is_5D:
+        z_metrics = {'psnr':[], 'ssim':[], 'rims_ssim':[]}
+        for z_idx in range(highres_data.shape[1]):
+            psnr_list, ssim_list, rims_ssim_list = _high_snr_stats(highres_data[:, z_idx], pred_unnorm[:, z_idx])
+            z_metrics['psnr'].append(psnr_list)
+            z_metrics['ssim'].append(ssim_list)
+            z_metrics['rims_ssim'].append(rims_ssim_list)
+            
+        psnr_list= np.array(z_metrics['psnr']).mean(axis=0)
+        ssim_list= np.array(z_metrics['ssim']).mean(axis=0)
+        rims_ssim_list= np.array(z_metrics['rims_ssim']).mean(axis=0)
+    else:
+        psnr_list, ssim_list, rims_ssim_list = _high_snr_stats(highres_data, pred_unnorm)
     if verbose:
         def ssim_str(ssim_tmp):
             return f'{np.round(ssim_tmp[0], 3)}+-{np.round(ssim_tmp[1], 4)}'
@@ -241,6 +258,8 @@ def get_data_dir(dtype):
         data_dir = f"{DATA_ROOT}/TavernaSox2Golgi/"
     elif dtype == DataType.HTIba1Ki67:
         data_dir = f'{DATA_ROOT}/Stefania/20230327_Ki67_and_Iba1_trainingdata/'
+    elif dtype == DataType.Elisa3DData:
+        data_dir = f"{DATA_ROOT}/Elisa3D/"
     return data_dir
 
 def get_calibration_stats(calibration_factors, pred, pred_std, tar_normalized, eps= 1e-8):
@@ -280,6 +299,7 @@ def main(
     print_token="",
     normalized_ssim=True,
     save_to_file=False,
+    trim_boundary=True,
     predict_kth_frame=None,
     predict_samples_N=None,
     compare_with_highsnr=True,
@@ -439,7 +459,6 @@ def main(
     ## Disentanglement setup.
     ####
     ####
-    grid_alignment = GridAlignement.Center
     if image_size_for_grid_centers is not None:
         old_grid_size = config.data.get("grid_size", "grid_size not present")
         with config.unlocked():
@@ -455,7 +474,7 @@ def main(
 
     dloader_kwargs = {
         "overlapping_padding_kwargs": padding_kwargs,
-        "grid_alignment": grid_alignment,
+        "trim_boundary": trim_boundary,
     }
 
     train_dset, val_dset = create_dataset(
@@ -745,6 +764,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
     train_calibration=False,
     eval_calibration=False,
     override_kwargs=None,
+    trim_boundary=True,
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
@@ -757,7 +777,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6",
             # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14",
             # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17"
-            "/group/jug/ashesh/training_pre_eccv/disentangle/2402/D7-M3-S0-L0/108"
+            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L0/30"
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -844,6 +864,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
                     predict_samples_N=predict_samples_N,
                     compare_with_highsnr=not skip_highsnr,
                     train_calibration=train_calibration,
+                    trim_boundary=trim_boundary,
                     eval_calibration_factors=eval_calibration_factors,
                     override_kwargs=override_kwargs,
                 )
@@ -900,6 +921,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_calibration", action="store_true")
     parser.add_argument("--eval_calibration", action="store_true")
     parser.add_argument("--override_kwargs", type=str, default=None)
+    parser.add_argument("--donot_trim_boundary", action="store_true")
 
     args = parser.parse_args()
     save_hardcoded_ckpt_evaluations_to_file(
@@ -917,4 +939,5 @@ if __name__ == "__main__":
         train_calibration=args.train_calibration,
         eval_calibration=args.eval_calibration,
         override_kwargs=args.override_kwargs,
+        trim_boundary=not args.donot_trim_boundary,
     )

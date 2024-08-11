@@ -418,22 +418,22 @@ class MultiChDloader:
         if start_pos < 0:
             pad_start = -1 * start_pos
 
-        pad_end = max(0, end_pos - max_len + 1)
+        pad_end = max(0, end_pos - max_len)
 
         return pad_start, pad_end
 
-    def _crop_img_with_padding(self, img: np.ndarray, patch_start_loc: Tuple, max_len_vals=None):
+    def _crop_img_with_padding(self, img: np.ndarray, patch_start_loc, max_len_vals=None):
         if max_len_vals is None:
             max_len_vals = self.idx_manager.data_shape[1:-1]
         patch_end_loc = np.array(patch_start_loc, dtype=int) + np.array(self.idx_manager.patch_shape[1:-1], dtype=int)
-        on_boundary = []
+        boundary_crossed = []
         valid_slice = []
         padding = [[0,0]]
         for start_idx, end_idx, max_len in zip(patch_start_loc, patch_end_loc, max_len_vals):
-            on_boundary.append(end_idx > max_len-1 or start_idx < 0)
-            valid_slice.append((max(0, start_idx), min(max_len-1, end_idx)))
+            boundary_crossed.append(end_idx > max_len or start_idx < 0)
+            valid_slice.append((max(0, start_idx), min(max_len, end_idx)))
             pad = [0, 0]
-            if on_boundary[-1]:
+            if boundary_crossed[-1]:
                 pad = self.get_begin_end_padding(start_idx, end_idx, max_len)
             padding.append(pad)
         # max() is needed since h_start could be negative.
@@ -447,7 +447,7 @@ class MultiChDloader:
                             valid_slice[0][0]:valid_slice[0][1], 
                             valid_slice[1][0]:valid_slice[1][1]]
         
-        # print(np.array(padding).shape, new_img.shape)
+        # print(np.array(padding).shape, img.shape, new_img.shape)
         # print(padding)
         if not np.all(padding == 0):
             new_img = np.pad(new_img, padding, **self._overlapping_padding_kwargs)
