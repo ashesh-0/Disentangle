@@ -778,7 +778,8 @@ class MultiChDloader:
         return rotated_img_tuples, rotated_noise_tuples
     
     def _rotate(self, img_tuples, noise_tuples):
-        if self._depth3D > 1:
+
+        if self._5Ddata:
             return self._rotate3D(img_tuples, noise_tuples)
         else:
             return self._rotate2D(img_tuples, noise_tuples)
@@ -798,7 +799,7 @@ class MultiChDloader:
             
         keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
         self._rotation_transform.add_targets({k: 'image' for k in keys})
-        rot_dic = self._rotation_transform(image=img_tuples[0][0], **img_kwargs, **noise_kwargs)
+        rot_dic = self._rotation_transform(image=img_tuples[0][0][0], **img_kwargs, **noise_kwargs)
         rotated_img_tuples = []
         for i,img in enumerate(img_tuples):
             if len(img) == 1:
