@@ -371,7 +371,7 @@ class MultiChDloader:
         if self._enable_random_cropping:
             patch_start_loc = self._get_random_hw(h, w)
             if self._5Ddata:
-                patch_start_loc = (np.random.choice(img_tuples[0].shape[-3] - self._depth3D),) + patch_start_loc
+                patch_start_loc = (np.random.choice(1+img_tuples[0].shape[-3] - self._depth3D),) + patch_start_loc
         else:
             patch_start_loc = self._get_deterministic_loc(index)
 

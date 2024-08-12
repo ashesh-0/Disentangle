@@ -17,7 +17,7 @@ def get_config():
     data.channel_idx_list = [0,1]
     data.zstart = 25
     data.zstop = 40
-    data.depth3D = 1
+    data.depth3D = 15
     assert data.depth3D <= data.zstop - data.zstart
 
 
