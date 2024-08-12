@@ -40,7 +40,7 @@ def get_config():
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
-    data.train_aug_rotate = False
+    data.train_aug_rotate = True
     data.randomized_channels = False
     data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
@@ -52,13 +52,15 @@ def get_config():
     
     
     loss = config.loss
-    loss.loss_type = LossType.Elbo
-    # loss.usplit_w = 0.1
-    # loss.denoisplit_w = 1 - loss.usplit_w
-    loss.kl_loss_formulation = 'usplit'
+    loss.loss_type = LossType.DenoiSplitMuSplit
+    loss.usplit_w = 0.1
+    loss.denoisplit_w = 1 - loss.usplit_w
+    loss.kl_loss_formulation = 'denoisplit_usplit'
 
     # loss.mixed_rec_weight = 1
-    loss.restricted_kl = False
+    loss.restricted_kl = False 
+    assert loss.restricted_kl is False or data.multiscale_lowres_count is not None, 'LC must be set for restricted KL'
+
     loss.kl_weight = 1.0
     loss.reconstruction_weight = 1.0
     loss.kl_annealing = False
@@ -104,17 +106,16 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar =  'pixelwise' #'channelwise'
+    model.predict_logvar =  'pixelwise'#'pixelwise' #'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
-    model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
+    model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    fname = '/home/ashesh.ashesh/training/noise_model/2407/3/GMMNoiseModel_N2V_Elisa-n2v_input__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = fname
-    model.noise_model_ch2_fpath = fname
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2408/0/GMMNoiseModel_n2v_denoising-raw_ch0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2408/1/GMMNoiseModel_n2v_denoising-raw_ch1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
