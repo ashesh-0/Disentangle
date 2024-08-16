@@ -210,7 +210,8 @@ def create_dataset(config,
         train_dset1, val_dset1 = create_dataset(cnf1,
                                                 datadir,
                                                 raw_data_dict=raw_data_dict,
-                                                skip_train_dataset=skip_train_dataset)
+                                                skip_train_dataset=skip_train_dataset,
+                                                kwargs_dict=kwargs_dict)
         mean1, std1 = train_dset1.compute_mean_std()
         train_dset1.set_mean_std(mean1, std1)
         val_dset1.set_mean_std(mean1, std1)
@@ -219,9 +220,10 @@ def create_dataset(config,
         val_data = val_dset0
     elif config.data.data_type == DataType.MultiCropDset:
         train_data = MultiCropDset(config.data,datadir, DataSplitType.Train, val_fraction=config.training.val_fraction, 
-                                   test_fraction=config.training.test_fraction, enable_rotation_aug=config.data.train_aug_rotate)
+                                   test_fraction=config.training.test_fraction, enable_rotation_aug=config.data.train_aug_rotate,
+                                   **kwargs_dict)
         val_data = MultiCropDset(config.data,datadir, DataSplitType.Val, val_fraction=config.training.val_fraction,
-                                    test_fraction=config.training.test_fraction)
+                                    test_fraction=config.training.test_fraction,**kwargs_dict)
         
         mean, std = train_data.compute_mean_std()
         train_data.set_mean_std(mean, std)
