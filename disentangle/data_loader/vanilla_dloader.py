@@ -304,7 +304,7 @@ class MultiChDloader:
     def get_idx_manager_shapes(self, patch_size:int, grid_size:int):
         numC = self._data.shape[-1]
         if self._5Ddata:
-            grid_shape = (1, 1, grid_size, grid_size, numC)
+            grid_shape = (1, self._depth3D, grid_size, grid_size, numC)
             patch_shape = (1, self._depth3D, patch_size, patch_size, numC)
         else:
             grid_shape = (1, grid_size, grid_size, numC)
