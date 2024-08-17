@@ -6,7 +6,6 @@ import numpy as np
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.core.empty_patch_fetcher import EmptyPatchFetcher
-# from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 from disentangle.data_loader.patch_index_manager import GridIndexManager, TilingMode
 from disentangle.data_loader.target_index_switcher import IndexSwitcher
 from disentangle.data_loader.train_val_data import get_train_val_data
@@ -26,7 +25,6 @@ class MultiChDloader:
                  use_one_mu_std=None,
                  allow_generation=False,
                  max_val=None,
-                #  grid_alignment=GridAlignement.LeftTop,
                 tiling_mode=TilingMode.ShiftBoundary,
                  overlapping_padding_kwargs=None,
                  print_vars=True):
@@ -304,7 +302,7 @@ class MultiChDloader:
     def get_idx_manager_shapes(self, patch_size:int, grid_size:int):
         numC = self._data.shape[-1]
         if self._5Ddata:
-            grid_shape = (1, self._depth3D, grid_size, grid_size, numC)
+            grid_shape = (1, 1, grid_size, grid_size, numC)
             patch_shape = (1, self._depth3D, patch_size, patch_size, numC)
         else:
             grid_shape = (1, grid_size, grid_size, numC)
@@ -899,7 +897,6 @@ if __name__ == '__main__':
         use_one_mu_std=config.data.use_one_mu_std,
         allow_generation=False,
         max_val=None,
-        # grid_alignment=GridAlignement.LeftTop,
         overlapping_padding_kwargs=None)
 
     mean, std = dset.compute_mean_std()

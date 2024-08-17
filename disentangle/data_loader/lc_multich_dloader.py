@@ -29,7 +29,6 @@ class LCMultiChDloader(MultiChDloader):
         lowres_supervision=None,
         max_val=None,
         trim_boundary=True,
-        # grid_alignment=GridAlignement.LeftTop,
         overlapping_padding_kwargs=None,
         print_vars=True,
     ):
@@ -263,7 +262,6 @@ if __name__ == '__main__':
                             num_scales=config.data.multiscale_lowres_count,
                             max_val=None,
                             padding_kwargs=padding_kwargs,
-                            # grid_alignment=GridAlignement.LeftTop,
                             overlapping_padding_kwargs=None)
 
     mean, std = dset.compute_mean_std()

@@ -5,7 +5,7 @@ from typing import List
 
 import numpy as np
 
-from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
+from disentangle.data_loader.patch_index_manager import GridIndexManager
 
 
 class EvaluationDloader:

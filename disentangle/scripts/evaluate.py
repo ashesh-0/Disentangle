@@ -34,7 +34,7 @@ from disentangle.core.psnr import PSNR, RangeInvariantPsnr
 from disentangle.core.ssim import compute_multiscale_ssim, range_invariant_multiscale_ssim
 from disentangle.core.tiff_reader import load_tiff
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
-from disentangle.data_loader.patch_index_manager import GridAlignement
+from disentangle.data_loader.patch_index_manager import TilingMode
 # from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data
 from disentangle.data_loader.vanilla_dloader import MultiChDloader, get_train_val_data
 from disentangle.sampler.random_sampler import RandomSampler
@@ -299,7 +299,7 @@ def main(
     print_token="",
     normalized_ssim=True,
     save_to_file=False,
-    trim_boundary=True,
+    # trim_boundary=True,
     predict_kth_frame=None,
     predict_samples_N=None,
     compare_with_highsnr=True,
@@ -367,8 +367,8 @@ def main(
 
             if "input_is_sum" not in config.data:
                 config.data.input_is_sum = False
-            config.model.noise_model_ch1_fpath = config.model.noise_model_ch1_fpath.replace('/home/ashesh.ashesh/training/', '/group/jug/ashesh/training_pre_eccv/')
-            config.model.noise_model_ch2_fpath = config.model.noise_model_ch2_fpath.replace('/home/ashesh.ashesh/training/', '/group/jug/ashesh/training_pre_eccv/')
+            # config.model.noise_model_ch1_fpath = config.model.noise_model_ch1_fpath.replace('/home/ashesh.ashesh/training/', '/group/jug/ashesh/training_pre_eccv/')
+            # config.model.noise_model_ch2_fpath = config.model.noise_model_ch2_fpath.replace('/home/ashesh.ashesh/training/', '/group/jug/ashesh/training_pre_eccv/')
         except:
             pass
 
@@ -474,7 +474,7 @@ def main(
 
     dloader_kwargs = {
         "overlapping_padding_kwargs": padding_kwargs,
-        "trim_boundary": trim_boundary,
+        "tiling_mode": TilingMode.ShiftBoundary,
     }
 
     train_dset, val_dset = create_dataset(
@@ -764,7 +764,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
     train_calibration=False,
     eval_calibration=False,
     override_kwargs=None,
-    trim_boundary=True,
+    # trim_boundary=True,
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
@@ -778,7 +778,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14",
             # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L0/23"
             # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L0/30",
-            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L0/17",
+            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/22",
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -865,7 +865,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
                     predict_samples_N=predict_samples_N,
                     compare_with_highsnr=not skip_highsnr,
                     train_calibration=train_calibration,
-                    trim_boundary=trim_boundary,
+                    # trim_boundary=trim_boundary,
                     eval_calibration_factors=eval_calibration_factors,
                     override_kwargs=override_kwargs,
                 )
@@ -922,7 +922,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_calibration", action="store_true")
     parser.add_argument("--eval_calibration", action="store_true")
     parser.add_argument("--override_kwargs", type=str, default=None)
-    parser.add_argument("--donot_trim_boundary", action="store_true")
+    # parser.add_argument("--donot_trim_boundary", action="store_true")
 
     args = parser.parse_args()
     save_hardcoded_ckpt_evaluations_to_file(
@@ -940,5 +940,5 @@ if __name__ == "__main__":
         train_calibration=args.train_calibration,
         eval_calibration=args.eval_calibration,
         override_kwargs=args.override_kwargs,
-        trim_boundary=not args.donot_trim_boundary,
+        # trim_boundary=not args.donot_trim_boundary,
     )

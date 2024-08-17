@@ -9,7 +9,6 @@ import albumentations as A
 import numpy as np
 
 from disentangle.core.data_split_type import DataSplitType
-from disentangle.data_loader.patch_index_manager import GridAlignement
 from disentangle.data_loader.train_val_data import get_train_val_data
 from disentangle.data_loader.vanilla_dloader import MultiChDloader
 

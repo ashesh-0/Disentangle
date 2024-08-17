@@ -6,7 +6,6 @@ from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.loss_type import LossType
 from disentangle.data_loader.base_data_loader import BaseDataLoader
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
-from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 

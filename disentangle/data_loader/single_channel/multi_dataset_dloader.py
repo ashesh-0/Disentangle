@@ -2,15 +2,15 @@
 If one has multiple .tif files, each corresponding to a different hardware setting. 
 In this case, one needs to normalize these separate files separately.
 """
-import ml_collections
-import torch
 import enum
-from typing import Union, Tuple
-import numpy as np
+from typing import Tuple, Union
 
-from disentangle.data_loader.patch_index_manager import GridIndexManager, GridAlignement
-from disentangle.core import data_split_type
+import numpy as np
+import torch
+
+import ml_collections
 from disentangle.core.data_split_type import DataSplitType
+from disentangle.data_loader.patch_index_manager import GridIndexManager, TilingMode
 from disentangle.data_loader.single_channel.single_channel_dloader import SingleChannelDloader
 from disentangle.data_loader.single_channel.single_channel_mc_dloader import SingleChannelMSDloader
 
@@ -113,12 +113,12 @@ class SingleChannelMultiDatasetDloader:
         for i, dset in enumerate(self._dsets):
             dset.set_mean_std(mean_val[i], std_val[i])
 
-    def set_img_sz(self, image_size, grid_size, alignment=GridAlignement.LeftTop):
+    def set_img_sz(self, image_size, grid_size, tiling_mode=TilingMode.ShiftBoundary):
         self._img_sz = image_size
         self._grid_sz = grid_size
-        self.idx_manager = GridIndexManager(self.get_data_shape(), self._grid_sz, self._img_sz, alignment)
+        self.idx_manager = GridIndexManager(self.get_data_shape(), self._grid_sz, self._img_sz, tiling_mode)
         for dset in self._dsets:
-            dset.set_img_sz(image_size, grid_size, alignment=alignment)
+            dset.set_img_sz(image_size, grid_size, tiling_mode=tiling_mode)
 
     def get_max_val(self):
         max_val_arr = []
