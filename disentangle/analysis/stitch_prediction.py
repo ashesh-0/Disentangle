@@ -4,24 +4,8 @@ from typing import Iterable
 import numpy as np
 
 from disentangle.data_loader.multifile_dset import MultiFileDset
+from disentangle.data_loader.patch_index_manager import TilingMode
 
-
-@dataclass
-class AlgebTuple:
-    """A tuple class that supports addition and subtraction."""
-    data: tuple
-
-    def __getitem__(self, idx):
-        return self.data[idx]
-
-    def __len__(self):
-        return len(self.data)
-
-    def __add__(self, other: Iterable): 
-        return AlgebTuple(tuple([self[i] + other[i] for i in range(len(self))]))
-
-    def __sub__(self, other: Iterable): 
-        return AlgebTuple(tuple([self[i] - other[i] for i in range(len(self))]))
 
 # from disentangle.analysis.stitch_prediction import * 
 def stitch_predictions(predictions, dset):
@@ -51,7 +35,7 @@ def stitch_predictions(predictions, dset):
         for dset_idx in range(predictions.shape[0]):
             # loc = get_location_from_idx(dset, dset_idx, predictions.shape[-2], predictions.shape[-1])
             # grid start, grid end
-            gs = AlgebTuple(mng.get_location_from_dataset_idx(dset_idx))
+            gs = np.array(mng.get_location_from_dataset_idx(dset_idx), dtype=int)
             ge = gs + mng.grid_shape
 
             # patch start, patch end
@@ -62,11 +46,20 @@ def stitch_predictions(predictions, dset):
             # print(pe)
 
             # valid grid start, valid grid end
-            vgs = AlgebTuple([max(0,x) for x in gs])
-            vge = AlgebTuple([min(x,y) for x,y in zip(ge, mng.data_shape)])
+            vgs = np.array([max(0,x) for x in gs], dtype=int)
+            vge = np.array([min(x,y) for x,y in zip(ge, mng.data_shape)], dtype=int)
+            assert np.all(vgs ==gs)
+            assert np.all(vge ==ge)
             # print('VGS')
             # print(gs)
             # print(ge)
+            
+            if mng.tiling_mode == TilingMode.ShiftBoundary:
+                for dim in range(len(vgs)):
+                    if ps[dim] == 0:
+                        vgs[dim] = 0
+                    if pe[dim] == mng.data_shape[dim]:
+                        vge[dim]= mng.data_shape[dim]
 
             # relative start, relative end. This will be used on pred_tiled
             rs = vgs - ps
@@ -86,6 +79,7 @@ def stitch_predictions(predictions, dset):
                         ch_idx] = predictions[dset_idx][ch_idx,rs[1]:re[1], rs[2]:re[2]]
                 elif len(output.shape) == 5:
                     # channel dimension is the last one.
+                    assert vge[0] - vgs[0] == 1, 'Only one frame is supported'
                     output[vgs[0],
                         vgs[1]:vge[1],
                         vgs[2]:vge[2],

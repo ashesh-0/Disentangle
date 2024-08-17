@@ -1,10 +1,7 @@
 import numpy as np
 
 from disentangle.core.data_split_type import DataSplitType
-from disentangle.core.data_type import DataType
-from disentangle.core.empty_patch_fetcher import EmptyPatchFetcher
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
-from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
 from disentangle.data_loader.train_val_data import get_train_val_data
 from disentangle.data_loader.vanilla_dloader import MultiChDloader
 

@@ -3,12 +3,20 @@ from dataclasses import dataclass
 import numpy as np
 
 
+class TilingMode:
+    """
+    Enum for the tiling mode.
+    """
+    TrimBoundary = 0
+    PadBoundary = 1
+    ShiftBoundary = 2
+
 @dataclass
 class GridIndexManager:
     data_shape: tuple
     grid_shape: tuple
     patch_shape: tuple
-    trim_boundary: bool
+    tiling_mode: TilingMode
 
     def __post_init__(self):
         assert len(self.data_shape) == len(self.grid_shape), f"Data shape:{self.data_shape} and grid size:{self.grid_shape} must have the same dimension"
@@ -32,8 +40,11 @@ class GridIndexManager:
 
         if self.grid_shape[dim]==1 and self.patch_shape[dim]==1:
             return self.data_shape[dim]
-        elif self.trim_boundary is False:
+        elif self.tiling_mode == TilingMode.PadBoundary:
             return int(np.ceil(self.data_shape[dim] / self.grid_shape[dim]))
+        elif self.tiling_mode == TilingMode.ShiftBoundary:
+            excess_size = self.patch_shape[dim] - self.grid_shape[dim]
+            return int(np.ceil((self.data_shape[dim] - excess_size) / self.grid_shape[dim]))
         else:
             excess_size = self.patch_shape[dim] - self.grid_shape[dim]
             return int(np.floor((self.data_shape[dim] - excess_size) / self.grid_shape[dim]))
@@ -65,12 +76,22 @@ class GridIndexManager:
 
         if self.grid_shape[dim]==1 and self.patch_shape[dim]==1:
             return coordinate
-        elif self.trim_boundary is False:
+        elif self.tiling_mode == TilingMode.PadBoundary: #self.trim_boundary is False:
             return np.floor(coordinate / self.grid_shape[dim])
-        else:
+        elif self.tiling_mode == TilingMode.TrimBoundary:
             excess_size = (self.patch_shape[dim] - self.grid_shape[dim])//2
             # can be <0 if coordinate is in [0,grid_shape[dim]]
             return max(0, np.floor((coordinate - excess_size) / self.grid_shape[dim]))
+        elif self.tiling_mode == TilingMode.ShiftBoundary:
+            excess_size = (self.patch_shape[dim] - self.grid_shape[dim])//2
+            if coordinate + self.grid_shape[dim] + excess_size == self.data_shape[dim]:
+                return self.get_individual_dim_grid_count(dim) - 1
+            else:
+                # can be <0 if coordinate is in [0,grid_shape[dim]]
+                return max(0, np.floor((coordinate - excess_size) / self.grid_shape[dim]))
+
+        else:
+            raise ValueError(f"Unsupported tiling mode {self.tiling_mode}")
         
     def dataset_idx_from_grid_idx(self, grid_idx:tuple):
         """
@@ -86,9 +107,10 @@ class GridIndexManager:
         """
         Returns the patch location of the grid in the dataset.
         """
-        location = self.get_location_from_dataset_idx(dataset_idx)
+        grid_location = self.get_location_from_dataset_idx(dataset_idx)
         offset = self.patch_offset()
-        return tuple(np.array(location) - np.array(offset))
+        return tuple(np.array(grid_location) - np.array(offset))
+
     
     def get_dataset_idx_from_grid_location(self, location:tuple):
         assert len(location) == len(self.data_shape), f"Location {location} must have the same dimension as data shape {self.data_shape}"
@@ -105,13 +127,25 @@ class GridIndexManager:
 
         if self.grid_shape[dim]==1 and self.patch_shape[dim]==1:
             return dim_index
-        elif self.trim_boundary is False:
+        elif self.tiling_mode == TilingMode.PadBoundary:
             return dim_index * self.grid_shape[dim]
-        else:
+        elif self.tiling_mode == TilingMode.TrimBoundary:
             excess_size = (self.patch_shape[dim] - self.grid_shape[dim])//2
             return dim_index * self.grid_shape[dim] + excess_size
-
+        elif self.tiling_mode == TilingMode.ShiftBoundary:
+            excess_size = (self.patch_shape[dim] - self.grid_shape[dim])//2
+            if dim_index < self.get_individual_dim_grid_count(dim) - 1:
+                return dim_index * self.grid_shape[dim] + excess_size
+            else:
+                # on boundary. grid should be placed such that the patch covers the entire data.
+                return self.data_shape[dim] - self.grid_shape[dim] - excess_size
+        else:
+            raise ValueError(f"Unsupported tiling mode {self.tiling_mode}")
+ 
     def get_location_from_dataset_idx(self, dataset_idx:int):
+        """
+        Returns the start location of the grid in the dataset.
+        """
         grid_idx = []
         for dim in range(len(self.data_shape)):
             grid_idx.append(dataset_idx // self.grid_count(dim))
@@ -119,7 +153,7 @@ class GridIndexManager:
         location = [self.get_gridstart_location_from_dim_index(dim, grid_idx[dim]) for dim in range(len(self.data_shape))]
         return tuple(location)
     
-    def on_boundary(self, dataset_idx:int, dim:int):
+    def on_boundary(self, dataset_idx:int, dim:int, only_end:bool=False):
         """
         Returns True if the grid is on the boundary in the specified dimension.
         """
@@ -130,6 +164,9 @@ class GridIndexManager:
             dataset_idx = dataset_idx % self.grid_count(dim-1)
 
         dim_index = dataset_idx // self.grid_count(dim)
+        if only_end:
+            return dim_index == self.get_individual_dim_grid_count(dim) - 1
+        
         return dim_index == 0 or dim_index == self.get_individual_dim_grid_count(dim) - 1
     
     def next_grid_along_dim(self, dataset_idx:int, dim:int):
@@ -154,16 +191,19 @@ class GridIndexManager:
             return None
 
 if __name__ == '__main__':
-    data_shape =   (1, 1, 103, 103,2)
-    grid_shape =   (1, 1, 16,16, 2)
-    patch_shape =  (1, 1, 32, 32, 2)
-    trim_boundary = False
-    manager = GridIndexManager(data_shape, grid_shape, patch_shape, trim_boundary)
+    # data_shape =   (1, 5, 103, 103,2)
+    # grid_shape =   (1, 1, 16,16, 2)
+    # patch_shape =  (1, 3, 32, 32, 2)
+    data_shape = (5, 5, 64, 64, 2)
+    grid_shape = (1, 1, 8, 8, 2)
+    patch_shape = (1, 3, 16, 16, 2)
+    tiling_mode = TilingMode.ShiftBoundary
+    manager = GridIndexManager(data_shape, grid_shape, patch_shape, tiling_mode)
     gc = manager.total_grid_count()
     for i in range(gc):
         loc = manager.get_location_from_dataset_idx(i)
         print(i, loc)
-        inferred_i = manager.dataset_idx_from_location(loc)
+        inferred_i = manager.get_dataset_idx_from_grid_location(loc)
         assert i == inferred_i, f"Index mismatch: {i} != {inferred_i}"
     
     for i in range(5):

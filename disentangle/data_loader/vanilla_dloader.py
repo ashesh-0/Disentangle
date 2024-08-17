@@ -7,8 +7,7 @@ from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.core.empty_patch_fetcher import EmptyPatchFetcher
 # from disentangle.data_loader.patch_index_manager import GridAlignement, GridIndexManager
-from disentangle.data_loader.patch_index_manager import GridAlignement
-from disentangle.data_loader.patch_index_manager_v2 import GridIndexManager
+from disentangle.data_loader.patch_index_manager import GridIndexManager, TilingMode
 from disentangle.data_loader.target_index_switcher import IndexSwitcher
 from disentangle.data_loader.train_val_data import get_train_val_data
 
@@ -28,7 +27,7 @@ class MultiChDloader:
                  allow_generation=False,
                  max_val=None,
                 #  grid_alignment=GridAlignement.LeftTop,
-                trim_boundary=True,
+                tiling_mode=TilingMode.ShiftBoundary,
                  overlapping_padding_kwargs=None,
                  print_vars=True):
         """
@@ -42,7 +41,7 @@ class MultiChDloader:
         self._data  = self._noise_data = None
         self.Z = 1
         self._5Ddata = False
-        self._trim_boundary = trim_boundary
+        self._tiling_mode = tiling_mode
         # by default, if the noise is present, add it to the input and target.
         self._disable_noise = False
         self._poisson_noise_factor = None
@@ -82,7 +81,7 @@ class MultiChDloader:
 
         # self._grid_alignment = grid_alignment
         self._overlapping_padding_kwargs = overlapping_padding_kwargs
-        if self._trim_boundary:
+        if self._tiling_mode in [TilingMode.TrimBoundary, TilingMode.ShiftBoundary]:
             if self._overlapping_padding_kwargs is None or data_config.multiscale_lowres_count is not None:
                 # raise warning
                 print('Padding is not used with this alignement style') 
@@ -326,7 +325,7 @@ class MultiChDloader:
         shape = self._data.shape
         
         patch_shape, grid_shape = self.get_idx_manager_shapes(self._img_sz, self._grid_sz)
-        self.idx_manager = GridIndexManager(shape, grid_shape, patch_shape, self._trim_boundary)
+        self.idx_manager = GridIndexManager(shape, grid_shape, patch_shape, self._tiling_mode)
         # self.set_repeat_factor()
 
     def __len__(self):
@@ -340,7 +339,7 @@ class MultiChDloader:
         dim_sizes = [self.idx_manager.get_individual_dim_grid_count(dim) for dim in range(len(self._data.shape))]
         dim_sizes = ','.join([str(x) for x in dim_sizes])
         msg += f'{self.idx_manager.total_grid_count()} DimSz:({dim_sizes})'
-        msg += f' TrimB:{self._trim_boundary}'
+        msg += f' TrimB:{self._tiling_mode}'
         # msg += f' NormInp:{self._normalized_input}'
         # msg += f' SingleNorm:{self._use_one_mu_std}'
         msg += f' Rot:{self._enable_rotation}'
@@ -388,7 +387,7 @@ class MultiChDloader:
         })
 
     def _crop_img(self, img: np.ndarray, patch_start_loc:Tuple):
-        if self._trim_boundary:
+        if self._tiling_mode in [TilingMode.TrimBoundary, TilingMode.ShiftBoundary]:
             # In training, this is used.
             # NOTE: It is my opinion that if I just use self._crop_img_with_padding, it will work perfectly fine.
             # The only benefit this if else loop provides is that it makes it easier to see what happens during training.

@@ -7,8 +7,6 @@ import numpy as np
 from skimage.transform import resize
 
 from disentangle.core.data_split_type import DataSplitType
-from disentangle.core.data_type import DataType
-from disentangle.data_loader.patch_index_manager import GridAlignement
 from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 
