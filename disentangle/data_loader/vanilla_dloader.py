@@ -299,18 +299,24 @@ class MultiChDloader:
         self.set_img_sz(self._img_sz, self._grid_sz)
         print(f'[{self.__class__.__name__}] Data reduced. New data shape: {self._data.shape}')
 
-    def get_idx_manager_shapes(self, patch_size:int, grid_size:int):
+    def get_idx_manager_shapes(self, patch_size:int, grid_size:Union[int, Tuple[int,int,int]]):
         numC = self._data.shape[-1]
         if self._5Ddata:
-            grid_shape = (1, 1, grid_size, grid_size, numC)
             patch_shape = (1, self._depth3D, patch_size, patch_size, numC)
+            if isinstance(grid_size, int):
+                grid_shape = (1, 1, grid_size, grid_size, numC)
+            else:
+                assert len(grid_size) == 3
+                assert all([g <= p for g, p in zip(grid_size, patch_shape[1:-1])]), f'Grid size {grid_size} must be less than patch size {patch_shape[1:-1]}'
+                grid_shape = (1, grid_size[0], grid_size[1], grid_size[2], numC)
         else:
+            assert isinstance(grid_size, int)
             grid_shape = (1, grid_size, grid_size, numC)
             patch_shape = (1, patch_size, patch_size, numC)
 
         return patch_shape, grid_shape
 
-    def set_img_sz(self, image_size, grid_size):
+    def set_img_sz(self, image_size, grid_size:Union[int, Tuple[int,int,int]]):
         """
         If one wants to change the image size on the go, then this can be used.
         Args:
@@ -539,8 +545,8 @@ class MultiChDloader:
     def get_idx_manager(self):
         return self.idx_manager
 
-    def per_side_overlap_pixelcount(self):
-        return (self._img_sz - self._grid_sz) // 2
+    # def per_side_overlap_pixelcount(self):
+    #     return (self._img_sz - self._grid_sz) // 2
 
     # def on_boundary(self, cur_loc, frame_size):
     #     return cur_loc + self._img_sz > frame_size or cur_loc < 0

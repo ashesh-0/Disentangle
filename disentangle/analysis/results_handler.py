@@ -25,7 +25,7 @@ class PaperResultsHandler:
         self._dtype = eval_datasplit_type
         self._outdir = output_dir
         self._patchN = patch_size
-        self._gridN = grid_size
+        self._gridN = grid_size if isinstance(grid_size, int) else '-'.join(map(str, grid_size))
         self._mmseN = mmse_count
         self._skiplN = skip_last_pixels
         self._predict_kth_frame = predict_kth_frame

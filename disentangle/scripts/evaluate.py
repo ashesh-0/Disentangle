@@ -456,15 +456,6 @@ def main(
     with config.unlocked():
         config.model.skip_nboundary_pixels_from_loss = None
 
-    ## Disentanglement setup.
-    ####
-    ####
-    if image_size_for_grid_centers is not None:
-        old_grid_size = config.data.get("grid_size", "grid_size not present")
-        with config.unlocked():
-            config.data.grid_size = image_size_for_grid_centers
-            config.data.val_grid_size = image_size_for_grid_centers
-
     padding_kwargs = {
         "mode": config.data.get("padding_mode", "constant"),
     }
@@ -489,6 +480,9 @@ def main(
     train_dset.set_mean_std(mean_dict, std_dict)
     val_dset.set_mean_std(mean_dict, std_dict)
 
+    if image_size_for_grid_centers is not None:
+        val_dset.set_img_sz(config.data.image_size, image_size_for_grid_centers)
+    
     if evaluate_train:
         val_dset = train_dset
 
@@ -778,7 +772,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14",
             # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L0/23"
             # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L0/30",
-            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/22",
+            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L0/22",
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -905,12 +899,19 @@ def save_hardcoded_ckpt_evaluations_to_file(
 
     return data, prediction
 
-
+def parse_grid_size(grid_size):
+        grid_size = list(map(int,grid_size.split(',')))
+        if len(grid_size) == 1:
+            grid_size = grid_size[0]
+        else:
+            grid_size = tuple(grid_size)
+        return grid_size
+    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ckpt_dir", type=str, default=None)
     parser.add_argument("--patch_size", type=int, default=None)
-    parser.add_argument("--grid_size", type=int, default=None)
+    parser.add_argument("--grid_size", type=parse_grid_size, default=32)
     parser.add_argument("--normalized_ssim", action="store_true")
     parser.add_argument("--save_prediction", action="store_true")
     parser.add_argument("--save_prediction_factor", type=float, default=1.0)
@@ -925,6 +926,7 @@ if __name__ == "__main__":
     # parser.add_argument("--donot_trim_boundary", action="store_true")
 
     args = parser.parse_args()
+    
     save_hardcoded_ckpt_evaluations_to_file(
         normalized_ssim=args.normalized_ssim,
         save_prediction=args.save_prediction,
