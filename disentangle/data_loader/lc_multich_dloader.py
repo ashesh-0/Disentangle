@@ -7,6 +7,7 @@ import numpy as np
 from skimage.transform import resize
 
 from disentangle.core.data_split_type import DataSplitType
+from disentangle.data_loader.patch_index_manager import TilingMode
 from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 
@@ -28,7 +29,7 @@ class LCMultiChDloader(MultiChDloader):
         allow_generation: bool = False,
         lowres_supervision=None,
         max_val=None,
-        trim_boundary=True,
+        tiling_mode=TilingMode.ShiftBoundary,
         overlapping_padding_kwargs=None,
         print_vars=True,
     ):
@@ -58,7 +59,7 @@ class LCMultiChDloader(MultiChDloader):
                          use_one_mu_std=use_one_mu_std,
                          allow_generation=allow_generation,
                          max_val=max_val,
-                         trim_boundary=trim_boundary,
+                         tiling_mode=tiling_mode,
                         #  grid_alignment=grid_alignment,
                          overlapping_padding_kwargs=overlapping_padding_kwargs,
                          print_vars=print_vars)
@@ -74,8 +75,8 @@ class LCMultiChDloader(MultiChDloader):
 
         for _ in range(1, self.num_scales):
             shape = self._scaled_data[-1].shape
-            assert len(shape) == 4
-            new_shape = (shape[0], shape[1] // 2, shape[2] // 2, shape[3])
+            # assert len(shape) == 4
+            new_shape = (*shape[:-3], shape[-3] // 2, shape[-2] // 2, shape[-1])
             ds_data = resize(self._scaled_data[-1].astype(np.float32), new_shape).astype(self._scaled_data[-1].dtype)
             # NOTE: These asserts are important. the resize method expects np.float32. otherwise, one gets weird results.
             assert ds_data.max()/self._scaled_data[-1].max() < 5, 'Downsampled image should not have very different values'
@@ -242,7 +243,7 @@ if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
     import matplotlib.pyplot as plt
 
-    from disentangle.configs.biosr_config import get_config
+    from disentangle.configs.elisa3D_config import get_config
     config = get_config()
     config.data.multiscale_lowres_count = 3
     padding_kwargs = {'mode': config.data.padding_mode}
@@ -250,7 +251,7 @@ if __name__ == '__main__':
         padding_kwargs['constant_values'] = config.data.padding_value
 
     dset = LCMultiChDloader(config.data,
-                            '/group/jug/ashesh/data/BioSR/',
+                            '/group/jug/ashesh/data/Elisa3D/',
                             DataSplitType.Train,
                             val_fraction=config.training.val_fraction,
                             test_fraction=config.training.test_fraction,

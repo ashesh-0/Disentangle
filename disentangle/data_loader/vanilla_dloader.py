@@ -4,7 +4,6 @@ import albumentations as A
 import numpy as np
 
 from disentangle.core.data_split_type import DataSplitType
-from disentangle.core.data_type import DataType
 from disentangle.core.empty_patch_fetcher import EmptyPatchFetcher
 from disentangle.data_loader.patch_index_manager import GridIndexManager, TilingMode
 from disentangle.data_loader.target_index_switcher import IndexSwitcher
@@ -198,7 +197,7 @@ class MultiChDloader:
                 self._noise_data[..., 0] = np.mean(self._noise_data[..., 1:], axis=-1)
         print(msg)
 
-        if  len(self._data.shape) == 5:
+        if len(self._data.shape) == 5:
             if self._mode_3D:
                 self._5Ddata = True
             else:
