@@ -17,7 +17,8 @@ def get_config():
     data.channel_idx_list = [0,1]
     data.zstart = 25
     data.zstop = 40
-    data.depth3D = 9
+    data.depth3D = 1
+    data.mode_3D = False
     assert data.depth3D <= data.zstop - data.zstart
 
 
@@ -70,7 +71,7 @@ def get_config():
     loss.free_bits = 1.0
 
     model = config.model
-    model.mode_3D = True
+    model.mode_3D = data.mode_3D
     model.decoder.mode_3D = model.mode_3D
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]

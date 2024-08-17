@@ -45,6 +45,8 @@ class MultiChDloader:
         self._poisson_noise_factor = None
         self._train_index_switcher = None
         self._depth3D = data_config.get('depth3D',1)
+        self._mode_3D = data_config.get('mode_3D', False)
+
         # NOTE: Input is the sum of the different channels. It is not the average of the different channels.
         self._input_is_sum = data_config.get('input_is_sum', False)
         self._num_channels = data_config.get('num_channels', 2)
@@ -196,7 +198,13 @@ class MultiChDloader:
                 self._noise_data[..., 0] = np.mean(self._noise_data[..., 1:], axis=-1)
         print(msg)
 
-        self._5Ddata = len(self._data.shape) == 5 
+        if  len(self._data.shape) == 5:
+            if self._mode_3D:
+                self._5Ddata = True
+            else:
+                assert self._depth3D == 1, 'Depth3D must be 1 for 2D training'
+                self._data = self._data.reshape(-1, *self._data.shape[2:])
+
         if self._5Ddata:
             self.Z = self._data.shape[1]
 
