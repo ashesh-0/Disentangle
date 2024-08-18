@@ -8,6 +8,7 @@ import re
 import sys
 from copy import deepcopy
 from posixpath import basename
+from typing import Callable, Dict, List
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -31,7 +32,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.psnr import PSNR, RangeInvariantPsnr
-from disentangle.core.ssim import compute_multiscale_ssim, range_invariant_multiscale_ssim
+from disentangle.core.ssim import compute_custom_ssim, compute_multiscale_ssim, range_invariant_multiscale_ssim
 from disentangle.core.tiff_reader import load_tiff
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.patch_index_manager import TilingMode
@@ -40,6 +41,7 @@ from disentangle.data_loader.vanilla_dloader import MultiChDloader, get_train_va
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.scripts.run import overwride_with_cmd_params
 from disentangle.training import create_dataset, create_model
+from microssim import MicroMS3IM, MicroSSIM
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 DATA_ROOT = "/group/jug/ashesh/data/"
@@ -114,15 +116,21 @@ def compute_max_val(data, data_config):
     else:
         return np.quantile(data, data_config.clip_percentile)
 
-def _high_snr_stats(highres_data, pred_unnorm): 
+def _high_snr_stats(highres_data, pred_unnorm, ssim_fn_list:List[Dict[int,Callable]]=None):
+    """
+    """
+    if ssim_fn_list is None:
+        ssim_fn_list = [] 
     assert len(highres_data.shape) == 4, "expected batch x H x W x C"
     psnr_list = [
             avg_range_inv_psnr(highres_data[..., i].copy(), pred_unnorm[..., i].copy())
             for i in range(highres_data.shape[-1])
         ]
-    ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy(), range_invariant=False)
-    rims_ssim_list = compute_multiscale_ssim(highres_data.copy(), pred_unnorm.copy(), range_invariant=True)
-    return psnr_list, ssim_list, rims_ssim_list
+    ssim_vals = []
+    for ssim_fn_dict in ssim_fn_list:
+        ssim_vals.append(compute_custom_ssim(highres_data, pred_unnorm, ssim_fn_dict))
+    return psnr_list, ssim_vals
+
 
 
 def compute_high_snr_stats(config, highres_data, pred_unnorm, verbose=True):
@@ -130,31 +138,52 @@ def compute_high_snr_stats(config, highres_data, pred_unnorm, verbose=True):
     last dimension is the channel dimension
     """
     is_5D = len(highres_data.shape) == 5
+    
+    #  channel index -> ssim object
+    ssim_obj_dict = {}
+    for ch_idx in range(highres_data.shape[-1]):
+        microssim_obj = MicroSSIM()
+        ssim_obj_dict[ch_idx] = microssim_obj
+        gt_tmp = highres_data[...,ch_idx]
+        pred_tmp = pred_unnorm[...,ch_idx]
+        gt_tmp = gt_tmp.reshape((-1, gt_tmp.shape[-2], gt_tmp.shape[-1]))
+        pred_tmp = pred_tmp.reshape((-1, gt_tmp.shape[-2], gt_tmp.shape[-1]))
+        microssim_obj.fit(gt_tmp, pred_tmp)
+    
+    m3ssim_obj_dict = {}
+    for ch_idx in range(highres_data.shape[-1]):
+        m3sim_obj = MicroMS3IM(**ssim_obj_dict[ch_idx].get_init_params_dict())
+        m3ssim_obj_dict[ch_idx] = m3sim_obj
+
     if is_5D:
-        z_metrics = {'psnr':[], 'ssim':[], 'rims_ssim':[]}
+        z_metrics = {'psnr':[], 'microssim':[], 'ms3ssim':[]}
         for z_idx in range(highres_data.shape[1]):
-            psnr_list, ssim_list, rims_ssim_list = _high_snr_stats(highres_data[:, z_idx], pred_unnorm[:, z_idx])
+            psnr_list, ssim_dict = _high_snr_stats(highres_data[:, z_idx], pred_unnorm[:, z_idx], ssim_fn_list=[ssim_obj_dict, m3ssim_obj_dict])
+            microssim_list = ssim_dict[0]
+            ms3im_list = ssim_dict[1]
             z_metrics['psnr'].append(psnr_list)
-            z_metrics['ssim'].append(ssim_list)
-            z_metrics['rims_ssim'].append(rims_ssim_list)
+            z_metrics['microssim'].append(microssim_list)
+            z_metrics['ms3ssim'].append(ms3im_list)
             
         psnr_list= np.array(z_metrics['psnr']).mean(axis=0)
-        ssim_list= np.array(z_metrics['ssim']).mean(axis=0)
-        rims_ssim_list= np.array(z_metrics['rims_ssim']).mean(axis=0)
+        microssim_list= np.array(z_metrics['microssim']).mean(axis=0)
+        ms3im_list= np.array(z_metrics['ms3ssim']).mean(axis=0)
     else:
-        psnr_list, ssim_list, rims_ssim_list = _high_snr_stats(highres_data, pred_unnorm)
+        psnr_list, ssim_dict = _high_snr_stats(highres_data, pred_unnorm, ssim_fn_list=[ssim_obj_dict, m3ssim_obj_dict])
+        microssim_list = ssim_dict[0] 
+        ms3im_list = ssim_dict[1]
     if verbose:
         def ssim_str(ssim_tmp):
             return f'{np.round(ssim_tmp[0], 3)}+-{np.round(ssim_tmp[1], 4)}'
         def psnr_str(psnr_tmp):
             return f'{np.round(psnr_tmp[0], 2)}+-{np.round(psnr_tmp[1], 3)}'
         print("PSNR on Highres", '\t'.join([psnr_str(psnr_tmp) for psnr_tmp in psnr_list]))
-        print("Multiscale SSIM on Highres", '\t'.join([ssim_str(ssim) for ssim in ssim_list]))
-        print("Range Invariant Multiscale SSIM on Highres", '\t'.join([ssim_str(ssim) for ssim in rims_ssim_list]))
+        print("MicroSSIM on Highres", '\t'.join([ssim_str(ssim) for ssim in microssim_list]))
+        print("MicroS3IM on Highres", '\t'.join([ssim_str(ssim) for ssim in ms3im_list]))
     return {
         "rangeinvpsnr": psnr_list,
-        "ms_ssim": ssim_list,
-        "rims_ssim": rims_ssim_list,
+        "microssim": microssim_list,
+        "ms3im": ms3im_list,
     }
 
 
@@ -371,6 +400,10 @@ def main(
             # config.model.noise_model_ch2_fpath = config.model.noise_model_ch2_fpath.replace('/home/ashesh.ashesh/training/', '/group/jug/ashesh/training_pre_eccv/')
         except:
             pass
+
+        if config.data.depth3D > 1:
+            config.data.mode_3D = True
+            config.model.mode_3D = True
 
         if config.model.model_type == ModelType.UNet and "n_levels" not in config.model:
             config.model.n_levels = 4
@@ -682,8 +715,8 @@ def main(
         stats_dict = compute_high_snr_stats(config, tar_normalized, pred)
         output_stats = {}
         output_stats["rangeinvpsnr"] = stats_dict["rangeinvpsnr"]
-        output_stats["ms_ssim"] = stats_dict["ms_ssim"]
-        output_stats["rims_ssim"] = stats_dict["rims_ssim"]
+        output_stats["microssim"] = stats_dict["microssim"]
+        output_stats["ms3im"] = stats_dict["ms3im"]
         print("")
 
     # highres data
@@ -703,8 +736,8 @@ def main(
         stats_dict = compute_high_snr_stats(config, highres_data, pred)
         output_stats = {}
         output_stats["rangeinvpsnr"] = stats_dict["rangeinvpsnr"]
-        output_stats["ms_ssim"] = stats_dict["ms_ssim"]
-        output_stats["rims_ssim"] = stats_dict["rims_ssim"]
+        output_stats["microssim"] = stats_dict["microssim"]
+        output_stats["ms3im"] = stats_dict["ms3im"]
         print("")
     return output_stats, pred_unnorm
 
@@ -772,7 +805,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14",
             # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L0/23"
             # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L0/30",
-            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L0/22",
+            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/22",
         ]
     else:
         ckpt_dirs = [ckpt_dir]

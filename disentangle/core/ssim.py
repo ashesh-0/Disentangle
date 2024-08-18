@@ -47,3 +47,20 @@ def compute_multiscale_ssim(gt_, pred_, range_invariant=True):
     output = [(np.mean(ms_ssim_values[i]), np.std(ms_ssim_values[i])) for i in range(gt_.shape[-1])]
     return output
 
+
+
+def compute_custom_ssim(gt_, pred_, ssim_obj_dict):
+    """
+    Computes multiscale ssim for each channel.
+    Args:
+    gt_: ground truth image with shape (N, H, W, C)
+    pred_: predicted image with shape (N, H, W, C)
+    range_invariant: whether to use range invariant multiscale ssim
+    """
+    ms_ssim_values = {i: None for i in range(gt_.shape[-1])}
+    for ch_idx in range(gt_.shape[-1]):
+        tar_tmp = gt_[..., ch_idx]
+        pred_tmp = pred_[..., ch_idx]
+        ms_ssim_values[ch_idx] = [ssim_obj_dict[ch_idx].score(tar_tmp[i], pred_tmp[i]) for i in range(tar_tmp.shape[0])]
+    output = [(np.mean(ms_ssim_values[i]), np.std(ms_ssim_values[i])) for i in range(gt_.shape[-1])]
+    return output
