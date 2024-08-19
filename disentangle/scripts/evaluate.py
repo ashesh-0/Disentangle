@@ -798,8 +798,10 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/22",
-            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/27"
+            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/23",
+            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/35",
+            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/37",
+            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24",
         ]
     else:
         ckpt_dirs = [ckpt_dir]

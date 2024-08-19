@@ -18,7 +18,7 @@ def get_config():
     config.data.subdset_type = SubDsetType.MultiChannel
     data.depth3D = 1
     data.mode_3D = False
-    data.random_flip_z_3D = True
+    data.random_flip_z_3D = False
 
 
     data.poisson_noise_factor = -1
