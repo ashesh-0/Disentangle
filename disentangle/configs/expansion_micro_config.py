@@ -16,8 +16,8 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.ExpMicroscopyV2
     config.data.subdset_type = SubDsetType.MultiChannel
-    data.depth3D = 5
-    data.mode_3D = True
+    data.depth3D = 1
+    data.mode_3D = False
     data.random_flip_z_3D = True
 
 
