@@ -136,6 +136,9 @@ class MultiChDloader:
         self._target_separate_normalization = data_config.target_separate_normalization
 
         self._enable_rotation = enable_rotation_aug
+        flipz_3D = data_config.get('random_flip_z_3D', False)
+        self._flipz_3D = flipz_3D and self._enable_rotation
+
         self._enable_random_cropping = enable_random_cropping
         self._uncorrelated_channels = data_config.get('uncorrelated_channels', False) and self._is_train
         assert self._is_train or self._uncorrelated_channels is False
@@ -356,6 +359,9 @@ class MultiChDloader:
         # msg += f' NormInp:{self._normalized_input}'
         # msg += f' SingleNorm:{self._use_one_mu_std}'
         msg += f' Rot:{self._enable_rotation}'
+        if self._flipz_3D:
+            msg += f' FlipZ:{self._flipz_3D}'
+        
         msg += f' RandCrop:{self._enable_random_cropping}'
         msg += f' Channel:{self._num_channels}'
         # msg += f' Q:{self._quantile}'
@@ -798,16 +804,26 @@ class MultiChDloader:
     
     def _rotate3D(self, img_tuples, noise_tuples):
         img_kwargs = {}
+        # random flip in z direction
+        flip_z = self._flipz_3D and np.random.rand() < 0.5
         for i,img in enumerate(img_tuples):
             for j in range(self._depth3D):
                 for k in range(len(img)):
-                    img_kwargs[f'img{i}_{j}_{k}'] = img[k,j]
+                    if flip_z:
+                        z_idx = self._depth3D - 1 - j
+                    else:
+                        z_idx = j
+                    img_kwargs[f'img{i}_{z_idx}_{k}'] = img[k,j]
         
         noise_kwargs = {}
         for i,nimg in enumerate(noise_tuples):
             for j in range(self._depth3D):
                 for k in range(len(nimg)):
-                    noise_kwargs[f'noise{i}_{j}_{k}'] = nimg[k,j]
+                    if flip_z:
+                        z_idx = self._depth3D - 1 - j
+                    else:
+                        z_idx = j
+                    noise_kwargs[f'noise{i}_{z_idx}_{k}'] = nimg[k,j]
             
         keys = list(img_kwargs.keys()) + list(noise_kwargs.keys())
         self._rotation_transform.add_targets({k: 'image' for k in keys})
