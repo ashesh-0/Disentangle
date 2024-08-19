@@ -387,7 +387,7 @@ def create_dataset(config,
         train_data.set_mean_std(mean_val, std_val)
         val_data.set_mean_std(mean_val, std_val)
     elif config.data.data_type in [
-            DataType.TavernaSox2Golgi, DataType.Dao3Channel, DataType.Dao3ChannelWithInput, DataType.ExpMicroscopyV2,
+            DataType.TavernaSox2Golgi, DataType.Dao3Channel, DataType.Dao3ChannelWithInput, DataType.ExpMicroscopyV1, DataType.ExpMicroscopyV2,
             DataType.TavernaSox2GolgiV2, DataType.Pavia3SeqData, DataType.ExpMicroscopyV3
     ]:
         datapath = datadir

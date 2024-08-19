@@ -2,6 +2,7 @@ import numpy as np
 
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
+from disentangle.data_loader.patch_index_manager import TilingMode
 from disentangle.data_loader.train_val_data import get_train_val_data
 from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
@@ -24,7 +25,7 @@ class SingleFileLCDset(LCMultiChDloader):
                  allow_generation: bool = False,
                  lowres_supervision=None,
                  max_val=None,
-                 trim_boundary=True,
+                 tiling_mode=TilingMode.ShiftBoundary,
                  overlapping_padding_kwargs=None,
                  print_vars=True):
         self._preloaded_data = preloaded_data
@@ -42,7 +43,7 @@ class SingleFileLCDset(LCMultiChDloader):
                          allow_generation=allow_generation,
                          lowres_supervision=lowres_supervision,
                          max_val=max_val,
-                         trim_boundary=trim_boundary,
+                         tiling_mode=tiling_mode,
                          overlapping_padding_kwargs=overlapping_padding_kwargs,
                          print_vars=print_vars)
 
@@ -55,11 +56,10 @@ class SingleFileLCDset(LCMultiChDloader):
 
     def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
         self._data = self._preloaded_data
-        self.N = len(self._data)
         assert 'channel_1' not in data_config or isinstance(data_config.channel_1, str)
         assert 'channel_2' not in data_config or isinstance(data_config.channel_2, str)
         assert 'channel_3' not in data_config or isinstance(data_config.channel_3, str)
-
+        self._loaded_data_preprocessing(data_config)
 
 class SingleFileDset(MultiChDloader):
 
@@ -76,7 +76,7 @@ class SingleFileDset(MultiChDloader):
                  use_one_mu_std=None,
                  allow_generation=False,
                  max_val=None,
-                 trim_boundary=True,
+                 tiling_mode=TilingMode.ShiftBoundary,
                  overlapping_padding_kwargs=None,
                  print_vars=True):
         self._preloaded_data = preloaded_data
@@ -91,7 +91,7 @@ class SingleFileDset(MultiChDloader):
                          use_one_mu_std=use_one_mu_std,
                          allow_generation=allow_generation,
                          max_val=max_val,
-                         trim_boundary=trim_boundary,
+                         tiling_mode=tiling_mode,
                          overlapping_padding_kwargs=overlapping_padding_kwargs,
                          print_vars=print_vars)
 
@@ -107,7 +107,7 @@ class SingleFileDset(MultiChDloader):
         assert 'channel_1' not in data_config, 'Outdated config file. Please remove channel_1, channel_2, channel_3 from the config file.'
         assert 'channel_2' not in data_config, 'Outdated config file. Please remove channel_1, channel_2, channel_3 from the config file.'
         assert 'channel_3' not in data_config, 'Outdated config file. Please remove channel_1, channel_2, channel_3 from the config file.'
-        self.N = len(self._data)
+        self._loaded_data_preprocessing(data_config)
 
 
 class MultiFileDset:
@@ -126,7 +126,7 @@ class MultiFileDset:
                  enable_random_cropping: bool = False,
                  use_one_mu_std=None,
                  max_val=None,
-                 trim_boundary=True,
+                 tiling_mode=TilingMode.ShiftBoundary,
                  padding_kwargs=None,
                  overlapping_padding_kwargs=None):
 
@@ -157,7 +157,7 @@ class MultiFileDset:
                                      allow_generation=False,
                                      num_scales=data_config.multiscale_lowres_count,
                                      max_val=max_val,
-                                     trim_boundary=trim_boundary,
+                                     tiling_mode=tiling_mode,
                                      padding_kwargs=padding_kwargs,
                                      overlapping_padding_kwargs=overlapping_padding_kwargs,
                                      print_vars=i == len(data) - 1))
@@ -176,7 +176,7 @@ class MultiFileDset:
                                    use_one_mu_std=use_one_mu_std,
                                    allow_generation=False,
                                    max_val=max_val,
-                                   trim_boundary=trim_boundary,
+                                   tiling_mode=tiling_mode,
                                    overlapping_padding_kwargs=overlapping_padding_kwargs,
                                    print_vars=i == len(data) - 1))
 

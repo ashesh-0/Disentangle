@@ -174,7 +174,7 @@ def compute_high_snr_stats(config, highres_data, pred_unnorm, verbose=True):
         ms3im_list = ssim_dict[1]
     if verbose:
         def ssim_str(ssim_tmp):
-            return f'{np.round(ssim_tmp[0], 3)}+-{np.round(ssim_tmp[1], 4)}'
+            return f'{np.round(ssim_tmp[0], 3)}'
         def psnr_str(psnr_tmp):
             return f'{np.round(psnr_tmp[0], 2)}+-{np.round(psnr_tmp[1], 3)}'
         print("PSNR on Highres", '\t'.join([psnr_str(psnr_tmp) for psnr_tmp in psnr_list]))
@@ -675,7 +675,7 @@ def main(
         return {'calib_stats':calib_stats}, None
 
     pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
-    ch1_pred_unnorm = pred_unnorm[..., 0]
+    # ch1_pred_unnorm = pred_unnorm[..., 0]
     # pred is already normalized. no need to do it.
     pred1 = pred[..., 0].astype(np.float32)
     tar1 = tar_normalized[..., 0]
@@ -712,7 +712,7 @@ def main(
 
     if highres_data is None:
         # Computing the output statistics.
-        stats_dict = compute_high_snr_stats(config, tar_normalized, pred)
+        stats_dict = compute_high_snr_stats(config, tar, pred_unnorm)
         output_stats = {}
         output_stats["rangeinvpsnr"] = stats_dict["rangeinvpsnr"]
         output_stats["microssim"] = stats_dict["microssim"]
@@ -722,7 +722,6 @@ def main(
     # highres data
     else:
         highres_data = ignore_pixels(highres_data)
-        highres_data = (highres_data - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
         # for denoiser, we don't need both channels.
         if config.model.model_type == ModelType.Denoiser:
             if model.denoise_channel == "Ch1":
@@ -733,7 +732,7 @@ def main(
                 highres_data = np.mean(highres_data, axis=-1, keepdims=True)
 
         print(print_token)
-        stats_dict = compute_high_snr_stats(config, highres_data, pred)
+        stats_dict = compute_high_snr_stats(config, highres_data, pred_unnorm)
         output_stats = {}
         output_stats["rangeinvpsnr"] = stats_dict["rangeinvpsnr"]
         output_stats["microssim"] = stats_dict["microssim"]
@@ -773,6 +772,10 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
             data_dir = os.path.join(data_dir, "OptiMEM100x014.tif")
         if synthetic_noise_present(config):
             highres_data = get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type)
+    
+    if 'mode_3D' in config.data and not config.data.mode_3D:
+        assert len(highres_data.shape) == 5
+        highres_data = highres_data.reshape(-1, *highres_data.shape[2:])
     return highres_data
 
 
@@ -795,17 +798,8 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # '/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/29',
-            # '/group/jug/ashesh/training/disentangle/2406/D24-M3-S0-L8/15',
-            # Daozheng
-            # "/group/jug/ashesh/training/disentangle/2406/D18-M3-S0-L8/2",
-            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4",
-            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5",
-            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6",
-            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14",
-            # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L0/23"
-            # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L0/30",
-            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/22",
+            # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/22",
+            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/27"
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -828,7 +822,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
                         DataType.OptiMEM100_014,
                         DataType.SemiSupBloodVesselsEMBL,
                         DataType.Pavia2VanillaSplitting,
-                        DataType.ExpansionMicroscopyMitoTub,
+                        DataType.ExpMicroscopyV1,
                         DataType.ShroffMitoEr,
                         DataType.HTIba1Ki67,
                 ]:

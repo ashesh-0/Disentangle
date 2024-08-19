@@ -167,7 +167,9 @@ class MultiChDloader:
                                         val_fraction=val_fraction,
                                         test_fraction=test_fraction,
                                         allow_generation=allow_generation)
+        self._loaded_data_preprocessing(data_config)
 
+    def _loaded_data_preprocessing(self, data_config):
         old_shape = self._data.shape
         if self._datausage_fraction < 1.0:
             framepixelcount = np.prod(self._data.shape[1:3])

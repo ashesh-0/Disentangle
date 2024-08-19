@@ -14,7 +14,7 @@ class DataType(Enum):
     SemiSupBloodVesselsEMBL = 9
     Pavia2 = 10
     Pavia2VanillaSplitting = 11
-    ExpansionMicroscopyMitoTub = 12
+    ExpMicroscopyV1 = 12
     ShroffMitoEr = 13
     HTIba1Ki67 = 14
     BSD68 = 15
