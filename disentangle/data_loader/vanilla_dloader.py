@@ -141,6 +141,8 @@ class MultiChDloader:
 
         self._enable_random_cropping = enable_random_cropping
         self._uncorrelated_channels = data_config.get('uncorrelated_channels', False) and self._is_train
+        self._uncorrelated_channel_probab =  data_config.get('uncorrelated_channel_probab', 0.5)
+
         assert self._is_train or self._uncorrelated_channels is False
         # assert self._enable_random_cropping is True or self._uncorrelated_channels is False
         # Randomly rotate [-90,90]
@@ -865,7 +867,7 @@ class MultiChDloader:
         if self._train_index_switcher is not None:
             index = self._get_index_from_valid_target_logic(index)
 
-        if self._uncorrelated_channels:
+        if self._uncorrelated_channels and np.random.rand() < self._uncorrelated_channel_probab:
             img_tuples, noise_tuples = self.get_uncorrelated_img_tuples(index)
         else:
             img_tuples, noise_tuples = self._get_img(index)
