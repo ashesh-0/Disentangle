@@ -10,7 +10,7 @@ from disentangle.data_loader.allencell_rawdata_loader import get_train_val_data 
 from disentangle.data_loader.dao_3ch_rawdata_loader import get_train_val_data as _loaddao3ch
 from disentangle.data_loader.elisa3D_rawdata_loader import get_train_val_data as _loadelisa3D
 from disentangle.data_loader.embl_semisup_rawdata_loader import get_train_val_data as _loadembl2_semisup
-from disentangle.data_loader.exp_microscopy_rawdata_loader import get_train_val_data as _loadexp_microscopyv2
+from disentangle.data_loader.exp_microscopy_rawdata_loader import get_train_val_data as _loadexp_microscopy
 from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import get_train_val_data as _load_ht_iba1_ki67
 from disentangle.data_loader.multi_channel_train_val_data import train_val_data as _load_tiff_train_val
 from disentangle.data_loader.multicrops_dset_rawdata_loader import get_train_val_data as _loadmulticropdset
@@ -134,8 +134,8 @@ def get_train_val_data(data_config,
         # assert 'input_idx' in data_config, 'input_idx should be provided for Dao3ChannelWithInput'
 
         return _loaddao3ch(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
-    elif data_config.data_type in [DataType.ExpMicroscopyV2, DataType.ExpMicroscopyV3]:
-        return _loadexp_microscopyv2(fpath,
+    elif data_config.data_type in [DataType.ExpMicroscopyV1, DataType.ExpMicroscopyV2, DataType.ExpMicroscopyV3]:
+        return _loadexp_microscopy(fpath,
                                      data_config,
                                      datasplit_type,
                                      val_fraction=val_fraction,

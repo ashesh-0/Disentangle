@@ -798,9 +798,9 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/23",
-            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/35",
-            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/37",
+            # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/23",
+            # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/35",
+            # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/37",
             "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24",
         ]
     else:
@@ -937,6 +937,10 @@ def parse_grid_size(grid_size):
         return grid_size
     
 if __name__ == "__main__":
+    import os
+
+    # os.environ['TQDM_DISABLE']='1'
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--ckpt_dir", type=str, default=None)
     parser.add_argument("--patch_size", type=int, default=None)
