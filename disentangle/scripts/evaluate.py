@@ -209,6 +209,8 @@ def _get_highres_data_internal(data_dir, data_config, training_config, eval_data
         training_config.val_fraction,
         training_config.test_fraction,
     )
+    if not isinstance(highres_data, np.ndarray):
+        highres_data = np.concatenate([highres_data[i][0] for i in range(len(highres_data))], axis=0)
 
     hres_max_val = compute_max_val(highres_data, data_config)
     del highres_data
@@ -220,6 +222,10 @@ def _get_highres_data_internal(data_dir, data_config, training_config, eval_data
         training_config.val_fraction,
         training_config.test_fraction,
     )
+    if not isinstance(highres_data, np.ndarray):
+        highres_data = np.concatenate([highres_data[i][0] for i in range(len(highres_data))], axis=0)
+        if 'mode_3D' in data_config and data_config.mode_3D and len(highres_data.shape) == 4:
+            highres_data = highres_data[None]
 
     # highres_data = highres_data[::5].copy()
     upperclip_data(highres_data, hres_max_val)
@@ -644,7 +650,7 @@ def main(
         if ignore_first_pixels:
             arr = arr[:, ignore_first_pixels:, ignore_first_pixels:]
         if ignored_last_pixels:
-            arr = arr[:, :-ignored_last_pixels, :-ignored_last_pixels]
+            arr = arr[...,:-ignored_last_pixels, :-ignored_last_pixels,:]
         return arr
 
     pred = ignore_pixels(pred)
@@ -773,8 +779,7 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
         if synthetic_noise_present(config):
             highres_data = get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type)
     
-    if 'mode_3D' in config.data and not config.data.mode_3D:
-        assert len(highres_data.shape) == 5
+    if 'mode_3D' in config.data and not config.data.mode_3D and len(highres_data.shape) == 5:
         highres_data = highres_data.reshape(-1, *highres_data.shape[2:])
     return highres_data
 
@@ -801,7 +806,11 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/23",
             # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/35",
             # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/37",
-            "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24",
+            # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24",
+            # "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/13"
+            # "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/13",
+            "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/11",
+            "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/10",
         ]
     else:
         ckpt_dirs = [ckpt_dir]
