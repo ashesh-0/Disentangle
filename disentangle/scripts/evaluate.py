@@ -636,21 +636,24 @@ def main(
     actual_ignored_pixels = print_ignored_pixels()
     assert (ignored_last_pixels >= actual_ignored_pixels
             ), f"ignored_last_pixels: {ignored_last_pixels} < actual_ignored_pixels: {actual_ignored_pixels}"
+    assert actual_ignored_pixels == 0, "With the default tiling mode, we should not be ignoring any pixels."
+
     # tar = val_dset._data
     tar = (val_dset._data if not is_list_prediction else [val_dset.dsets[i]._data for i in range(len(val_dset.dsets))])
     if is_list_prediction:
         tar = np.concatenate(tar, axis=0)
 
-    def ignore_pixels(arr):
-        if ignore_first_pixels:
-            arr = arr[:, ignore_first_pixels:, ignore_first_pixels:]
-        if ignored_last_pixels:
-            arr = arr[...,:-ignored_last_pixels, :-ignored_last_pixels,:]
-        return arr
+    # def ignore_pixels(arr):
+    #     if ignore_first_pixels:
+    #         arr = arr[:, ignore_first_pixels:, ignore_first_pixels:]
+    #     if ignored_last_pixels:
+    #         arr = arr[...,:-ignored_last_pixels, :-ignored_last_pixels,:]
+    #     return arr
 
-    pred = ignore_pixels(pred)
-    tar = ignore_pixels(tar)
-    pred_std = ignore_pixels(pred_std)
+    # pred = ignore_pixels(pred)
+    # tar = ignore_pixels(tar)
+    # pred_std = ignore_pixels(pred_std)
+
     if "target_idx_list" in config.data and config.data.target_idx_list is not None:
         tar = tar[..., config.data.target_idx_list]
         pred = pred[..., :(tar.shape[-1])]
@@ -823,29 +826,30 @@ def save_hardcoded_ckpt_evaluations_to_file(
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
         for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
-                data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split("-")[0][1:])
-                if data_type in [
-                        DataType.OptiMEM100_014,
-                        DataType.SemiSupBloodVesselsEMBL,
-                        DataType.Pavia2VanillaSplitting,
-                        DataType.ExpMicroscopyV1,
-                        DataType.ShroffMitoEr,
-                        DataType.HTIba1Ki67,
-                ]:
-                    ignored_last_pixels = 32
-                elif data_type == DataType.BioSR_MRC:
-                    ignored_last_pixels = 44
-                    # assert val_dset.get_img_sz() == 64
-                    # ignored_last_pixels = 108
-                elif data_type == DataType.NicolaData:
-                    ignored_last_pixels = 8
-                elif data_type == DataType.ExpMicroscopyV2:
-                    ignored_last_pixels = 16
-                elif data_type == DataType.TavernaSox2GolgiV2:
-                    ignored_last_pixels = 8
-                else:
-                    ignored_last_pixels = 0
-
+                # data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split("-")[0][1:])
+                # if data_type in [
+                #         DataType.OptiMEM100_014,
+                #         DataType.SemiSupBloodVesselsEMBL,
+                #         DataType.Pavia2VanillaSplitting,
+                #         DataType.ExpMicroscopyV1,
+                #         DataType.ShroffMitoEr,
+                #         DataType.HTIba1Ki67,
+                # ]:
+                #     ignored_last_pixels = 32
+                # elif data_type == DataType.BioSR_MRC:
+                #     ignored_last_pixels = 44
+                #     # assert val_dset.get_img_sz() == 64
+                #     # ignored_last_pixels = 108
+                # elif data_type == DataType.NicolaData:
+                #     ignored_last_pixels = 8
+                # elif data_type == DataType.ExpMicroscopyV2:
+                #     ignored_last_pixels = 16
+                # elif data_type == DataType.TavernaSox2GolgiV2:
+                #     ignored_last_pixels = 8
+                # else:
+                #     ignored_last_pixels = 0
+                
+                ignored_last_pixels = 0
                 if custom_image_size is None:
                     custom_image_size = load_config(ckpt_dir).data.image_size
 
