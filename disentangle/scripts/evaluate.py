@@ -726,6 +726,29 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
     
     return highres_data
 
+def stack_list_of_images(images):
+    """
+    images: list of images
+    """
+    assert isinstance(images, list)
+    shape = list(images[0].shape)
+
+    for img in images:
+        for i in range(1,len(shape)):
+            shape[i] = max(shape[i], img.shape[i])
+    
+    shape = [len(images)] + shape
+    output = np.zeros(shape, dtype=images[0].dtype)
+
+    for i, img in enumerate(images):
+        if len(shape) ==5:
+            output[i,:img.shape[0], :img.shape[1], :img.shape[2], :img.shape[3]] = img
+        elif len(shape) == 6:
+            output[i,:img.shape[0], :img.shape[1], :img.shape[2], :img.shape[3], :img.shape[4]] = img
+        else:
+            raise Exception(f"Invalid shape:{shape}")
+    
+    return output
 
 def save_hardcoded_ckpt_evaluations_to_file(
     normalized_ssim=True,
@@ -860,25 +883,13 @@ def save_hardcoded_ckpt_evaluations_to_file(
                 print("")
                 print("")
                 if save_prediction and prediction is not None:
-                    offset = prediction.min()
-                    prediction -= offset
-                    if save_prediction_factor != 1.0:
-                        if save_prediction_factor == -1:
-                            save_prediction_factor = 65535 / prediction.max()
-                        if save_prediction_factor > 1:
-                            prediction = (prediction * save_prediction_factor).astype(np.uint32)
-                        else:
-                            prediction = prediction.astype(np.uint32)
-                    else:
-                        prediction = prediction.astype(np.uint32)
+                    if isinstance(prediction, list):
+                        prediction = stack_list_of_images(prediction)
 
                     handler.dump_predictions(
                         ckpt_dir,
                         prediction,
-                        {
-                            "offset": str(offset),
-                            "factor": str(save_prediction_factor)
-                        },
+                        {},
                         overwrite=overwrite_saved_predictions,
                     )
 
@@ -895,9 +906,12 @@ def parse_grid_size(grid_size):
 if __name__ == "__main__":
     import os
 
-    # import numpy as np
-    # shape = (13, 1584, 1584, 2)
-    # gt = [np.random.rand(*shape)]
+    import numpy as np
+
+    # shape1 = (1, 1800, 1500, 2)
+    # shape2 = (1, 1000, 1300, 2)
+    # gt = [np.random.rand(*shape1), np.random.rand(*shape2)]
+    # combined = stack_list_of_images(gt)
     # pred = [np.random.rand(*shape)]
     # gt_list, pred_list = _get_list_of_images_from_gt_pred(gt, pred, 0)
     # os.environ['TQDM_DISABLE']='1'
