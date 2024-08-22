@@ -32,7 +32,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.psnr import PSNR, RangeInvariantPsnr
-from disentangle.core.ssim import compute_custom_ssim, compute_SE
+from disentangle.core.ssim import compute_SE
 from disentangle.core.tiff_reader import load_tiff
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.patch_index_manager import TilingMode
@@ -52,7 +52,8 @@ def _avg_psnr(target, prediction, psnr_fn):
     """
     Returns the mean PSNR and the standard error of the mean.
     """
-    psnr_arr = [psnr_fn(target[i:i + 1], prediction[i:i + 1]).item() for i in range(len(prediction))]
+    # multiplication with 1.0 is to ensure that the data is float.
+    psnr_arr = [psnr_fn(target[i][None]*1.0, prediction[i][None]*1.0).item() for i in range(len(prediction))]
     mean_psnr = np.mean(psnr_arr)
     std_err_psnr = compute_SE(psnr_arr)
     return round(mean_psnr, 2), round(std_err_psnr, 3)
@@ -65,26 +66,6 @@ def avg_range_inv_psnr(target, prediction):
 def avg_psnr(target, prediction):
     return _avg_psnr(target, prediction, PSNR)
 
-
-def compute_masked_psnr(mask, tar1, tar2, pred1, pred2):
-    mask = mask.astype(bool)
-    mask = mask[..., 0]
-    tmp_tar1 = tar1[mask].reshape((len(tar1), -1, 1))
-    tmp_pred1 = pred1[mask].reshape((len(tar1), -1, 1))
-    tmp_tar2 = tar2[mask].reshape((len(tar2), -1, 1))
-    tmp_pred2 = pred2[mask].reshape((len(tar2), -1, 1))
-    psnr1 = avg_range_inv_psnr(tmp_tar1, tmp_pred1)
-    psnr2 = avg_range_inv_psnr(tmp_tar2, tmp_pred2)
-    return psnr1, psnr2
-
-
-def avg_ssim(target, prediction):
-    raise ValueError("This function is not used anymore. Use compute_multiscale_ssim instead.")
-    ssim = [
-        structural_similarity(target[i], prediction[i], data_range=target[i].max() - target[i].min())
-        for i in range(len(target))
-    ]
-    return np.mean(ssim), np.std(ssim)
 
 
 def fix_seeds():
@@ -119,53 +100,58 @@ def compute_max_val(data, data_config):
     else:
         return np.quantile(data, data_config.clip_percentile)
 
-def _high_snr_stats(highres_data, pred_unnorm, ssim_fn_list:List[Dict[int,Callable]]=None):
+def _get_list_of_images_from_gt_pred(gt, pred, ch_idx):
     """
+    Whether you have 2D data or 3D data, this function will return a list of images HixWi.
     """
-    if ssim_fn_list is None:
-        ssim_fn_list = [] 
-    assert len(highres_data.shape) == 4, "expected batch x H x W x C"
-    psnr_list = [
-            avg_range_inv_psnr(highres_data[..., i].copy(), pred_unnorm[..., i].copy())
-            for i in range(highres_data.shape[-1])
-        ]
-    ssim_vals = []
-    for ssim_fn_dict in ssim_fn_list:
-        ssim_vals.append(compute_custom_ssim(highres_data, pred_unnorm, ssim_fn_dict))
-    
-    return psnr_list, ssim_vals
+    gt_list = []
+    pred_list = []
+    if isinstance(gt, list):
+        # assert len(gt[0].shape) == 4, f"expected N x H x W x C, but got {gt[0].shape}"
+        for i in range(len(gt)):
+            gt_list_tmp, pred_list_tmp = _get_list_of_images_from_gt_pred(gt[i], pred[i], ch_idx)
+            gt_list += gt_list_tmp
+            pred_list += pred_list_tmp
+    elif isinstance(gt, np.ndarray):
+        if len(gt.shape) == 3:
+            return [gt[..., ch_idx]], [pred[..., ch_idx]]
+        else:
+            assert gt.shape == pred.shape, f"gt shape: {gt.shape}, pred shape: {pred.shape}"
+            for n_idx in range(gt.shape[0]):
+                gt_list_tmp, pred_list_tmp = _get_list_of_images_from_gt_pred(gt[n_idx], pred[n_idx], ch_idx)
+                gt_list += gt_list_tmp
+                pred_list += pred_list_tmp
+    return gt_list, pred_list
 
 
-
-def compute_high_snr_stats(config, highres_data, pred_unnorm, verbose=True):
+def compute_high_snr_stats(highres_data, pred_unnorm, verbose=True):
     """
     last dimension is the channel dimension
     """
-    is_5D = len(highres_data.shape) == 5
+    # is_5D = isinstance(highres_data, np.ndarray) and len(highres_data.shape) == 5
     
     #  channel index -> ssim object
-    ssim_obj_dict = {}
-    for ch_idx in range(highres_data.shape[-1]):
+    # ssim_obj_dict = {}
+    # m3ssim_obj_dict = {}
+    psnr_list = []
+    microssim_list = []
+    ms3im_list = []
+    for ch_idx in range(highres_data[0].shape[-1]):
+        # list of gt and prediction images. This handles both 2D and 3D data. This also handles when individual images are lists.
+        gt_ch, pred_ch = _get_list_of_images_from_gt_pred(highres_data, pred_unnorm, ch_idx)
+        # PSNR
+        psnr_list.append(avg_range_inv_psnr(gt_ch, pred_ch))
+        # MicroSSIM
         microssim_obj = MicroSSIM()
-        ssim_obj_dict[ch_idx] = microssim_obj
-        gt_tmp = highres_data[...,ch_idx]
-        pred_tmp = pred_unnorm[...,ch_idx]
-        gt_tmp = gt_tmp.reshape((-1, gt_tmp.shape[-2], gt_tmp.shape[-1]))
-        pred_tmp = pred_tmp.reshape((-1, gt_tmp.shape[-2], gt_tmp.shape[-1]))
-        microssim_obj.fit(gt_tmp, pred_tmp)
-    
-    m3ssim_obj_dict = {}
-    for ch_idx in range(highres_data.shape[-1]):
-        m3sim_obj = MicroMS3IM(**ssim_obj_dict[ch_idx].get_init_params_dict())
-        m3ssim_obj_dict[ch_idx] = m3sim_obj
+        microssim_obj.fit(gt_ch, pred_ch)
+        mssim_scores = [microssim_obj.score(gt_ch[i], pred_ch[i]) for i in range(len(gt_ch))]
+        microssim_list.append((np.mean(mssim_scores), compute_SE(mssim_scores)))
+        # MicroS3IM
+        m3sim_obj = MicroMS3IM(**microssim_obj.get_init_params_dict())
+        ms3im_scores = [m3sim_obj.score(gt_ch[i], pred_ch[i]) for i in range(len(gt_ch))]
+        ms3im_list.append((np.mean(ms3im_scores), compute_SE(ms3im_scores)))
 
-    if is_5D:
-        highres_data = highres_data.reshape((-1, *highres_data.shape[-3:]))
-        pred_unnorm = pred_unnorm.reshape((-1, *pred_unnorm.shape[-3:]))
 
-    psnr_list, ssim_dict = _high_snr_stats(highres_data, pred_unnorm, ssim_fn_list=[ssim_obj_dict, m3ssim_obj_dict])
-    microssim_list = ssim_dict[0] 
-    ms3im_list = ssim_dict[1]
     if verbose:
         def ssim_str(ssim_tmp):
             return f'{np.round(ssim_tmp[0], 3):.3f}+-{np.round(ssim_tmp[1], 3):.3f}'
@@ -218,12 +204,14 @@ def _get_highres_data_internal(data_dir, data_config, training_config, eval_data
         training_config.test_fraction,
     )
     if not isinstance(highres_data, np.ndarray):
-        highres_data = np.concatenate([highres_data[i][0] for i in range(len(highres_data))], axis=0)
-        if 'mode_3D' in data_config and data_config.mode_3D and len(highres_data.shape) == 4:
-            highres_data = highres_data[None]
-
-    # highres_data = highres_data[::5].copy()
-    upperclip_data(highres_data, hres_max_val)
+        highres_data = [highres_data[i][0] for i in range(len(highres_data))]
+        for x in highres_data:
+            upperclip_data(x, hres_max_val)
+        
+        if 'mode_3D' in data_config and data_config.mode_3D and len(highres_data[0].shape) == 4:
+            highres_data = [x[None] for x in highres_data]
+    else:
+        upperclip_data(highres_data, hres_max_val)
     return highres_data
 
 
@@ -402,7 +390,7 @@ def main(
         except:
             pass
 
-        if config.data.depth3D > 1:
+        if 'depth3D' in config.data and config.data.depth3D > 1:
             config.data.mode_3D = True
             config.model.mode_3D = True
 
@@ -607,22 +595,22 @@ def main(
     pred_std = stitch_predictions(pred_std_tiled,val_dset)
 
     is_list_prediction = isinstance(pred, list)
-    if is_list_prediction:
-        pred = np.concatenate(pred, axis=0)
-        pred_std = np.concatenate(pred_std, axis=0)
 
-    if pred.shape[-1] == 2 and pred[..., 1].std() == 0:
+    if pred[0].shape[-1] == 2 and pred[0][..., 1].std() == 0:
         print("Denoiser model. Ignoring the second channel")
         pred = pred[..., :1].copy()
         pred_std = pred_std[..., :1].copy()
 
-    print("Stitched predictions shape before ignoring boundary pixels", pred.shape)
+    print("Stitched predictions shape before ignoring boundary pixels", len(pred), pred[0].shape)
 
     def print_ignored_pixels():
         ignored_pixels = 1
-        if pred.shape[0] == 1:
+        if len(pred) == 1:
             return 0
 
+        if isinstance(pred, list):
+            return 0
+        
         while (pred[
                 :10,
                 -ignored_pixels:,
@@ -630,7 +618,6 @@ def main(
         ].std() == 0):
             ignored_pixels += 1
         ignored_pixels -= 1
-        # print(f'In {pred.shape}, {ignored_pixels} many rows and columns are all zero.')
         return ignored_pixels
 
     actual_ignored_pixels = print_ignored_pixels()
@@ -638,38 +625,22 @@ def main(
             ), f"ignored_last_pixels: {ignored_last_pixels} < actual_ignored_pixels: {actual_ignored_pixels}"
     assert actual_ignored_pixels == 0, "With the default tiling mode, we should not be ignoring any pixels."
 
-    # tar = val_dset._data
     tar = (val_dset._data if not is_list_prediction else [val_dset.dsets[i]._data for i in range(len(val_dset.dsets))])
-    if is_list_prediction:
-        tar = np.concatenate(tar, axis=0)
-
-    # def ignore_pixels(arr):
-    #     if ignore_first_pixels:
-    #         arr = arr[:, ignore_first_pixels:, ignore_first_pixels:]
-    #     if ignored_last_pixels:
-    #         arr = arr[...,:-ignored_last_pixels, :-ignored_last_pixels,:]
-    #     return arr
-
-    # pred = ignore_pixels(pred)
-    # tar = ignore_pixels(tar)
-    # pred_std = ignore_pixels(pred_std)
 
     if "target_idx_list" in config.data and config.data.target_idx_list is not None:
         tar = tar[..., config.data.target_idx_list]
         pred = pred[..., :(tar.shape[-1])]
         pred_std = pred_std[...,:(tar.shape[-1])]
 
-    print("Stitched predictions shape after", pred.shape)
+    print("Stitched predictions shape after", len(pred), pred[0].shape)
 
 
     sep_mean, sep_std = model.data_mean["target"], model.data_std["target"]
     sep_mean = sep_mean.squeeze().reshape(1, 1, 1, -1)
     sep_std = sep_std.squeeze().reshape(1, 1, 1, -1)
 
-    # tar1, tar2 = val_dset.normalize_img(tar[...,0], tar[...,1])
-    tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
-    # train calibration model here. in that case, we just return post that. 
     if train_calibration:
+        tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
         assert eval_datasplit_type == DataSplitType.Val, "Calibration model should be trained on the validation set."
         calib_factors= get_calibration_factor(pred, pred_std, tar_normalized)
         return {"calib_factor": calib_factors}, None
@@ -678,34 +649,10 @@ def main(
         calib_stats = get_calibration_stats(eval_calibration_factors['calib_factor'], pred, pred_std, tar_normalized)
         return {'calib_stats':calib_stats}, None
 
-    pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
-    # ch1_pred_unnorm = pred_unnorm[..., 0]
-    # pred is already normalized. no need to do it.
-    pred1 = pred[..., 0].astype(np.float32)
-    tar1 = tar_normalized[..., 0]
-    rmse1 = np.sqrt(((pred1 - tar1)**2).reshape(len(pred1), -1).mean(axis=1))
-    rmse = rmse1
-    rmse2 = np.array([0])
-
-    # if not normalized_ssim:
-    #     ssim1_mean, ssim1_std = avg_ssim(tar[..., 0], ch1_pred_unnorm)
-    # else:
-    #     ssim1_mean, ssim1_std = avg_ssim(tar_normalized[..., 0], pred[..., 0])
-
-    pred2 = None
-    if pred.shape[-1] == 2:
-        ch2_pred_unnorm = pred_unnorm[..., 1]
-        # pred is already normalized. no need to do it.
-        pred2 = pred[..., 1].astype(np.float32)
-        tar2 = tar_normalized[..., 1]
-        rmse2 = np.sqrt(((pred2 - tar2)**2).reshape(len(pred2), -1).mean(axis=1))
-        rmse = (rmse1 + rmse2) / 2
-
-        # if not normalized_ssim:
-        #     ssim2_mean, ssim2_std = avg_ssim(tar[..., 1], ch2_pred_unnorm)
-        # else:
-        #     ssim2_mean, ssim2_std = avg_ssim(tar_normalized[..., 1], pred[..., 1])
-    rmse = np.round(rmse, 3)
+    if is_list_prediction:
+        pred_unnorm = [pred[i] * sep_std.cpu().numpy() + sep_mean.cpu().numpy() for i in range(len(pred))]
+    else:
+        pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
 
     highres_data = (get_highsnr_data(config, data_dir, eval_datasplit_type) if compare_with_highsnr else None)
     if predict_kth_frame is not None and highres_data is not None:
@@ -716,7 +663,7 @@ def main(
 
     if highres_data is None:
         # Computing the output statistics.
-        stats_dict = compute_high_snr_stats(config, tar, pred_unnorm)
+        stats_dict = compute_high_snr_stats(tar, pred_unnorm)
         output_stats = {}
         output_stats["rangeinvpsnr"] = stats_dict["rangeinvpsnr"]
         output_stats["microssim"] = stats_dict["microssim"]
@@ -725,7 +672,7 @@ def main(
 
     # highres data
     else:
-        highres_data = ignore_pixels(highres_data)
+        # highres_data = ignore_pixels(highres_data)
         # for denoiser, we don't need both channels.
         if config.model.model_type == ModelType.Denoiser:
             if model.denoise_channel == "Ch1":
@@ -736,7 +683,7 @@ def main(
                 highres_data = np.mean(highres_data, axis=-1, keepdims=True)
 
         print(print_token)
-        stats_dict = compute_high_snr_stats(config, highres_data, pred_unnorm)
+        stats_dict = compute_high_snr_stats(highres_data, pred_unnorm)
         output_stats = {}
         output_stats["rangeinvpsnr"] = stats_dict["rangeinvpsnr"]
         output_stats["microssim"] = stats_dict["microssim"]
@@ -777,8 +724,6 @@ def get_highsnr_data(config, data_dir, eval_datasplit_type):
         if synthetic_noise_present(config):
             highres_data = get_data_without_synthetic_noise(data_dir, config, eval_datasplit_type)
     
-    if 'mode_3D' in config.data and not config.data.mode_3D and len(highres_data.shape) == 5:
-        highres_data = highres_data.reshape(-1, *highres_data.shape[2:])
     return highres_data
 
 
@@ -807,8 +752,11 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24",
             # "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/13"
             # "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/13",
-            "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/11",
-            # "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/10",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/4",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/9",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/5",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/10",
+            '/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/4'
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -849,7 +797,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
                 # else:
                 #     ignored_last_pixels = 0
                 
-                ignored_last_pixels = 0
+                ignored_last_pixels = 16
                 if custom_image_size is None:
                     custom_image_size = load_config(ckpt_dir).data.image_size
 
@@ -947,6 +895,11 @@ def parse_grid_size(grid_size):
 if __name__ == "__main__":
     import os
 
+    # import numpy as np
+    # shape = (13, 1584, 1584, 2)
+    # gt = [np.random.rand(*shape)]
+    # pred = [np.random.rand(*shape)]
+    # gt_list, pred_list = _get_list_of_images_from_gt_pred(gt, pred, 0)
     # os.environ['TQDM_DISABLE']='1'
 
     parser = argparse.ArgumentParser()
