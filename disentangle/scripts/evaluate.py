@@ -32,7 +32,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.psnr import PSNR, RangeInvariantPsnr
-from disentangle.core.ssim import compute_custom_ssim, compute_multiscale_ssim, range_invariant_multiscale_ssim
+from disentangle.core.ssim import compute_custom_ssim, compute_SE
 from disentangle.core.tiff_reader import load_tiff
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.patch_index_manager import TilingMode
@@ -49,10 +49,13 @@ CODE_ROOT = "PUT THE ROOT DIRECTORY FOR THE CODE HERE"
 
 
 def _avg_psnr(target, prediction, psnr_fn):
+    """
+    Returns the mean PSNR and the standard error of the mean.
+    """
     psnr_arr = [psnr_fn(target[i:i + 1], prediction[i:i + 1]).item() for i in range(len(prediction))]
     mean_psnr = np.mean(psnr_arr)
-    std_psnr = np.std(psnr_arr)
-    return round(mean_psnr, 2), round(std_psnr, 3)
+    std_err_psnr = compute_SE(psnr_arr)
+    return round(mean_psnr, 2), round(std_err_psnr, 3)
 
 
 def avg_range_inv_psnr(target, prediction):
@@ -129,6 +132,7 @@ def _high_snr_stats(highres_data, pred_unnorm, ssim_fn_list:List[Dict[int,Callab
     ssim_vals = []
     for ssim_fn_dict in ssim_fn_list:
         ssim_vals.append(compute_custom_ssim(highres_data, pred_unnorm, ssim_fn_dict))
+    
     return psnr_list, ssim_vals
 
 
@@ -156,30 +160,21 @@ def compute_high_snr_stats(config, highres_data, pred_unnorm, verbose=True):
         m3ssim_obj_dict[ch_idx] = m3sim_obj
 
     if is_5D:
-        z_metrics = {'psnr':[], 'microssim':[], 'ms3ssim':[]}
-        for z_idx in range(highres_data.shape[1]):
-            psnr_list, ssim_dict = _high_snr_stats(highres_data[:, z_idx], pred_unnorm[:, z_idx], ssim_fn_list=[ssim_obj_dict, m3ssim_obj_dict])
-            microssim_list = ssim_dict[0]
-            ms3im_list = ssim_dict[1]
-            z_metrics['psnr'].append(psnr_list)
-            z_metrics['microssim'].append(microssim_list)
-            z_metrics['ms3ssim'].append(ms3im_list)
-            
-        psnr_list= np.array(z_metrics['psnr']).mean(axis=0)
-        microssim_list= np.array(z_metrics['microssim']).mean(axis=0)
-        ms3im_list= np.array(z_metrics['ms3ssim']).mean(axis=0)
-    else:
-        psnr_list, ssim_dict = _high_snr_stats(highres_data, pred_unnorm, ssim_fn_list=[ssim_obj_dict, m3ssim_obj_dict])
-        microssim_list = ssim_dict[0] 
-        ms3im_list = ssim_dict[1]
+        highres_data = highres_data.reshape((-1, *highres_data.shape[-3:]))
+        pred_unnorm = pred_unnorm.reshape((-1, *pred_unnorm.shape[-3:]))
+
+    psnr_list, ssim_dict = _high_snr_stats(highres_data, pred_unnorm, ssim_fn_list=[ssim_obj_dict, m3ssim_obj_dict])
+    microssim_list = ssim_dict[0] 
+    ms3im_list = ssim_dict[1]
     if verbose:
         def ssim_str(ssim_tmp):
-            return f'{np.round(ssim_tmp[0], 3)}'
+            return f'{np.round(ssim_tmp[0], 3):.3f}+-{np.round(ssim_tmp[1], 3):.3f}'
         def psnr_str(psnr_tmp):
             return f'{np.round(psnr_tmp[0], 2)}+-{np.round(psnr_tmp[1], 3)}'
         print("PSNR on Highres", '\t'.join([psnr_str(psnr_tmp) for psnr_tmp in psnr_list]))
         print("MicroSSIM on Highres", '\t'.join([ssim_str(ssim) for ssim in microssim_list]))
         print("MicroS3IM on Highres", '\t'.join([ssim_str(ssim) for ssim in ms3im_list]))
+    
     return {
         "rangeinvpsnr": psnr_list,
         "microssim": microssim_list,
@@ -810,7 +805,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/13"
             # "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/13",
             "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/11",
-            "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/10",
+            # "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/10",
         ]
     else:
         ckpt_dirs = [ckpt_dir]
