@@ -268,6 +268,8 @@ def get_data_dir(dtype):
         data_dir = f"{DATA_ROOT}/Dao3Channel/"
     elif dtype == DataType.ExpMicroscopyV2:
         data_dir = f"{DATA_ROOT}/expansion_microscopy_v2/datafiles"
+    elif dtype == DataType.ExpMicroscopyV1:
+        data_dir = f"{DATA_ROOT}/expansion_microscopy_v1/MDCK_MitoDeepRed639_AlphaBetaTub488/"
     elif dtype == DataType.Pavia3SeqData:
         data_dir = f"{DATA_ROOT}/pavia3_sequential_cropped/"
     elif dtype == DataType.TavernaSox2GolgiV2:
@@ -663,6 +665,7 @@ def main(
 
     if highres_data is None:
         # Computing the output statistics.
+        print(print_token)
         stats_dict = compute_high_snr_stats(tar, pred_unnorm)
         output_stats = {}
         output_stats["rangeinvpsnr"] = stats_dict["rangeinvpsnr"]
@@ -769,17 +772,14 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/23",
-            # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/35",
-            # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/37",
-            # "/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24",
-            # "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/13"
-            # "/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/13",
-            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/4",
-            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/9",
-            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/5",
-            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/10",
-            '/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/4'
+            '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/22',
+            '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/27',
+            '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24',
+            '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/23',
+            # '/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/13',
+            # '/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/11',
+            # '/group/jug/ashesh/training/disentangle/2408/D12-M3-S0-L8/2',
+            # '/group/jug/ashesh/training/disentangle/2408/D12-M3-S0-L8/3',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -820,7 +820,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
                 # else:
                 #     ignored_last_pixels = 0
                 
-                ignored_last_pixels = 16
+                ignored_last_pixels = 0
                 if custom_image_size is None:
                     custom_image_size = load_config(ckpt_dir).data.image_size
 
