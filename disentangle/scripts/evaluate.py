@@ -212,6 +212,9 @@ def _get_highres_data_internal(data_dir, data_config, training_config, eval_data
             highres_data = [x[None] for x in highres_data]
     else:
         upperclip_data(highres_data, hres_max_val)
+        if len(highres_data.shape) == 5 and ('mode_3D' in data_config and not data_config.mode_3D):
+            highres_data = highres_data.reshape(-1, *highres_data.shape[2:])
+    
     return highres_data
 
 
@@ -772,7 +775,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/22',
+            # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/22',
             '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/27',
             '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24',
             '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/23',
