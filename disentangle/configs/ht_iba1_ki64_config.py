@@ -7,7 +7,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
-from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import SubDsetType
+from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import SNR, SubDsetType
 
 
 def get_config():
@@ -16,6 +16,7 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.HTIba1Ki67
     data.subdset_type = SubDsetType.OnlyIba1
+    data.snrtype = SNR.Low
 
     data.background_quantile = 0.01
     data.uncorrelated_channels = True
@@ -30,7 +31,7 @@ def get_config():
 
     data.sampler_type = SamplerType.DefaultSampler
     # data.threshold = 0.02
-    data.grid_size = 1
+    data.grid_size = 2
     data.deterministic_grid = True
     data.normalized_input = True
     data.clip_percentile = 1

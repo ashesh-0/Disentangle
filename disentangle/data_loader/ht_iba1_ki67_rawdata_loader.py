@@ -115,9 +115,12 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
 
 
 if __name__ == '__main__':
-    from ml_collections.config_dict import ConfigDict
-    data_config = ConfigDict()
-    data_config.subdset_type = SubDsetType.OnlyIba1
-    data_config.snrtype = SNR.Low
+    # from ml_collections.config_dict import ConfigDict
+    # data_config = ConfigDict()
+    # data_config.subdset_type = SubDsetType.OnlyIba1
+    # data_config.snrtype = SNR.Low
+    from disentangle.configs.ht_iba1_ki64_config import get_config
+    config = get_config()
+    data_config = config.data
     datadir = '/group/jug/ashesh/data/Stefania/20240730_Ki67_and_Iba1_trainingdata'
     data = get_train_val_data(datadir, data_config, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
