@@ -8,6 +8,10 @@ from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
 from disentangle.core.tiff_reader import load_tiff
 
 
+class SNR(Enum):
+    Low = 'low'
+    High = 'high'
+
 class SubDsetType(Enum):
     OnlyIba1 = 'Iba1'
     Iba1Ki64 = 'Iba1_Ki67'
@@ -17,13 +21,22 @@ class SubDsetType(Enum):
 
 
 
-def get_iba1_ki67_files():
-    return [f'{i}.czi' for i in range(1, 31)]
+# def get_iba1_ki67_files():
+#     return [f'{i}.czi' for i in range(1, 31)]
 
+# def get_iba1_only_files():
+#     return [f'Iba1only_{i}.czi' for i in range(1, 16)]
 
-def get_iba1_only_files():
-    return [f'Iba1only_{i}.czi' for i in range(1, 16)]
+def get_iba1_ki67_files(snrtype: SNR):
+    return [f'Iba1_Ki67_{snrtype}_{i}.czi' for i in range(1, 16)]
 
+def get_iba1_only_files(snrtype: SNR):
+    if snrtype == SNR.Low:
+        return [f'Iba1_{snrtype}_{i}.czi' for i in range(1, 16)]
+    elif snrtype == SNR.High:
+        return [f'Iba1_{i}.czi' for i in range(1, 16)]
+    else:
+        raise Exception(f"Invalid snrtype: {snrtype}")
 
 def load_czi(fpaths):
     imgs = []
@@ -35,45 +48,40 @@ def load_czi(fpaths):
         imgs.append(img)
     return np.concatenate(imgs, axis=0)
 
+def get_subdir(subdset_type, snrtype):
+    if subdset_type in [SubDsetType.OnlyIba1P30, SubDsetType.OnlyIba1P50, SubDsetType.OnlyIba1P70]:
+        subdset_type = SubDsetType.OnlyIba1    
+    return f'{subdset_type}_{snrtype}'
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     dset_subtype = data_config.subdset_type
+    subdir = get_subdir(dset_subtype, data_config.snrtype)
 
     if dset_subtype in [SubDsetType.OnlyIba1, SubDsetType.OnlyIba1P30, SubDsetType.OnlyIba1P50, SubDsetType.OnlyIba1P70]:
-        fnames = get_iba1_only_files()
+        fnames = get_iba1_only_files(data_config.snrtype)
     elif dset_subtype == SubDsetType.Iba1Ki64:
-        fnames = get_iba1_ki67_files()
+        fnames = get_iba1_ki67_files(data_config.snrtype)
     else:
         raise Exception(f"Invalid dset subtype: {dset_subtype}")
 
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(fnames))
     if datasplit_type == DataSplitType.All:
-        fpaths = [os.path.join(datadir, dset_subtype, x) for x in fnames]
+        fpaths = [os.path.join(datadir, subdir, x) for x in fnames]
         data = load_czi(fpaths)
     elif datasplit_type == DataSplitType.Train:
         print(train_idx)
         fnames = [fnames[i] for i in train_idx]
-        if dset_subtype in [SubDsetType.OnlyIba1P30,SubDsetType.OnlyIba1P50,SubDsetType.OnlyIba1P70, SubDsetType.OnlyIba1]:
-            fpaths = [os.path.join(datadir, SubDsetType.OnlyIba1, x) for x in fnames]
-        else:
-            assert dset_subtype == SubDsetType.Iba1Ki64
-            fpaths = [os.path.join(datadir, dset_subtype, x) for x in fnames]
+        fpaths = [os.path.join(datadir, subdir, x) for x in fnames]
         data = load_czi(fpaths)
-
     elif datasplit_type == DataSplitType.Val:
         print(val_idx)
         fnames = [fnames[i] for i in val_idx]
-        fpaths = [os.path.join(datadir, dset_subtype, x) for x in fnames]
+        fpaths = [os.path.join(datadir, subdir, x) for x in fnames]
         data = load_czi(fpaths)
     elif datasplit_type == DataSplitType.Test:
         print(test_idx)
         fnames_iba1 = [fnames[i] for i in test_idx]
-        if dset_subtype in [SubDsetType.OnlyIba1P30,SubDsetType.OnlyIba1P50,SubDsetType.OnlyIba1P70, SubDsetType.OnlyIba1]:
-            fpaths_iba1 = [os.path.join(datadir, SubDsetType.OnlyIba1, x) for x in fnames_iba1]
-        elif dset_subtype == SubDsetType.Iba1Ki64:
-            fpaths_iba1 = [os.path.join(datadir, dset_subtype, x) for x in fnames_iba1]
-        else:
-            raise Exception(f"Invalid dset subtype: {dset_subtype}")
+        fpaths_iba1 = [os.path.join(datadir, subdir, x) for x in fnames_iba1]
 
         # it contains iba1/iba1ki67 and DAPI. 
         data = load_czi(fpaths_iba1)
@@ -95,7 +103,7 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
     # fpaths = [os.path.join(datadir, dset_subtype, x) for x in fnames]
     # data = load_czi(fpaths)
     print('Loaded from', SubDsetType.name(dset_subtype), datadir, data.shape)
-    if dset_subtype == SubDsetType.Iba1Ki64:
+    if dset_subtype ==SubDsetType.Iba1Ki64:
         # We just need the combined channel. we don't need the nuclear channel.
         # in order for the whole setup to work well, I'm just copying the channel twice.
         # when creating the input, the average of these channels will still be exactly this channel, which is what we want.
@@ -110,5 +118,6 @@ if __name__ == '__main__':
     from ml_collections.config_dict import ConfigDict
     data_config = ConfigDict()
     data_config.subdset_type = SubDsetType.OnlyIba1
-    datadir = '/Users/ashesh.ashesh/Documents/Datasets/HT_Stefania/20230327_Ki67_and_Iba1_trainingdata/'
-    data = get_train_val_data(datadir, data_config, DataSplitType.Val, val_fraction=0.1, test_fraction=0.1)
+    data_config.snrtype = SNR.Low
+    datadir = '/group/jug/ashesh/data/Stefania/20240730_Ki67_and_Iba1_trainingdata'
+    data = get_train_val_data(datadir, data_config, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
