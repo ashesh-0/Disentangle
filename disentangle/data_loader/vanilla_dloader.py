@@ -609,7 +609,7 @@ class MultiChDloader:
 
         if self._input_idx is not None:
             assert self._tar_idx_list is not None, 'tar_idx_list must be set if input_idx is set.'
-            assert self._noise_data is None, 'This is not supported with noise'
+            # assert self._noise_data is None, 'This is not supported with noise'
             assert self._target_separate_normalization is True, 'This is not supported with target_separate_normalization=False'
 
             mean, std = self.compute_individual_mean_std()

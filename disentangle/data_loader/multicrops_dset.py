@@ -3,14 +3,12 @@ Here, we have multiple folders, each containing images of a single channel.
 """
 from collections import defaultdict
 from functools import cache
-from typing import List
 
 import albumentations as A
 import numpy as np
 
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.data_loader.train_val_data import get_train_val_data
-from disentangle.data_loader.vanilla_dloader import MultiChDloader
 
 
 def l2(x):

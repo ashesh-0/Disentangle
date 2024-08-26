@@ -243,7 +243,8 @@ if __name__ == '__main__':
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
     import matplotlib.pyplot as plt
 
-    from disentangle.configs.elisa3D_config import get_config
+    # from disentangle.configs.elisa3D_config import get_config
+    from disentangle.configs.nikola_synthetic_noise_config import get_config
     config = get_config()
     config.data.multiscale_lowres_count = 3
     padding_kwargs = {'mode': config.data.padding_mode}
@@ -251,7 +252,8 @@ if __name__ == '__main__':
         padding_kwargs['constant_values'] = config.data.padding_value
 
     dset = LCMultiChDloader(config.data,
-                            '/group/jug/ashesh/data/Elisa3D/',
+                            # '/group/jug/ashesh/data/Elisa3D/',
+                            '/group/jug/ashesh/data/nikola_data/20240531/',
                             DataSplitType.Train,
                             val_fraction=config.training.val_fraction,
                             test_fraction=config.training.test_fraction,
