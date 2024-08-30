@@ -1,7 +1,8 @@
 .vscode
 __pycache__
 .idea
-.png
+*.png
+*.tif
 wandb
 *.npy
 output_*.txt
