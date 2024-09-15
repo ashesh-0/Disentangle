@@ -212,6 +212,7 @@ class LCMultiChDloader(MultiChDloader):
             input_tuples = []
             for x in img_tuples:
                 # NOTE: other LC levels already have noise added. So, we just need to add noise to the highest resolution.
+                x = x.copy() # make a copy so that we don't modify the original image.
                 x[0] = x[0] + noise_tuples[0] * factor
                 input_tuples.append(x)
         else:

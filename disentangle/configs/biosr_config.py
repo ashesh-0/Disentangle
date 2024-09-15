@@ -13,7 +13,7 @@ def get_config():
     # data.channel_1 = 0
     # data.channel_2 = 1
     data.ch1_fname = 'ER/GT_all.mrc'
-    data.ch2_fname = 'Microtubules/GT_all.mrc'
+    data.ch2_fname = 'CCPs/GT_all.mrc'
     data.num_channels = 2
 
     data.poisson_noise_factor = -1
@@ -22,9 +22,9 @@ def get_config():
     data.trainig_datausage_fraction = 1.0
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 4450
+    config.data.synthetic_gaussian_scale = 5100
     # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
-    config.data.input_has_dependant_noise = False
+    config.data.input_has_dependant_noise = True
 
     data.sampler_type = SamplerType.DefaultSampler
     data.threshold = 0.02
@@ -37,7 +37,7 @@ def get_config():
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
-    data.train_aug_rotate = True
+    data.train_aug_rotate = False
     data.randomized_channels = False
     data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
@@ -48,10 +48,10 @@ def get_config():
     data.input_is_sum = False
 
     loss = config.loss
-    loss.loss_type = LossType.DenoiSplitMuSplit
+    loss.loss_type = LossType.Elbo
     loss.usplit_w = 0.1
     loss.denoisplit_w = 1 - loss.usplit_w
-    loss.kl_loss_formulation = 'denoisplit_usplit'
+    loss.kl_loss_formulation = 'usplit'
 
     # loss.mixed_rec_weight = 1
     loss.restricted_kl = True
@@ -104,7 +104,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     # fname = '/home/ashesh.ashesh/training/noise_model/2404/10/GMMNoiseModel_ventura_gigascience-__6_4_Clip0.0-1.0_Sig1e-06_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = '/group/jug/ashesh/training_pre_eccv/noise_model/2402/192/GMMNoiseModel_ER-GT_all.mrc__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
@@ -118,15 +118,15 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 30
-    training.max_epochs = 400
+    training.lr_scheduler_patience = 7
+    training.max_epochs = 100
     training.batch_size = 32
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 200
+    training.earlystop_patience = 50
     # training.precision = 16
     training.limit_train_batches = 2000
     return config
