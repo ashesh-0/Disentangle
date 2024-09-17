@@ -291,16 +291,15 @@ def get_calibration_stats(calibration_factors, pred, pred_std, tar_normalized, e
     stats = calib.compute_stats(pred, np.log(eps + pred_std * calibration_factors), tar_normalized)
     return stats
 
-def get_calibration_factor(pred, pred_std, tar_normalized, epochs = 3000, lr = 5.0, eps= 1e-8):
+def get_calibration_factor(pred, pred_std, tar_normalized, epochs = 6000, lr = 5.0, eps= 1e-8):
     from disentangle.metrics.calibration import get_calibrated_factor_for_stdev
-    factors = []
+    calib_dicts = []
     for col_idx in range(pred.shape[-1]):
-        calib_factor, _ = get_calibrated_factor_for_stdev(pred[...,col_idx], np.log(eps + (pred_std[...,col_idx]**2)), tar_normalized[...,col_idx], 
-                                                        batch_size=8, lr=lr, epochs=epochs)
-        factors.append(calib_factor)
+        calib_dict = get_calibrated_factor_for_stdev(pred[...,col_idx], np.log(eps + (pred_std[...,col_idx]**2)), tar_normalized[...,col_idx], 
+                                                          lr=lr, epochs=epochs)
+        calib_dicts.append(calib_dict)
     
-    calib_factor = np.array(factors).reshape(1,1,1,pred.shape[-1])
-    return calib_factor
+    return calib_dicts
 
 def main(
     ckpt_dir,
@@ -648,10 +647,13 @@ def main(
         tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
         assert eval_datasplit_type == DataSplitType.Val, "Calibration model should be trained on the validation set."
         calib_factors= get_calibration_factor(pred, pred_std, tar_normalized)
-        return {"calib_factor": calib_factors}, None
+        return calib_factors, None
     elif eval_calibration_factors is not None:
+        calib_factors = [eval_calibration_factors[i]['scalar'] for i in range(len(eval_calibration_factors))]
+        calib_factors = np.array(calib_factors).reshape(1,1,1,-1)
+        tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
         assert eval_datasplit_type == DataSplitType.Test, "Calibration model should be evaluated on the test set."
-        calib_stats = get_calibration_stats(eval_calibration_factors['calib_factor'], pred, pred_std, tar_normalized)
+        calib_stats = get_calibration_stats(calib_factors, pred, pred_std, tar_normalized)
         return {'calib_stats':calib_stats}, None
 
     if is_list_prediction:
@@ -775,7 +777,8 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            '/group/jug/ashesh/training/disentangle/2408/D25-M3-S0-L8/4'
+            # '/group/jug/ashesh/training/disentangle/2409/D16-M3-S0-L0/41'
+            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4'
             # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/22',
             # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/27',
             # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24',
@@ -799,7 +802,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
     patchsz_gridsz_tuples = [(patch_size, grid_size)]
     print("Using patch,grid size", patchsz_gridsz_tuples)
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Test]:
+        for eval_datasplit_type in [DataSplitType.Val]:
             for ckpt_dir in ckpt_dirs:
                 # data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split("-")[0][1:])
                 # if data_type in [
