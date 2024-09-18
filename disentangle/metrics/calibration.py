@@ -43,7 +43,7 @@ class Calibration:
         self._bin_boundaries = {}
         stats = {}
         for ch_idx in range(pred.shape[-1]):
-            stats[ch_idx] = {'bin_count': [], 'rmv': [], 'rmse': [], 'bin_boundaries': None, 'bin_matrix': []}
+            stats[ch_idx] = {'bin_count': [], 'rmv': [], 'rmse': [], 'bin_boundaries': None, 'bin_matrix': [], 'rmse_err': []}
             pred_ch = pred[..., ch_idx]
             logvar_ch = pred_logvar[..., ch_idx]
             std_ch = self.logvar_to_std(logvar_ch)
@@ -61,8 +61,12 @@ class Calibration:
                     bin_error = error[bin_mask]
                     bin_size = np.sum(bin_mask)
                     bin_error = np.sqrt(np.sum(bin_error) / bin_size) if bin_size > 0 else None
+                    stderr = np.std(error[bin_mask]) / np.sqrt(bin_size) if bin_size > 0 else None
+                    rmse_stderr = np.sqrt(stderr) if stderr is not None else None
+
                     bin_var = np.mean((std_ch[bin_mask]**2))
                     stats[ch_idx]['rmse'].append(bin_error)
+                    stats[ch_idx]['rmse_err'].append(rmse_stderr)
                     stats[ch_idx]['rmv'].append(np.sqrt(bin_var))
                     stats[ch_idx]['bin_count'].append(bin_size)
             else:
@@ -86,7 +90,7 @@ def nll(x, mean, logvar):
     return nll
 
 
-def get_calibrated_factor_for_stdev(pred, pred_logvar, target, batch_size=32, epochs=500, lr=0.01):
+def get_calibrated_factor_for_stdev(pred, pred_logvar, target, batch_size=32*(512**2), epochs=500, lr=0.01, q_low=0.001, q_high=0.999):
     """
     Here, we calibrate with multiplying the predicted std (computed from logvar) with a scalar.
     We return the calibrated scalar. This needs to be multiplied with the std.
@@ -94,11 +98,21 @@ def get_calibrated_factor_for_stdev(pred, pred_logvar, target, batch_size=32, ep
     """
     import torch
     from tqdm import tqdm
+    
+    pred = pred.reshape(-1)
+    pred_logvar = pred_logvar.reshape( -1)
+    target = target.reshape(-1)
 
+    vlow, vmax = np.quantile(target, [q_low, q_high])
+    mask = np.logical_and(target > vlow, target < vmax)
+    
+    pred = pred[mask]
+    pred_logvar = pred_logvar[mask]
+    target = target[mask]
     # create a learnable scalar
     scalar = torch.nn.Parameter(torch.tensor(2.0))
     optimizer = torch.optim.Adam([scalar], lr=lr)
-    scheduler = ReduceLROnPlateau(optimizer, 'min', verbose=True, patience=200)
+    scheduler = ReduceLROnPlateau(optimizer, 'min', verbose=True, patience=50)
     loss_arr = []
     # tqdm with text description as loss
     bar = tqdm(range(epochs))
@@ -119,4 +133,10 @@ def get_calibrated_factor_for_stdev(pred, pred_logvar, target, batch_size=32, ep
             break
         bar.set_description(f'nll: {np.mean(loss_arr[-10:])} scalar: {scalar.item()}')
 
-    return np.sqrt(scalar.item()), loss_arr
+    output = {'scalar':np.sqrt(scalar.item()), 
+              'loss': loss_arr, 
+              'vlow': vlow, 
+              'vmax': vmax
+              }
+    
+    return output

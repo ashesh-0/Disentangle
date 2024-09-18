@@ -291,7 +291,7 @@ def get_calibration_stats(calibration_factors, pred, pred_std, tar_normalized, e
     stats = calib.compute_stats(pred, np.log(eps + pred_std * calibration_factors), tar_normalized)
     return stats
 
-def get_calibration_factor(pred, pred_std, tar_normalized, epochs = 6000, lr = 5.0, eps= 1e-8):
+def get_calibration_factor(pred, pred_std, tar_normalized, epochs = 6000, lr = 80.0, eps= 1e-8):
     from disentangle.metrics.calibration import get_calibrated_factor_for_stdev
     calib_dicts = []
     for col_idx in range(pred.shape[-1]):
