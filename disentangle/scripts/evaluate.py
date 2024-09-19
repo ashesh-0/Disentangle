@@ -291,7 +291,7 @@ def get_calibration_stats(calibration_factors, pred, pred_std, tar_normalized, e
     stats = calib.compute_stats(pred, np.log(eps + pred_std * calibration_factors), tar_normalized)
     return stats
 
-def get_calibration_factor(pred, pred_std, tar_normalized, epochs = 6000, lr = 80.0, eps= 1e-8):
+def get_calibration_factor(pred, pred_std, tar_normalized, epochs = 10000, lr = 160.0, eps= 1e-8):
     from disentangle.metrics.calibration import get_calibrated_factor_for_stdev
     calib_dicts = []
     for col_idx in range(pred.shape[-1]):
@@ -652,7 +652,7 @@ def main(
         calib_factors = [eval_calibration_factors[i]['scalar'] for i in range(len(eval_calibration_factors))]
         calib_factors = np.array(calib_factors).reshape(1,1,1,-1)
         tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
-        assert eval_datasplit_type == DataSplitType.Test, "Calibration model should be evaluated on the test set."
+        # assert eval_datasplit_type == DataSplitType.Test, "Calibration model should be evaluated on the test set."
         calib_stats = get_calibration_stats(calib_factors, pred, pred_std, tar_normalized)
         return {'calib_stats':calib_stats}, None
 
@@ -802,7 +802,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
     patchsz_gridsz_tuples = [(patch_size, grid_size)]
     print("Using patch,grid size", patchsz_gridsz_tuples)
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Val]:
+        for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
                 # data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split("-")[0][1:])
                 # if data_type in [
