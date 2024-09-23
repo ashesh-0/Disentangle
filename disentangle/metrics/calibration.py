@@ -90,7 +90,7 @@ def nll(x, mean, logvar):
     return nll
 
 
-def get_calibrated_factor_for_stdev(pred, pred_logvar, target, batch_size=32*(512**2), epochs=500, lr=0.01, q_low=0.001, q_high=0.999):
+def get_calibrated_factor_for_stdev(pred, pred_logvar, target, batch_size=32*(512**2), epochs=500, lr=0.01, q_low=0.000001, q_high=0.999999):
     """
     Here, we calibrate with multiplying the predicted std (computed from logvar) with a scalar.
     We return the calibrated scalar. This needs to be multiplied with the std.
