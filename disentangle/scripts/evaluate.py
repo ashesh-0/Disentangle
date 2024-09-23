@@ -780,10 +780,10 @@ def save_hardcoded_ckpt_evaluations_to_file(
     if ckpt_dir is None:
         ckpt_dirs = [
             '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
-            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5',
-            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6',
-            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
-            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17',
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5',
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6',
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -799,7 +799,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
     patchsz_gridsz_tuples = [(patch_size, grid_size)]
     print("Using patch,grid size", patchsz_gridsz_tuples)
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Test]:
+        for eval_datasplit_type in [DataSplitType.Val]:
             for ckpt_dir in ckpt_dirs:
                 # data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split("-")[0][1:])
                 # if data_type in [
