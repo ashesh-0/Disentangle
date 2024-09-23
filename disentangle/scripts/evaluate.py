@@ -147,7 +147,8 @@ def compute_high_snr_stats(highres_data, pred_unnorm, verbose=True):
         mssim_scores = [microssim_obj.score(gt_ch[i], pred_ch[i]) for i in range(len(gt_ch))]
         microssim_list.append((np.mean(mssim_scores), compute_SE(mssim_scores)))
         # MicroS3IM
-        m3sim_obj = MicroMS3IM(**microssim_obj.get_init_params_dict())
+        m3sim_obj = MicroMS3IM()
+        m3sim_obj.fit(gt_ch, pred_ch)
         ms3im_scores = [m3sim_obj.score(gt_ch[i], pred_ch[i]) for i in range(len(gt_ch))]
         ms3im_list.append((np.mean(ms3im_scores), compute_SE(ms3im_scores)))
 
@@ -295,6 +296,7 @@ def get_calibration_factor(pred, pred_std, tar_normalized, epochs = 10000, lr = 
     from disentangle.metrics.calibration import get_calibrated_factor_for_stdev
     calib_dicts = []
     for col_idx in range(pred.shape[-1]):
+
         calib_dict = get_calibrated_factor_for_stdev(pred[...,col_idx], np.log(eps + (pred_std[...,col_idx]**2)), tar_normalized[...,col_idx], 
                                                           lr=lr, epochs=epochs)
         calib_dicts.append(calib_dict)
@@ -777,16 +779,11 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            # '/group/jug/ashesh/training/disentangle/2409/D16-M3-S0-L0/41'
-            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4'
-            # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/22',
-            # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/27',
-            # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24',
-            # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/23',
-            # '/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/13',
-            # '/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/11',
-            # '/group/jug/ashesh/training/disentangle/2408/D12-M3-S0-L8/2',
-            # '/group/jug/ashesh/training/disentangle/2408/D12-M3-S0-L8/3',
+            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
+            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5',
+            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6',
+            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
+            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
