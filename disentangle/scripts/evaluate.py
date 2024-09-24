@@ -289,7 +289,7 @@ def get_data_dir(dtype):
 def get_calibration_stats(calibration_factors, pred, pred_std, tar_normalized, eps= 1e-8):
     from disentangle.metrics.calibration import Calibration
     calib = Calibration(num_bins=30, mode='pixelwise')
-    stats = calib.compute_stats(pred, np.log(eps + pred_std * calibration_factors), tar_normalized)
+    stats = calib.compute_stats(pred, np.log((eps + ((pred_std* calibration_factors)**2))), tar_normalized)
     return stats
 
 def get_calibration_factor(pred, pred_std, tar_normalized, epochs = 10000, lr = 160.0, eps= 1e-8):
@@ -799,7 +799,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
     patchsz_gridsz_tuples = [(patch_size, grid_size)]
     print("Using patch,grid size", patchsz_gridsz_tuples)
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Val]:
+        for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
                 # data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split("-")[0][1:])
                 # if data_type in [
