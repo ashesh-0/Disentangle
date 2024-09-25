@@ -38,6 +38,7 @@ from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.patch_index_manager import TilingMode
 # from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data
 from disentangle.data_loader.vanilla_dloader import MultiChDloader, get_train_val_data
+from disentangle.metrics.calibration import Calibration, get_calibrated_factor_for_stdev
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.scripts.run import overwride_with_cmd_params
 from disentangle.training import create_dataset, create_model
@@ -286,22 +287,14 @@ def get_data_dir(dtype):
         data_dir = f"{DATA_ROOT}/Elisa3D/"
     return data_dir
 
-def get_calibration_stats(calibration_factors, pred, pred_std, tar_normalized, eps= 1e-8):
-    from disentangle.metrics.calibration import Calibration
-    calib = Calibration(num_bins=30, mode='pixelwise')
-    stats = calib.compute_stats(pred, np.log((eps + ((pred_std* calibration_factors)**2))), tar_normalized)
+def get_calibration_stats(calibration_factors, pred, pred_std, tar_normalized):
+    scalar = calibration_factors['scalar']
+    offset = calibration_factors['offset']
+    pred_std = pred_std * scalar + offset
+    calib = Calibration(num_bins=30)
+    stats = calib.compute_stats(pred, pred_std, tar_normalized)
     return stats
 
-def get_calibration_factor(pred, pred_std, tar_normalized, epochs = 10000, lr = 160.0, eps= 1e-8):
-    from disentangle.metrics.calibration import get_calibrated_factor_for_stdev
-    calib_dicts = []
-    for col_idx in range(pred.shape[-1]):
-
-        calib_dict = get_calibrated_factor_for_stdev(pred[...,col_idx], np.log(eps + (pred_std[...,col_idx]**2)), tar_normalized[...,col_idx], 
-                                                          lr=lr, epochs=epochs)
-        calib_dicts.append(calib_dict)
-    
-    return calib_dicts
 
 def main(
     ckpt_dir,
@@ -645,14 +638,22 @@ def main(
     sep_mean = sep_mean.squeeze().reshape(1, 1, 1, -1)
     sep_std = sep_std.squeeze().reshape(1, 1, 1, -1)
 
+    
     if train_calibration:
         tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
+        # np.save(f'pred_MMSE{mmse_count}.npy', pred)
+        # np.save(f'tar_normalized_MMSE{mmse_count}.npy', tar_normalized)
+        # np.save(f'pred_std_MMSE{mmse_count}.npy', pred_std)
         assert eval_datasplit_type == DataSplitType.Val, "Calibration model should be trained on the validation set."
-        calib_factors= get_calibration_factor(pred, pred_std, tar_normalized)
+        calib_factors = get_calibrated_factor_for_stdev(pred, pred_std, tar_normalized, q_s=0.00001, q_e=0.99999, num_bins=30)
         return calib_factors, None
     elif eval_calibration_factors is not None:
-        calib_factors = [eval_calibration_factors[i]['scalar'] for i in range(len(eval_calibration_factors))]
-        calib_factors = np.array(calib_factors).reshape(1,1,1,-1)
+        calib_scalar = [eval_calibration_factors[i]['scalar'] for i in range(len(eval_calibration_factors))]
+        calib_scalar = np.array(calib_scalar).reshape(1,1,1,-1)
+        calib_offset = [eval_calibration_factors[i].get('offset',0.0) for i in range(len(eval_calibration_factors))]
+        calib_offset = np.array(calib_offset).reshape(1,1,1,-1)
+        calib_factors = {'scalar':calib_scalar, 'offset':calib_offset}
+
         tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
         # assert eval_datasplit_type == DataSplitType.Test, "Calibration model should be evaluated on the test set."
         calib_stats = get_calibration_stats(calib_factors, pred, pred_std, tar_normalized)
