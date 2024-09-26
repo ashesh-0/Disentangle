@@ -42,6 +42,7 @@ from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.scripts.run import overwride_with_cmd_params
 from disentangle.training import create_dataset, create_model
 from microssim import MicroMS3IM, MicroSSIM
+from torchmetrics.image import MultiScaleStructuralSimilarityIndexMeasure
 
 torch.multiprocessing.set_sharing_strategy("file_system")
 DATA_ROOT = "/group/jug/ashesh/data/"
@@ -136,23 +137,35 @@ def compute_high_snr_stats(highres_data, pred_unnorm, verbose=True):
     psnr_list = []
     microssim_list = []
     ms3im_list = []
+    ssim_list = []
+    msssim_list = []
     for ch_idx in range(highres_data[0].shape[-1]):
         # list of gt and prediction images. This handles both 2D and 3D data. This also handles when individual images are lists.
         gt_ch, pred_ch = _get_list_of_images_from_gt_pred(highres_data, pred_unnorm, ch_idx)
         # PSNR
         psnr_list.append(avg_range_inv_psnr(gt_ch, pred_ch))
+        
         # MicroSSIM
         microssim_obj = MicroSSIM()
         microssim_obj.fit(gt_ch, pred_ch)
         mssim_scores = [microssim_obj.score(gt_ch[i], pred_ch[i]) for i in range(len(gt_ch))]
         microssim_list.append((np.mean(mssim_scores), compute_SE(mssim_scores)))
+        
         # MicroS3IM
         m3sim_obj = MicroMS3IM()
         m3sim_obj.fit(gt_ch, pred_ch)
         ms3im_scores = [m3sim_obj.score(gt_ch[i], pred_ch[i]) for i in range(len(gt_ch))]
         ms3im_list.append((np.mean(ms3im_scores), compute_SE(ms3im_scores)))
-
-
+        # SSIM
+        ssim = [structural_similarity(gt_ch[i], pred_ch[i], data_range=gt_ch[i].max() - gt_ch[i].min()) for i in range(len(gt_ch))]
+        ssim_list.append((np.mean(ssim), compute_SE(ssim)))
+        # MSSSIM
+        ms_ssim = []
+        for i in range(len(gt_ch)):
+            ms_ssim_obj = MultiScaleStructuralSimilarityIndexMeasure(data_range=gt_ch[i].max() - gt_ch[i].min())
+            ms_ssim.append(ms_ssim_obj(torch.Tensor(pred_ch[i][None,None]), torch.Tensor(gt_ch[i][None,None])).item())
+        msssim_list.append((np.mean(ms_ssim), compute_SE(ms_ssim)))
+        breakpoint()
     if verbose:
         def ssim_str(ssim_tmp):
             return f'{np.round(ssim_tmp[0], 3):.3f}+-{np.round(ssim_tmp[1], 3):.3f}'
@@ -161,11 +174,15 @@ def compute_high_snr_stats(highres_data, pred_unnorm, verbose=True):
         print("PSNR on Highres", '\t'.join([psnr_str(psnr_tmp) for psnr_tmp in psnr_list]))
         print("MicroSSIM on Highres", '\t'.join([ssim_str(ssim) for ssim in microssim_list]))
         print("MicroS3IM on Highres", '\t'.join([ssim_str(ssim) for ssim in ms3im_list]))
+        print("SSIM on Highres", '\t'.join([ssim_str(ssim) for ssim in ssim_list]))
+        print("MSSSIM on Highres", '\t'.join([ssim_str(ssim) for ssim in msssim_list]))
     
     return {
         "rangeinvpsnr": psnr_list,
         "microssim": microssim_list,
         "ms3im": ms3im_list,
+        "ssim": ssim_list,
+        "msssim": ms_ssim,
     }
 
 
@@ -799,7 +816,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
     patchsz_gridsz_tuples = [(patch_size, grid_size)]
     print("Using patch,grid size", patchsz_gridsz_tuples)
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Test]:
+        for eval_datasplit_type in [DataSplitType.Val]:
             for ckpt_dir in ckpt_dirs:
                 # data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split("-")[0][1:])
                 # if data_type in [
