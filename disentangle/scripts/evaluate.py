@@ -165,7 +165,6 @@ def compute_high_snr_stats(highres_data, pred_unnorm, verbose=True):
             ms_ssim_obj = MultiScaleStructuralSimilarityIndexMeasure(data_range=gt_ch[i].max() - gt_ch[i].min())
             ms_ssim.append(ms_ssim_obj(torch.Tensor(pred_ch[i][None,None]), torch.Tensor(gt_ch[i][None,None])).item())
         msssim_list.append((np.mean(ms_ssim), compute_SE(ms_ssim)))
-        breakpoint()
     if verbose:
         def ssim_str(ssim_tmp):
             return f'{np.round(ssim_tmp[0], 3):.3f}+-{np.round(ssim_tmp[1], 3):.3f}'
