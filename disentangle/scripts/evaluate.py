@@ -182,7 +182,7 @@ def compute_high_snr_stats(highres_data, pred_unnorm, verbose=True):
         "microssim": microssim_list,
         "ms3im": ms3im_list,
         "ssim": ssim_list,
-        "msssim": ms_ssim,
+        "msssim": msssim_list,
     }
 
 
@@ -695,6 +695,8 @@ def main(
         output_stats["rangeinvpsnr"] = stats_dict["rangeinvpsnr"]
         output_stats["microssim"] = stats_dict["microssim"]
         output_stats["ms3im"] = stats_dict["ms3im"]
+        output_stats["ssim"] = stats_dict["ssim"]
+        output_stats["msssim"] = stats_dict["msssim"]
         print("")
 
     # highres data
@@ -715,6 +717,9 @@ def main(
         output_stats["rangeinvpsnr"] = stats_dict["rangeinvpsnr"]
         output_stats["microssim"] = stats_dict["microssim"]
         output_stats["ms3im"] = stats_dict["ms3im"]
+        output_stats["ssim"] = stats_dict["ssim"]
+        output_stats["msssim"] = stats_dict["msssim"]
+
         print("")
     return output_stats, pred_unnorm
 
@@ -797,10 +802,10 @@ def save_hardcoded_ckpt_evaluations_to_file(
     if ckpt_dir is None:
         ckpt_dirs = [
             '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
-            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5',
-            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6',
-            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
-            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17',
+            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5',
+            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6',
+            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
+            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17',
         ]
     else:
         ckpt_dirs = [ckpt_dir]
@@ -816,7 +821,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
     patchsz_gridsz_tuples = [(patch_size, grid_size)]
     print("Using patch,grid size", patchsz_gridsz_tuples)
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Val]:
+        for eval_datasplit_type in [DataSplitType.Test]:
             for ckpt_dir in ckpt_dirs:
                 # data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split("-")[0][1:])
                 # if data_type in [
