@@ -54,7 +54,9 @@ def get_nm_config(noise_model_fpath):
 
 
 def nm_config_sanity_check_target_idx_list(config):
-
+    if config.data.get('disable_checks', True):
+        return
+    
     def get_channel(fname):
         assert isinstance(fname, list)
         assert len(fname) == 2

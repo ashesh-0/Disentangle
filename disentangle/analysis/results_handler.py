@@ -19,6 +19,7 @@ class PaperResultsHandler:
         predict_kth_frame=None,
         multiplicative_factor=1,
         train_calibration=False,
+        epistemic_uncertainty_data_collection=False,
         eval_calibration=False,
         override_kwargs = None,
     ):
@@ -33,6 +34,7 @@ class PaperResultsHandler:
         self._train_calibration = train_calibration
         self._eval_calibration = eval_calibration
         self._override_kwargs = override_kwargs
+        self._epistemic_uncertainty_data_collection = epistemic_uncertainty_data_collection
 
     def dirpath(self, dtype=None):
         if dtype is None:
@@ -78,12 +80,18 @@ class PaperResultsHandler:
 
     def get_output_dir(self, dtype=None):
         outdir = self.dirpath(dtype=dtype)
+        if self._epistemic_uncertainty_data_collection:
+            outdir = os.path.join(outdir, 'epistemic_uncertainty_data_collection')
+            os.makedirs(outdir, exist_ok=True)
+        
         if self._predict_kth_frame is not None:
             os.makedirs(outdir, exist_ok=True)
             outdir = os.path.join(outdir, f'kth_{self._predict_kth_frame}')
 
         if not os.path.isdir(outdir):
             os.mkdir(outdir)
+
+
         if self._override_kwargs is not None:
             key = self.override_kwargs_subdir()
             outdir = os.path.join(outdir, key)

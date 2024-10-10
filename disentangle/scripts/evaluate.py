@@ -39,6 +39,7 @@ from disentangle.data_loader.patch_index_manager import TilingMode
 # from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data
 from disentangle.data_loader.vanilla_dloader import MultiChDloader, get_train_val_data
 from disentangle.metrics.calibration import Calibration, get_calibrated_factor_for_stdev
+from disentangle.nets.epistemic_uncertainty import enable_epistemic_uncertainty_computation_mode
 from disentangle.sampler.random_sampler import RandomSampler
 from disentangle.scripts.run import overwride_with_cmd_params
 from disentangle.training import create_dataset, create_model
@@ -338,6 +339,7 @@ def main(
     compare_with_highsnr=True,
     train_calibration=False,
     eval_calibration_factors=None,
+    epistemic_uncertainty_data_collection=False,
     override_kwargs=None,
 ):
     global DATA_ROOT, CODE_ROOT
@@ -559,6 +561,10 @@ def main(
 
     if (config.data.multiscale_lowres_count is not None and custom_image_size is not None):
         model.reset_for_different_output_size(custom_image_size)
+
+    if epistemic_uncertainty_data_collection:
+        inp = torch.Tensor(val_dset[0][0][None]).cuda()
+        enable_epistemic_uncertainty_computation_mode(model)
 
     # Predict samples and return that.
     if predict_samples_N is not None:
@@ -797,6 +803,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
     train_calibration=False,
     eval_calibration=False,
     override_kwargs=None,
+    epistemic_uncertainty_data_collection=False,
     # trim_boundary=True,
 ):
     if ckpt_dir is None:
@@ -862,6 +869,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
                     train_calibration=train_calibration,
                     eval_calibration=eval_calibration,
                     override_kwargs=override_kwargs,
+                    epistemic_uncertainty_data_collection = epistemic_uncertainty_data_collection,
                 )
                 eval_calibration_factors = None
                 if eval_calibration:
@@ -896,6 +904,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
                     # trim_boundary=trim_boundary,
                     eval_calibration_factors=eval_calibration_factors,
                     override_kwargs=override_kwargs,
+                    epistemic_uncertainty_data_collection=epistemic_uncertainty_data_collection,
                 )
                 if data is None:
                     return None, None
@@ -957,6 +966,7 @@ if __name__ == "__main__":
     parser.add_argument("--train_calibration", action="store_true")
     parser.add_argument("--eval_calibration", action="store_true")
     parser.add_argument("--override_kwargs", type=str, default=None)
+    parser.add_argument("--epistemic_uncertainty_data_collection", action="store_true")
     # parser.add_argument("--donot_trim_boundary", action="store_true")
 
     args = parser.parse_args()
@@ -976,5 +986,6 @@ if __name__ == "__main__":
         train_calibration=args.train_calibration,
         eval_calibration=args.eval_calibration,
         override_kwargs=args.override_kwargs,
+        epistemic_uncertainty_data_collection=args.epistemic_uncertainty_data_collection,
         # trim_boundary=not args.donot_trim_boundary,
     )
