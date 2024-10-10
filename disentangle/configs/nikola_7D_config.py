@@ -11,15 +11,15 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.NicolaData
-    data.dset_type = '20ms'  # high, mid, low, verylow
-    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B, NikolaChannelList.Ch_C, NikolaChannelList.Ch_ABC]
+    data.dset_type = '500ms'  # high, mid, low, verylow
+    data.channel_idx_list = [NikolaChannelList.Ch_B, NikolaChannelList.Ch_C, NikolaChannelList.Ch_D, NikolaChannelList.Ch_BCD]
 
     data.num_channels = len(data.channel_idx_list)
     data.input_idx = len(data.channel_idx_list) - 1
     data.target_idx_list = list(range(len(data.channel_idx_list) - 1))
 
     data.enable_gaussian_noise = False
-    data.trainig_datausage_fraction = 1.0
+    data.trainig_datausage_fraction = 0.1
     data.poisson_noise_factor = -1
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2
@@ -109,9 +109,9 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2406/12/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_20msSNR_channel0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2406/13/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_20msSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2406/14/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_20msSNR_channel2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2406/17/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_500msSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2406/18/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_500msSNR_channel2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2406/19/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_500msSNR_channel3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     # model.noise_model_ch4_fpath = '/group/jug/ashesh/training/noise_model/2406/9/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_20msSNR_channel3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
 
