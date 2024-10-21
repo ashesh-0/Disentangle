@@ -19,7 +19,7 @@ def get_config():
     data.target_idx_list = list(range(len(data.channel_idx_list) - 1))
 
     data.enable_gaussian_noise = False
-    data.trainig_datausage_fraction = 0.1
+    data.trainig_datausage_fraction = 0.02
     data.poisson_noise_factor = -1
     # data.validtarget_random_fraction = 1.0
     # data.training_validtarget_fraction = 0.2

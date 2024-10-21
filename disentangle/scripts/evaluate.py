@@ -564,7 +564,7 @@ def main(
 
     if epistemic_uncertainty_data_collection:
         inp = torch.Tensor(val_dset[0][0][None]).cuda()
-        enable_epistemic_uncertainty_computation_mode(model)
+        enable_epistemic_uncertainty_computation_mode(model, inp=inp)
 
     # Predict samples and return that.
     if predict_samples_N is not None:
@@ -808,11 +808,18 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
-            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5',
-            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6',
-            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
-            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17',
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5',
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6',
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17',
+
+            '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/4',
+            '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/5',
+            '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/6',
+            '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/7',
+            '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/8',
+
         ]
     else:
         ckpt_dirs = [ckpt_dir]
