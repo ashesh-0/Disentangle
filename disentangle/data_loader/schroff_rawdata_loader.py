@@ -7,20 +7,22 @@ from disentangle.core.tiff_reader import load_tiff
 
 
 def get_data_from_paths(fpaths1, fpaths2, enable_max_projection=False):
+    # Time, Z, X, Y, 1
     data1 = [load_tiff(path)[..., None] for path in fpaths1]
     data2 = [load_tiff(path)[..., None] for path in fpaths2]
     if enable_max_projection:
         data1 = [np.max(x, axis=1, keepdims=True) for x in data1]
         data2 = [np.max(x, axis=1, keepdims=True) for x in data2]
 
+    
     # squishing the 1st and 2nd dimension.
-    data1 = [x.reshape(np.prod(x.shape[:2]), *x.shape[2:]) for x in data1]
-    data2 = [x.reshape(np.prod(x.shape[:2]), *x.shape[2:]) for x in data2]
+    # data1 = [x.reshape(np.prod(x.shape[:2]), *x.shape[2:]) for x in data1]
+    # data2 = [x.reshape(np.prod(x.shape[:2]), *x.shape[2:]) for x in data2]
 
     data1 = np.concatenate(data1, axis=0)
     data2 = np.concatenate(data2, axis=0)
     assert data1.shape[0] == data2.shape[0], 'For now, we need both channels to have identical data'
-    data = np.concatenate([data1, data2], axis=3)
+    data = np.concatenate([data1, data2], axis=-1)
     return data
 
 

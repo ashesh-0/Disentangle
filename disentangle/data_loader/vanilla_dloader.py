@@ -203,7 +203,6 @@ class MultiChDloader:
                 msg += '. Moreover, input has dependent noise'
                 self._noise_data[..., 0] = np.mean(self._noise_data[..., 1:], axis=-1)
         print(msg)
-
         if len(self._data.shape) == 5:
             if self._mode_3D:
                 self._5Ddata = True
@@ -213,6 +212,7 @@ class MultiChDloader:
 
         if self._5Ddata:
             self.Z = self._data.shape[1]
+
 
         if self._depth3D > 1:
             assert self._5Ddata, 'Data must be 5D:NxZxHxWxC for 3D data'
