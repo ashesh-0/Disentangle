@@ -23,7 +23,7 @@ def get_config():
     data.depth3D = 5
     data.mode_3D = True
     data.patch_sampling_prior = 'center'
-    data.patch_sampling_prior_probab = 0.5
+    data.patch_sampling_prior_probab = 0.7
     assert data.depth3D <= data.zstop - data.zstart
 
 
