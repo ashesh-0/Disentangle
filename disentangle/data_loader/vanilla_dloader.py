@@ -51,6 +51,10 @@ class MultiChDloader:
         self._num_channels = data_config.get('num_channels', 2)
         self._input_idx = data_config.get('input_idx', None)
         self._tar_idx_list = data_config.get('target_idx_list', None)
+        self._patch_sampling_prior = data_config.get('patch_sampling_prior', None)
+        assert self._patch_sampling_prior in ['center', None], 'Only center is supported for now.'
+
+        self._patch_sampling_prior_probab = data_config.get('patch_sampling_prior_probab', 0.5)
 
         if datasplit_type == DataSplitType.Train:
             self._datausage_fraction = data_config.get('trainig_datausage_fraction', 1.0)
@@ -203,6 +207,7 @@ class MultiChDloader:
                 msg += '. Moreover, input has dependent noise'
                 self._noise_data[..., 0] = np.mean(self._noise_data[..., 1:], axis=-1)
         print(msg)
+
         if len(self._data.shape) == 5:
             if self._mode_3D:
                 self._5Ddata = True
@@ -212,7 +217,6 @@ class MultiChDloader:
 
         if self._5Ddata:
             self.Z = self._data.shape[1]
-
 
         if self._depth3D > 1:
             assert self._5Ddata, 'Data must be 5D:NxZxHxWxC for 3D data'
@@ -653,15 +657,22 @@ class MultiChDloader:
 
     
 
-       
+    def _uniform_random(self, h: int, w: int):       
+        h_start = np.random.choice(h - self._img_sz)
+        w_start = np.random.choice(w - self._img_sz)
+        return h_start, w_start
 
     def _get_random_hw(self, h: int, w: int):
         """
         Random starting position for the crop for the img with index `index`.
         """
         if h != self._img_sz:
-            h_start = np.random.choice(h - self._img_sz)
-            w_start = np.random.choice(w - self._img_sz)
+            if self._patch_sampling_prior is None or np.random.rand() > self._patch_sampling_prior_probab:
+                h_start, w_start = self._uniform_random(h, w)
+            else:
+                assert self._patch_sampling_prior == 'center'
+                print('Center sampling')
+                h_start, w_start =self._uniform_random(h//2, w//2)
         else:
             h_start = 0
             w_start = 0

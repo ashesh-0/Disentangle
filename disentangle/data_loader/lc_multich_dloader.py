@@ -245,22 +245,26 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
     # from disentangle.configs.elisa3D_config import get_config
-    from disentangle.configs.nikola_synthetic_noise_config import get_config
+    # from disentangle.configs.nikola_synthetic_noise_config import get_config
+    from disentangle.configs.shroff_3D_config import get_config
     config = get_config()
     config.data.multiscale_lowres_count = 3
+    config.data.image_size = 256
+    config.data.patch_sampling_prior = 'center'
     padding_kwargs = {'mode': config.data.padding_mode}
     if 'padding_value' in config.data and config.data.padding_value is not None:
         padding_kwargs['constant_values'] = config.data.padding_value
 
     dset = LCMultiChDloader(config.data,
                             # '/group/jug/ashesh/data/Elisa3D/',
-                            '/group/jug/ashesh/data/nikola_data/20240531/',
+                            # '/group/jug/ashesh/data/nikola_data/20240531/',
+                            '/group/jug/ashesh/data/shrofflab',
                             DataSplitType.Train,
                             val_fraction=config.training.val_fraction,
                             test_fraction=config.training.test_fraction,
                             normalized_input=config.data.normalized_input,
                             enable_rotation_aug=config.data.train_aug_rotate,
-                            enable_random_cropping=False,
+                            enable_random_cropping=True,
                             use_one_mu_std=config.data.use_one_mu_std,
                             allow_generation=False,
                             num_scales=config.data.multiscale_lowres_count,
