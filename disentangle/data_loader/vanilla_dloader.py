@@ -672,6 +672,8 @@ class MultiChDloader:
             else:
                 assert self._patch_sampling_prior == 'center'
                 h_start, w_start =self._uniform_random(h//2, w//2)
+                h_start += h//4
+                w_start += w//4
         else:
             h_start = 0
             w_start = 0
