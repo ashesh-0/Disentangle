@@ -6,7 +6,7 @@ from disentangle.core.data_split_type import DataSplitType, get_datasplit_tuples
 from disentangle.core.tiff_reader import load_tiff
 
 
-def get_data_from_paths(fpaths1, fpaths2, enable_max_projection=False):
+def get_data_from_paths(fpaths1, fpaths2, enable_max_projection=False, swap_z_with_t=False):
     # Time, Z, X, Y, 1
     data1 = [load_tiff(path)[..., None] for path in fpaths1]
     data2 = [load_tiff(path)[..., None] for path in fpaths2]
@@ -18,7 +18,9 @@ def get_data_from_paths(fpaths1, fpaths2, enable_max_projection=False):
     # squishing the 1st and 2nd dimension.
     # data1 = [x.reshape(np.prod(x.shape[:2]), *x.shape[2:]) for x in data1]
     # data2 = [x.reshape(np.prod(x.shape[:2]), *x.shape[2:]) for x in data2]
-
+    if swap_z_with_t:
+        data1 = [np.swapaxes(x, 0, 1) for x in data1]
+        data2 = [np.swapaxes(x, 0, 1) for x in data2]
     data1 = np.concatenate(data1, axis=0)
     data2 = np.concatenate(data2, axis=0)
     assert data1.shape[0] == data2.shape[0], 'For now, we need both channels to have identical data'
@@ -49,8 +51,10 @@ def get_train_val_data(dirname, data_config, datasplit_type, val_fraction, test_
         fpaths1 = all_fpaths1
         fpaths2 = all_fpaths2
 
-    print(f'Loading from {dirname}, Mode:{DataSplitType.name(datasplit_type)}, PerChannelFilecount:{len(fpaths1)}')
-    data = get_data_from_paths(fpaths1, fpaths2, enable_max_projection=data_config.enable_max_projection)
+    swap_z_with_t = data_config.get('swap_z_with_t', False)
+
+    print(f'Loading from {dirname}, Mode:{DataSplitType.name(datasplit_type)}, PerChannelFilecount:{len(fpaths1)}', 'SwapZWithT:', swap_z_with_t)
+    data = get_data_from_paths(fpaths1, fpaths2, enable_max_projection=data_config.enable_max_projection, swap_z_with_t=swap_z_with_t)
     return data
 
 
