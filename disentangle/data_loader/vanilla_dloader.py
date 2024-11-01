@@ -298,21 +298,27 @@ class MultiChDloader:
         return self._data.shape[0]
     
     def reduce_data(self, t_list=None, h_start=None, h_end=None, w_start=None, w_end=None):
-        assert not self._5Ddata, 'This function is not supported for 3D data.'
-        if t_list is None:
-            t_list = list(range(self._data.shape[0]))
-        if h_start is None:
-            h_start = 0
-        if h_end is None:
-            h_end = self._data.shape[1]
-        if w_start is None:
-            w_start = 0
-        if w_end is None:
-            w_end = self._data.shape[2]
+        if self._5Ddata:
+            assert h_start is None and h_end is None and w_start is None and w_end is None, 'Not supported for 5D data'
+            self._data = self._data[t_list].copy()
+            if self._noise_data is not None:
+                self._noise_data = self._noise_data[t_list].copy()
 
-        self._data = self._data[t_list, h_start:h_end, w_start:w_end, :].copy()
-        if self._noise_data is not None:
-            self._noise_data = self._noise_data[t_list, h_start:h_end, w_start:w_end, :].copy()
+        else:
+            if t_list is None:
+                t_list = list(range(self._data.shape[0]))
+            if h_start is None:
+                h_start = 0
+            if h_end is None:
+                h_end = self._data.shape[1]
+            if w_start is None:
+                w_start = 0
+            if w_end is None:
+                w_end = self._data.shape[2]
+
+            self._data = self._data[t_list, h_start:h_end, w_start:w_end, :].copy()
+            if self._noise_data is not None:
+                self._noise_data = self._noise_data[t_list, h_start:h_end, w_start:w_end, :].copy()
 
         self.set_img_sz(self._img_sz, self._grid_sz)
         print(f'[{self.__class__.__name__}] Data reduced. New data shape: {self._data.shape}')

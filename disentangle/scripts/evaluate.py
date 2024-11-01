@@ -117,7 +117,7 @@ def _get_list_of_images_from_gt_pred(gt, pred, ch_idx):
             pred_list += pred_list_tmp
     elif isinstance(gt, np.ndarray):
         if len(gt.shape) == 3:
-            return [gt[..., ch_idx]], [pred[..., ch_idx]]
+            return [gt[..., ch_idx]*1.0], [pred[..., ch_idx]]
         else:
             assert gt.shape == pred.shape, f"gt shape: {gt.shape}, pred shape: {pred.shape}"
             for n_idx in range(gt.shape[0]):
@@ -302,6 +302,8 @@ def get_data_dir(dtype):
         data_dir = f'{DATA_ROOT}/Stefania/20230327_Ki67_and_Iba1_trainingdata/'
     elif dtype == DataType.Elisa3DData:
         data_dir = f"{DATA_ROOT}/Elisa3D/"
+    elif dtype == DataType.ShroffMitoEr:
+        data_dir = f"{DATA_ROOT}/shrofflab/"
     return data_dir
 
 def get_calibration_stats(calibration_factors, pred, pred_std, tar_normalized):
@@ -687,6 +689,13 @@ def main(
         pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
 
     highres_data = (get_highsnr_data(config, data_dir, eval_datasplit_type) if compare_with_highsnr else None)
+    if highres_data is not None and isinstance(highres_data, list):
+        if len(highres_data[0].shape) != len(pred_unnorm[0].shape):
+            assert len(highres_data[0].shape) == len(pred_unnorm[0].shape) - 1
+            for i in range(len(highres_data)):
+                highres_data[i] = highres_data[i][None]
+                assert highres_data[i].shape == pred_unnorm[i].shape
+            
     if predict_kth_frame is not None and highres_data is not None:
         highres_data = highres_data[[predict_kth_frame]].copy()
 
@@ -813,13 +822,15 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17',
-
-            '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/4',
-            '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/5',
-            '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/6',
-            '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/7',
-            '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/8',
-
+            # '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/4',
+            # '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/5',
+            # '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/6',
+            # '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/7',
+            # '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/8',
+            # '/group/jug/ashesh/training/disentangle/2405/D13-M3-S0-L8/7'
+            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/12",
+            "/group/jug/ashesh/training/disentangle/2410/D13-M3-S0-L8/13",
+            "/group/jug/ashesh/training/disentangle/2410/D13-M3-S0-L8/14",
         ]
     else:
         ckpt_dirs = [ckpt_dir]

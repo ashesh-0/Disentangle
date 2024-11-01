@@ -14,7 +14,6 @@ if __name__ == '__main__':
     parser.add_argument('--grid_size', type=int, default=None)
     parser.add_argument('--preserve_older_prediction', action='store_true')
     parser.add_argument('--skip_highsnr', action='store_true')
-    parser.add_argument('--donot_trim_boundary', action='store_true')
 
     args = parser.parse_args()
     if args.preserve_older_prediction:
@@ -34,7 +33,6 @@ if __name__ == '__main__':
             grid_size=args.grid_size,
             overwrite_saved_predictions=not args.preserve_older_prediction,
             save_prediction_factor=args.save_prediction_factor,
-            trim_boundary=not args.donot_trim_boundary,
             skip_highsnr=args.skip_highsnr)
         if output_stats is None:
             break
