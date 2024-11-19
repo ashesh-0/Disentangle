@@ -14,7 +14,7 @@ def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.data_type = DataType.ExpMicroscopyV1
+    data.data_type = DataType.ExpMicroscopyV2
     config.data.subdset_type = SubDsetType.MultiChannel
     data.depth3D = 1
     data.mode_3D = False
@@ -114,8 +114,8 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2408/4/GMMNoiseModel_denoising_inputs-ch_0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2408/5/GMMNoiseModel_denoising_inputs-ch_1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = "/home/ashesh.ashesh/training/noise_model/2408/2/GMMNoiseModel_denoising_input-ch_0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
+    model.noise_model_ch2_fpath = "/home/ashesh.ashesh/training/noise_model/2408/3/GMMNoiseModel_denoising_input-ch_1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
