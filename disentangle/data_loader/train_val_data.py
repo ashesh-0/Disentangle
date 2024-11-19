@@ -7,6 +7,7 @@ from disentangle.config_utils import get_configdir_from_saved_predictionfile, lo
 from disentangle.core.data_split_type import DataSplitType
 from disentangle.core.data_type import DataType
 from disentangle.data_loader.allencell_rawdata_loader import get_train_val_data as _loadallencellmito
+from disentangle.data_loader.care3D_rawdata_loader import get_train_val_data as _loadcare3D
 from disentangle.data_loader.dao_3ch_rawdata_loader import get_train_val_data as _loaddao3ch
 from disentangle.data_loader.elisa3D_rawdata_loader import get_train_val_data as _loadelisa3D
 from disentangle.data_loader.embl_semisup_rawdata_loader import get_train_val_data as _loadembl2_semisup
@@ -162,5 +163,11 @@ def get_train_val_data(data_config,
                            datasplit_type,
                            val_fraction=val_fraction,
                            test_fraction=test_fraction)
+    elif data_config.data_type == DataType.Care3D:
+        return _loadcare3D(fpath,
+                          data_config,
+                          datasplit_type,
+                          val_fraction=val_fraction,
+                          test_fraction=test_fraction)
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')

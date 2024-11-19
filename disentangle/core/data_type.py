@@ -33,3 +33,4 @@ class DataType(Enum):
     ExpMicroscopyV3 = 27
     MultiCropDset = 28
     Elisa3DData = 29
+    Care3D = 30
