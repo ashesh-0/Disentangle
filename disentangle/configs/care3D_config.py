@@ -55,10 +55,10 @@ def get_config():
     
     
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.DenoiSplitMuSplit
     loss.usplit_w = 0.1
     loss.denoisplit_w = 1 - loss.usplit_w
-    loss.kl_loss_formulation = 'usplit'
+    loss.kl_loss_formulation = 'denoisplit_usplit'
 
     # loss.mixed_rec_weight = 1
     loss.restricted_kl = False 
@@ -115,10 +115,11 @@ def get_config():
     model.multiscale_retain_spatial_dims = False
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2408/0/GMMNoiseModel_n2v_denoising-raw_ch0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2408/1/GMMNoiseModel_n2v_denoising-raw_ch1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2411/4/GMMNoiseModel_n2v_inputs-farred_RFP_GFP_2109172__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2411/6/GMMNoiseModel_n2v_inputs-farred_RFP_GFP_2109172__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2411/5/GMMNoiseModel_n2v_inputs-farred_RFP_GFP_2109172__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
