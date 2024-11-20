@@ -61,7 +61,7 @@ def get_config():
     loss.kl_loss_formulation = 'denoisplit_usplit'
 
     # loss.mixed_rec_weight = 1
-    loss.restricted_kl = True
+    loss.restricted_kl = False
     assert loss.restricted_kl is False or data.multiscale_lowres_count is not None, 'LC must be set for restricted KL'
 
     loss.kl_weight = 1.0
