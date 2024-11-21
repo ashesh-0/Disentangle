@@ -304,6 +304,8 @@ def get_data_dir(dtype):
         data_dir = f"{DATA_ROOT}/Elisa3D/"
     elif dtype == DataType.ShroffMitoEr:
         data_dir = f"{DATA_ROOT}/shrofflab/"
+    elif dtype == DataType.Care3D:
+        data_dir = f"{DATA_ROOT}/CARE/care_florian/"
     return data_dir
 
 def get_calibration_stats(calibration_factors, pred, pred_std, tar_normalized):
@@ -829,8 +831,9 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/8',
             # '/group/jug/ashesh/training/disentangle/2405/D13-M3-S0-L8/7'
             # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/12",
-            "/group/jug/ashesh/training/disentangle/2410/D13-M3-S0-L8/13",
-            "/group/jug/ashesh/training/disentangle/2410/D13-M3-S0-L8/14",
+            # "/group/jug/ashesh/training/disentangle/2410/D13-M3-S0-L8/13",
+            # "/group/jug/ashesh/training/disentangle/2410/D13-M3-S0-L8/14",
+            "/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/11",
         ]
     else:
         ckpt_dirs = [ckpt_dir]

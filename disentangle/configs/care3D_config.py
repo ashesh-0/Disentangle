@@ -14,7 +14,7 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.Care3D
-    data.subdset_type = 'zebrafish'
+    data.subdset_type = 'liver'
     data.num_channels = 3
     # data.channel_idx_list = [0,1,2]
     # data.zstart = 25
@@ -117,9 +117,9 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2411/4/GMMNoiseModel_n2v_inputs-farred_RFP_GFP_2109172__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2411/6/GMMNoiseModel_n2v_inputs-farred_RFP_GFP_2109172__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2411/5/GMMNoiseModel_n2v_inputs-farred_RFP_GFP_2109172__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2411/9/GMMNoiseModel_n2v_inputs-channel_234_1_ch0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2411/10/GMMNoiseModel_n2v_inputs-channel_234_1_ch1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2411/11/GMMNoiseModel_n2v_inputs-channel_234_1_ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
