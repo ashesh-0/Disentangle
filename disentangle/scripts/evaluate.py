@@ -833,7 +833,11 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/12",
             # "/group/jug/ashesh/training/disentangle/2410/D13-M3-S0-L8/13",
             # "/group/jug/ashesh/training/disentangle/2410/D13-M3-S0-L8/14",
-            "/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/11",
+            # "/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/11",
+            "/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/8",
+            "/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/10",
+            "/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/15",
+            "/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/17",
         ]
     else:
         ckpt_dirs = [ckpt_dir]
