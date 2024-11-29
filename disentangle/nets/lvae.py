@@ -244,13 +244,14 @@ class LadderVAE(pl.LightningModule):
         self.multiscale_retain_spatial_dims = config.model.multiscale_retain_spatial_dims
         self.lowres_first_bottom_ups = self._multiscale_count = None
         self._init_multires(config)
-        if self._multiscale_count is not None and self._multiscale_count > 1:
-            assert self._restricted_kl is True, 'restricted KL must be set for LC'
 
         # Init lists of layers
 
         enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
         self.multiscale_decoder_retain_spatial_dims = self.multiscale_retain_spatial_dims and enable_multiscale
+        if self.multiscale_decoder_retain_spatial_dims:
+            assert self._restricted_kl is True, 'restricted KL must be set for LC'
+
         self.bottom_up_layers = self.create_bottom_up_layers(config.model.multiscale_lowres_separate_branch)
         self.top_down_layers = self.create_top_down_layers()
 
