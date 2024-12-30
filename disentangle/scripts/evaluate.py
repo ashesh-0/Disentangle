@@ -653,9 +653,9 @@ def main(
     tar = (val_dset._data if not is_list_prediction else [val_dset.dsets[i]._data for i in range(len(val_dset.dsets))])
 
     if "target_idx_list" in config.data and config.data.target_idx_list is not None:
-        tar = tar[..., config.data.target_idx_list]
-        pred = pred[..., :(tar.shape[-1])]
-        pred_std = pred_std[...,:(tar.shape[-1])]
+        tar = tar[..., config.data.target_idx_list] if not is_list_prediction else [tar[i][..., config.data.target_idx_list] for i in range(len(tar))]
+        pred = pred[..., :(tar.shape[-1])] if not is_list_prediction else [pred[i][..., :(tar[i].shape[-1])] for i in range(len(pred))]
+        pred_std = pred_std[...,:(tar.shape[-1])] if not is_list_prediction else [pred_std[i][..., :(tar[i].shape[-1])] for i in range(len(pred_std))]
 
     print("Stitched predictions shape after", len(pred), pred[0].shape)
 
@@ -819,25 +819,14 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
+            '/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6'
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17',
-            # '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/4',
-            # '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/5',
-            # '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/6',
-            # '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/7',
-            # '/group/jug/ashesh/training/disentangle/2410/D25-M3-S0-L8/8',
-            # '/group/jug/ashesh/training/disentangle/2405/D13-M3-S0-L8/7'
-            # "/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/12",
-            # "/group/jug/ashesh/training/disentangle/2410/D13-M3-S0-L8/13",
-            # "/group/jug/ashesh/training/disentangle/2410/D13-M3-S0-L8/14",
-            # "/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/11",
-            "/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/8",
-            "/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/10",
-            "/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/15",
-            "/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/17",
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/12'
         ]
     else:
         ckpt_dirs = [ckpt_dir]
