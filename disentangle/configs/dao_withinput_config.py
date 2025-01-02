@@ -24,8 +24,8 @@ def get_config():
     data.input_idx = len(data.channel_idx_list) - 1
     data.target_idx_list = list(range(len(data.channel_idx_list) - 1))
 
-    data.num_channels = 3
-    data.noise_level = 'low'
+    data.num_channels = (len(data.channel_idx_list))
+    data.noise_level = 'high'
     # data.input_idx = 3
     # data.target_idx_list = [0, 1, 2]
     # data.start_alpha = [0.28, 0.28, 0.28]
