@@ -113,8 +113,8 @@ def get_config():
     # fname = '/home/ubuntu/ashesh/training_hpc/noise_model/2404/41/GMMNoiseModel_BioSR-__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2405/4/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2405/5/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2405/7/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch4_fpath = '/home/ashesh.ashesh/training/noise_model/2405/6/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2405/7/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch4_fpath = '/home/ashesh.ashesh/training/noise_model/2405/6/GMMNoiseModel_Dao3Channel-SIM1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
