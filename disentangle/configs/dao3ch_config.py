@@ -16,7 +16,7 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.Dao3Channel
     data.subdset_type = SubDsetType.MultiChannel
-    data.channel_idx_list = [0, 1, 2, 3]  #[0, 1, 2, 3]
+    data.channel_idx_list = [0, 1]  #[0, 1, 2, 3]
     data.num_channels = len(data.channel_idx_list)
     # data.uncorrelated_channels = True
 
