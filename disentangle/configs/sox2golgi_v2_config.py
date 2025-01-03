@@ -18,11 +18,13 @@ def get_config():
     data.data_type = DataType.TavernaSox2GolgiV2
     data.subdset_type = SubDsetType.MultiChannel
     # all channels: ['555-647', 'GT_Cy5', 'GT_TRITC']
-    data.channel_idx_list = [
-        Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC, Sox2GolgiV2ChannelList.GT_555_647
-    ]
+    # data.channel_idx_list = [
+    #     Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC, Sox2GolgiV2ChannelList.GT_555_647
+    # ]
+    data.channel_idx_list = [Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC]
+
     data.num_channels = len(data.channel_idx_list)
-    data.input_idx = 2
+    # data.input_idx = 2
     data.target_idx_list = [0, 1]
 
     data.sampler_type = SamplerType.DefaultSampler
@@ -39,6 +41,9 @@ def get_config():
     # this will help in the all scaling related approaches where we want to multiply the frame with some factor and then add them. we will then effectively just do these scaling on the
     # foreground pixels and the background will anyways will remain very close to 0.
     data.skip_normalization_using_mean = False
+
+    data.uncorrelated_channels = True
+    data.uncorrelated_channel_probab = 1.0
 
     data.input_is_sum = False
 
@@ -144,6 +149,4 @@ def get_config():
     training.earlystop_patience = 200
     training.precision = 16
     training.limit_train_batches = 2000
-    return config
-
     return config
