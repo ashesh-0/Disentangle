@@ -682,8 +682,7 @@ def main(
         calib_scalar = np.array(calib_scalar).reshape(1,1,1,-1)
         calib_offset = [eval_calibration_factors[i].get('offset',0.0) for i in range(len(eval_calibration_factors))]
         calib_offset = np.array(calib_offset).reshape(1,1,1,-1)
-        calib_factors = {'scalar':calib_scalar, 'offset':calib_offset}
-
+        calib_factors = {'scalar':calib_scalar.reshape(1,-1), 'offset':calib_offset.reshape(1,-1)}
         # assert eval_datasplit_type == DataSplitType.Test, "Calibration model should be evaluated on the test set."
         calib_stats = get_calibration_stats(calib_factors, pred_flattened, pred_std_flattened, tar_flattened)
         return {'calib_stats':calib_stats}, None
@@ -865,14 +864,14 @@ def save_hardcoded_ckpt_evaluations_to_file(
 
             # Pavia3
             "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/16",
-            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/15",
-            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/14",
-            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/13",
-            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/12",
-            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/11",
-            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/10",
-            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/9",
-            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/8",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/15",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/14",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/13",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/12",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/11",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/10",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/9",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/8",
 
             # '/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/6',
             # '/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/5',
