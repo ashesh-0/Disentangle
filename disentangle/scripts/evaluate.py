@@ -664,14 +664,18 @@ def main(
     sep_mean = sep_mean.squeeze().reshape(1, 1, 1, -1)
     sep_std = sep_std.squeeze().reshape(1, 1, 1, -1)
 
+    if train_calibration or eval_calibration_factors is not None:
+        tar_flattened = np.concatenate([x.reshape(-1, x.shape[-1]) for x in tar], axis=0)
+        tar_flattened = (tar_flattened - sep_mean.cpu().numpy().squeeze().reshape(1,-1)) / sep_std.cpu().numpy().squeeze().reshape(1,-1)
+        pred_flattened = np.concatenate([x.reshape(-1, x.shape[-1]) for x in pred], axis=0)
+        pred_std_flattened = np.concatenate([x.reshape(-1, x.shape[-1]) for x in pred_std], axis=0)
     
     if train_calibration:
-        tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
         # np.save(f'pred_MMSE{mmse_count}.npy', pred)
         # np.save(f'tar_normalized_MMSE{mmse_count}.npy', tar_normalized)
         # np.save(f'pred_std_MMSE{mmse_count}.npy', pred_std)
         assert eval_datasplit_type == DataSplitType.Val, "Calibration model should be trained on the validation set."
-        calib_factors = get_calibrated_factor_for_stdev(pred, pred_std, tar_normalized, q_s=0.00001, q_e=0.99999, num_bins=30)
+        calib_factors = get_calibrated_factor_for_stdev(pred_flattened, pred_std_flattened, tar_flattened, q_s=0.00001, q_e=0.99999, num_bins=30)
         return calib_factors, None
     elif eval_calibration_factors is not None:
         calib_scalar = [eval_calibration_factors[i]['scalar'] for i in range(len(eval_calibration_factors))]
@@ -680,9 +684,8 @@ def main(
         calib_offset = np.array(calib_offset).reshape(1,1,1,-1)
         calib_factors = {'scalar':calib_scalar, 'offset':calib_offset}
 
-        tar_normalized = (tar - sep_mean.cpu().numpy()) / sep_std.cpu().numpy()
         # assert eval_datasplit_type == DataSplitType.Test, "Calibration model should be evaluated on the test set."
-        calib_stats = get_calibration_stats(calib_factors, pred, pred_std, tar_normalized)
+        calib_stats = get_calibration_stats(calib_factors, pred_flattened, pred_std_flattened, tar_flattened)
         return {'calib_stats':calib_stats}, None
 
     if is_list_prediction:
@@ -819,7 +822,13 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            '/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6'
+
+            # elisa3D
+            # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24',
+            # '/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6'
+            
+            
+            # nicola
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5',
@@ -827,6 +836,50 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/17',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/12'
+
+            # DAO3Channel
+            # '/group/jug/ashesh/training/disentangle/2406/D18-M3-S0-L8/2',
+            # '/group/jug/ashesh/training/disentangle/2406/D18-M3-S0-L8/0',
+            # '/group/jug/ashesh/training/disentangle/2406/D18-M3-S0-L8/1',
+            # '/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/13',
+            # '/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/15',
+            # '/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/12',
+            # '/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/11',
+            # '/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/10',
+            # '/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/14',
+            # '/group/jug/ashesh/training/disentangle/2405/D18-M3-S0-L8/15',
+
+            # '/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/11',
+            # '/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/13',
+            # '/group/jug/ashesh/training/disentangle/2408/D12-M3-S0-L8/2',
+            # '/group/jug/ashesh/training/disentangle/2408/D12-M3-S0-L8/3',
+
+            # CARE3D
+            # '/group/jug/ashesh/training/disentangle/2412/D30-M3-S0-L8/0',
+            # '/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/26',
+            # '/group/jug/ashesh/training/disentangle/2411/D30-M3-S0-L8/16',
+            # "/group/jug/ashesh/training/disentangle/2412/D30-M3-S0-L8/0",
+            
+            # TavernaSox2Golgi
+            # '/group/jug/ashesh/training/disentangle/2404/D17-M3-S0-L8/4'
+
+            # Pavia3
+            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/16",
+            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/15",
+            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/14",
+            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/13",
+            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/12",
+            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/11",
+            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/10",
+            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/9",
+            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/8",
+
+            # '/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/6',
+            # '/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/5',
+            # '/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/4',
+            # '/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/7',
+
+
         ]
     else:
         ckpt_dirs = [ckpt_dir]
