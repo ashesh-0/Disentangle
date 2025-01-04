@@ -14,11 +14,10 @@ def get_config():
     data.data_type = DataType.Pavia3SeqData
     data.num_channels = 2
     data.subdset_type = SubDsetType.MultiChannel
-    data.power_level = Pavia3SeqPowerLevel.Low
+    data.power_level = Pavia3SeqPowerLevel.High
     data.alpha_level = Pavia3SeqAlpha.Balanced
-    # {'Balanced': {'test': [0, 10], 'val': [2, 12]},
-    data.val_idx = [2, 12]
-    data.test_idx= [0, 10]
+    data.val_idx = [11, 16]
+    data.test_idx= [15, 20]
     data.uncorrelated_channels = False
     data.uncorrelated_channel_probab = 0.5
 
@@ -111,8 +110,8 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2404/100/GMMNoiseModel_pavia3_sequential_singlefiles-Cond_1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2404/103/GMMNoiseModel_pavia3_sequential_singlefiles-Cond_1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = "/group/jug/ashesh/training/noise_model/2404/89/GMMNoiseModel_pavia3_sequential_singlefiles-Cond_1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
+    model.noise_model_ch2_fpath = "/group/jug/ashesh/training/noise_model/2404/92/GMMNoiseModel_pavia3_sequential_singlefiles-Cond_1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
