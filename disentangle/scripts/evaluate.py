@@ -829,7 +829,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
             
             # nicola
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10',
-            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
+            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
@@ -861,9 +861,12 @@ def save_hardcoded_ckpt_evaluations_to_file(
             
             # TavernaSox2Golgi
             # '/group/jug/ashesh/training/disentangle/2404/D17-M3-S0-L8/4'
+            # exp microscopy
+            # '/group/jug/ashesh/training/disentangle/2408/D19-M3-S0-L8/11', #depth=5
+            # '/group/jug/ashesh/training/disentangle/2408/D12-M3-S0-L8/3' #depth=5
 
             # Pavia3
-            "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/16",
+            # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/16",
             # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/15",
             # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/14",
             # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/13",
@@ -873,10 +876,27 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/9",
             # "/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/8",
 
+            # ablations
+            # pavia3
+            # '/group/jug/ashesh/training/disentangle/2501/D24-M3-S0-L8/5',
+            # '/group/jug/ashesh/training/disentangle/2501/D24-M3-S0-L8/4',
+            # '/group/jug/ashesh/training/disentangle/2501/D24-M3-S0-L8/3',
+            # '/group/jug/ashesh/training/disentangle/2501/D24-M3-S0-L8/2',
+            # '/group/jug/ashesh/training/disentangle/2501/D24-M3-S0-L8/1',
+            # '/group/jug/ashesh/training/disentangle/2501/D24-M3-S0-L8/0',
             # '/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/6',
             # '/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/5',
             # '/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/4',
             # '/group/jug/ashesh/training/disentangle/2408/D24-M3-S0-L8/7',
+
+            # dao
+            # '/group/jug/ashesh/training/disentangle/2501/D20-M3-S0-L8/5',
+            # '/group/jug/ashesh/training/disentangle/2501/D18-M3-S0-L8/1',
+            # '/group/jug/ashesh/training/disentangle/2501/D18-M3-S0-L8/2',
+            # '/group/jug/ashesh/training/disentangle/2501/D18-M3-S0-L8/3',
+            # '/group/jug/ashesh/training/disentangle/2501/D18-M3-S0-L8/4',
+            # '/group/jug/ashesh/training/disentangle/2501/D18-M3-S0-L8/5',
+            # '/group/jug/ashesh/training/disentangle/2501/D18-M3-S0-L8/6',
 
 
         ]
