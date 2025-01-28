@@ -66,12 +66,11 @@ def get_calibrated_factor_for_stdev(pred, pred_std, target, q_s=0.00001, q_e=0.9
         y = stats_dict[ch_idx]['rmse']
         x = stats_dict[ch_idx]['rmv']
         count = stats_dict[ch_idx]['bin_count']
-
         first_idx = get_first_index(count, q_s)
         last_idx = get_last_index(count, q_e)
         x = x[first_idx:-last_idx]
         y = y[first_idx:-last_idx]
         slope, intercept, *_ = stats.linregress(x,y)
-        output = {'scalar':slope, 'offset':intercept}
+        output = {'scalar':slope, 'offset':intercept, 'stats_dict':stats_dict[ch_idx], 'first_idx':first_idx, 'last_idx':last_idx}
         outputs[ch_idx] = output
     return outputs

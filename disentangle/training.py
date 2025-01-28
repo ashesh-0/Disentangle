@@ -222,7 +222,7 @@ def create_dataset(config,
         train_data = MultiCropDset(config.data,datadir, DataSplitType.Train, val_fraction=config.training.val_fraction, 
                                    test_fraction=config.training.test_fraction, enable_rotation_aug=config.data.train_aug_rotate,
                                    **kwargs_dict)
-        val_data = MultiCropDset(config.data,datadir, DataSplitType.Val, val_fraction=config.training.val_fraction,
+        val_data = MultiCropDset(config.data,datadir, eval_datasplit_type, val_fraction=config.training.val_fraction,
                                     test_fraction=config.training.test_fraction,**kwargs_dict)
         
         mean, std = train_data.compute_mean_std()

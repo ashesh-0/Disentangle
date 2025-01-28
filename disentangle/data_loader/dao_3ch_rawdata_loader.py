@@ -51,6 +51,7 @@ if __name__ == '__main__':
     from ml_collections.config_dict import ConfigDict
     data_config = ConfigDict()
     data_config.subdset_type = SubDsetType.MultiChannel
+    data_config.data_type = DataType.Dao3Channel
     datadir = '/group/jug/ashesh/data/Dao3Channel/'
     data = get_train_val_data(datadir, data_config, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
     print(len(data))
