@@ -171,9 +171,12 @@ def get_train_val_data(data_config,
                           val_fraction=val_fraction,
                           test_fraction=test_fraction)
     elif data_config.data_type == DataType.SimilarityExperiment:
+        import numpy as np
         from skimage.transform import resize
 
         import ml_collections as ml
+        from disentangle.data_loader.multifile_raw_dloader import MultiChannelData
+
         new_config = ml.ConfigDict(data_config)
         new_config.data_type = data_config.raw_data_type
         data = get_train_val_data(new_config,
@@ -183,7 +186,12 @@ def get_train_val_data(data_config,
                        test_fraction=test_fraction,
                        allow_generation=allow_generation,
                        ignore_specific_datapoints=ignore_specific_datapoints)
-        relevant_channel_data = data[...,data_config.relevant_channel_position]
+        if isinstance(data, MultiChannelData):
+            relevant_channel_data = np.concatenate([x[...,data_config.relevant_channel_position] for x in data._data], axis=0)
+            del data
+        else:
+            assert isinstance(data, np.ndarray), f'Expected np.ndarray, but got {type(data)}'
+            relevant_channel_data = data[...,data_config.relevant_channel_position]
         # upscale it by data_config.upscale_factor
         factor1 = data_config.ch1_factor
         factor2 = data_config.ch2_factor
@@ -193,6 +201,6 @@ def get_train_val_data(data_config,
         ch2_data = resize(relevant_channel_data, (relevant_channel_data.shape[0], int(relevant_channel_data.shape[1] * factor2), 
                                                   int(relevant_channel_data.shape[2] * factor2)), anti_aliasing=True)
 
-        return (ch1_data, ch2_data)
+        return (ch1_data.astype(np.float32), ch2_data.astype(np.float32))
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')

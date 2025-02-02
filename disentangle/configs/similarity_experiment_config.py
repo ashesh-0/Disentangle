@@ -3,7 +3,9 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
+from disentangle.data_loader.multifile_raw_dloader import SubDsetType
 from disentangle.data_loader.nikola_7D_rawdata_loader import NikolaChannelList
+from disentangle.data_loader.sox2golgi_v2_rawdata_loader import Sox2GolgiV2ChannelList
 
 
 def get_config():
@@ -13,14 +15,19 @@ def get_config():
     data.data_type = DataType.SimilarityExperiment
     data.relevant_channel_position = 0
     data.ch1_factor = 0.5
-    data.ch2_factor = 2.5
-    data.raw_data_type = DataType.NicolaData
-    data.dset_type = '500ms'  # high, mid, low, verylow
-    data.channel_idx_list = [NikolaChannelList.Ch_B]
+    data.ch2_factor = 0.5*2
+    # data.raw_data_type = DataType.NicolaData
+    # data.dset_type = '500ms'  # high, mid, low, verylow
+    # data.channel_idx_list = [NikolaChannelList.Ch_B]
+    data.raw_data_type = DataType.TavernaSox2GolgiV2
+    data.subdset_type = SubDsetType.MultiChannel
+    # all channels: ['555-647', 'GT_Cy5', 'GT_TRITC']
+    # data.channel_idx_list = [
+    #     Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC, Sox2GolgiV2ChannelList.GT_555_647
+    # ]
+    data.channel_idx_list = [Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC]
 
     data.num_channels = 2
-    # data.input_idx = len(data.channel_idx_list) - 1
-    # data.target_idx_list = list(range(len(data.channel_idx_list) - 1))
 
     data.enable_gaussian_noise = False
     # data.trainig_datausage_fraction = 0.02
@@ -113,10 +120,11 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2406/17/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_500msSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2406/17/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_500msSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2406/19/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_5msSNR_channel3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch4_fpath = '/group/jug/ashesh/training/noise_model/2406/9/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_20msSNR_channel3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2406/17/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_500msSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2406/17/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_500msSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = "/home/ashesh.ashesh/training/noise_model/2404/112/GMMNoiseModel_N2V_data-sox2golgiv2_GT_Cy5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
+    model.noise_model_ch2_fpath = "/home/ashesh.ashesh/training/noise_model/2404/112/GMMNoiseModel_N2V_data-sox2golgiv2_GT_Cy5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
+
     model.noise_model_learnable = False
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
