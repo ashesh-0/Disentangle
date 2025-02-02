@@ -1,6 +1,7 @@
 """
 Here, the idea is to load the data from different data dtypes into a single interface.
 """
+from copy import deepcopy
 from typing import Union
 
 from disentangle.config_utils import get_configdir_from_saved_predictionfile, load_config
@@ -169,5 +170,29 @@ def get_train_val_data(data_config,
                           datasplit_type,
                           val_fraction=val_fraction,
                           test_fraction=test_fraction)
+    elif data_config.data_type == DataType.SimilarityExperiment:
+        from skimage.transform import resize
+
+        import ml_collections as ml
+        new_config = ml.ConfigDict(data_config)
+        new_config.data_type = data_config.raw_data_type
+        data = get_train_val_data(new_config,
+                       fpath,
+                       datasplit_type,
+                       val_fraction=val_fraction,
+                       test_fraction=test_fraction,
+                       allow_generation=allow_generation,
+                       ignore_specific_datapoints=ignore_specific_datapoints)
+        relevant_channel_data = data[...,data_config.relevant_channel_position]
+        # upscale it by data_config.upscale_factor
+        factor1 = data_config.ch1_factor
+        factor2 = data_config.ch2_factor
+        ch1_data = resize(relevant_channel_data, (relevant_channel_data.shape[0], int(relevant_channel_data.shape[1] * factor1), 
+                                                  int(relevant_channel_data.shape[2] * factor1)), anti_aliasing=True)
+        
+        ch2_data = resize(relevant_channel_data, (relevant_channel_data.shape[0], int(relevant_channel_data.shape[1] * factor2), 
+                                                  int(relevant_channel_data.shape[2] * factor2)), anti_aliasing=True)
+
+        return (ch1_data, ch2_data)
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')

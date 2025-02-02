@@ -34,3 +34,4 @@ class DataType(Enum):
     MultiCropDset = 28
     Elisa3DData = 29
     Care3D = 30
+    SimilarityExperiment = 31
