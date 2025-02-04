@@ -22,7 +22,8 @@ class MultiCropDset:
                  datasplit_type: DataSplitType = None,
                  val_fraction=None,
                  test_fraction=None,
-                 enable_rotation_aug: bool = False):
+                 enable_rotation_aug: bool = False,
+                 **ignore_kwargs):
         
         assert data_config.input_is_sum == True, "This dataset is designed for sum of images"
 

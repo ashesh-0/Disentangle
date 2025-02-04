@@ -22,17 +22,17 @@ def clean_ax(ax):
     ax.tick_params(left=False, right=False, top=False, bottom=False)
 
 
-def add_text(ax, text, img_shape, place='TOP_LEFT'):
+def add_text(ax, text, img_shape, place='TOP_LEFT', alpha=0.9):
     """
     Adding text on image
     """
     assert place in ['TOP_LEFT', 'BOTTOM_RIGHT']
     if place == 'TOP_LEFT':
-        ax.text(img_shape[1] * 20 / 500, img_shape[0] * 35 / 500, text, bbox=dict(facecolor='white', alpha=0.9))
+        ax.text(img_shape[1] * 20 / 500, img_shape[0] * 35 / 500, text, bbox=dict(facecolor='white', alpha=alpha))
     elif place == 'BOTTOM_RIGHT':
         s0 = img_shape[1]
         s1 = img_shape[0]
-        ax.text(s0 - s0 * 150 / 500, s1 - s1 * 35 / 500, text, bbox=dict(facecolor='white', alpha=0.9))
+        ax.text(s0 - s0 * 150 / 500, s1 - s1 * 35 / 500, text, bbox=dict(facecolor='white', alpha=alpha))
 
 
 def plot_one_batch_twinnoise(imgs, plot_width=20):

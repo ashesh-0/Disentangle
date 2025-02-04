@@ -15,17 +15,13 @@ def get_config():
     data.data_type = DataType.SimilarityExperiment
     data.relevant_channel_position = 0
     data.ch1_factor = 0.5
-    data.ch2_factor = 0.5*2
-    # data.raw_data_type = DataType.NicolaData
-    # data.dset_type = '500ms'  # high, mid, low, verylow
-    # data.channel_idx_list = [NikolaChannelList.Ch_B]
-    data.raw_data_type = DataType.TavernaSox2GolgiV2
-    data.subdset_type = SubDsetType.MultiChannel
-    # all channels: ['555-647', 'GT_Cy5', 'GT_TRITC']
-    # data.channel_idx_list = [
-    #     Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC, Sox2GolgiV2ChannelList.GT_555_647
-    # ]
-    data.channel_idx_list = [Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC]
+    data.ch2_factor = 0.5*1.125
+    data.raw_data_type = DataType.NicolaData
+    data.dset_type = '500ms'  # high, mid, low, verylow
+    data.channel_idx_list = [NikolaChannelList.Ch_B]
+    # data.raw_data_type = DataType.TavernaSox2GolgiV2
+    # data.subdset_type = SubDsetType.MultiChannel
+    # data.channel_idx_list = [Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC]
 
     data.num_channels = 2
 
@@ -120,10 +116,10 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    # model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2406/17/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_500msSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2406/17/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_500msSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch1_fpath = "/home/ashesh.ashesh/training/noise_model/2404/112/GMMNoiseModel_N2V_data-sox2golgiv2_GT_Cy5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
-    model.noise_model_ch2_fpath = "/home/ashesh.ashesh/training/noise_model/2404/112/GMMNoiseModel_N2V_data-sox2golgiv2_GT_Cy5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
+    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2406/17/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_500msSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2406/17/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_500msSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch1_fpath = "/home/ashesh.ashesh/training/noise_model/2404/112/GMMNoiseModel_N2V_data-sox2golgiv2_GT_Cy5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
+    # model.noise_model_ch2_fpath = "/home/ashesh.ashesh/training/noise_model/2404/112/GMMNoiseModel_N2V_data-sox2golgiv2_GT_Cy5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
 
     model.noise_model_learnable = False
 
