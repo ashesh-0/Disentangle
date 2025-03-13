@@ -48,7 +48,7 @@ class MultiCropDset:
             self._alpha_dirac_delta_weight = data_config.get('alpha_dirac_delta_weight', 0.0)
             self._alpha_dirac_delta_value = data_config.get('alpha_dirac_delta_value', 0.5)
             assert self._alpha_dirac_delta_weight >= 0.0 and self._alpha_dirac_delta_weight <= 1.0, 'Invalid alpha_dirac_delta_weight'
-            if self._ch1_min_alpha is not None:
+            if self._ch1_min_alpha is not None and self._alpha_dirac_delta_weight > 0.0:
                 assert self._alpha_dirac_delta_value >= self._ch1_min_alpha, 'Invalid alpha_dirac_delta_value'
                 assert self._alpha_dirac_delta_value <= self._ch1_max_alpha, 'Invalid alpha_dirac_delta_value'
         
