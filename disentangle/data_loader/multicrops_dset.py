@@ -51,6 +51,10 @@ class MultiCropDset:
             if self._ch1_min_alpha is not None:
                 assert self._alpha_dirac_delta_value >= self._ch1_min_alpha, 'Invalid alpha_dirac_delta_value'
                 assert self._alpha_dirac_delta_value <= self._ch1_max_alpha, 'Invalid alpha_dirac_delta_value'
+        
+        alpha_str  = f'Alpha: {self._ch1_min_alpha}-{self._ch1_max_alpha}' if self._ch1_min_alpha is not None else 'Alpha: None'
+        alpha_str += f' Dirac: {self._alpha_dirac_delta_weight}-{self._alpha_dirac_delta_value}' if self._alpha_dirac_delta_weight > 0.0 else ''
+
         # remove background values
         if self._background_values is not None:
             final_data_arr = []
@@ -63,7 +67,7 @@ class MultiCropDset:
         if self._enable_rotation:
             self._rotation_transform = A.Compose([A.HorizontalFlip(), A.VerticalFlip(), A.RandomRotate90()])
         
-        print(f'{self.__class__.__name__} N:{len(self)} Rot:{self._enable_rotation} Ch:{len(self._data_arr)} MaxVal:{self.max_val} Bg:{self._background_values}')
+        print(f'{self.__class__.__name__} N:{len(self)} Rot:{self._enable_rotation} Ch:{len(self._data_arr)} MaxVal:{self.max_val} Bg:{self._background_values}', alpha_str)
 
 
     def compute_mean_std(self):
