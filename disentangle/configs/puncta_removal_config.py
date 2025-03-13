@@ -10,7 +10,9 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.MultiCropDset
-    data.channel_list = ['puncta','foreground']
+    data.channel_list = ['ch0','ch1']
+    data.ch1_min_alpha = 0.5
+    data.ch1_max_alpha = 1.5
     data.input_is_sum = True
     data.background_values = [0,0]
     data.max_val = [None, None]
@@ -105,13 +107,13 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None  #'pixelwise' #'channelwise'
+    model.predict_logvar = None #'pixelwise' #'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     fname = '/home/ashesh.ashesh/training/noise_model/2407/3/GMMNoiseModel_N2V_Elisa-n2v_input__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch1_fpath = fname
@@ -125,15 +127,15 @@ def get_config():
 
     training = config.training
     training.lr = 0.001
-    training.lr_scheduler_patience = 4
-    training.max_epochs = 50
+    training.lr_scheduler_patience = 200
+    training.max_epochs = 2000
     training.batch_size = 16
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
     training.val_fraction = 0.1
     training.test_fraction = 0.1
-    training.earlystop_patience = 10
+    training.earlystop_patience = 1000
     training.precision = 16
     training.limit_train_batches = 2000
     return config
