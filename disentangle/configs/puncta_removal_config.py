@@ -11,8 +11,8 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.MultiCropDset
     data.channel_list = ['ch0','ch1']
-    data.ch1_min_alpha = 0.5
-    data.ch1_max_alpha = 1.5
+    data.ch1_min_alpha = 0.7
+    data.ch1_max_alpha = 1.3
     data.input_is_sum = True
     data.background_values = [0,0]
     data.max_val = [None, None]
