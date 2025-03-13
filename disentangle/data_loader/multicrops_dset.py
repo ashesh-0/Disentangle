@@ -31,7 +31,7 @@ class MultiCropDset:
         self._enable_rotation = enable_rotation_aug
         self._background_values = data_config.get('background_values', None)
         self._data_arr = get_train_val_data(data_config,fpath, datasplit_type, val_fraction, test_fraction)
-
+        self._is_train = datasplit_type == DataSplitType.Train
         # remove upper quantiles, crucial for removing puncta
         self.max_val = data_config.get('max_val', None)
         if self.max_val is not None:
@@ -40,6 +40,17 @@ class MultiCropDset:
                     for idx in range(len(data)):
                         data[idx][data[idx] > self.max_val[ch_idx]] = self.max_val[ch_idx]
 
+        self._alpha_dirac_delta_weight = 0.0
+        self._ch1_min_alpha = self._ch1_max_alpha = None
+        if self._is_train:
+            self._ch1_min_alpha = data_config.get('ch1_min_alpha', None)
+            self._ch1_max_alpha = data_config.get('ch1_max_alpha', None)
+            self._alpha_dirac_delta_weight = data_config.get('alpha_dirac_delta_weight', 0.0)
+            self._alpha_dirac_delta_value = data_config.get('alpha_dirac_delta_value', 0.5)
+            assert self._alpha_dirac_delta_weight >= 0.0 and self._alpha_dirac_delta_weight <= 1.0, 'Invalid alpha_dirac_delta_weight'
+            if self._ch1_min_alpha is not None:
+                assert self._alpha_dirac_delta_value >= self._ch1_min_alpha, 'Invalid alpha_dirac_delta_value'
+                assert self._alpha_dirac_delta_value <= self._ch1_max_alpha, 'Invalid alpha_dirac_delta_value'
         # remove background values
         if self._background_values is not None:
             final_data_arr = []
@@ -50,7 +61,7 @@ class MultiCropDset:
 
         self._rotation_transform = None
         if self._enable_rotation:
-            self._rotation_transform = A.Compose([A.Flip(), A.RandomRotate90()])
+            self._rotation_transform = A.Compose([A.HorizontalFlip(), A.VerticalFlip(), A.RandomRotate90()])
         
         print(f'{self.__class__.__name__} N:{len(self)} Rot:{self._enable_rotation} Ch:{len(self._data_arr)} MaxVal:{self.max_val} Bg:{self._background_values}')
 
@@ -150,10 +161,11 @@ class MultiCropDset:
         
         return rotated_img_tuples
 
-    def _compute_input(self, imgs):
-        inp = 0
-        for img in imgs:
-            inp += img
+    def _compute_input(self, imgs, alpha_arr):
+        # print('Alpha', alpha_arr)
+        inp = 0        
+        for img,alpha in zip(imgs, alpha_arr):
+            inp += img*alpha
         
         inp = (inp - self._data_mean['input'].squeeze())/(self._data_std['input'].squeeze())
         return inp[None]
@@ -161,13 +173,27 @@ class MultiCropDset:
     def _compute_target(self, imgs):
         return np.stack(imgs)
 
+    def _sample_alpha(self):
+        if np.random.rand() < self._alpha_dirac_delta_weight:
+            assert len(self._data_arr) == 2, 'Dirac delta sampling only supported for 2 channels'
+            return [self._alpha_dirac_delta_value, 2.0 - self._alpha_dirac_delta_value]
+        elif self._ch1_max_alpha is not None:
+            assert len(self._data_arr) == 2, 'min-max alpha sampling only supported for 2 channels'
+            alpha_width = self._ch1_max_alpha - self._ch1_min_alpha
+            alpha = np.random.rand() * (alpha_width) + self._ch1_min_alpha
+            return [alpha, 2.0 - alpha]
+        else:
+            return [1.0]*len(self._data_arr)
+
     def __getitem__(self, idx):
         imgs = self.imgs_for_patch()
+        
         if self._enable_rotation:
             imgs = self._rotate(imgs)
         
 
-        inp = self._compute_input(imgs)
+        alpha = self._sample_alpha()
+        inp = self._compute_input(imgs, alpha)
         target = self._compute_target(imgs)
         return inp, target
 
@@ -182,6 +208,8 @@ if __name__ =='__main__':
     data_config.input_is_sum = True
     data_config.background_values = [100,100]
     data_config.max_val = [None, 137]
+    data_config.ch1_min_alpha = 0.5
+    data_config.ch1_max_alpha = 1.5
     data_config.data_type = DataType.MultiCropDset
     data = MultiCropDset(data_config,datadir, DataSplitType.Train, val_fraction=0.1, test_fraction=0.1)
     mean, std = data.compute_mean_std()
