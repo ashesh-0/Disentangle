@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
     data = get_train_val_data('/group/jug/ashesh/data/TavernaSox2Golgi/acquisition2/',
                               config,
-                              DataSplitType.Train,
+                              DataSplitType.Test,
                               val_fraction=0.1,
                               test_fraction=0.1)
     print(len(data))
@@ -136,3 +136,15 @@ if __name__ == '__main__':
     _, ax = plt.subplots(figsize=(12, 6), ncols=2)
     ax[0].imshow(data[0][0][..., 0])
     ax[1].imshow(data[0][0][..., 1])
+
+    import os
+
+    import numpy as np
+
+    from disentangle.core.tiff_reader import save_tiff
+
+    concat_data = np.concatenate(data._data,axis=0)
+    path = '/group/jug/ashesh/data/diffsplit_HT_T24/test/test.tif'
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    save_tiff(path,concat_data)
+    print(path, concat_data.shape)
