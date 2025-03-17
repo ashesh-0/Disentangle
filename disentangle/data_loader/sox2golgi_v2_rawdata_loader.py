@@ -104,10 +104,16 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
     print(
         f'Loading data from {datadir} with channel names {channel_names}, datasplit_type {DataSplitType.name(datasplit_type)}'
     )
+    if 'use_selected_fpaths' in data_config:
+        print("Ignoring get_files function and using selected fpaths:", data_config.use_selected_fpaths)
+        get_files_fn = lambda: data_config.use_selected_fpaths
+    else:
+        get_files_fn = get_files
+    
     return get_train_val_data_multichannel(datadir,
                                            data_config,
                                            datasplit_type,
-                                           get_files,
+                                           get_files_fn,
                                            load_data_fn=partial(load_nd2, channel_names=channel_names),
                                            val_fraction=val_fraction,
                                            test_fraction=test_fraction)
