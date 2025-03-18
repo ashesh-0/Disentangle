@@ -104,9 +104,9 @@ class SingleFileDset(MultiChDloader):
 
     def load_data(self, data_config, datasplit_type, val_fraction=None, test_fraction=None, allow_generation=None):
         self._data = self._preloaded_data
-        assert 'channel_1' not in data_config, 'Outdated config file. Please remove channel_1, channel_2, channel_3 from the config file.'
-        assert 'channel_2' not in data_config, 'Outdated config file. Please remove channel_1, channel_2, channel_3 from the config file.'
-        assert 'channel_3' not in data_config, 'Outdated config file. Please remove channel_1, channel_2, channel_3 from the config file.'
+        # assert 'channel_1' not in data_config, 'Outdated config file. Please remove channel_1, channel_2, channel_3 from the config file.'
+        # assert 'channel_2' not in data_config, 'Outdated config file. Please remove channel_1, channel_2, channel_3 from the config file.'
+        # assert 'channel_3' not in data_config, 'Outdated config file. Please remove channel_1, channel_2, channel_3 from the config file.'
         self._loaded_data_preprocessing(data_config)
 
 
