@@ -587,17 +587,13 @@ class MultiChDloader:
         return loc_list[1:-1]
 
     def compute_individual_mean_std(self):
-        # numpy 1.19.2 has issues in computing for large arrays. https://github.com/numpy/numpy/issues/8869
-        # mean = np.mean(self._data, axis=(0, 1, 2))
-        # std = np.std(self._data, axis=(0, 1, 2))
         mean_arr = []
         std_arr = []
+        assert self._noise_data is None, 'This is not supported with noise'
+
         for ch_idx in range(self._data.shape[-1]):
             mean_ = 0.0 if self._skip_normalization_using_mean else self._data[..., ch_idx].mean()
-            if self._noise_data is not None:
-                std_ = (self._data[..., ch_idx] + self._noise_data[..., ch_idx + 1]).std()
-            else:
-                std_ = self._data[..., ch_idx].std()
+            std_ = np.mean([self._data[i,..., ch_idx].std() for i in range(self._data.shape[0])])
 
             mean_arr.append(mean_)
             std_arr.append(std_)
@@ -616,7 +612,6 @@ class MultiChDloader:
         """
         assert self._is_train is True or allow_for_validation_data, 'This is just allowed for training data'
         assert self._use_one_mu_std is True, 'This is the only supported case'
-
         if self._input_idx is not None:
             assert self._tar_idx_list is not None, 'tar_idx_list must be set if input_idx is set.'
             # assert self._noise_data is None, 'This is not supported with noise'
@@ -627,26 +622,21 @@ class MultiChDloader:
             std_dict = {'input':std[:,self._input_idx:self._input_idx+1], 'target':std[:,self._tar_idx_list]}
             return mean_dict, std_dict
 
-        if self._input_is_sum:
-            assert self._noise_data is None, "This is not supported with noise"
-            mean = [np.mean(self._data[..., k:k + 1], keepdims=True) for k in range(self._num_channels)]
-            mean = np.sum(mean, keepdims=True)[0]
-            std = np.linalg.norm(
-                [np.std(self._data[..., k:k + 1], keepdims=True) for k in range(self._num_channels)],
-                keepdims=True)[0]
-        else:
-            mean = np.mean(self._data, keepdims=True).reshape(1, 1, 1, 1)
-            if self._noise_data is not None:
-                std = np.std(self._data + self._noise_data[..., 1:], keepdims=True).reshape(1, 1, 1, 1)
-            else:
-                std = np.std(self._data, keepdims=True).reshape(1, 1, 1, 1)
+        assert self._skip_normalization_using_mean is False, 'This is not supported'
+        assert self._input_is_sum is False, 'This is not supported'
+        assert self._noise_data is None, 'This is not supported with noise'
+
+        inp = np.mean(self._data, axis=-1)
+
+        mean = np.mean(inp, keepdims=True)
+        std = np.mean([inp[i].std() for i in range(inp.shape[0])])
+
+        mean = mean.reshape(1, 1, 1, 1)
+        std = std.reshape(1, 1, 1, 1)
 
         mean = np.repeat(mean, self._num_channels, axis=1)
         std = np.repeat(std, self._num_channels, axis=1)
 
-        if self._skip_normalization_using_mean:
-            mean = np.zeros_like(mean)
-        
         if self._5Ddata:
             mean = mean[:,:,None]
             std = std[:,:,None]
