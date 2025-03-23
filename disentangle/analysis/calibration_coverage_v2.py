@@ -15,11 +15,22 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-def how_many_lie_in_k_quantiles(calibration_coverage_data, k):
-    assert k >= 0 and k <= 100
-    q_start = (50 - k/2)/100
-    q_end = (50 + k/2)/100
-    return 100* np.sum((calibration_coverage_data >= q_start) & (calibration_coverage_data <= q_end))/np.prod(calibration_coverage_data.shape)
+import scipy
+
+def get_empirical_coverage_and_confidence_level(coverage_data):
+    assert coverage_data.ndim == 1, f'coverage_data should be 1D, but got {coverage_data.ndim}D'
+    # assert coverage_data.min() >= 0, f'coverage_data should be non-negative, but got {coverage_data.min()}'
+    # assert coverage_data.max() <= 100, f'coverage_data should be less than 100, but got {coverage_data.max()}'
+
+    confidence_level = np.arange(0, 100, 1)
+    bin_values = np.zeros_like(confidence_level)
+    for val in coverage_data:
+        for idx, percentile_bin in enumerate(confidence_level):
+            if val <= percentile_bin:
+                bin_values[idx] += 1
+    empirical_coverage = 100 * bin_values/len(coverage_data)
+    return confidence_level, empirical_coverage
+
 
 def compute_for_one(patch_predictions, gt, percentile_bins = 100, elem_size = 10, calib_stats_dict=None):
     output = []
@@ -65,17 +76,23 @@ def compute_for_one_channel(patch_predictions, gt, percentile_bins = 100, std_fa
     # print(var.min(), var.max())
     mse_mmse = ((mmse_sample - gt) ** 2).mean(axis=(1,2))
     
-    true_error_quantiles  = []
+    true_error_symmetric_percentiles  = []
     for i in range(patch_predictions.shape[0]):
         var_sample = var[i]
         mse_mmse_sample = mse_mmse[i]
-        # find the quantile of mse_mmse_sample in the mse histogram.
-        quantiles = np.percentile(var_sample, np.linspace(0, 100, percentile_bins))
-        quantile = np.searchsorted(quantiles, mse_mmse_sample) /percentile_bins
+        assert np.isscalar(mse_mmse_sample), f'{mse_mmse_sample.shape} should be scalar'
+        # find the percentile of mse_mmse_sample in the mse histogram.
+        # NOTE: the np.percentile is an approximation, but it is good enough for our purposes.
+        percentile = scipy.stats.percentileofscore(var_sample,mse_mmse_sample)
+        
+        # quantiles = np.percentile(var_sample, np.linspace(0, 100, 100))
+        # percentile = np.searchsorted(quantiles, mse_mmse_sample)
+
+        sym_percentile = np.abs(percentile - 50)
         # print(var_sample.shape, mse_mmse_sample.shape, quantiles.shape, quantile.shape)
         # raise ValueError('stop')
-        true_error_quantiles.append(quantile)
-    return np.array(true_error_quantiles)
+        true_error_symmetric_percentiles.append(sym_percentile)
+    return np.array(true_error_symmetric_percentiles)
 
 
 def get_calibration_coverage_data(model, dset, percentile_bins = 100, num_workers=4, batch_size = 32, mmse_count = 10, elem_size=10, calib_stats_dict=None):
