@@ -12,10 +12,11 @@ For every patch (or full frame, or every pixel):
 """
 
 import numpy as np
+import scipy
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-import scipy
+
 
 def get_empirical_coverage_and_confidence_level(coverage_data):
     assert coverage_data.ndim == 1, f'coverage_data should be 1D, but got {coverage_data.ndim}D'
@@ -26,7 +27,8 @@ def get_empirical_coverage_and_confidence_level(coverage_data):
     bin_values = np.zeros_like(confidence_level)
     for val in coverage_data:
         for idx, percentile_bin in enumerate(confidence_level):
-            if val <= percentile_bin:
+            # 2 is important because we are looking at the symmetric percentile.
+            if 2*val <= percentile_bin:
                 bin_values[idx] += 1
     empirical_coverage = 100 * bin_values/len(coverage_data)
     return confidence_level, empirical_coverage
@@ -82,7 +84,7 @@ def compute_for_one_channel(patch_predictions, gt, percentile_bins = 100, std_fa
         mse_mmse_sample = mse_mmse[i]
         assert np.isscalar(mse_mmse_sample), f'{mse_mmse_sample.shape} should be scalar'
         # find the percentile of mse_mmse_sample in the mse histogram.
-        # NOTE: the np.percentile is an approximation, but it is good enough for our purposes.
+        # NOTE: the np.percentile is an approximation, but it is; good enough for our purposes.
         percentile = scipy.stats.percentileofscore(var_sample,mse_mmse_sample)
         
         # quantiles = np.percentile(var_sample, np.linspace(0, 100, 100))
