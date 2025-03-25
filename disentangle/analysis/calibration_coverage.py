@@ -12,6 +12,7 @@ For every patch (or full frame, or every pixel):
 """
 
 import numpy as np
+import scipy
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -19,11 +20,16 @@ from tqdm import tqdm
 
 def how_many_lie_in_k_quantiles(calibration_coverage_data, k):
     assert k >= 0 and k <= 100
-    q_start = (50 - k/2)/100
-    q_end = (50 + k/2)/100
-    return 100* np.sum((calibration_coverage_data >= q_start) & (calibration_coverage_data <= q_end))/np.prod(calibration_coverage_data.shape)
+    return np.mean(calibration_coverage_data <= k) * 100
 
-def compute_for_one(patch_predictions, gt, percentile_bins = 100, elem_size = 10, calib_stats_dict=None):
+
+def compute_for_one(patch_predictions, gt, elem_size = 10, calib_stats_dict=None, background_patch_detection_func=None):
+    masks = []
+    if background_patch_detection_func is not None:
+        for ch_idx in range(gt.shape[1]):
+            bkg_mask = background_patch_detection_func(gt[:, ch_idx], ch_idx)
+            masks.append(bkg_mask)
+
     output = []
     for ch_idx in range(gt.shape[1]):
         if calib_stats_dict is not None:
@@ -41,17 +47,21 @@ def compute_for_one(patch_predictions, gt, percentile_bins = 100, elem_size = 10
                 w = np.random.randint(0, patch_predictions.shape[-1] - elem_size)
                 val = compute_for_one_channel(patch_predictions[:, :, ch_idx,h:h+elem_size,w:w+elem_size], 
                                               gt[:, ch_idx,h:h+elem_size,w:w+elem_size], 
-                                              percentile_bins=percentile_bins,
                                               std_factor=std_factor, std_offset=std_offset)
+                if len(masks) > 0:
+                    val[masks[ch_idx]] = np.nan
+                
                 computed_vals.append(val)
             output.append(np.concatenate(computed_vals, axis=0))
         else:
-            output.append(compute_for_one_channel(patch_predictions[:, :, ch_idx], gt[:, ch_idx], 
-                                              percentile_bins=percentile_bins,
-                                              std_factor=std_factor, std_offset=std_offset))
+            val = compute_for_one_channel(patch_predictions[:, :, ch_idx], gt[:, ch_idx], std_factor=std_factor, std_offset=std_offset)
+            if len(masks) > 0:
+                val[masks[ch_idx]] = np.nan
+            output.append(val)
+
     return np.stack(output, axis=1)
 
-def compute_for_one_channel(patch_predictions, gt, percentile_bins = 100, std_factor = 1, std_offset = 0):
+def compute_for_one_channel(patch_predictions, gt, std_factor = 1, std_offset = 0):
     """
     patch_predictions: Batch X N x H x W 
     gt: Batch X H x W
@@ -67,20 +77,16 @@ def compute_for_one_channel(patch_predictions, gt, percentile_bins = 100, std_fa
     # print(var.min(), var.max())
     mse_mmse = ((mmse_sample - gt) ** 2).mean(axis=(1,2))
     
-    true_error_quantiles  = []
+    true_error_percentiles  = []
     for i in range(patch_predictions.shape[0]):
         var_sample = var[i]
         mse_mmse_sample = mse_mmse[i]
-        # find the quantile of mse_mmse_sample in the mse histogram.
-        quantiles = np.percentile(var_sample, np.linspace(0, 100, percentile_bins))
-        quantile = np.searchsorted(quantiles, mse_mmse_sample) /percentile_bins
-        # print(var_sample.shape, mse_mmse_sample.shape, quantiles.shape, quantile.shape)
-        # raise ValueError('stop')
-        true_error_quantiles.append(quantile)
-    return np.array(true_error_quantiles)
+        percentile = scipy.stats.percentileofscore(var_sample,mse_mmse_sample)
+        true_error_percentiles.append(percentile)
+    return np.array(true_error_percentiles)
 
 
-def get_calibration_coverage_data(model, dset, percentile_bins = 100, num_workers=4, batch_size = 32, mmse_count = 10, elem_size=10, calib_stats_dict=None):
+def get_calibration_coverage_data(model, dset, num_workers=4, batch_size = 32, mmse_count = 10, elem_size=10, calib_stats_dict=None, background_patch_detection_func=None):
     dloader = DataLoader(dset, pin_memory=False, num_workers=num_workers, shuffle=False, batch_size=batch_size)
     q_values_dataset = []
     with torch.no_grad():
@@ -96,9 +102,8 @@ def get_calibration_coverage_data(model, dset, percentile_bins = 100, num_worker
                 pred_imgs, _ = model(x_normalized)
                 pred_imgs = pred_imgs[:,:tar.shape[1]]
                 recon_img_list.append(pred_imgs.cpu().numpy()[:,None])
-
             samples = np.concatenate(recon_img_list, axis=1)
-            true_error_quantiles = compute_for_one(samples, tar_normalized.cpu().numpy(), percentile_bins=percentile_bins, elem_size=elem_size, calib_stats_dict=calib_stats_dict)
+            true_error_quantiles = compute_for_one(samples, tar_normalized.cpu().numpy(), elem_size=elem_size, calib_stats_dict=calib_stats_dict, background_patch_detection_func=background_patch_detection_func)
             q_values_dataset.append(true_error_quantiles)
 
     return np.concatenate(q_values_dataset, axis=0)
