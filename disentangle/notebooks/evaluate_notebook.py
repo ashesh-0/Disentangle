@@ -13,10 +13,11 @@ if __name__ == '__main__':
     parser.add_argument('--mmse_count', type=int, help='Number of mmse values to generate', default=10)
     parser.add_argument('--elem_size', type=int, help='Number of timesteps to use', default=10)
     parser.add_argument('--tag_time_flag', type=bool, help='Tag time flag', default=False)
+    parser.add_argument('--skip_percentile', type=int, help='Skip percentile', default=0)
     args = parser.parse_args()
 
     # get a year-month-day hour-minute formatted string
-    param_str = f"Elem-{args.elem_size}_MMSE-{args.mmse_count}"
+    param_str = f"Elem-{args.elem_size}_MMSE-{args.mmse_count}_Skip-{args.skip_percentile}"
     ckpt_dir = args.ckpt_dir
     model_token = '-'.join(ckpt_dir.strip('/').split('/')[-3:])
     outputdir = os.path.join(args.outputdir, model_token)
@@ -47,6 +48,7 @@ if __name__ == '__main__':
             'mmse_count': args.mmse_count,
             'elem_size': args.elem_size,
             'outputdir': outputdir,
+            'skip_percentile': args.skip_percentile
             }
     )
     
