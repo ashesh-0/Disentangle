@@ -26,9 +26,10 @@ def stitch_predictions(predictions, dset):
     else:
         mng = dset.idx_manager
         
-        # if there are more channels, use all of them.
+        # if there are more channels, use all of them.??
         shape = list(dset.get_data_shape())
-        shape[-1] = max(shape[-1], predictions.shape[1])
+        # shape[-1] = max(shape[-1], predictions.shape[1])
+        shape[-1] = predictions.shape[1]
 
         output = np.zeros(shape, dtype=predictions.dtype)
         # frame_shape = dset.get_data_shape()[:-1]

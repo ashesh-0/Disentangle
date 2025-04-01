@@ -1,4 +1,5 @@
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -8,10 +9,10 @@ from finetunesplit.loss import SSL_loss
 
 def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=10000, batch_size=16, skip_pixels=0,
                                 scalar_params_dict=None,
-                                optimization_params_dict=None):
+                                optimization_params_dict=None, lookback=10):
     
     # enable dropout.
-    model.train()
+    # model.train()
 
     def pred_func(inp):
         return model(inp)[0][:,:2]
@@ -41,9 +42,13 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
     
     # define an optimizer
     # opt = torch.optim.Adam(model.parameters(), lr=1e-3)
-    opt = torch.optim.Adamax(optimization_params_dict['parameters'], lr=optimization_params_dict['lr'], weight_decay=0)
+    opt = torch.optim.Adam(optimization_params_dict['parameters'], lr=optimization_params_dict['lr'], weight_decay=0)
 
     loss_arr = []
+    loss_inp_arr = []
+    loss_pred_arr = []
+    loss_inp2_arr = []
+
     best_loss = 1e6
 
     factor1_arr = []
@@ -65,9 +70,13 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
             opt.zero_grad()
 
             loss_dict = SSL_loss(pred_func, inp, transform_obj, mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, offset2=offset2, skip_pixels=skip_pixels)
-            loss = loss_dict['loss_inp']
+            # return {'loss_pred':loss_pred, 'loss_inp2':loss_inp2, 'loss_inp':loss_inp}
+            loss = loss_dict['loss_inp'] + loss_dict['loss_pred'] + loss_dict['loss_inp2']
             loss.backward()
             loss_arr.append(loss.item())
+            loss_inp_arr.append(loss_dict['loss_inp'].item())
+            loss_pred_arr.append(loss_dict['loss_pred'].item())
+            loss_inp2_arr.append(loss_dict['loss_inp2'].item() if torch.is_tensor(loss_dict['loss_inp2']) else loss_dict['loss_inp2'])
             
             factor1_arr.append(factor1.item())
             offset1_arr.append(offset1.item())
@@ -76,9 +85,10 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
             cnt += len(inp)
             mixing_ratio_arr.append(mixing_ratio.item())
             opt.step()
-            if loss.item() < best_loss:
+            rolling_loss = np.mean(loss_arr[-lookback:])
+            if rolling_loss < best_loss and len(loss_arr) > 10:
                 best_loss = loss.item()
-                print(f'Loss: {loss.item():.2f}')
+                print(f'Loss: {rolling_loss:.2f}')
                 best_factors = [factor1.item(), factor2.item()]
                 best_offsets = [offset1.item(), offset2.item()]
             # print(f'Loss: {loss.item():.2f}')
@@ -88,4 +98,8 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
             break
     
     model.eval()
-    return {'loss': loss_arr, 'best_loss': best_loss, 'best_factors': best_factors, 'best_offsets': best_offsets, 'factor1': factor1_arr, 'offset1': offset1_arr, 'factor2': factor2_arr, 'offset2': offset2_arr, 'mixing_ratio': mixing_ratio_arr}
+    return {'loss': loss_arr, 'best_loss': best_loss, 'best_factors': best_factors, 
+            'best_offsets': best_offsets, 'factor1': factor1_arr, 'offset1': offset1_arr, 
+            'factor2': factor2_arr, 'offset2': offset2_arr, 'mixing_ratio': mixing_ratio_arr,
+            'loss_inp': loss_inp_arr, 'loss_pred': loss_pred_arr,
+            'loss_inp2': loss_inp2_arr}
