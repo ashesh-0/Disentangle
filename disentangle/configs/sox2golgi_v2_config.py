@@ -71,7 +71,7 @@ def get_config():
     loss.loss_type = LossType.Elbo
     # this is not uSplit.
     loss.kl_loss_formulation = 'usplit'
-    loss.restricted_kl = True
+    loss.restricted_kl = False
 
     # loss.mixed_rec_weight = 1
     loss.usplit_w = 0.1
