@@ -862,10 +862,10 @@ class MultiChDloader:
 
    
     def get_uncorrelated_img_tuples(self, index):
-        img_tuples, noise_tuples = self._get_img(index)
+        orig_img_tuples, noise_tuples = self._get_img(index)
         assert len(noise_tuples) == 0
-        img_tuples = [img_tuples[0]]
-        for ch_idx in range(1,len(img_tuples)):
+        img_tuples = [orig_img_tuples[0]]
+        for ch_idx in range(1,len(orig_img_tuples)):
             new_index = np.random.randint(len(self))
             other_img_tuples, _ = self._get_img(new_index)
             img_tuples.append(other_img_tuples[ch_idx])
