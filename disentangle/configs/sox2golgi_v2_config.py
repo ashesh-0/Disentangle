@@ -22,6 +22,8 @@ def get_config():
     #     Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC, Sox2GolgiV2ChannelList.GT_555_647
     # ]
     data.channel_idx_list = [Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC]
+    data.start_alpha = [0.2, 0.2]
+    data.end_alpha = [0.8, 0.8]
 
     data.num_channels = len(data.channel_idx_list)
     # data.input_idx = 2
@@ -52,7 +54,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = True
     data.randomized_channels = False
-    data.multiscale_lowres_count = 3
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -66,9 +68,9 @@ def get_config():
     # data.return_alpha = True
 
     loss = config.loss
-    loss.loss_type = LossType.DenoiSplitMuSplit
+    loss.loss_type = LossType.Elbo
     # this is not uSplit.
-    loss.kl_loss_formulation = 'denoisplit_usplit'
+    loss.kl_loss_formulation = 'usplit'
     loss.restricted_kl = True
 
     # loss.mixed_rec_weight = 1
@@ -125,7 +127,7 @@ def get_config():
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = True
+    model.enable_noise_model = False
     model.noise_model_type = 'gmm'
     model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/112/GMMNoiseModel_N2V_data-sox2golgiv2_GT_Cy5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2404/113/GMMNoiseModel_N2V_data-sox2golgiv2_GT_TRITC__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
