@@ -85,10 +85,10 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
             cnt += len(inp)
             mixing_ratio_arr.append(mixing_ratio.item())
             opt.step()
-            rolling_loss = np.mean(loss_arr[-lookback:])
-            if rolling_loss < best_loss and len(loss_arr) > 10:
-                best_loss = loss.item()
-                print(f'Loss: {rolling_loss:.2f}')
+            rolling_loss = np.mean(loss_inp_arr[-lookback:])
+            if rolling_loss < best_loss and len(loss_inp_arr) > 10:
+                best_loss = rolling_loss.item()
+                print(f'Loss Inp Rolling(10): {rolling_loss:.2f}')
                 best_factors = [factor1.item(), factor2.item()]
                 best_offsets = [offset1.item(), offset2.item()]
             # print(f'Loss: {loss.item():.2f}')

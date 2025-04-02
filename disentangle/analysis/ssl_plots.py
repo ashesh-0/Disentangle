@@ -58,16 +58,16 @@ def plot_one_sample(tar_unnorm, pred_unnorm, inp_unnorm, config, best_t_estimate
     return (img_idx, hs, ws)
 
 
-def plot_finetuning_loss(finetuning_output_dict):
+def plot_finetuning_loss(finetuning_output_dict, loss_rolling=50):
     _,ax = plt.subplots(figsize=(18,6), ncols=6,nrows=2)
-    pd.Series(finetuning_output_dict['loss']).rolling(50).mean().plot(ax=ax[0,0], logy=True, label = 'total loss')
+    pd.Series(finetuning_output_dict['loss']).rolling(loss_rolling).mean().plot(ax=ax[0,0], logy=True, label = 'total loss')
     pd.Series(finetuning_output_dict['factor1']).rolling(5).mean().plot(ax=ax[0,1], label='$\sigma_1$')
     pd.Series(finetuning_output_dict['offset1']).rolling(5).mean().plot(ax=ax[0,2], label='$\mu_1$')
-    pd.Series(finetuning_output_dict['factor1']).rolling(5).mean().plot(ax=ax[0,3], label='$\sigma_2$')
+    pd.Series(finetuning_output_dict['factor2']).rolling(5).mean().plot(ax=ax[0,3], label='$\sigma_2$')
     pd.Series(finetuning_output_dict['offset2']).rolling(5).mean().plot(ax=ax[0,4], label='$\mu_2$')
     pd.Series(finetuning_output_dict['mixing_ratio']).rolling(5).mean().plot(ax=ax[0,5], label='$t$')
-    pd.Series(finetuning_output_dict['loss_inp']).rolling(50).mean().plot(ax=ax[1,0], logy=True, label = '$loss_{inp}$')
-    pd.Series(finetuning_output_dict['loss_pred']).rolling(50).mean().plot(ax=ax[1,1], logy=True, label = '$loss_{pred}$')
+    pd.Series(finetuning_output_dict['loss_inp']).rolling(loss_rolling).mean().plot(ax=ax[1,0], logy=True, label = '$loss_{inp}$')
+    pd.Series(finetuning_output_dict['loss_pred']).rolling(loss_rolling).mean().plot(ax=ax[1,1], logy=True, label = '$loss_{pred}$')
     ax[0,0].legend()  
     ax[0,1].legend()
     ax[0,2].legend()
