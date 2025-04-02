@@ -14,7 +14,7 @@ from disentangle.data_loader.sox2golgi_v2_rawdata_loader import Sox2GolgiV2Chann
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 16
     data.data_type = DataType.TavernaSox2GolgiV2
     data.subdset_type = SubDsetType.MultiChannel
     # all channels: ['555-647', 'GT_Cy5', 'GT_TRITC']
