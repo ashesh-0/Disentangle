@@ -186,12 +186,16 @@ class LadderVAE(pl.LightningModule):
             self._usplit_w = config.loss.usplit_w
             assert self._denoisplit_w + self._usplit_w == 1
 
+        self._alpha = None
         if self.loss_type in [
                 LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction,
                 LossType.ElboRestrictedReconstruction
         ]:
 
             self.mixed_rec_w = config.loss.mixed_rec_weight
+            # learnable scalar for the mixed reconstruction loss.
+            self._alpha = nn.Parameter(torch.ones(1) * 0.5, requires_grad=True)
+
             self.mixed_rec_w_step = config.loss.get('mixed_rec_w_step', 0)
             self.enable_mixed_rec = True
             if self.loss_type not in [
@@ -588,37 +592,42 @@ class LadderVAE(pl.LightningModule):
             self.top_down_layers[i].latent_shape = (output_size, output_size)
 
     def get_mixed_prediction(self, prediction, prediction_logvar, data_mean, data_std, channel_weights=None):
-        pred_unorm = prediction * data_std['target'] + data_mean['target']
-        if channel_weights is None:
-            channel_weights = 1
 
-        if self._input_is_sum:
-            mixed_prediction = torch.sum(pred_unorm * channel_weights, dim=1, keepdim=True)
-        else:
-            mixed_prediction = torch.mean(pred_unorm * channel_weights, dim=1, keepdim=True)
+        # We do it with learnable parameter.
+        assert prediction.shape[1] == 2, "This function is only for 2 channel images"
+        return prediction[:,:1] * self._alpha + prediction[:,1:2] * (1 - self._alpha)
 
-        mixed_prediction = (mixed_prediction - data_mean['input'].mean()) / data_std['input'].mean()
+        # pred_unorm = prediction * data_std['target'] + data_mean['target']
+        # if channel_weights is None:
+        #     channel_weights = 1
 
-        if prediction_logvar is not None:
-            if data_std['target'].shape == data_std['input'].shape and torch.all(
-                    data_std['target'] == data_std['input']):
-                assert channel_weights == 1
-                logvar = prediction_logvar
-            else:
-                var = torch.exp(prediction_logvar)
-                var = var * (data_std['target'] / data_std['input'])**2
-                if channel_weights != 1:
-                    var = var * torch.square(channel_weights)
+        # if self._input_is_sum:
+        #     mixed_prediction = torch.sum(pred_unorm * channel_weights, dim=1, keepdim=True)
+        # else:
+        #     mixed_prediction = torch.mean(pred_unorm * channel_weights, dim=1, keepdim=True)
 
-                # sum of variance.
-                mixed_var = 0
-                for i in range(var.shape[1]):
-                    mixed_var += var[:, i:i + 1]
+        # mixed_prediction = (mixed_prediction - data_mean['input'].mean()) / data_std['input'].mean()
 
-                logvar = torch.log(mixed_var)
-        else:
-            logvar = None
-        return mixed_prediction, logvar
+        # if prediction_logvar is not None:
+        #     if data_std['target'].shape == data_std['input'].shape and torch.all(
+        #             data_std['target'] == data_std['input']):
+        #         assert channel_weights == 1
+        #         logvar = prediction_logvar
+        #     else:
+        #         var = torch.exp(prediction_logvar)
+        #         var = var * (data_std['target'] / data_std['input'])**2
+        #         if channel_weights != 1:
+        #             var = var * torch.square(channel_weights)
+
+        #         # sum of variance.
+        #         mixed_var = 0
+        #         for i in range(var.shape[1]):
+        #             mixed_var += var[:, i:i + 1]
+
+        #         logvar = torch.log(mixed_var)
+        # else:
+        #     logvar = None
+        # return mixed_prediction, logvar
 
     def _get_weighted_likelihood(self, ll):
         """
@@ -682,7 +691,7 @@ class LadderVAE(pl.LightningModule):
                               self.channel_2_w * output['ch2_loss']) / (self.channel_1_w + self.channel_2_w)
 
         if self.enable_mixed_rec:
-            mixed_pred, mixed_logvar = self.get_mixed_prediction(like_dict['params']['mean'],
+            mixed_pred = self.get_mixed_prediction(like_dict['params']['mean'],
                                                                  like_dict['params']['logvar'], self.data_mean,
                                                                  self.data_std)
             if self._multiscale_count is not None and self._multiscale_count > 1:
@@ -690,8 +699,9 @@ class LadderVAE(pl.LightningModule):
                 input = input[:, :1]
 
             assert input.shape == mixed_pred.shape, "No fucking room for vectorization induced bugs."
-            mixed_recons_ll = self.likelihood.log_likelihood(input, {'mean': mixed_pred, 'logvar': mixed_logvar})
+            mixed_recons_ll = self.likelihood.log_likelihood(input, {'mean': mixed_pred, 'logvar': torch.zeros_like(mixed_pred)})
             output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
+            output['alpha'] = self._alpha.data.item()
 
         if self._exclusion_loss_weight:
             imgs = like_dict['params']['mean']
@@ -793,6 +803,7 @@ class LadderVAE(pl.LightningModule):
                                                               x_normalized,
                                                               mask,
                                                               return_predicted_img=True)
+        
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
@@ -806,6 +817,7 @@ class LadderVAE(pl.LightningModule):
 
             if enable_logging:
                 self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
+                self.log('mixing_alpha', recons_loss_dict['alpha'], on_epoch=True)
 
         if self._exclusion_loss_weight:
             exclusion_loss = recons_loss_dict['exclusion_loss']

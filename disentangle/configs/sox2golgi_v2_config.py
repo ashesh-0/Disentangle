@@ -22,8 +22,8 @@ def get_config():
     #     Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC, Sox2GolgiV2ChannelList.GT_555_647
     # ]
     data.channel_idx_list = [Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC]
-    data.start_alpha = [0.2, 0.2]
-    data.end_alpha = [0.8, 0.8]
+    # data.start_alpha = [0.2, 0.2]
+    # data.end_alpha = [0.8, 0.8]
 
     data.num_channels = len(data.channel_idx_list)
     # data.input_idx = 2
@@ -68,12 +68,12 @@ def get_config():
     # data.return_alpha = True
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.ElboMixedReconstruction
     # this is not uSplit.
     loss.kl_loss_formulation = 'usplit'
     loss.restricted_kl = False
 
-    # loss.mixed_rec_weight = 1
+    loss.mixed_rec_weight = 1
     loss.usplit_w = 0.1
     loss.denoisplit_w = 1 - loss.usplit_w
 

@@ -8,6 +8,7 @@ import pickle
 import socket
 import sys
 import time
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 
@@ -16,11 +17,10 @@ import torch
 import torchvision
 from torch.utils.cpp_extension import CUDA_HOME
 from torch.utils.data import DataLoader
-from copy import deepcopy
 
 import git
 import ml_collections
-import tensorboard
+# import tensorboard
 from absl import app, flags
 from disentangle.config_utils import get_updated_config
 from disentangle.core.data_type import DataType
