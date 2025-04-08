@@ -14,7 +14,7 @@ from disentangle.data_loader.sox2golgi_rawdata_loader import Sox2GolgiChannelLis
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 128
+    data.image_size = 16
     data.data_type = DataType.TavernaSox2Golgi
     data.subdset_type = SubDsetType.TwoChannel
     data.channel_1 = Sox2GolgiChannelList.Sox2
@@ -59,12 +59,12 @@ def get_config():
     # data.return_alpha = True
 
     loss = config.loss
-    loss.loss_type = LossType.Elbo
+    loss.loss_type = LossType.ElboMixedReconstruction
     # this is not uSplit.
     loss.kl_loss_formulation = 'usplit'
     loss.restricted_kl = False
 
-    # loss.mixed_rec_weight = 1
+    loss.mixed_rec_weight = 1
     loss.usplit_w = 0.1
     loss.denoisplit_w = 1 - loss.usplit_w
 
