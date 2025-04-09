@@ -9,7 +9,7 @@ from finetunesplit.loss import SSL_loss
 
 def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=10000, batch_size=16, skip_pixels=0,
                                 scalar_params_dict=None,
-                                optimization_params_dict=None, stats_enforcing_loss_fn=None, lookback=10):
+                                optimization_params_dict=None, stats_enforcing_loss_fn=None, lookback=10, k_augmentations=1):
     
     # enable dropout.
     # model.train()
@@ -70,17 +70,25 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
             # reset the gradients
             opt.zero_grad()
 
-            loss_dict = SSL_loss(pred_func, inp, transform_obj, mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
-                                 offset2=offset2, skip_pixels=skip_pixels,
-                                 stats_enforcing_loss_fn=stats_enforcing_loss_fn)
+            keys = ['loss_inp', 'loss_pred', 'loss_inp2', 'stats_loss']
+            agg_loss_dict = {key: 0 for key in keys}
+            for _ in range(k_augmentations):
+                # apply the augmentations
+                loss_dict = SSL_loss(pred_func, inp, transform_obj, mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
+                                    offset2=offset2, skip_pixels=skip_pixels,
+                                    stats_enforcing_loss_fn=stats_enforcing_loss_fn)
+                for key in keys:
+                    agg_loss_dict[key] += loss_dict[key]/ k_augmentations
+                
             # return {'loss_pred':loss_pred, 'loss_inp2':loss_inp2, 'loss_inp':loss_inp}
-            loss = loss_dict['loss_inp'] + loss_dict['loss_pred'] + loss_dict['loss_inp2'] + loss_dict['stats_loss']
+            loss = agg_loss_dict['loss_inp'] + agg_loss_dict['loss_pred'] + agg_loss_dict['loss_inp2'] + agg_loss_dict['stats_loss']
+            
             loss.backward()
             loss_arr.append(loss.item())
-            loss_inp_arr.append(loss_dict['loss_inp'].item())
-            loss_pred_arr.append(loss_dict['loss_pred'].item())
-            loss_inp2_arr.append(loss_dict['loss_inp2'].item() if torch.is_tensor(loss_dict['loss_inp2']) else loss_dict['loss_inp2'])
-            stats_loss_arr.append(loss_dict['stats_loss'].item() if torch.is_tensor(loss_dict['stats_loss']) else loss_dict['stats_loss'])
+            loss_inp_arr.append(agg_loss_dict['loss_inp'].item())
+            loss_pred_arr.append(agg_loss_dict['loss_pred'].item())
+            loss_inp2_arr.append(agg_loss_dict['loss_inp2'].item() if torch.is_tensor(agg_loss_dict['loss_inp2']) else agg_loss_dict['loss_inp2'])
+            stats_loss_arr.append(agg_loss_dict['stats_loss'].item() if torch.is_tensor(agg_loss_dict['stats_loss']) else agg_loss_dict['stats_loss'])
             
             factor1_arr.append(factor1.item())
             offset1_arr.append(offset1.item())

@@ -11,7 +11,7 @@ model = models.Cellpose(model_type='nuclei', gpu=True)
 
 # list of files
 # PUT PATH TO YOUR FILES HERE!
-files = ['/home/ashesh.ashesh/code/Disentangle/disentangle/notebooks/test_img.tiff']
+files = ['/home/ashesh.ashesh/code/test_img.tiff']
 
 imgs = [imread(f) for f in files]
 nimg = len(imgs)

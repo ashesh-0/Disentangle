@@ -25,8 +25,8 @@ def get_config():
     data.normalized_input = True
     data.clip_percentile = 1.0
     data.background_quantile = 0.0
-    # data.start_alpha = [0.2, 0.2]
-    # data.end_alpha = [0.8, 0.8]
+    data.start_alpha = [0.2, 0.2]
+    data.end_alpha = [0.8, 0.8]
 
     # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
     # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
@@ -59,7 +59,7 @@ def get_config():
     # data.return_alpha = True
 
     loss = config.loss
-    loss.loss_type = LossType.ElboMixedReconstruction
+    loss.loss_type = LossType.Elbo
     # this is not uSplit.
     loss.kl_loss_formulation = 'usplit'
     loss.restricted_kl = False
@@ -78,7 +78,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128, 128]
+    model.z_dims = [128, 128, 128]
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
