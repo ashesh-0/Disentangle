@@ -68,6 +68,8 @@ def plot_finetuning_loss(finetuning_output_dict, loss_rolling=50):
     pd.Series(finetuning_output_dict['mixing_ratio']).rolling(5).mean().plot(ax=ax[0,5], label='$t$')
     pd.Series(finetuning_output_dict['loss_inp']).rolling(loss_rolling).mean().plot(ax=ax[1,0], logy=True, label = '$loss_{inp}$')
     pd.Series(finetuning_output_dict['loss_pred']).rolling(loss_rolling).mean().plot(ax=ax[1,1], logy=True, label = '$loss_{pred}$')
+    pd.Series(finetuning_output_dict['stats_loss']).plot(ax=ax[1,2], label = '$loss_{stats}$')
+    # 
     ax[0,0].legend()  
     ax[0,1].legend()
     ax[0,2].legend()
@@ -76,5 +78,6 @@ def plot_finetuning_loss(finetuning_output_dict, loss_rolling=50):
     ax[0,5].legend()
     ax[1,0].legend()
     ax[1,1].legend()
+    ax[1,2].legend()
     plt.tight_layout()
 

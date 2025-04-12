@@ -7,6 +7,51 @@ from tqdm import tqdm
 from finetunesplit.loss import SSL_loss
 
 
+def k_moment(data, k):
+    # data: N x C x H x W
+    if k == 1:
+        return torch.mean(data, dim=(0, 2,3))
+    
+    dif = data - torch.mean(data, dim=(2,3))[...,None, None]
+    moment = torch.mean(dif**k, dim=(2,3))
+    neg_mask = (moment < 0).type(torch.long)
+    moment = torch.pow(torch.abs(moment), 1/k)
+    moment = moment * (1-neg_mask) -moment * neg_mask
+    return moment.mean(dim=0)
+
+def k_moment_loss(actual_moment, estimated_moment):
+    err =  actual_moment - estimated_moment
+    err = torch.clip(err, min=0)
+    return torch.mean(err)
+
+
+def get_stats_loss_func(pred_tiled:np.ndarray, k:int):
+    # pred_tiled: N x C x H x W
+    moments = [k_moment(torch.Tensor(pred_tiled), i) for i in range(1, k+1)]
+    def stats_loss_func(two_channel_prediction):
+        loss = 0
+        for i in range(k):
+            est_moment = k_moment(two_channel_prediction, i+1)
+            loss += k_moment_loss(moments[i].to(est_moment.device), est_moment)/k
+        return loss
+    return stats_loss_func
+
+    # mean_channels = torch.Tensor(np.mean(pred_tiled, axis=(2,3)).mean(axis=0))
+    # std_channels = torch.Tensor(np.std(pred_tiled, axis=(2,3)).mean(axis=0))
+    # def stats_loss_func(two_channel_prediction):
+    #     mean_pred = torch.mean(two_channel_prediction, dim=(2,3)).mean(dim=0)
+    #     std_pred = torch.std(two_channel_prediction, dim=(2,3)).mean(dim=0)
+    #     device = std_pred.device
+    #     mean_err =  mean_channels.to(device) - mean_pred
+    #     mean_err = torch.clip(mean_err, min=0)
+    #     std_err = std_channels.to(device) - std_pred
+    #     std_err = torch.clip(std_err, min=0)
+    #     mean_loss = torch.mean(mean_err)
+    #     std_loss = torch.mean(std_err)
+    #     return  mean_loss + std_loss
+    return stats_loss_func
+
+
 def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=10000, batch_size=16, skip_pixels=0,
                                 scalar_params_dict=None,
                                 optimization_params_dict=None, stats_enforcing_loss_fn=None, lookback=10, k_augmentations=1):
