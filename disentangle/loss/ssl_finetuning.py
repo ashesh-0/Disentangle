@@ -9,7 +9,10 @@ from finetunesplit.loss import SSL_loss
 
 def k_moment(data, k):
     # data: N x C x H x W
-    if k == 1:
+    if k ==0:
+        return torch.Tensor([0.0], device=data.device)
+    
+    elif k == 1:
         return torch.mean(data, dim=(0, 2,3))
     
     dif = data - torch.mean(data, dim=(2,3))[...,None, None]
