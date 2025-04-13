@@ -29,7 +29,6 @@ if __name__ == '__main__':
     parser.add_argument('--ckpt_dir', type=str, help='Checkpoint to use. eg. /group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4')
     
     parser.add_argument('--mmse_count', type=int, help='Number of mmse values to generate', default=None)
-    parser.add_argument('--image_size_for_grid_centers', type=int, help='Image size for grid centers', default=None)
     parser.add_argument('--custom_image_size', type=int, help='Custom image size', default=None)
     parser.add_argument('--skip_pixels', type=int, help='Skip pixels', default=None)
     parser.add_argument('--use_first_k_images', type=int, help='Use first k images', default=None)
@@ -51,7 +50,7 @@ if __name__ == '__main__':
             'ckpt_dir': args.ckpt_dir,
             'outputdir': args.outputdir,
     
-            'k_moment_value': 8, 
+                          'k_moment_value': 2, 
                           'optimaization_mode': 'twostep', 
                           'k_augmentations': 8, 
                           'aug_theta_max': 0, 
@@ -63,8 +62,7 @@ if __name__ == '__main__':
                           'lr_step2': 1e-5,
                           'use_first_k_images': 1,
                           'skip_pixels': 4,
-                          'image_size_for_grid_centers': 8,
-                          'custom_image_size': 16,
+                          'custom_image_size': None,
                           'mmse_count': 2,
                           'batch_size': 128,
                           }
