@@ -23,6 +23,10 @@ def get_notebook_fpath(directory, notebook_name: str, param_str:str='') -> str:
     
     return os.path.join(dirpath, fname.format(version=idx, now=now))
 
+def parse_bool(elem):
+    elem = elem.lower()
+    assert elem in ['true', 'false'], f'Invalid value {elem}. Must be true or false'
+    return elem == 'true'
 
 
 if __name__ == '__main__':
@@ -47,29 +51,28 @@ if __name__ == '__main__':
     parser.add_argument('--k_augmentations', type=int, help='Number of augmentations', default=None)
     parser.add_argument('--optimaization_mode', type=str, help='Optimization mode', default=None)
     parser.add_argument('--k_moment_value', type=int, help='K moment value', default=None)
+    parser.add_argument('--enable_mixing_aug', type=parse_bool, help='Enable mixing augmentation', default=None)
     args = parser.parse_args()
-
     values_dict = {
-        
             'ckpt_dir': args.ckpt_dir,
             'outputdir': args.outputdir,
-    
-                          'k_moment_value': 2, 
-                          'optimaization_mode': 'twostep', 
-                          'k_augmentations': 8, 
-                          'aug_theta_max': 0, 
-                          'aug_theta_z_max': 0, 
-                          'aug_shift_max': 0, 
-                          'max_step_count_step1': 200000, 
-                          'max_step_count_step2': 200000, 
-                          'lr_step1': 1e-3, 
-                          'lr_step2': 1e-5,
-                          'use_first_k_images': 1,
-                          'skip_pixels': 4,
-                          'custom_image_size': None,
-                          'mmse_count': 2,
-                          'batch_size': 128,
-                          }
+            'k_moment_value': 2, 
+            'optimaization_mode': 'twostep', 
+            'k_augmentations': 8, 
+            'aug_theta_max': 0, 
+            'aug_theta_z_max': 0, 
+            'aug_shift_max': 0, 
+            'max_step_count_step1': 200000, 
+            'max_step_count_step2': 200000, 
+            'lr_step1': 1e-3, 
+            'lr_step2': 1e-5,
+            'use_first_k_images': 1,
+            'skip_pixels': 4,
+            'custom_image_size': None,
+            'mmse_count': 2,
+            'batch_size': 128,
+            'enable_mixing_aug': False,
+    }
     updated_keys = []
     skip_name_keys = ['ckpt_dir', 'outputdir']
     for key in values_dict.keys():
