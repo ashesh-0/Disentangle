@@ -57,7 +57,7 @@ def get_stats_loss_func(pred_tiled:np.ndarray, k:int):
 
 def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=10000, batch_size=16, skip_pixels=0,
                                 scalar_params_dict=None,
-                                optimization_params_dict=None, stats_enforcing_loss_fn=None, lookback=10, k_augmentations=1):
+                                optimization_params_dict=None, stats_enforcing_loss_fn=None, lookback=10, k_augmentations=1,sample_mixing_ratio=False):
     
     # enable dropout.
     # model.train()
@@ -124,7 +124,7 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
                 # apply the augmentations
                 loss_dict = SSL_loss(pred_func, inp, transform_obj, mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
                                     offset2=offset2, skip_pixels=skip_pixels,
-                                    stats_enforcing_loss_fn=stats_enforcing_loss_fn)
+                                    stats_enforcing_loss_fn=stats_enforcing_loss_fn, sample_mixing_ratio=sample_mixing_ratio)
                 for key in keys:
                     agg_loss_dict[key] += loss_dict[key]/ k_augmentations
                 
