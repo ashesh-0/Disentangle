@@ -158,6 +158,10 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
             break
     
     model.eval()
+    if best_factors is None:
+        best_factors = [factor1.item(), factor2.item()]
+        best_offsets = [offset1.item(), offset2.item()]
+    
     return {'loss': loss_arr, 'best_loss': best_loss, 'best_factors': best_factors, 
             'best_offsets': best_offsets, 'factor1': factor1_arr, 'offset1': offset1_arr, 
             'factor2': factor2_arr, 'offset2': offset2_arr, 'mixing_ratio': mixing_ratio_arr,

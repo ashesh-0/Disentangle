@@ -10,14 +10,18 @@ def get_notebook_fpath(directory, notebook_name: str, param_str:str='') -> str:
     A model will have multiple runs. Each run will have a different version.
     """
     assert notebook_name[-6:] == '.ipynb', 'Notebook name should end with .ipynb'
-    fname = notebook_name[:-6] + '_' + param_str + '_{now}_{version}.ipynb'
+    notebook_with_param = notebook_name[:-6] + '_' + param_str
+    fname =  notebook_with_param + '_{now}_{version}.ipynb'
     idx = 0 
+    timesubdir = datetime.now().strftime("%Y%m%d") 
+    dirpath = os.path.join(directory, notebook_with_param, timesubdir)
+    os.makedirs(dirpath, exist_ok=True)
     now = datetime.now().strftime("%Y%m%d.%H.%M")
-    while os.path.exists(os.path.join(directory, fname.format(version=idx,now=now))):
+    while os.path.exists(os.path.join(dirpath, fname.format(version=idx,now=now))):
         now = datetime.now().strftime("%Y%m%d.%H.%M")
         idx += 1
     
-    return os.path.join(directory, fname.format(version=idx, now=now))
+    return os.path.join(dirpath, fname.format(version=idx, now=now))
 
 
 
@@ -78,6 +82,7 @@ if __name__ == '__main__':
     param_str = '-'.join([f'{key}-{values_dict[key]}' for key in updated_keys])
     
     notebook_fpath = get_notebook_fpath(args.outputdir, os.path.basename(args.notebook), param_str=param_str)
+
     # get a year-month-day hour-minute formatted string
     # param_str = f"Elem-{args.elem_size}_MMSE-{args.mmse_count}_Skip-{args.skip_percentile}"
     os.makedirs(os.path.dirname(notebook_fpath), exist_ok=True)
