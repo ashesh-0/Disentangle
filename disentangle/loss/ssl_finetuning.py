@@ -30,6 +30,7 @@ def k_moment_loss(actual_moment, estimated_moment):
 
 def get_stats_loss_func(pred_tiled:np.ndarray, k:int):
     # pred_tiled: N x C x H x W
+    print(f'Creating stats loss function with k={k}')
     moments = [k_moment(torch.Tensor(pred_tiled), i) for i in range(1, k+1)]
     def stats_loss_func(two_channel_prediction):
         loss = 0
@@ -53,7 +54,7 @@ def get_stats_loss_func(pred_tiled:np.ndarray, k:int):
     #     mean_loss = torch.mean(mean_err)
     #     std_loss = torch.mean(std_err)
     #     return  mean_loss + std_loss
-    return stats_loss_func
+    # return stats_loss_func
 
 
 def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=10000, batch_size=16, skip_pixels=0,
@@ -62,7 +63,7 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
     
     # enable dropout.
     # model.train()
-
+    print(f'Finetuning with {k_augmentations} augmentations, batch size {batch_size}, max step count {max_step_count}, sample mixing ratio {sample_mixing_ratio}')
     def pred_func(inp):
         return model(inp)[0][:,:2]
 
