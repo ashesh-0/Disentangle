@@ -35,7 +35,8 @@ def get_stats_loss_func(pred_tiled:np.ndarray, k:int):
         loss = 0
         for i in range(k):
             est_moment = k_moment(two_channel_prediction, i+1)
-            loss += k_moment_loss(moments[i].to(est_moment.device), est_moment)/k
+            # loss += k_moment_loss(moments[i].to(est_moment.device), est_moment)/k
+            loss += k_moment_loss(moments[i].to(est_moment.device), est_moment)
         return loss
     return stats_loss_func
 
