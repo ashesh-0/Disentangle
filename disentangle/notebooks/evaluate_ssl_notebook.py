@@ -35,7 +35,9 @@ if __name__ == '__main__':
     parser.add_argument('--notebook', type=str, help='Notebook to run', default='/home/ashesh.ashesh/code/Disentangle/disentangle/notebooks/SelfSupervisionExperiment.ipynb')
     parser.add_argument('--outputdir', type=str, help='Output notebook directory', default='/group/jug/ashesh/EnsDeLyon/notebook_results/')
     parser.add_argument('--ckpt_dir', type=str, help='Checkpoint to use. eg. /group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4')
-    
+    parser.add_argument('--save_to_file', type=parse_bool, help='Save to file', default=None)
+
+    # params which affect the performance.
     parser.add_argument('--mmse_count', type=int, help='Number of mmse values to generate', default=None)
     parser.add_argument('--custom_image_size', type=int, help='Custom image size', default=None)
     parser.add_argument('--skip_pixels', type=int, help='Skip pixels', default=None)
@@ -53,6 +55,7 @@ if __name__ == '__main__':
     parser.add_argument('--k_moment_value', type=int, help='K moment value', default=None)
     parser.add_argument('--enable_mixing_aug', type=parse_bool, help='Enable mixing augmentation', default=None)
     args = parser.parse_args()
+
     values_dict = {
             'ckpt_dir': args.ckpt_dir,
             'outputdir': args.outputdir,
@@ -72,17 +75,23 @@ if __name__ == '__main__':
             'mmse_count': 2,
             'batch_size': 128,
             'enable_mixing_aug': False,
+            'save_to_file': True,
     }
     updated_keys = []
-    skip_name_keys = ['ckpt_dir', 'outputdir']
+    skip_name_keys = ['ckpt_dir', 'outputdir', 'save_to_file']
     for key in values_dict.keys():
-        if getattr(args, key) is not None and key not in skip_name_keys:
+        if getattr(args, key) is not None:
             values_dict[key] = args.__dict__[key]
             print(f'Updating {key} to {values_dict[key]}')
-            updated_keys.append(key)
+            if  key not in skip_name_keys:
+                updated_keys.append(key)
+    
     
     updated_keys = sorted(updated_keys)
     param_str = '-'.join([f'{key}-{values_dict[key]}' for key in updated_keys])
+    
+    assert values_dict['optimaization_mode'] in ['twostep', 'onestep','norm_and_network'], f'Invalid optimization mode {values_dict["optimaization_mode"]}. Must be twostep or onestep'
+    
     
     notebook_fpath = get_notebook_fpath(args.outputdir, os.path.basename(args.notebook), param_str=param_str)
 
