@@ -30,38 +30,69 @@ def compute_for_one(patch_predictions, gt, elem_size = 10, calib_stats_dict=None
             bkg_mask = background_patch_detection_func(gt[:, ch_idx], ch_idx)
             masks.append(bkg_mask)
 
-    output = []
+    all_var = []
+    all_err = []
     for ch_idx in range(gt.shape[1]):
         if calib_stats_dict is not None:
-            std_factor = calib_stats_dict[ch_idx]['scalar']
-            std_offset = calib_stats_dict[ch_idx]['offset']
+            var_factor = calib_stats_dict[ch_idx]['scalar']
+            var_offset = calib_stats_dict[ch_idx]['offset']
         else:
-            std_factor = 1
-            std_offset = 0
+            var_factor = 1
+            var_offset = 0
         
         if elem_size is not None:
             n_entries = int((patch_predictions.shape[-1]/elem_size) * (patch_predictions.shape[-2]/elem_size))
-            computed_vals = []
+            all_var_one_ch = []
+            all_err_one_ch = []
             for _ in range(n_entries):
                 h = np.random.randint(0, patch_predictions.shape[-2] - elem_size)
                 w = np.random.randint(0, patch_predictions.shape[-1] - elem_size)
-                val = compute_for_one_channel(patch_predictions[:, :, ch_idx,h:h+elem_size,w:w+elem_size], 
+                var, err = compute_for_one_channel(patch_predictions[:, :, ch_idx,h:h+elem_size,w:w+elem_size], 
                                               gt[:, ch_idx,h:h+elem_size,w:w+elem_size], 
-                                              std_factor=std_factor, std_offset=std_offset)
+                                              var_factor=var_factor, var_offset=var_offset)
                 if len(masks) > 0:
-                    val[masks[ch_idx]] = np.nan
+                    var[masks[ch_idx]] = np.nan
+                    err[masks[ch_idx]] = np.nan
                 
-                computed_vals.append(val)
-            output.append(np.concatenate(computed_vals, axis=0))
+                all_var_one_ch.append(var)
+                all_err_one_ch.append(err)
+            all_var.append(np.concatenate(all_var_one_ch, axis=0))
+            all_err.append(np.concatenate(all_err_one_ch, axis=0))
         else:
-            val = compute_for_one_channel(patch_predictions[:, :, ch_idx], gt[:, ch_idx], std_factor=std_factor, std_offset=std_offset)
+            var, err = compute_for_one_channel(patch_predictions[:, :, ch_idx], gt[:, ch_idx], var_factor=var_factor, var_offset=var_offset)
             if len(masks) > 0:
-                val[masks[ch_idx]] = np.nan
-            output.append(val)
+                var[masks[ch_idx]] = np.nan
+                err[masks[ch_idx]] = np.nan
+            all_var.append(var)
+            all_err.append(err)
 
-    return np.stack(output, axis=1)
+    return np.stack(all_var, axis=1), np.stack(all_err, axis=1)
 
-def compute_for_one_channel(patch_predictions, gt, std_factor = 1, std_offset = 0):
+# def compute_for_one_channel(patch_predictions, gt, var_factor = 1, var_offset = 0):
+#     """
+#     patch_predictions: Batch X N x H x W 
+#     gt: Batch X H x W
+#     """
+#     # print(patch_predictions.shape, gt.shape)
+#     mmse_sample = patch_predictions.mean(axis=1)
+#     var = ((mmse_sample[:,None] - patch_predictions) ** 2)
+#     # print(var.min(), var.max())
+#     std = np.sqrt(var)
+#     std = std * var_factor + var_offset
+#     var = std ** 2
+#     var  =var.mean(axis=(2,3))
+#     # print(var.min(), var.max())
+#     mse_mmse = ((mmse_sample - gt) ** 2).mean(axis=(1,2))
+    
+#     true_error_percentiles  = []
+#     for i in range(patch_predictions.shape[0]):
+#         var_sample = var[i]
+#         mse_mmse_sample = mse_mmse[i]
+#         percentile = scipy.stats.percentileofscore(var_sample,mse_mmse_sample)
+#         true_error_percentiles.append(percentile)
+#     return np.array(true_error_percentiles)
+
+def compute_for_one_channel(patch_predictions, gt, var_factor = 1, var_offset = 0):
     """
     patch_predictions: Batch X N x H x W 
     gt: Batch X H x W
@@ -70,25 +101,29 @@ def compute_for_one_channel(patch_predictions, gt, std_factor = 1, std_offset = 
     mmse_sample = patch_predictions.mean(axis=1)
     var = ((mmse_sample[:,None] - patch_predictions) ** 2)
     # print(var.min(), var.max())
-    std = np.sqrt(var)
-    std = std * std_factor + std_offset
-    var = std ** 2
+    # std = np.sqrt(var)
+    var = var * var_factor + var_offset
+    # var = std ** 2
     var  =var.mean(axis=(2,3))
     # print(var.min(), var.max())
     mse_mmse = ((mmse_sample - gt) ** 2).mean(axis=(1,2))
-    
-    true_error_percentiles  = []
-    for i in range(patch_predictions.shape[0]):
-        var_sample = var[i]
-        mse_mmse_sample = mse_mmse[i]
-        percentile = scipy.stats.percentileofscore(var_sample,mse_mmse_sample)
-        true_error_percentiles.append(percentile)
-    return np.array(true_error_percentiles)
+    # var: Nxmmse_count, mse_mmse: N
+    # breakpoint()
+    return (var, mse_mmse)
+
+    # true_error_percentiles  = []
+    # for i in range(patch_predictions.shape[0]):
+    #     var_sample = var[i]
+    #     mse_mmse_sample = mse_mmse[i]
+    #     percentile = scipy.stats.percentileofscore(var_sample,mse_mmse_sample)
+    #     true_error_percentiles.append(percentile)
+    # return np.array(true_error_percentiles)
 
 
 def get_calibration_coverage_data(model, dset, num_workers=4, batch_size = 32, mmse_count = 10, elem_size=10, calib_stats_dict=None, background_patch_detection_func=None):
     dloader = DataLoader(dset, pin_memory=False, num_workers=num_workers, shuffle=False, batch_size=batch_size)
-    q_values_dataset = []
+    var = []
+    err = []
     with torch.no_grad():
         for batch in tqdm(dloader):
             inp, tar = batch[:2]
@@ -103,8 +138,9 @@ def get_calibration_coverage_data(model, dset, num_workers=4, batch_size = 32, m
                 pred_imgs = pred_imgs[:,:tar.shape[1]]
                 recon_img_list.append(pred_imgs.cpu().numpy()[:,None])
             samples = np.concatenate(recon_img_list, axis=1)
-            true_error_quantiles = compute_for_one(samples, tar_normalized.cpu().numpy(), elem_size=elem_size, calib_stats_dict=calib_stats_dict, background_patch_detection_func=background_patch_detection_func)
-            q_values_dataset.append(true_error_quantiles)
-
-    return np.concatenate(q_values_dataset, axis=0)
+            var_batch, err_batch = compute_for_one(samples, tar_normalized.cpu().numpy(), elem_size=elem_size, calib_stats_dict=calib_stats_dict, background_patch_detection_func=background_patch_detection_func)
+            var.append(var_batch)
+            err.append(err_batch)
+    
+    return np.concatenate(var, axis=0), np.concatenate(err, axis=0)
 

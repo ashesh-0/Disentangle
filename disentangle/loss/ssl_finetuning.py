@@ -59,8 +59,13 @@ def get_stats_loss_func(pred_tiled:np.ndarray, k:int):
 
 def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=10000, batch_size=16, skip_pixels=0,
                                 scalar_params_dict=None,
-                                optimization_params_dict=None, stats_enforcing_loss_fn=None, lookback=10, k_augmentations=1,sample_mixing_ratio=False):
+                                optimization_params_dict=None, stats_enforcing_loss_fn=None, lookback=10, k_augmentations=1,sample_mixing_ratio=False, tmp_dir='/group/jug/ashesh/tmp'):
     
+    import os
+    from datetime import datetime
+
+    tmp_path = f'{tmp_dir}/finetune_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+    os.makedirs(tmp_path, exist_ok=True)
     # enable dropout.
     # model.train()
     print(f'Finetuning with {k_augmentations} augmentations, batch size {batch_size}, max step count {max_step_count}, sample mixing ratio {sample_mixing_ratio}')
@@ -153,6 +158,8 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
                 print(f'Loss Inp Rolling(10): {rolling_loss:.2f}')
                 best_factors = [factor1.item(), factor2.item()]
                 best_offsets = [offset1.item(), offset2.item()]
+                # save the model
+                torch.save(model.state_dict(), f'{tmp_path}/best_model.pth')
             # print(f'Loss: {loss.item():.2f}')
             if cnt >= max_step_count:
                 break
@@ -164,6 +171,10 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
         best_factors = [factor1.item(), factor2.item()]
         best_offsets = [offset1.item(), offset2.item()]
     
+    # load the best model
+    print(f'Loading best model with loss {best_loss:.2f}')
+    model.load_state_dict(torch.load(f'{tmp_path}/best_model.pth'))
+
     return {'loss': loss_arr, 'best_loss': best_loss, 'best_factors': best_factors, 
             'best_offsets': best_offsets, 'factor1': factor1_arr, 'offset1': offset1_arr, 
             'factor2': factor2_arr, 'offset2': offset2_arr, 'mixing_ratio': mixing_ratio_arr,
