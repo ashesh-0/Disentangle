@@ -18,6 +18,26 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 
+def divide_into_smaller_patches(np_array, elem_size=10):
+    """
+    np_array: Batch X C x H x W
+    """
+    batch_size, C, H, W = np_array.shape
+    cropH = H % elem_size
+    cropW = W % elem_size
+    # crop center
+    if cropH != 0:
+        np_array = np_array[..., cropH//2:-cropH//2,:]
+    if cropW != 0:
+        np_array = np_array[..., cropW//2:-cropW//2]
+
+    nH = H // elem_size
+    nW = W // elem_size
+    np_array = np_array.reshape(batch_size, C, nH, elem_size, nW, elem_size)
+    np_array = np.transpose(np_array, axes=(0, 2, 4, 1, 3, 5))
+    np_array = np_array.reshape(-1, C, elem_size, elem_size)
+    return np_array
+
 def how_many_lie_in_k_quantiles(calibration_coverage_data, k):
     assert k >= 0 and k <= 100
     return np.mean(calibration_coverage_data <= k) * 100
