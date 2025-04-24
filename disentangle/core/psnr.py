@@ -55,6 +55,10 @@ def RangeInvariantPsnr(gt, pred):
     Adapted from https://github.com/juglab/ScaleInvPSNR/blob/master/psnr.py
     It rescales the prediction to ensure that the prediction has the same range as the ground truth.
     """
+    if len(gt.shape) ==2:
+        gt = gt[None]
+        pred = pred[None]
+    
     assert len(gt.shape) == 3, 'Images must be in shape: (batch,H,W)'
     gt = gt.view(len(gt), -1)
     pred = pred.view(len(gt), -1)
