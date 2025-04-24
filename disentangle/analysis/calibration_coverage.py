@@ -43,7 +43,11 @@ def how_many_lie_in_k_quantiles(calibration_coverage_data, k):
     return np.mean(calibration_coverage_data <= k) * 100
 
 
-def compute_for_one(patch_predictions, gt, elem_size = 10, calib_stats_dict=None, background_patch_detection_func=None):
+def compute_for_one_batch(patch_predictions, gt, elem_size = 10, calib_stats_dict=None, background_patch_detection_func=None, mmse_sample_for_error=None):
+    """
+    mmse_sample_for_error: Batch X C x H x W. Sometimes, MMSE sample we want to compute the error is not the mmse of the patch predictions.
+    This can be the case when using a two forward passes. The first one will yield a better mmse sample, but the second one will yield a better variance.
+    """
     masks = []
     if background_patch_detection_func is not None:
         for ch_idx in range(gt.shape[1]):
@@ -67,9 +71,11 @@ def compute_for_one(patch_predictions, gt, elem_size = 10, calib_stats_dict=None
             for _ in range(n_entries):
                 h = np.random.randint(0, patch_predictions.shape[-2] - elem_size)
                 w = np.random.randint(0, patch_predictions.shape[-1] - elem_size)
+                mmse_sample_err = mmse_sample_for_error[:, ch_idx,h:h+elem_size,w:w+elem_size] if mmse_sample_for_error is not None else None
                 var, err = compute_for_one_channel(patch_predictions[:, :, ch_idx,h:h+elem_size,w:w+elem_size], 
                                               gt[:, ch_idx,h:h+elem_size,w:w+elem_size], 
-                                              var_factor=var_factor, var_offset=var_offset)
+                                              var_factor=var_factor, var_offset=var_offset,
+                                              mmse_sample_for_error=mmse_sample_err)
                 if len(masks) > 0:
                     var[masks[ch_idx]] = np.nan
                     err[masks[ch_idx]] = np.nan
@@ -79,7 +85,9 @@ def compute_for_one(patch_predictions, gt, elem_size = 10, calib_stats_dict=None
             all_var.append(np.concatenate(all_var_one_ch, axis=0))
             all_err.append(np.concatenate(all_err_one_ch, axis=0))
         else:
-            var, err = compute_for_one_channel(patch_predictions[:, :, ch_idx], gt[:, ch_idx], var_factor=var_factor, var_offset=var_offset)
+            mmse_sample_err = mmse_sample_for_error[:, ch_idx] if mmse_sample_for_error is not None else None
+            var, err = compute_for_one_channel(patch_predictions[:, :, ch_idx], gt[:, ch_idx], var_factor=var_factor, var_offset=var_offset,
+                                               mmse_sample_for_error=mmse_sample_err)
             if len(masks) > 0:
                 var[masks[ch_idx]] = np.nan
                 err[masks[ch_idx]] = np.nan
@@ -112,7 +120,7 @@ def compute_for_one(patch_predictions, gt, elem_size = 10, calib_stats_dict=None
 #         true_error_percentiles.append(percentile)
 #     return np.array(true_error_percentiles)
 
-def compute_for_one_channel(patch_predictions, gt, var_factor = 1, var_offset = 0):
+def compute_for_one_channel(patch_predictions, gt, var_factor = 1, var_offset = 0, mmse_sample_for_error=None):
     """
     patch_predictions: Batch X N x H x W 
     gt: Batch X H x W
@@ -125,8 +133,10 @@ def compute_for_one_channel(patch_predictions, gt, var_factor = 1, var_offset = 
     var = var * var_factor + var_offset
     # var = std ** 2
     var  =var.mean(axis=(2,3))
+    if mmse_sample_for_error is None:
+        mmse_sample_for_error = mmse_sample
     # print(var.min(), var.max())
-    mse_mmse = ((mmse_sample - gt) ** 2).mean(axis=(1,2))
+    mse_mmse = ((mmse_sample_for_error - gt) ** 2).mean(axis=(1,2))
     # var: Nxmmse_count, mse_mmse: N
     # breakpoint()
     return (var, mse_mmse)
@@ -158,7 +168,7 @@ def get_calibration_coverage_data(model, dset, num_workers=4, batch_size = 32, m
                 pred_imgs = pred_imgs[:,:tar.shape[1]]
                 recon_img_list.append(pred_imgs.cpu().numpy()[:,None])
             samples = np.concatenate(recon_img_list, axis=1)
-            var_batch, err_batch = compute_for_one(samples, tar_normalized.cpu().numpy(), elem_size=elem_size, calib_stats_dict=calib_stats_dict, background_patch_detection_func=background_patch_detection_func)
+            var_batch, err_batch = compute_for_one_batch(samples, tar_normalized.cpu().numpy(), elem_size=elem_size, calib_stats_dict=calib_stats_dict, background_patch_detection_func=background_patch_detection_func)
             var.append(var_batch)
             err.append(err_batch)
     
