@@ -57,9 +57,12 @@ def get_stats_loss_func(pred_tiled:np.ndarray, k:int):
     # return stats_loss_func
 
 
-def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=10000, batch_size=16, skip_pixels=0,
+def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transform_obj, max_step_count=10000, batch_size=16, skip_pixels=0,
                                 scalar_params_dict=None,
-                                optimization_params_dict=None, stats_enforcing_loss_fn=None, lookback=10, k_augmentations=1,sample_mixing_ratio=False, tmp_dir='/group/jug/ashesh/tmp'):
+                                validation_step_freq=1000,
+                                optimization_params_dict=None, stats_enforcing_loss_fn=None, 
+                                # lookback=10, 
+                                k_augmentations=1,sample_mixing_ratio=False, tmp_dir='/group/jug/ashesh/tmp'):
     
     import os
     from datetime import datetime
@@ -105,7 +108,7 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
     loss_inp2_arr = []
     stats_loss_arr = []
 
-    best_loss = 1e6
+    best_val_loss = 1e6
 
     factor1_arr = []
     offset1_arr = []
@@ -117,10 +120,10 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
 
     cnt = 0
     while True:
-        dloader = DataLoader(val_dset, batch_size=batch_size, shuffle=True, num_workers=4)
-        for i, (inp, tar) in tqdm(enumerate(dloader)):
-            if i >= max_step_count:
-                break
+        dloader = DataLoader(finetune_dset, batch_size=batch_size, shuffle=True, num_workers=4)
+
+        bar = tqdm(enumerate(dloader), desc='Finetuning', total=len(dloader))
+        for i, (inp, tar) in bar:
             inp = inp.cuda()
             # reset the gradients
             opt.zero_grad()
@@ -152,15 +155,45 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
             cnt += len(inp)
             mixing_ratio_arr.append(mixing_ratio.item())
             opt.step()
-            rolling_loss = np.mean(loss_inp_arr[-lookback:])
-            if rolling_loss < best_loss and len(loss_inp_arr) > 10:
-                best_loss = rolling_loss.item()
-                print(f'Loss Inp Rolling(10): {rolling_loss:.2f}')
-                best_factors = [factor1.item(), factor2.item()]
-                best_offsets = [offset1.item(), offset2.item()]
-                # save the model
-                torch.save(model.state_dict(), f'{tmp_path}/best_model.pth')
-            # print(f'Loss: {loss.item():.2f}')
+            # rolling_loss = np.mean(loss_inp_arr[-lookback:])
+            # if rolling_loss < best_loss and len(loss_inp_arr) > 10:
+            #     best_loss = rolling_loss.item()
+            #     print(f'Loss Inp Rolling(10): {rolling_loss:.2f}')
+            #     best_factors = [factor1.item(), factor2.item()]
+            #     best_offsets = [offset1.item(), offset2.item()]
+            #     # save the model
+            #     torch.save(model.state_dict(), f'{tmp_path}/best_model.pth')
+            bar.set_description(f'[{cnt}] Loss:{np.mean(loss_arr[-10:]):.2f}')
+            
+            if validation_step_freq is not None and cnt //validation_step_freq > (cnt - len(inp))//validation_step_freq:
+                # validate the model
+                print('Validating the model', end=' ')
+                val_loss = 0
+                val_steps = 0
+                val_steps_max = 1000
+                val_dloader = DataLoader(finetune_val_dset, batch_size=batch_size, shuffle=True, num_workers=4)
+                for j, (inp, tar) in tqdm(enumerate(val_dloader)):
+                    inp = inp.cuda()
+                    with torch.no_grad():
+                        loss_dict = SSL_loss(pred_func, inp, transform_obj, mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
+                                            offset2=offset2, skip_pixels=skip_pixels,
+                                            stats_enforcing_loss_fn=stats_enforcing_loss_fn)
+                        val_loss += loss_dict['loss_inp'].item() #+ loss_dict['loss_pred'].item()
+                    val_steps += len(inp)
+                    if val_steps >= val_steps_max:
+                        break
+                val_loss /= j
+                
+                print(f'Validation Loss: {val_loss:.4f}')
+
+                if val_loss < best_val_loss:
+                    print('Saving best model')
+                    best_factors = [factor1.item(), factor2.item()]
+                    best_offsets = [offset1.item(), offset2.item()]
+                    best_val_loss = val_loss
+                    # save the model
+                    torch.save(model.state_dict(), f'{tmp_path}/best_model.pth')
+
             if cnt >= max_step_count:
                 break
         if cnt >= max_step_count:
@@ -172,10 +205,10 @@ def finetune_two_forward_passes(model, val_dset, transform_obj, max_step_count=1
         best_offsets = [offset1.item(), offset2.item()]
     
     # load the best model
-    print(f'Loading best model with loss {best_loss:.2f}')
+    print(f'Loading best model with loss {best_val_loss:.2f}')
     model.load_state_dict(torch.load(f'{tmp_path}/best_model.pth'))
 
-    return {'loss': loss_arr, 'best_loss': best_loss, 'best_factors': best_factors, 
+    return {'loss': loss_arr, 'best_loss': best_val_loss, 'best_factors': best_factors, 
             'best_offsets': best_offsets, 'factor1': factor1_arr, 'offset1': offset1_arr, 
             'factor2': factor2_arr, 'offset2': offset2_arr, 'mixing_ratio': mixing_ratio_arr,
             'loss_inp': loss_inp_arr, 'loss_pred': loss_pred_arr,

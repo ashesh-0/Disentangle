@@ -15,21 +15,21 @@ def plot_one_sample(tar_unnorm, pred_unnorm, inp_unnorm, config, best_t_estimate
     if img_idx is None:
         img_idx = np.random.randint(len(tar_unnorm))
     if hs is None:
-        hs = np.random.randint(tar_unnorm[0].shape[1]-sz)
+        hs = np.random.randint(tar_unnorm[0].shape[-3]-sz)
     if ws is None:
-        ws = np.random.randint(tar_unnorm[0].shape[2]-sz)
+        ws = np.random.randint(tar_unnorm[0].shape[-2]-sz)
     print(img_idx, hs, ws)
 
     for i in range(ncols-1):
-        vmin = tar_unnorm[img_idx][0,hs:hs+sz, ws:ws+sz ,i].min()
-        vmax = tar_unnorm[img_idx][0,hs:hs+sz, ws:ws+sz ,i].max()
-        ax[0,i+1].imshow(tar_unnorm[img_idx][0,hs:hs+sz, ws:ws+sz ,i], vmin=vmin, vmax=vmax)
-        ax[1,i+1].imshow(pred_unnorm[img_idx][0,hs:hs+sz, ws:ws+sz,i], vmin=vmin, vmax=vmax)
+        vmin = tar_unnorm[img_idx][hs:hs+sz, ws:ws+sz ,i].min()
+        vmax = tar_unnorm[img_idx][hs:hs+sz, ws:ws+sz ,i].max()
+        ax[0,i+1].imshow(tar_unnorm[img_idx][...,hs:hs+sz, ws:ws+sz ,i].squeeze(), vmin=vmin, vmax=vmax)
+        ax[1,i+1].imshow(pred_unnorm[img_idx][...,hs:hs+sz, ws:ws+sz,i].squeeze(), vmin=vmin, vmax=vmax)
 
     if 'input_idx' in config.data and config.data.input_idx is not None:
-        inp = inp_unnorm[img_idx][0]
+        inp = inp_unnorm[img_idx].squeeze()
     else:
-        inp = np.mean(tar_unnorm[img_idx][0], axis=-1)
+        inp = np.mean(tar_unnorm[img_idx].squeeze(), axis=-1)
 
     ax[0,0].imshow(inp)
     rect = patches.Rectangle((ws, hs), sz,sz, linewidth=2, edgecolor='r', facecolor='none')
@@ -37,7 +37,8 @@ def plot_one_sample(tar_unnorm, pred_unnorm, inp_unnorm, config, best_t_estimate
 
     ax[1,0].imshow(inp[hs:hs+sz, ws:ws+sz])
     # reconstructed input
-    inp_recons = pred_unnorm[img_idx][0,...,0] *best_t_estimate + pred_unnorm[img_idx][0,...,1] * (1-best_t_estimate)
+    inp_recons = pred_unnorm[img_idx][...,0] *best_t_estimate + pred_unnorm[img_idx][...,1] * (1-best_t_estimate)
+    inp_recons = inp_recons.squeeze()
     ax[1,-1].imshow(inp_recons[hs:hs+sz, ws:ws+sz])
     psnr_inp = f'{RangeInvariantPsnr(inp[None]*1.0, inp_recons[None]).item():.1f}'
     ax[1, -1].set_title(f'Recons Input (PSNR {psnr_inp})')

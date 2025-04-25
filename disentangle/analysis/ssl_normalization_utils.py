@@ -19,5 +19,8 @@ def normalize_input(input_unnormalized, dset):
     if isinstance(input_unnormalized, list):
         return [normalize_input(x, dset) for x in input_unnormalized]
     
-    mean_val, std_val = dset.dsets[0].get_mean_std_for_input()
+    if hasattr(dset, 'dsets'):
+        mean_val, std_val = dset.dsets[0].get_mean_std_for_input()
+    else:
+        mean_val, std_val = dset.get_mean_std_for_input()
     return (input_unnormalized - mean_val) / std_val
