@@ -15,7 +15,7 @@ def get_config():
     data.data_type = DataType.SimilarityExperiment
     data.relevant_channel_position = 0
     data.ch1_factor = 0.5
-    data.ch2_factor = 0.5*1.125
+    data.ch2_factor = 0.5*1.0625
     data.raw_data_type = DataType.NicolaData
     data.dset_type = '500ms'  # high, mid, low, verylow
     data.channel_idx_list = [NikolaChannelList.Ch_B]
