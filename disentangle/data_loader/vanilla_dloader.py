@@ -153,7 +153,7 @@ class MultiChDloader:
 
         self._rotation_transform = None
         if self._enable_rotation:
-            self._rotation_transform = A.Compose([A.Flip(), A.RandomRotate90()])
+            self._rotation_transform = A.Compose([A.HorizontalFlip(),A.VerticalFlip(), A.RandomRotate90()])
 
         if print_vars:
             msg = self._init_msg()
