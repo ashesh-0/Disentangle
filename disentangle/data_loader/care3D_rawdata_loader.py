@@ -65,6 +65,28 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
         # transpose to Z * H * W * NC
         data = data.transpose(1,2,3,0)
         return [(data,fnames[0])]
+    elif data_config.subdset_type =='zebrafish_similarity':
+        ch1_factor = data_config.ch1_factor
+        ch2_factor = data_config.ch2_factor
+        if datasplit_type in [DataSplitType.Train, DataSplitType.Val]:
+            fpath = os.path.join(datadir, f'F1-{ch1_factor}_F2-{ch2_factor}-farred_RFP_GFP_2109171.tif')
+            assert os.path.exists(fpath), f"File not found: {fpath}"
+            data = load_tiff(fpath)
+            # split into train and val
+            if datasplit_type == DataSplitType.Val:
+                data = data[:int(data.shape[0]*val_fraction)]
+            else:
+                data = data[int(data.shape[0]*val_fraction):]
+        elif datasplit_type == DataSplitType.Test:
+            fpath = os.path.join(datadir, f'F1-{ch1_factor}_F2-{ch2_factor}-farred_RFP_GFP_2109175.tif')
+            assert os.path.exists(fpath), f"File not found: {fpath}"
+            data = load_tiff(fpath)
+        else:
+            raise Exception("invalid datasplit")
+        
+        return [(data, fpath)]
+
+        
     
 if __name__ == '__main__':
     import ml_collections as ml
