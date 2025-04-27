@@ -15,6 +15,8 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.Care3D
     data.subdset_type = 'zebrafish_similarity'
+    data.uncorrelated_channels = True
+    data.uncorrelated_channel_probab = 1.0
     data.ch1_factor = 0.5
     data.ch2_factor = 0.5
     data.num_channels = 2
