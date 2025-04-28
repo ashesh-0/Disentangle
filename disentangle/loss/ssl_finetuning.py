@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from disentangle.core.psnr import RangeInvariantPsnr
 from finetunesplit.loss import SSL_loss
 
 
@@ -214,3 +215,23 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
             'loss_inp': loss_inp_arr, 'loss_pred': loss_pred_arr,
             'loss_inp2': loss_inp2_arr,
             'stats_loss': stats_loss_arr}
+
+def get_best_mixing_t(pred, inp_unnorm, enable_tqdm=False):
+    mean_psnr_arr = []
+    std_psnr_arr = []
+    t_values = np.arange(0.0,1.0, 0.05) 
+    if enable_tqdm:
+        t_values_iter = tqdm(t_values)
+    else:
+        t_values_iter = t_values
+    for t in t_values_iter:
+        inp_tiled = [(t *pred[i][...,0] + (1-t)*pred[i][...,1]) for i in range(len(pred))]
+        psnr_values = [RangeInvariantPsnr(inp_unnorm[i]*1.0, inp_tiled[i]).item() for i in range(len(inp_unnorm))]
+        mean_psnr_arr.append(np.mean(psnr_values))
+        std_psnr_arr.append(np.std(psnr_values))
+
+    best_idx = np.argmax(mean_psnr_arr)
+    best_t_estimate = t_values[best_idx]
+    if enable_tqdm:
+        print(f'Best t value: {best_t_estimate}', mean_psnr_arr[best_idx])
+    return best_t_estimate, mean_psnr_arr[best_idx]

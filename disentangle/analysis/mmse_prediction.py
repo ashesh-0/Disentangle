@@ -70,15 +70,16 @@ def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, pred
     return mmse_img, tar_normalized.cpu()
 
 
-def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1, num_workers=4):
+def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1, num_workers=4, use_tqdm=True):
     dloader = DataLoader(dset, pin_memory=False, num_workers=num_workers, shuffle=False, batch_size=batch_size)
     predictions = []
     predictions_std = []
     losses = []
     logvar_arr = []
     patch_psnr_channels = [RunningPSNR() for _ in range(dset[0][1].shape[0])]
+    dloader_iter = dloader if not use_tqdm else tqdm(dloader, desc='Getting predictions')
     with torch.no_grad():
-        for batch in tqdm(dloader):
+        for batch in dloader_iter:
             inp, tar = batch[:2]
             inp = inp.cuda()
             tar = tar.cuda()
