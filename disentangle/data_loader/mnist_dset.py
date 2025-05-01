@@ -9,7 +9,7 @@ from finetunesplit.asymmetric_transforms import (DeepinvTransform, HFlip, Identi
 from mnist import MNIST
 
 
-def get_one_channel_transforms(transform_list):
+def get_one_channel_transforms(transform_list, device='cpu'):
     transforms = []
     for transform_dict in transform_list:
         if transform_dict['name'] == TransformEnum.Identity:
@@ -27,16 +27,17 @@ def get_one_channel_transforms(transform_list):
                                     shift_max=transform_dict['aug_shift_max'],
                                     x_stretch_factor_min = 1,
                                     y_stretch_factor_min = 1,
-                                    padding = transform_dict['padding'])
+                                    padding = transform_dict['padding'],
+                                    device=device)
 
             transforms.append(DeepinvTransform(trans_homo))
         else:
             raise ValueError(f"Unknown transform")
     return transforms
 
-def get_transform_obj(ch1_transforms_params, ch2_transforms_params):
-    ch1_transforms = get_one_channel_transforms(ch1_transforms_params)
-    ch2_transforms =get_one_channel_transforms(ch2_transforms_params)
+def get_transform_obj(ch1_transforms_params, ch2_transforms_params, device='cpu'):
+    ch1_transforms = get_one_channel_transforms(ch1_transforms_params, device=device)
+    ch2_transforms =get_one_channel_transforms(ch2_transforms_params, device=device)
     obj = TransformAllChannels({0: ch1_transforms, 1:ch2_transforms})
     return obj
 
@@ -79,17 +80,17 @@ class MnistDset:
         # Channel 1
         self._ch0_labels_list = data_config.ch0_labels_list
         images, labels = load_mnist_data(data_dir, datasplit_type, val_fraction=val_fraction, labels_list=self._ch0_labels_list)
-        self._ch0_images = images
+        self._ch0_images = np.concatenate([np.array(x).reshape(1, 28,28) for x in images], axis=0)
         self._ch0_labels = labels
         # Channel 2
         self._ch1_labels_list = data_config.ch1_labels_list
         images, labels = load_mnist_data(data_dir, datasplit_type, val_fraction=val_fraction, labels_list=self._ch1_labels_list)
-        self._ch1_images = images
+        self._ch1_images = np.concatenate([np.array(x).reshape(1, 28,28) for x in images], axis=0)
         self._ch1_labels = labels
+        # self._data = np.stack([self._ch0_images, self._ch1_images], axis=-1)
         self._random_indices = random_indices
-
         # augmentations.
-        self._aug = get_transform_obj(data_config.ch1_transforms_params, data_config.ch2_transforms_params)
+        self.aug = get_transform_obj(data_config.ch1_transforms_params, data_config.ch2_transforms_params)
     
     def get_mean_std(self):
         """
@@ -111,13 +112,10 @@ class MnistDset:
             ch0_image = self._ch0_images[idx]
             ch1_image = self._ch1_images[idx]
         
-        ch0_image = np.array(ch0_image).reshape(28, 28)
-        ch1_image = np.array(ch1_image).reshape(28, 28)
-
         ch0_image = torch.Tensor(ch0_image/255.0)
         ch1_image = torch.Tensor(ch1_image/255.0)
-        ch0_image,_ = self._aug(ch0_image[None,None], ch_idx =0)
-        ch1_image,_ = self._aug(ch1_image[None,None], ch_idx =1)
+        ch0_image,_ = self.aug(ch0_image[None,None], ch_idx =0)
+        ch1_image,_ = self.aug(ch1_image[None,None], ch_idx =1)
         
         ch0_image = ch0_image[0]
         ch1_image = ch1_image[0]

@@ -62,6 +62,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                                 scalar_params_dict=None,
                                 validation_step_freq=1000,
                                 optimization_params_dict=None, stats_enforcing_loss_fn=None, 
+                                num_workers=4,
                                 # lookback=10, 
                                 k_augmentations=1,sample_mixing_ratio=False, tmp_dir='/group/jug/ashesh/tmp'):
     
@@ -121,10 +122,10 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
 
     cnt = 0
     while True:
-        dloader = DataLoader(finetune_dset, batch_size=batch_size, shuffle=True, num_workers=4)
+        dloader = DataLoader(finetune_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
-        bar = tqdm(enumerate(dloader), desc='Finetuning', total=len(dloader))
-        for i, (inp, tar) in bar:
+        bar = tqdm(total =len(dloader), desc='Finetuning')
+        for i, (inp, tar) in enumerate(dloader):
             inp = inp.cuda()
             # reset the gradients
             opt.zero_grad()
@@ -140,6 +141,8 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                     agg_loss_dict[key] += loss_dict[key]/ k_augmentations
                 
             # return {'loss_pred':loss_pred, 'loss_inp2':loss_inp2, 'loss_inp':loss_inp}
+            print(agg_loss_dict['loss_inp'].item(), agg_loss_dict['loss_pred'].item(), 
+                  agg_loss_dict['stats_loss'].item())
             loss = agg_loss_dict['loss_inp'] + agg_loss_dict['loss_pred'] + agg_loss_dict['loss_inp2'] + agg_loss_dict['stats_loss']
             
             loss.backward()
@@ -165,6 +168,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
             #     # save the model
             #     torch.save(model.state_dict(), f'{tmp_path}/best_model.pth')
             bar.set_description(f'[{cnt}] Loss:{np.mean(loss_arr[-10:]):.2f}')
+            bar.update(1)
             
             if validation_step_freq is not None and cnt //validation_step_freq > (cnt - len(inp))//validation_step_freq:
                 # validate the model
@@ -172,7 +176,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                 val_loss = 0
                 val_steps = 0
                 val_steps_max = 1000
-                val_dloader = DataLoader(finetune_val_dset, batch_size=batch_size, shuffle=True, num_workers=4)
+                val_dloader = DataLoader(finetune_val_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
                 for j, (inp, tar) in tqdm(enumerate(val_dloader)):
                     inp = inp.cuda()
                     with torch.no_grad():
@@ -200,6 +204,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
         if cnt >= max_step_count:
             break
     
+        bar.close()
     model.eval()
     if best_factors is None:
         best_factors = [factor1.item(), factor2.item()]

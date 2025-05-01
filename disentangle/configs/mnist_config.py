@@ -19,8 +19,8 @@ def get_config():
     
     data.ch0_labels_list = [0, 1]
     data.ch1_labels_list = [3,4]
-    data.ch1_transforms_params = [{'name':TransformEnum.DeepInV, 'aug_theta_max':10,'aug_theta_z_max':0,'aug_shift_max':0.0, 'padding': 'zeros'}]
-    data.ch2_transforms_params = [{'name':TransformEnum.Identity}] #, {'name': TransformEnum.HFlip}, {'name': TransformEnum.VFlip}
+    data.ch1_transforms_params = [{'name':TransformEnum.DeepInV, 'aug_theta_max':10,'aug_theta_z_max':90,'aug_shift_max':0.0, 'padding': 'zeros'}]
+    data.ch2_transforms_params = [{'name': TransformEnum.HFlip}, {'name': TransformEnum.VFlip}, {'name': TransformEnum.Rotate}]
 
 
     loss = config.loss
