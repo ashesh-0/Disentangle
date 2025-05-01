@@ -23,6 +23,7 @@ from disentangle.data_loader.ht_iba1_ki67_dloader import IBA1Ki67DataLoader
 from disentangle.data_loader.intensity_augm_tiff_dloader import IntensityAugCLTiffDloader
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.lc_multich_explicit_input_dloader import LCMultiChExplicitInputDloader
+from disentangle.data_loader.mnist_dset import MnistDset
 from disentangle.data_loader.multi_channel_determ_tiff_dloader_randomized import MultiChDeterministicTiffRandDloader
 from disentangle.data_loader.multicrops_dset import MultiCropDset
 from disentangle.data_loader.multifile_dset import MultiFileDset
@@ -46,7 +47,10 @@ def create_dataset(config,
     if kwargs_dict is None:
         kwargs_dict = {}
 
-    if config.data.data_type == DataType.NotMNIST:
+    if config.data.data_type == DataType.MNIST:
+        train_data = MnistDset(config.data, datadir, datasplit_type=DataSplitType.Train, val_fraction=config.training.val_fraction, random_indices=True)
+        val_data = MnistDset(config.data, datadir, datasplit_type=eval_datasplit_type, val_fraction=config.training.val_fraction, random_indices=False)
+    elif config.data.data_type == DataType.NotMNIST:
         train_img_files_pkl = os.path.join(datadir, 'train_fnames.pkl')
         val_img_files_pkl = os.path.join(datadir, 'val_fnames.pkl')
 

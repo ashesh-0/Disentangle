@@ -209,8 +209,11 @@ def main(argv):
         raw_data_dict = None
 
         # Now, config cannot be changed.
-        config = ml_collections.FrozenConfigDict(config)
-        log_config(config, cur_workdir)
+        try:
+            config = ml_collections.FrozenConfigDict(config)
+        except:
+            print('Cannot freeze the config. This is not a problem. Just a warning.')
+        
 
         train_data, val_data = create_dataset(config, FLAGS.datadir, raw_data_dict=raw_data_dict)
 
