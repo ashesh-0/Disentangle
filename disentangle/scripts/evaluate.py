@@ -56,7 +56,13 @@ def _avg_psnr(target, prediction, psnr_fn):
     Returns the mean PSNR and the standard error of the mean.
     """
     # multiplication with 1.0 is to ensure that the data is float.
-    psnr_arr = [psnr_fn(target[i][None]*1.0, prediction[i][None]*1.0).item() for i in range(len(prediction))]
+    if target[0].ndim == 3:
+        psnr_arr = [psnr_fn(target[i]*1.0, prediction[i]*1.0).item() for i in range(len(prediction))]
+    elif target[0].ndim == 2:
+        psnr_arr = [psnr_fn(target[i][None]*1.0, prediction[i][None]*1.0).item() for i in range(len(prediction))]
+    else:
+        raise ValueError(f"Invalid shape for target: {target[0].shape}. Expected 2D or 3D data.")
+    
     mean_psnr = np.mean(psnr_arr)
     std_err_psnr = compute_SE(psnr_arr)
     return round(mean_psnr, 2), round(std_err_psnr, 3)

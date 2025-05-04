@@ -1,79 +1,45 @@
+import os
+from datetime import datetime
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from disentangle.core.psnr import RangeInvariantPsnr
+from disentangle.loss.discriminator_loss import (update_gradients_with_discriminator_loss,
+                                                 update_gradients_with_generator_loss)
+from disentangle.loss.ssl_finetuning import get_stats_loss_func
+from disentangle.nets.discriminator import Discriminator
 from finetunesplit.loss import SSL_loss
 
 
-def k_moment(data, k):
-    # data: N x C x H x W
-    if k ==0:
-        return torch.Tensor([0.0], device=data.device)
-    
-    elif k == 1:
-        return torch.mean(data, dim=(0, 2,3))
-    
-    dif = data - torch.mean(data, dim=(2,3))[...,None, None]
-    moment = torch.mean(dif**k, dim=(2,3))
-    neg_mask = (moment < 0).type(torch.long)
-    moment = torch.pow(torch.abs(moment), 1/k)
-    moment = moment * (1-neg_mask) -moment * neg_mask
-    return moment.mean(dim=0)
+class RealData:
+    def __init__(self, data):
+        self.data = data
 
-def k_moment_loss(actual_moment, estimated_moment):
-    err =  actual_moment - estimated_moment
-    err = torch.clip(err, min=0)
-    return torch.mean(err)
+    def get(self, count):
+        idx = torch.randint(0, len(self.data), (count,))
+        return torch.Tensor(self.data[idx])
 
-
-def get_stats_loss_func(pred_tiled:np.ndarray, k:int):
-    # pred_tiled: N x C x H x W
-    print(f'Creating stats loss function with k={k}')
-    moments = [k_moment(torch.Tensor(pred_tiled), i) for i in range(1, k+1)]
-    def stats_loss_func(two_channel_prediction):
-        loss = 0
-        for i in range(k):
-            est_moment = k_moment(two_channel_prediction, i+1)
-            # loss += k_moment_loss(moments[i].to(est_moment.device), est_moment)/k
-            loss += k_moment_loss(moments[i].to(est_moment.device), est_moment)
-        return loss
-    return stats_loss_func
-
-    # mean_channels = torch.Tensor(np.mean(pred_tiled, axis=(2,3)).mean(axis=0))
-    # std_channels = torch.Tensor(np.std(pred_tiled, axis=(2,3)).mean(axis=0))
-    # def stats_loss_func(two_channel_prediction):
-    #     mean_pred = torch.mean(two_channel_prediction, dim=(2,3)).mean(dim=0)
-    #     std_pred = torch.std(two_channel_prediction, dim=(2,3)).mean(dim=0)
-    #     device = std_pred.device
-    #     mean_err =  mean_channels.to(device) - mean_pred
-    #     mean_err = torch.clip(mean_err, min=0)
-    #     std_err = std_channels.to(device) - std_pred
-    #     std_err = torch.clip(std_err, min=0)
-    #     mean_loss = torch.mean(mean_err)
-    #     std_loss = torch.mean(std_err)
-    #     return  mean_loss + std_loss
-    # return stats_loss_func
-
-
-def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transform_obj, max_step_count=10000, batch_size=16, skip_pixels=0,
+def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, transform_obj, expected_k_channel_predictions, 
+                                max_step_count=10000, batch_size=16,                    skip_pixels=0,
                                 scalar_params_dict=None,
                                 validation_step_freq=1000,
+                                just_discriminator_steps=0,
                                 optimization_params_dict=None, stats_enforcing_loss_fn=None, 
+                                enable_gradient_penalty=True,
                                 num_workers=4,
                                 # lookback=10, 
                                 k_augmentations=1,sample_mixing_ratio=False, tmp_dir='/group/jug/ashesh/tmp'):
-    
-    import os
-    from datetime import datetime
+    """
+    expected_k_channel_predictions: For a discriminator based setup, we need to have a notion of how the real data should look like. So, this would either be the predictions on the training data, or would be real channel data. Note the it must be of the same shape as the predictions. Alos, it must be normalized. Because otherwise, one can simply differentiate by the scaling.
+    """
 
-    tmp_path = f'{tmp_dir}/finetune_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
+    tmp_path = f'{tmp_dir}/finetune_with_discriminator_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
     os.makedirs(tmp_path, exist_ok=True)
     # enable dropout.
     # model.train()
-    print(f'Finetuning with {k_augmentations} augmentations, batch size {batch_size}, max step count {max_step_count}, sample mixing ratio {sample_mixing_ratio}')
+    print(f'Finetuning with discriminator, {k_augmentations} augmentations, batch size {batch_size}, max step count {max_step_count}, sample mixing ratio {sample_mixing_ratio}')
     def pred_func(inp):
         return model(inp)[0][:,:2]
 
@@ -89,35 +55,36 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
     assert factor2 is not None
     assert offset2 is not None
     assert optimization_params_dict is not None, "Please provide optimization parameters"
-    # if factor1 is None:
-    #     factor1 = torch.nn.Parameter(torch.tensor(1.0).cuda())
 
-    # if offset1 is None:
-    #     offset1 = torch.nn.Parameter(torch.tensor(0.0).cuda())
-
-    # if factor2 is None:
-    #     factor2 = torch.nn.Parameter(torch.tensor(1.0).cuda())
-    # if offset2 is None:
-    #     offset2 = torch.nn.Parameter(torch.tensor(0.0).cuda())
-    
+    # define the discriminator
+    discriminator = Discriminator(channels=2, first_out_channel=128).cuda()
+    real_data_gen = RealData(expected_k_channel_predictions)
     # define an optimizer
     # opt = torch.optim.Adam(model.parameters(), lr=1e-3)
-    opt = torch.optim.Adam(optimization_params_dict['parameters'], lr=optimization_params_dict['lr'], weight_decay=0)
+    opt_gen = torch.optim.Adam(optimization_params_dict['parameters'], lr=optimization_params_dict['lr'], weight_decay=0)
+    opt_dis = torch.optim.Adam(discriminator.parameters(), lr=optimization_params_dict['lr'], weight_decay=0)
 
+    # SSL losses. 
     loss_arr = []
     loss_inp_arr = []
     loss_pred_arr = []
     loss_inp2_arr = []
     stats_loss_arr = []
 
-    best_val_loss = 1e6
+    # discriminator based losses
+    gen_fake_arr = []
+    discrim_real_arr = []
+    discrim_fake_arr = []
+    grad_penalty_arr = []
 
+    # factors and offsets
     factor1_arr = []
     offset1_arr = []
-
     factor2_arr = []
     offset2_arr = []
     mixing_ratio_arr= []
+    
+    best_val_loss = 1e6
     best_factors = best_offsets = None
 
     cnt = 0
@@ -128,7 +95,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
         for i, (inp, tar) in enumerate(dloader):
             inp = inp.cuda()
             # reset the gradients
-            opt.zero_grad()
+            opt_gen.zero_grad()
 
             keys = ['loss_inp', 'loss_pred', 'loss_inp2', 'stats_loss']
             agg_loss_dict = {key: 0 for key in keys}
@@ -136,38 +103,63 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                 # apply the augmentations
                 loss_dict = SSL_loss(pred_func, inp, transform_obj, mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
                                     offset2=offset2, skip_pixels=skip_pixels,
-                                    stats_enforcing_loss_fn=stats_enforcing_loss_fn, sample_mixing_ratio=sample_mixing_ratio)
+                                    stats_enforcing_loss_fn=stats_enforcing_loss_fn, sample_mixing_ratio=sample_mixing_ratio, return_predictions=True)
                 for key in keys:
                     agg_loss_dict[key] += loss_dict[key]/ k_augmentations
                 
-            # return {'loss_pred':loss_pred, 'loss_inp2':loss_inp2, 'loss_inp':loss_inp}
-            # print(agg_loss_dict['loss_inp'].item(), agg_loss_dict['loss_pred'].item(), 
-                #   agg_loss_dict['stats_loss'].item())
             loss = agg_loss_dict['loss_inp'] + agg_loss_dict['loss_pred'] + agg_loss_dict['loss_inp2'] + agg_loss_dict['stats_loss']
             
-            loss.backward()
+            loss.backward(retain_graph=True)
+
+            # discriminator based loss 
+            pred = loss_dict['first_prediction']
+            
+            for p in discriminator.parameters():
+                p.requires_grad = False
+            
+            gen_loss_dict = update_gradients_with_generator_loss(discriminator, pred[:,:2])
+            if cnt > just_discriminator_steps and cnt - len(inp)<= just_discriminator_steps:
+                print("Switching to updating the generator")
+            
+            if cnt > just_discriminator_steps:
+                opt_gen.step()
+
+            # Now, we update the discriminator
+            
+            
+            for p in discriminator.parameters():
+                p.requires_grad = True
+            
+            opt_dis.zero_grad()
+            real_data = real_data_gen.get(len(inp)).to(inp.device)
+            disc_loss_dict = update_gradients_with_discriminator_loss(discriminator, real_data, pred[:,:2].detach(), lambda_term=10.0, enable_gradient_penalty=enable_gradient_penalty)
+            opt_dis.step()
+            
+            
+            
+            
+            
+            
             loss_arr.append(loss.item())
             loss_inp_arr.append(agg_loss_dict['loss_inp'].item())
             loss_pred_arr.append(agg_loss_dict['loss_pred'].item())
             loss_inp2_arr.append(agg_loss_dict['loss_inp2'].item() if torch.is_tensor(agg_loss_dict['loss_inp2']) else agg_loss_dict['loss_inp2'])
             stats_loss_arr.append(agg_loss_dict['stats_loss'].item() if torch.is_tensor(agg_loss_dict['stats_loss']) else agg_loss_dict['stats_loss'])
-            
             factor1_arr.append(factor1.item())
             offset1_arr.append(offset1.item())
             factor2_arr.append(factor2.item())
             offset2_arr.append(offset2.item())
+            gen_fake_arr.append(gen_loss_dict['g_loss'])
+            discrim_real_arr.append(disc_loss_dict['d_pred_real'])
+            discrim_fake_arr.append(disc_loss_dict['d_pred_fake'])
+            grad_penalty_arr.append(disc_loss_dict['d_loss_gradient_penalty'])
+
+
             cnt += len(inp)
             mixing_ratio_arr.append(mixing_ratio.item())
-            opt.step()
-            # rolling_loss = np.mean(loss_inp_arr[-lookback:])
-            # if rolling_loss < best_loss and len(loss_inp_arr) > 10:
-            #     best_loss = rolling_loss.item()
-            #     print(f'Loss Inp Rolling(10): {rolling_loss:.2f}')
-            #     best_factors = [factor1.item(), factor2.item()]
-            #     best_offsets = [offset1.item(), offset2.item()]
-            #     # save the model
-            #     torch.save(model.state_dict(), f'{tmp_path}/best_model.pth')
-            bar.set_description(f'[{cnt}] Loss:{np.mean(loss_arr[-10:]):.2f}')
+            d_real = np.mean(discrim_real_arr[-100:])
+            d_fake = np.mean(discrim_fake_arr[-100:])
+            bar.set_description(f'[{cnt}] Loss:{np.mean(loss_arr[-10:]):.2f} D_Real:{d_real:.2f} D_Fake:{d_fake:.2f}')
             bar.update(1)
             
             if validation_step_freq is not None and cnt //validation_step_freq > (cnt - len(inp))//validation_step_freq:
@@ -198,6 +190,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                     best_val_loss = val_loss
                     # save the model
                     torch.save(model.state_dict(), f'{tmp_path}/best_model.pth')
+                    torch.save(discriminator.state_dict(), f'{tmp_path}/best_discriminator.pth')
 
             if cnt >= max_step_count:
                 break
@@ -213,30 +206,14 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
     # load the best model
     print(f'Loading best model with loss {best_val_loss:.2f}')
     model.load_state_dict(torch.load(f'{tmp_path}/best_model.pth'))
+    discriminator.load_state_dict(torch.load(f'{tmp_path}/best_discriminator.pth'))
 
     return {'loss': loss_arr, 'best_loss': best_val_loss, 'best_factors': best_factors, 
             'best_offsets': best_offsets, 'factor1': factor1_arr, 'offset1': offset1_arr, 
             'factor2': factor2_arr, 'offset2': offset2_arr, 'mixing_ratio': mixing_ratio_arr,
             'loss_inp': loss_inp_arr, 'loss_pred': loss_pred_arr,
             'loss_inp2': loss_inp2_arr,
-            'stats_loss': stats_loss_arr}
-
-def get_best_mixing_t(pred, inp_unnorm, enable_tqdm=False):
-    mean_psnr_arr = []
-    std_psnr_arr = []
-    t_values = np.arange(0.0,1.0, 0.05) 
-    if enable_tqdm:
-        t_values_iter = tqdm(t_values)
-    else:
-        t_values_iter = t_values
-    for t in t_values_iter:
-        inp_tiled = [(t *pred[i][...,0] + (1-t)*pred[i][...,1]) for i in range(len(pred))]
-        psnr_values = [RangeInvariantPsnr(inp_unnorm[i]*1.0, inp_tiled[i]).item() for i in range(len(inp_unnorm))]
-        mean_psnr_arr.append(np.mean(psnr_values))
-        std_psnr_arr.append(np.std(psnr_values))
-
-    best_idx = np.argmax(mean_psnr_arr)
-    best_t_estimate = t_values[best_idx]
-    if enable_tqdm:
-        print(f'Best t value: {best_t_estimate}', mean_psnr_arr[best_idx])
-    return best_t_estimate, mean_psnr_arr[best_idx]
+            'stats_loss': stats_loss_arr,
+            'gen_fake': gen_fake_arr, 'discrim_real': discrim_real_arr,
+            'discrim_fake': discrim_fake_arr, 'grad_penalty': grad_penalty_arr,
+            'discriminator':discriminator}

@@ -59,7 +59,7 @@ def RangeInvariantPsnr(gt, pred):
         gt = gt[None]
         pred = pred[None]
     
-    assert len(gt.shape) == 3, 'Images must be in shape: (batch,H,W)'
+    assert len(gt.shape) == 3, f'Images must be in shape: (batch,H,W), got {gt.shape}'
     gt = gt.view(len(gt), -1)
     pred = pred.view(len(gt), -1)
     ra = (torch.max(gt, dim=1).values - torch.min(gt, dim=1).values) / torch.std(gt, dim=1)

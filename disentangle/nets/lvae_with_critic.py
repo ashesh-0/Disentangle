@@ -5,7 +5,7 @@ import torch
 import torch.optim as optim
 from torch import nn
 
-from disentangle.nets.discriminator import define_D
+# from disentangle.nets.discriminator import define_D
 from disentangle.nets.lvae import LadderVAE
 
 
