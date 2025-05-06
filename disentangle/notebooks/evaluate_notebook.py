@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 from datetime import datetime
 
@@ -10,14 +11,12 @@ if __name__ == '__main__':
     parser.add_argument('--notebook', type=str, help='Notebook to run', default='/home/ashesh.ashesh/code/Disentangle/disentangle/notebooks/CalibrationCoverage.ipynb')
     parser.add_argument('--outputdir', type=str, help='Output notebook directory', default='/group/jug/ashesh/EnsDeLyon/notebook_results/')
     parser.add_argument('--ckpt_dir', type=str, help='Checkpoint to use. eg. /group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4')
-    parser.add_argument('--mmse_count', type=int, help='Number of mmse values to generate', default=10)
-    parser.add_argument('--elem_size', type=int, help='Number of timesteps to use', default=10)
     parser.add_argument('--tag_time_flag', type=bool, help='Tag time flag', default=False)
-    parser.add_argument('--skip_percentile', type=int, help='Skip percentile', default=0)
+    parser.add_argument('--override_kwargs', type=json.loads, )
     args = parser.parse_args()
-
-    # get a year-month-day hour-minute formatted string
-    param_str = f"Elem-{args.elem_size}_MMSE-{args.mmse_count}_Skip-{args.skip_percentile}"
+    param_dict = args.override_kwargs
+    keys = sorted(param_dict.keys())
+    param_str = '_'.join([f'{k}-{param_dict[k]}' for k in keys])
     ckpt_dir = args.ckpt_dir
     model_token = '-'.join(ckpt_dir.strip('/').split('/')[-3:])
     outputdir = os.path.join(args.outputdir, model_token)
@@ -43,12 +42,6 @@ if __name__ == '__main__':
     pm.execute_notebook(
         args.notebook,
         output_fpath,
-        parameters = {
-            'ckpt_dir': args.ckpt_dir,
-            'mmse_count': args.mmse_count,
-            'elem_size': args.elem_size,
-            'outputdir': outputdir,
-            'skip_percentile': args.skip_percentile
-            }
+        parameters = param_dict
     )
     
