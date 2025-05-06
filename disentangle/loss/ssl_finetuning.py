@@ -70,6 +70,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
     import os
     from datetime import datetime
     finetune_dset.train_mode()
+    finetune_val_dset.eval_mode()
 
     tmp_path = f'{tmp_dir}/finetune_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
     os.makedirs(tmp_path, exist_ok=True)
