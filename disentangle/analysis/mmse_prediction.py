@@ -70,12 +70,13 @@ def get_mmse_prediction(model, dset, inp_idx, mmse_count, padded_size: int, pred
     return mmse_img, tar_normalized.cpu()
 
 
-def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1, num_workers=4, use_tqdm=True):
+def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1, num_workers=4, use_tqdm=True, return_input=False):
     dloader = DataLoader(dset, pin_memory=False, num_workers=num_workers, shuffle=False, batch_size=batch_size)
     predictions = []
     predictions_std = []
     losses = []
     logvar_arr = []
+    input_arr = []
     patch_psnr_channels = [RunningPSNR() for _ in range(dset[0][1].shape[0])]
     dloader_iter = dloader if not use_tqdm else tqdm(dloader, desc='Getting predictions')
     with torch.no_grad():
@@ -194,6 +195,9 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
 
                     else:
                         x_normalized = model.normalize_input(inp)
+                        if return_input and mmse_idx == 0:
+                            input_arr.append(x_normalized.cpu())
+
                         tar_normalized = model.normalize_target(tar)
                         recon_normalized, _ = model(x_normalized)
                         rec_loss, imgs = model.get_reconstruction_loss(recon_normalized,
@@ -227,6 +231,7 @@ def get_dset_predictions(model, dset, batch_size, model_type=None, mmse_count=1,
             predictions_std.append(mmse_std.cpu().numpy())
 
     psnr = [x.get() for x in patch_psnr_channels]
+    input_arr = torch.cat(input_arr, dim=0).numpy() if return_input else None
     return np.concatenate(predictions,
                           axis=0), np.array(losses), np.concatenate(logvar_arr), psnr, np.concatenate(predictions_std,
-                                                                                                      axis=0)
+                                                                                                      axis=0), input_arr

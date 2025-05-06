@@ -64,4 +64,4 @@ def RangeInvariantPsnr(gt, pred):
     pred = pred.view(len(gt), -1)
     ra = (torch.max(gt, dim=1).values - torch.min(gt, dim=1).values) / torch.std(gt, dim=1)
     gt_ = zero_mean(gt) / torch.std(gt, dim=1, keepdim=True)
-    return _PSNR_internal(zero_mean(gt_), fix(gt_, pred), ra)
+    return _PSNR_internal(gt_, fix(gt_, pred), ra)
