@@ -30,3 +30,4 @@ pip install scikit-image
 pip install --upgrade numpy==1.25.2
 # install deepinv locally.
 pip install nis2pyr
+pip install cellpose

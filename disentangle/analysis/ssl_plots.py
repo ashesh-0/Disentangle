@@ -60,7 +60,7 @@ def plot_one_sample(tar_unnorm, pred_unnorm, inp_unnorm, config, best_t_estimate
 
 
 def plot_finetuning_loss(finetuning_output_dict, loss_rolling=50):
-    _,ax = plt.subplots(figsize=(18,6), ncols=6,nrows=2)
+    _,ax = plt.subplots(figsize=(18,9), ncols=6,nrows=3)
     pd.Series(finetuning_output_dict['loss']).rolling(loss_rolling).mean().plot(ax=ax[0,0], logy=True, label = 'total loss')
     pd.Series(finetuning_output_dict['factor1']).rolling(5).mean().plot(ax=ax[0,1], label='$\sigma_1$')
     pd.Series(finetuning_output_dict['offset1']).rolling(5).mean().plot(ax=ax[0,2], label='$\mu_1$')
@@ -71,6 +71,12 @@ def plot_finetuning_loss(finetuning_output_dict, loss_rolling=50):
     pd.Series(finetuning_output_dict['loss_pred']).rolling(loss_rolling).mean().plot(ax=ax[1,1], logy=True, label = '$loss_{pred}$')
     pd.Series(finetuning_output_dict['stats_loss']).plot(ax=ax[1,2], label = '$loss_{stats}$')
     # 
+    if finetuning_output_dict['psnr'][0] is not None:
+        psnr = np.array(finetuning_output_dict['psnr'])
+        for i in range(psnr.shape[1]):
+            pd.Series(psnr[:,i]).plot(ax=ax[2,i], label = f'PSNR {i}')
+            ax[2,i].legend()
+
     ax[0,0].legend()  
     ax[0,1].legend()
     ax[0,2].legend()
@@ -80,5 +86,6 @@ def plot_finetuning_loss(finetuning_output_dict, loss_rolling=50):
     ax[1,0].legend()
     ax[1,1].legend()
     ax[1,2].legend()
+
     plt.tight_layout()
 

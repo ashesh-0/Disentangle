@@ -3,6 +3,7 @@ from typing import Iterable
 
 import numpy as np
 
+from disentangle.data_loader.mnist_dset import MnistDset
 from disentangle.data_loader.multifile_dset import MultiFileDset
 from disentangle.data_loader.patch_index_manager import TilingMode
 
@@ -22,7 +23,9 @@ def stitch_predictions(predictions, dset):
                 stitch_predictions(predictions[cum_count:cum_count + cnt], dset))
             cum_count += cnt
         return output
-
+    elif isinstance(dset, MnistDset):
+        predictions = np.concatenate([predictions[:,0][...,None], predictions[:,1][...,None]], axis=-1)
+        return predictions
     else:
         mng = dset.idx_manager
         

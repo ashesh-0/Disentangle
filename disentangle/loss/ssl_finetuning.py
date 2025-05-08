@@ -4,6 +4,7 @@ import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from disentangle.analysis.stitch_prediction import stitch_predictions
 from disentangle.core.psnr import RangeInvariantPsnr
 from finetunesplit.loss import SSL_loss
 
@@ -64,10 +65,12 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                                 optimization_params_dict=None, stats_enforcing_loss_fn=None, 
                                 num_workers=4,
                                 # lookback=10, 
-                                k_augmentations=1,sample_mixing_ratio=False, tmp_dir='/group/jug/ashesh/tmp'):
+                                k_augmentations=1,sample_mixing_ratio=False, psnr_evaluation=False, tmp_dir='/group/jug/ashesh/tmp'):
     
     import os
     from datetime import datetime
+    finetune_dset.train_mode()
+    finetune_val_dset.eval_mode()
 
     tmp_path = f'{tmp_dir}/finetune_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
     os.makedirs(tmp_path, exist_ok=True)
@@ -99,6 +102,12 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
     #     factor2 = torch.nn.Parameter(torch.tensor(1.0).cuda())
     # if offset2 is None:
     #     offset2 = torch.nn.Parameter(torch.tensor(0.0).cuda())
+    val_dict = perform_validation(finetune_val_dset, batch_size=batch_size, num_workers=num_workers, 
+                                              mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
+                                              offset2=offset2, skip_pixels=skip_pixels,pred_func=pred_func, 
+                                              transform_obj=transform_obj, stats_enforcing_loss_fn=stats_enforcing_loss_fn, tmp_path=tmp_path,
+                                              psnr_evaluation=psnr_evaluation)
+    print(val_dict) 
     
     # define an optimizer
     # opt = torch.optim.Adam(model.parameters(), lr=1e-3)
@@ -118,6 +127,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
     factor2_arr = []
     offset2_arr = []
     mixing_ratio_arr= []
+    psnr_arr = []
     best_factors = best_offsets = None
 
     cnt = 0
@@ -140,9 +150,6 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                 for key in keys:
                     agg_loss_dict[key] += loss_dict[key]/ k_augmentations
                 
-            # return {'loss_pred':loss_pred, 'loss_inp2':loss_inp2, 'loss_inp':loss_inp}
-            # print(agg_loss_dict['loss_inp'].item(), agg_loss_dict['loss_pred'].item(), 
-                #   agg_loss_dict['stats_loss'].item())
             loss = agg_loss_dict['loss_inp'] + agg_loss_dict['loss_pred'] + agg_loss_dict['loss_inp2'] + agg_loss_dict['stats_loss']
             
             loss.backward()
@@ -159,38 +166,19 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
             cnt += len(inp)
             mixing_ratio_arr.append(mixing_ratio.item())
             opt.step()
-            # rolling_loss = np.mean(loss_inp_arr[-lookback:])
-            # if rolling_loss < best_loss and len(loss_inp_arr) > 10:
-            #     best_loss = rolling_loss.item()
-            #     print(f'Loss Inp Rolling(10): {rolling_loss:.2f}')
-            #     best_factors = [factor1.item(), factor2.item()]
-            #     best_offsets = [offset1.item(), offset2.item()]
-            #     # save the model
-            #     torch.save(model.state_dict(), f'{tmp_path}/best_model.pth')
+            
             bar.set_description(f'[{cnt}] Loss:{np.mean(loss_arr[-10:]):.2f}')
             bar.update(1)
             
             if validation_step_freq is not None and cnt //validation_step_freq > (cnt - len(inp))//validation_step_freq:
+                val_dict = perform_validation(finetune_val_dset, batch_size=batch_size, num_workers=num_workers, 
+                                              mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
+                                              offset2=offset2, skip_pixels=skip_pixels,pred_func=pred_func, 
+                                              transform_obj=transform_obj, stats_enforcing_loss_fn=stats_enforcing_loss_fn, tmp_path=tmp_path,
+                                              psnr_evaluation=psnr_evaluation)
+                val_loss = val_dict['loss']
+                psnr_arr.append(val_dict['psnr'])
                 # validate the model
-                print('Validating the model', end=' ')
-                val_loss = 0
-                val_steps = 0
-                val_steps_max = 1000
-                val_dloader = DataLoader(finetune_val_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-                for j, (inp, tar) in tqdm(enumerate(val_dloader)):
-                    inp = inp.cuda()
-                    with torch.no_grad():
-                        loss_dict = SSL_loss(pred_func, inp, transform_obj, mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
-                                            offset2=offset2, skip_pixels=skip_pixels,
-                                            stats_enforcing_loss_fn=stats_enforcing_loss_fn)
-                        val_loss += loss_dict['loss_inp'].item() #+ loss_dict['loss_pred'].item()
-                    val_steps += len(inp)
-                    if val_steps >= val_steps_max:
-                        break
-                val_loss /= j
-                
-                print(f'Validation Loss: {val_loss:.4f}')
-
                 if val_loss < best_val_loss:
                     print('Saving best model')
                     best_factors = [factor1.item(), factor2.item()]
@@ -219,7 +207,53 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
             'factor2': factor2_arr, 'offset2': offset2_arr, 'mixing_ratio': mixing_ratio_arr,
             'loss_inp': loss_inp_arr, 'loss_pred': loss_pred_arr,
             'loss_inp2': loss_inp2_arr,
-            'stats_loss': stats_loss_arr}
+            'stats_loss': stats_loss_arr,
+            'psnr': psnr_arr,}
+
+def perform_validation(finetune_val_dset, batch_size=None, num_workers=None, mixing_ratio=None, factor1=None, offset1=None, factor2=None, offset2=None, skip_pixels=None,pred_func=None, transform_obj=None, stats_enforcing_loss_fn=None, tmp_path=None, psnr_evaluation=False):
+    print('Validating the model', end=' ')  
+    finetune_val_dset.eval_mode()
+
+    val_loss = 0
+    val_steps = 0
+    val_steps_max = None if psnr_evaluation else 1000
+    val_dloader = DataLoader(finetune_val_dset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+    pred_arr = []
+    tar_arr = []
+    for j, (inp, tar) in tqdm(enumerate(val_dloader)):
+        inp = inp.cuda()
+        with torch.no_grad():
+            loss_dict = SSL_loss(pred_func, inp, transform_obj, mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
+                                offset2=offset2, skip_pixels=skip_pixels,
+                                stats_enforcing_loss_fn=stats_enforcing_loss_fn, return_predictions=psnr_evaluation)
+            val_loss += loss_dict['loss_inp'].item() #+ loss_dict['loss_pred'].item()
+            val_steps += len(inp)
+            if val_steps_max is not None and val_steps >= val_steps_max:
+                break
+
+            if psnr_evaluation:
+                pred_arr.append(loss_dict['first_prediction'].cpu().numpy())
+                tar_arr.append(tar.cpu().numpy())
+
+    val_loss /= j
+    psnr_arr = None
+    if psnr_evaluation:
+        pred_arr = np.concatenate(pred_arr, axis=0)
+        tar_arr = np.concatenate(tar_arr, axis=0)
+        pred_stitched = stitch_predictions(pred_arr, finetune_val_dset)
+        tar_stitched = stitch_predictions(tar_arr, finetune_val_dset)
+        nC = pred_stitched[0].shape[-1]
+        psnr_arr = []
+        for ch_idx in range(nC):
+            avg_psnr = np.mean([RangeInvariantPsnr(tar_stitched[i][...,ch_idx], pred_stitched[i][...,ch_idx]) for i in range(len(tar_stitched))])
+            psnr_arr.append(avg_psnr)
+        psnr_arr_str = [f'{x:.2f}' for x in psnr_arr]
+        print(f'Validation PSNR: {" ".join(psnr_arr_str)}' )
+    else:
+        print(f'Validation Loss: {val_loss:.4f}')
+    
+    finetune_val_dset.train_mode()
+    return {'loss': val_loss, 'psnr': psnr_arr}
 
 def get_best_mixing_t(pred, inp_unnorm, enable_tqdm=False):
     mean_psnr_arr = []

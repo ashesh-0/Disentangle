@@ -151,14 +151,20 @@ class MultiChDloader:
         # assert self._enable_random_cropping is True or self._uncorrelated_channels is False
         # Randomly rotate [-90,90]
 
-        self._rotation_transform = None
-        if self._enable_rotation:
-            self._rotation_transform = A.Compose([A.HorizontalFlip(), A.VerticalFlip(), A.RandomRotate90()])
+        self._rotation_transform = A.Compose([A.HorizontalFlip(), A.VerticalFlip(), A.RandomRotate90()])
 
         if print_vars:
             msg = self._init_msg()
             print(msg)
 
+    def train_mode(self):
+        self._enable_rotation = True
+        self._enable_random_cropping = True
+    
+    def eval_mode(self):
+        self._enable_rotation = False
+        self._enable_random_cropping = False
+    
     def disable_noise(self):
         assert self._poisson_noise_factor is None, "This is not supported. Poisson noise is added to the data itself and so the noise cannot be disabled."
         self._disable_noise = True

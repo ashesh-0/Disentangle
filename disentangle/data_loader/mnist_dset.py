@@ -6,6 +6,7 @@ from deepinv.transform.projective import Homography
 from disentangle.core.data_split_type import DataSplitType
 from finetunesplit.asymmetric_transforms import (DeepinvTransform, HFlip, Identity, Rotate, TransformAllChannels,
                                                  TransformEnum, VFlip)
+from finetunesplit.aug_patch_shuffle import GridShuffle
 from mnist import MNIST
 
 
@@ -31,6 +32,8 @@ def get_one_channel_transforms(transform_list, device='cpu'):
                                     device=device)
 
             transforms.append(DeepinvTransform(trans_homo))
+        elif transform_dict['name'] == TransformEnum.PatchShuffle:
+            transforms.append(GridShuffle(transform_dict['patch_size'], transform_dict['grid_size']))
         else:
             raise ValueError(f"Unknown transform")
     return transforms
@@ -91,6 +94,7 @@ class MnistDset:
         self._random_indices = random_indices
         # augmentations.
         self.aug = get_transform_obj(data_config.ch1_transforms_params, data_config.ch2_transforms_params)
+        self._aug_orig = self.aug
     
     def get_mean_std(self):
         """
@@ -101,6 +105,15 @@ class MnistDset:
     def __len__(self):
         return min(len(self._ch0_images), len(self._ch1_images))
 
+    def eval_mode(self):
+        self._random_indices = False
+        def identity_aug(x, *args, **kwargs):
+            return x, None
+        self.aug = identity_aug
+    
+    def train_mode(self):
+        self._random_indices = True
+        self.aug = self._aug_orig
 
     def __getitem__(self, idx):
         if self._random_indices is True:
