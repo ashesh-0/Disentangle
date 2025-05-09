@@ -244,6 +244,7 @@ def create_dataset(config,
             DataType.NicolaData,
             DataType.SilvioLabCSHLData,
             DataType.Elisa3DData,
+            DataType.indiSplit_BioSR, DataType.indiSplit_HTT24, DataType.indiSplit_HTLIF24, DataType.indiSplit_PaviaATN, DataType.indiSplit_HagenEtAl
     ]:
         if config.data.data_type == DataType.OptiMEM100_014:
             datapath = os.path.join(datadir, 'OptiMEM100x014.tif')

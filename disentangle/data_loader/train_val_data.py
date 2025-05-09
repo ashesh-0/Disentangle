@@ -14,6 +14,7 @@ from disentangle.data_loader.elisa3D_rawdata_loader import get_train_val_data as
 from disentangle.data_loader.embl_semisup_rawdata_loader import get_train_val_data as _loadembl2_semisup
 from disentangle.data_loader.exp_microscopy_rawdata_loader import get_train_val_data as _loadexp_microscopy
 from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import get_train_val_data as _load_ht_iba1_ki67
+from disentangle.data_loader.indisplit_rawdata_loader import get_train_val_data as _load_indisplit_baselines
 from disentangle.data_loader.multi_channel_train_val_data import train_val_data as _load_tiff_train_val
 from disentangle.data_loader.multicrops_dset_rawdata_loader import get_train_val_data as _loadmulticropdset
 from disentangle.data_loader.nikola_7D_rawdata_loader import get_train_val_data as _loadnikola7D
@@ -202,5 +203,7 @@ def get_train_val_data(data_config,
                                                   int(relevant_channel_data.shape[2] * factor2)), anti_aliasing=True)
 
         return (ch1_data.astype(np.float32), ch2_data.astype(np.float32))
+    elif data_config.data_type in [DataType.indiSplit_BioSR, DataType.indiSplit_HTT24, DataType.indiSplit_HTLIF24, DataType.indiSplit_PaviaATN, DataType.indiSplit_HagenEtAl]:
+        return _load_indisplit_baselines(fpath, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
     else:
         raise NotImplementedError(f'{DataType.name(data_config.data_type)} is not implemented')

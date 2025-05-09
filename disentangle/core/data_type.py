@@ -35,3 +35,8 @@ class DataType(Enum):
     Elisa3DData = 29
     Care3D = 30
     SimilarityExperiment = 31
+    indiSplit_BioSR = 32
+    indiSplit_HagenEtAl = 33
+    indiSplit_PaviaATN = 34
+    indiSplit_HTT24 = 35
+    indiSplit_HTLIF24 = 36
