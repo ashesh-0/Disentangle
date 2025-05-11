@@ -16,7 +16,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     param_dict = args.override_kwargs
     keys = sorted(param_dict.keys())
-    param_str = '_'.join([f'{k}-{param_dict[k]}' for k in keys])
+    param_str = '_'.join([f'{k}-{param_dict[k]}' for k in keys if k != 'data_dir'])
     ckpt_dir = args.ckpt_dir
     model_token = '-'.join(ckpt_dir.strip('/').split('/')[-3:])
     outputdir = os.path.join(args.outputdir, model_token)
@@ -28,6 +28,7 @@ if __name__ == '__main__':
     else:
         fname = f"{fname}_{param_str}.ipynb"
 
+    param_dict['ckpt_dir'] = args.ckpt_dir
     output_fpath = os.path.join(outputdir, fname)
     output_config_fpath = os.path.join(outputdir,'config', fname.replace('.ipynb','.txt'))
     os.makedirs(os.path.dirname(output_config_fpath), exist_ok=True)
