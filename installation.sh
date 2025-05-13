@@ -21,3 +21,4 @@ conda install -c anaconda ipykernel -y
 conda install -c conda-forge czifile -y
 pip install nd2
 pip install nis2pyr
+pip install lpips
