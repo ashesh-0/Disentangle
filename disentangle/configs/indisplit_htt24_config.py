@@ -9,7 +9,7 @@ from disentangle.data_loader.nikola_7D_rawdata_loader import NikolaChannelList
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 128
     data.data_type = DataType.indiSplit_HTT24   
     # data.dset_type = '20ms'  # high, mid, low, verylow
     # data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B, NikolaChannelList.Ch_AB]
