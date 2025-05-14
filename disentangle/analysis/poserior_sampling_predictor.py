@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -44,7 +45,8 @@ class PosteriorSamplingPredictor(nn.Module):
         self.model = model
         self.transform = transform
         
-        self.mixing_t = forward_operator_params['mixing_t']
+        self.mixing_t_min = forward_operator_params['mixing_t_min']
+        self.mixing_t_max = forward_operator_params['mixing_t_max']
         self.mu = forward_operator_params['mu']
         self.sigma = forward_operator_params['sigma']
 
@@ -68,7 +70,8 @@ class PosteriorSamplingPredictor(nn.Module):
                 # print('max difference pred<->pred_transformed', torch.abs(pred1_transformed - pred1[:,:2]).max())
                 inv_transform, invertible = get_inverse_transforms(applied_transforms)
                 assert invertible is True, "Transform is not invertible"
-                new_inp = pred1_transformed[:,:1]*self.mixing_t + pred1_transformed[:,1:2]* (1-self.mixing_t)
+                mixing_t = np.random.uniform(self.mixing_t_min, self.mixing_t_max)
+                new_inp = pred1_transformed[:,:1]*mixing_t + pred1_transformed[:,1:2]* (1-mixing_t)
                 new_inp = new_inp * self.sigma + self.mu
                 pred2,_ = self.model(new_inp)
                 # apply inverse transform on pred2
