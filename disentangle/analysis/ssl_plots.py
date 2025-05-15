@@ -71,11 +71,20 @@ def plot_finetuning_loss(finetuning_output_dict, loss_rolling=50):
     pd.Series(finetuning_output_dict['loss_pred']).rolling(loss_rolling).mean().plot(ax=ax[1,1], logy=True, label = '$loss_{pred}$')
     pd.Series(finetuning_output_dict['stats_loss']).plot(ax=ax[1,2], label = '$loss_{stats}$')
     # 
-    if finetuning_output_dict['psnr'][0] is not None:
+    if 'psnr' in finetuning_output_dict and finetuning_output_dict['psnr'][0] is not None:
         psnr = np.array(finetuning_output_dict['psnr'])
         for i in range(psnr.shape[1]):
             pd.Series(psnr[:,i]).plot(ax=ax[2,i], label = f'PSNR {i}')
             ax[2,i].legend()
+
+    if 'discrim_real' in finetuning_output_dict:
+        assert 'discrim_fake' in finetuning_output_dict
+        assert 'grad_penalty' in finetuning_output_dict
+        ax[1,3].plot(pd.Series(finetuning_output_dict['discrim_real']).rolling(loss_rolling).mean(), label='D_Real')
+        ax[1,3].plot(pd.Series(finetuning_output_dict['discrim_fake']).rolling(loss_rolling).mean(), label='D_Fake')
+        ax[1,4].plot(pd.Series(finetuning_output_dict['grad_penalty']).rolling(loss_rolling).mean(), label='Gradient Penalty')
+        ax[1,3].legend()
+        ax[1,4].legend()
 
     ax[0,0].legend()  
     ax[0,1].legend()
@@ -85,6 +94,7 @@ def plot_finetuning_loss(finetuning_output_dict, loss_rolling=50):
     ax[0,5].legend()
     ax[1,0].legend()
     ax[1,1].legend()
+
     ax[1,2].legend()
 
     plt.tight_layout()

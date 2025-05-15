@@ -1,8 +1,68 @@
 # Adapted from https://github.com/Zeleni9/pytorch-wgan/blob/master/models/wgan_gradient_penalty.py#L296
+from typing import Union
+
+import numpy as np
 import torch
 from torch import autograd
 from torch.autograd import Variable
 
+
+class RealData:
+    def __init__(self, data):
+        self.data = data
+
+    def get(self, count):
+        idx = torch.randint(0, len(self.data), (count,))
+        return torch.Tensor(self.data[idx])
+
+class DiscriminatorLoss:
+    def __init__(self, discriminator, gradient_penalty_lambda=0.1, loss_mode='wgan', realimg_key='gt', fakeimg_key='pred_FP1',
+                 loss_scalar=1.0):
+        self.D = discriminator
+        self.gp_lambda = gradient_penalty_lambda
+        self.loss_mode = loss_mode
+
+        self.realkey = realimg_key
+        self.fakekey = fakeimg_key
+        self.loss_scalar = loss_scalar
+        
+        # groundtruth, prediction at first forward pass, prediction at second forward pass
+        assert self.realkey in ['gt', 'pred_FP1', 'pred_FP2'], f"Invalid discriminator real image key: {self.realkey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
+        assert self.fakekey in ['gt', 'pred_FP1', 'pred_FP2'], f"Invalid discriminator fake image key: {self.fakekey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
+    
+    def update_gradients_with_generator_loss(self, fake_imgs):
+        return update_gradients_with_generator_loss(self.D, fake_imgs, mode=self.loss_mode)
+    
+    def update_gradients_with_discriminator_loss(self, real_imgs, fake_imgs):
+        return update_gradients_with_discriminator_loss(self.D, real_imgs, fake_imgs, lambda_term=self.gp_lambda, mode=self.loss_mode, enable_gradient_penalty=self.gp_lambda > 0)
+    
+    def G_loss(self, data_dict):
+        return self.update_gradients_with_generator_loss(data_dict[self.fakekey])
+    
+    def D_loss(self, data_dict):
+        real_img = data_dict[self.realkey]
+        fake_img = data_dict[self.fakekey]
+        return self.update_gradients_with_discriminator_loss(real_img.detach(), fake_img.detach())
+
+
+
+class DiscriminatorLossWithExistingData(DiscriminatorLoss):
+    def __init__(self, discriminator, external_data:Union[None, np.ndarray], use_external_data_probability=1.0,**kwargs):
+        super().__init__(discriminator, **kwargs)
+        if external_data is None:
+            assert use_external_data_probability == 0.0, "If external_data is None, use_external_data_probability must be 0.0"
+        
+        self.external_data = RealData(external_data)
+        self.p = use_external_data_probability
+
+    def update_gradients_with_discriminator_loss(self, real_imgs, fake_imgs):
+        if torch.rand(1).item() < self.p:
+            print('replacing real images with external data')
+            real_imgs = self.external_data.get(len(fake_imgs)).to(fake_imgs.device)
+
+        return update_gradients_with_discriminator_loss(self.D, real_imgs, fake_imgs, lambda_term=self.gp_lambda, mode=self.loss_mode, enable_gradient_penalty=self.gp_lambda > 0)
+
+    
 
 def calculate_gradient_penalty(real_images, fake_images, discriminator, lambda_term):
     batch_size = len(real_images)
@@ -28,31 +88,42 @@ def calculate_gradient_penalty(real_images, fake_images, discriminator, lambda_t
     grad_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * lambda_term
     return grad_penalty
 
-def increase_value(x, retain_graph=False):
-    x.backward(gradient=-1*(torch.ones_like(x)), retain_graph=retain_graph)
+def increase_value(x, mode, loss_scalar=1.0,retain_graph=False):
+    if mode == 'wgan':
+        x.backward(gradient=-1*loss_scalar*(torch.ones_like(x)), retain_graph=retain_graph)
+    elif mode == '-1_1':
+        loss = torch.nn.MSELoss()(x, torch.ones_like(x))*loss_scalar
+        loss.backward(retain_graph=retain_graph)
+    else:
+        raise ValueError(f"Unknown mode: {mode}. Supported modes are 'wgan' and '-1_1'.")
 
-def decrease_value(x, retain_graph=False):
-    x.backward(gradient=torch.ones_like(x), retain_graph=retain_graph)
+def decrease_value(x, mode, loss_scalar=1.0,retain_graph=False):
+    if mode == 'wgan':
+        x.backward(gradient=loss_scalar*torch.ones_like(x), retain_graph=retain_graph)
+    elif mode == '-1_1':
+        loss = torch.nn.MSELoss()(x, -torch.ones_like(x))*loss_scalar
+        loss.backward(retain_graph=retain_graph)
 
-def update_gradients_with_generator_loss(discriminator, fake_images):
+def update_gradients_with_generator_loss(discriminator, fake_images, mode='wgan', loss_scalar=1.0):
     d_pred_fake = discriminator(fake_images)
     d_pred_fake = d_pred_fake.mean()
-    increase_value(d_pred_fake)
+    increase_value(d_pred_fake, mode, loss_scalar=loss_scalar)
     return {'g_loss':d_pred_fake.item()}
 
-def update_gradients_with_discriminator_loss(discriminator, real_images, fake_images, lambda_term, enable_gradient_penalty=True):
+def update_gradients_with_discriminator_loss(discriminator, real_images, fake_images, lambda_term, 
+                                             loss_scalar=1.0,mode='wgan', enable_gradient_penalty=True):
     d_pred_real = discriminator(real_images)
     d_pred_real = d_pred_real.mean()
-    increase_value(d_pred_real, retain_graph=True)
+    increase_value(d_pred_real, mode, loss_scalar=loss_scalar, retain_graph=True)
 
     d_pred_fake = discriminator(fake_images)
     d_pred_fake = d_pred_fake.mean()
-    decrease_value(d_pred_fake, retain_graph=True)
+    decrease_value(d_pred_fake, mode, loss_scalar=loss_scalar, retain_graph=True)
 
     # Gradient penalty
     d_loss_gradient_penalty= torch.Tensor([0.0])
     if enable_gradient_penalty:
-        d_loss_gradient_penalty = calculate_gradient_penalty(real_images, fake_images, discriminator, lambda_term)
+        d_loss_gradient_penalty = calculate_gradient_penalty(real_images, fake_images, discriminator, lambda_term) * loss_scalar
         d_loss_gradient_penalty.backward()
 
     return {'d_pred_real': d_pred_real.item(), 'd_pred_fake': d_pred_fake.item(), 'd_loss_gradient_penalty': d_loss_gradient_penalty.item()}

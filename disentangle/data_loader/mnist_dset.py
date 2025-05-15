@@ -5,7 +5,7 @@ from sklearn.model_selection import train_test_split
 from deepinv.transform.projective import Homography
 from disentangle.core.data_split_type import DataSplitType
 from finetunesplit.asymmetric_transforms import (DeepinvTransform, HFlip, Identity, Rotate, TransformAllChannels,
-                                                 TransformEnum, VFlip)
+                                                 TransformEnum, Translate, VFlip)
 from finetunesplit.aug_patch_shuffle import GridShuffle
 from mnist import MNIST
 
@@ -21,6 +21,8 @@ def get_one_channel_transforms(transform_list, device='cpu'):
             transforms.append(HFlip())
         elif transform_dict['name'] == TransformEnum.VFlip:
             transforms.append(VFlip())
+        elif transform_dict['name'] == TransformEnum.Translate:
+            transforms.append(Translate(max_fraction=transform_dict['max_fraction']))
         elif transform_dict['name'] == TransformEnum.DeepInV:
             trans_homo = Homography(n_trans = 1, zoom_factor_min=1.0, theta_max=transform_dict['aug_theta_max'], 
                                     theta_z_max=transform_dict['aug_theta_z_max'], 
@@ -38,9 +40,9 @@ def get_one_channel_transforms(transform_list, device='cpu'):
             raise ValueError(f"Unknown transform")
     return transforms
 
-def get_transform_obj(ch1_transforms_params, ch2_transforms_params, device='cpu'):
-    ch1_transforms = get_one_channel_transforms(ch1_transforms_params, device=device)
-    ch2_transforms =get_one_channel_transforms(ch2_transforms_params, device=device)
+def get_transform_obj(ch0_transforms_params, ch1_transforms_params, device='cpu'):
+    ch1_transforms = get_one_channel_transforms(ch0_transforms_params, device=device)
+    ch2_transforms =get_one_channel_transforms(ch1_transforms_params, device=device)
     obj = TransformAllChannels({0: ch1_transforms, 1:ch2_transforms})
     return obj
 
@@ -93,7 +95,7 @@ class MnistDset:
         # self._data = np.stack([self._ch0_images, self._ch1_images], axis=-1)
         self._random_indices = random_indices
         # augmentations.
-        self.aug = get_transform_obj(data_config.ch1_transforms_params, data_config.ch2_transforms_params)
+        self.aug = get_transform_obj(data_config.ch0_transforms_params, data_config.ch1_transforms_params)
         self._aug_orig = self.aug
     
     def get_mean_std(self):
