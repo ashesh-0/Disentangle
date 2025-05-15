@@ -28,6 +28,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                                 D_fakeimg_key='pred_FP1',
                                 D_gp_lambda=0.1,
                                 D_loss_scalar=1.0,
+                                D_only_one_channel_idx =None,
                                 num_workers=4,
                                 k_augmentations=1,sample_mixing_ratio=False, tmp_dir='/group/jug/ashesh/tmp'):
     """
@@ -56,17 +57,22 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
     assert optimization_params_dict is not None, "Please provide optimization parameters"
 
     # define the discriminator
-    discriminator = Discriminator(channels=2, first_out_channel=128)
-    _ = discriminator.cuda()
-    AdvLoss = DiscriminatorLossWithExistingData(discriminator, external_real_data, use_external_data_probability=external_real_data_probability, 
+    # discriminator = Discriminator(channels=2, first_out_channel=128)
+    # _ = discriminator.cuda()
+    AdvLoss = DiscriminatorLossWithExistingData(external_real_data, 
+                                                num_channels=1 if D_only_one_channel_idx is not None else 2, 
+                                                use_external_data_probability=external_real_data_probability, 
                                                       gradient_penalty_lambda=D_gp_lambda, loss_mode=D_mode, 
                                                       realimg_key=D_realimg_key, fakeimg_key=D_fakeimg_key,
-                                                      loss_scalar=D_loss_scalar)
-    real_data_gen = RealData(external_real_data)
+                                                      loss_scalar=D_loss_scalar,
+                                                      only_one_channel_idx=D_only_one_channel_idx)
+    _ = AdvLoss.cuda()
+
+    # real_data_gen = RealData(external_real_data)
     # define an optimizer
     # opt = torch.optim.Adam(model.parameters(), lr=1e-3)
     opt_gen = torch.optim.Adam(optimization_params_dict['parameters'], lr=optimization_params_dict['lr'], weight_decay=0)
-    opt_dis = torch.optim.Adam(discriminator.parameters(), lr=optimization_params_dict['lr'], weight_decay=0)
+    opt_dis = torch.optim.Adam(AdvLoss.parameters(), lr=optimization_params_dict['lr'], weight_decay=0)
 
     # SSL losses. 
     loss_arr = []
@@ -125,7 +131,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             
             
             # discriminator based loss 
-            for p in discriminator.parameters():
+            for p in AdvLoss.parameters():
                 p.requires_grad = False
             
             if step_idx % k_Dsteps_perG == 0:
@@ -136,7 +142,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
 
 
             # Now, we update the discriminator
-            for p in discriminator.parameters():
+            for p in AdvLoss.parameters():
                 p.requires_grad = True
             
             
@@ -203,7 +209,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                     best_val_loss = val_loss
                     # save the model
                     torch.save(model.state_dict(), f'{tmp_path}/best_model.pth')
-                    torch.save(discriminator.state_dict(), f'{tmp_path}/best_discriminator.pth')
+                    torch.save(AdvLoss.state_dict(), f'{tmp_path}/best_discriminator.pth')
 
             if cnt >= max_step_count:
                 break
@@ -219,7 +225,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
     # load the best model
     print(f'Loading best model with loss {best_val_loss:.2f}')
     model.load_state_dict(torch.load(f'{tmp_path}/best_model.pth'))
-    discriminator.load_state_dict(torch.load(f'{tmp_path}/best_discriminator.pth'))
+    AdvLoss.load_state_dict(torch.load(f'{tmp_path}/best_discriminator.pth'))
 
     return {'loss': loss_arr, 'best_loss': best_val_loss, 'best_factors': best_factors, 
             'best_offsets': best_offsets, 'factor1': factor1_arr, 'offset1': offset1_arr, 
@@ -229,4 +235,4 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             'stats_loss': stats_loss_arr,
             'gen_fake': gen_fake_arr, 'discrim_real': discrim_real_arr,
             'discrim_fake': discrim_fake_arr, 'grad_penalty': grad_penalty_arr,
-            'discriminator':discriminator}
+            'discriminator':AdvLoss}

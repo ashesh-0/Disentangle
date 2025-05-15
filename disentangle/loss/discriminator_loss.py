@@ -3,8 +3,11 @@ from typing import Union
 
 import numpy as np
 import torch
+import torch.nn as nn
 from torch import autograd
 from torch.autograd import Variable
+
+from disentangle.nets.discriminator import Discriminator
 
 
 class RealData:
@@ -15,20 +18,24 @@ class RealData:
         idx = torch.randint(0, len(self.data), (count,))
         return torch.Tensor(self.data[idx])
 
-class DiscriminatorLoss:
-    def __init__(self, discriminator, gradient_penalty_lambda=0.1, loss_mode='wgan', realimg_key='gt', fakeimg_key='pred_FP1',
-                 loss_scalar=1.0):
-        self.D = discriminator
+class DiscriminatorLoss(nn.Module):
+    def __init__(self, num_channels=2, gradient_penalty_lambda=0.1, loss_mode='wgan', realimg_key='gt', fakeimg_key='pred_FP1',
+                 loss_scalar=1.0, only_one_channel_idx=None):
+        super().__init__()
+        assert num_channels ==1 or only_one_channel_idx is None, "If num_channels > 1, only_one_channel_idx must be None"
+        self.D = Discriminator(num_channels)
         self.gp_lambda = gradient_penalty_lambda
         self.loss_mode = loss_mode
 
         self.realkey = realimg_key
         self.fakekey = fakeimg_key
         self.loss_scalar = loss_scalar
+        self._ch_idx = only_one_channel_idx
         
         # groundtruth, prediction at first forward pass, prediction at second forward pass
         assert self.realkey in ['gt', 'pred_FP1', 'pred_FP2'], f"Invalid discriminator real image key: {self.realkey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
         assert self.fakekey in ['gt', 'pred_FP1', 'pred_FP2'], f"Invalid discriminator fake image key: {self.fakekey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
+        print(f'{self.__class__.__name__} RKey: {self.realkey}, FKey: {self.fakekey} Ch: {self._ch_idx} GP: {self.gp_lambda} LossMode: {self.loss_mode}')
     
     def update_gradients_with_generator_loss(self, fake_imgs):
         return update_gradients_with_generator_loss(self.D, fake_imgs, mode=self.loss_mode)
@@ -37,18 +44,26 @@ class DiscriminatorLoss:
         return update_gradients_with_discriminator_loss(self.D, real_imgs, fake_imgs, lambda_term=self.gp_lambda, mode=self.loss_mode, enable_gradient_penalty=self.gp_lambda > 0)
     
     def G_loss(self, data_dict):
-        return self.update_gradients_with_generator_loss(data_dict[self.fakekey])
+        fakedata = data_dict[self.fakekey]
+
+        if self._ch_idx is not None:
+            fakedata = fakedata[:,self._ch_idx:self._ch_idx+1]
+
+        return self.update_gradients_with_generator_loss(fakedata)
     
     def D_loss(self, data_dict):
         real_img = data_dict[self.realkey]
         fake_img = data_dict[self.fakekey]
+        if self._ch_idx is not None:
+            real_img = real_img[:,self._ch_idx:self._ch_idx+1]
+            fake_img = fake_img[:,self._ch_idx:self._ch_idx+1]
         return self.update_gradients_with_discriminator_loss(real_img.detach(), fake_img.detach())
 
 
 
 class DiscriminatorLossWithExistingData(DiscriminatorLoss):
-    def __init__(self, discriminator, external_data:Union[None, np.ndarray], use_external_data_probability=1.0,**kwargs):
-        super().__init__(discriminator, **kwargs)
+    def __init__(self, external_data:Union[None, np.ndarray], use_external_data_probability=1.0,**kwargs):
+        super().__init__(**kwargs)
         if external_data is None:
             assert use_external_data_probability == 0.0, "If external_data is None, use_external_data_probability must be 0.0"
         
@@ -57,8 +72,10 @@ class DiscriminatorLossWithExistingData(DiscriminatorLoss):
 
     def update_gradients_with_discriminator_loss(self, real_imgs, fake_imgs):
         if torch.rand(1).item() < self.p:
-            print('replacing real images with external data')
+            # print('replacing real images with external data')
             real_imgs = self.external_data.get(len(fake_imgs)).to(fake_imgs.device)
+            if self._ch_idx is not None:
+                real_imgs = real_imgs[:,self._ch_idx:self._ch_idx+1]
 
         return update_gradients_with_discriminator_loss(self.D, real_imgs, fake_imgs, lambda_term=self.gp_lambda, mode=self.loss_mode, enable_gradient_penalty=self.gp_lambda > 0)
 
