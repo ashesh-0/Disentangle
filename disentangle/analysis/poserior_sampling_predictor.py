@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 
 from finetunesplit.asymmetric_transforms import (DeepinvTransform, HFlip, Identity, Rotate, TransformAllChannels,
-                                                 TransformEnum, VFlip, get_inverse_transforms)
+                                                 TransformEnum, Translate, VFlip, get_inverse_transforms)
 
 
 def get_one_transform(transform_enum):
@@ -15,6 +15,8 @@ def get_one_transform(transform_enum):
         return HFlip()
     elif transform_enum == TransformEnum.Rotate:
         return Rotate()
+    elif transform_enum == TransformEnum.Translate:
+        return Translate(max_fraction=0.1)
     elif transform_enum == TransformEnum.DeepinvTransform:
         raise NotImplementedError("DeepinvTransform is not implemented")
     else:
