@@ -27,6 +27,7 @@ from disentangle.data_loader.sinosoid_dloader import train_val_data as _loadsino
 from disentangle.data_loader.sinosoid_threecurve_dloader import train_val_data as _loadsinosoid3curve
 from disentangle.data_loader.sox2golgi_rawdata_loader import get_train_val_data as _loadsox2golgi
 from disentangle.data_loader.sox2golgi_v2_rawdata_loader import get_train_val_data as _loadsox2golgi_v2
+from disentangle.data_loader.tiff_raw_dloader import get_train_val_data as _loadmultitiff
 from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data as _loadseparatetiff
 
 
@@ -170,6 +171,9 @@ def get_train_val_data(data_config,
                           datasplit_type,
                           val_fraction=val_fraction,
                           test_fraction=test_fraction)
+    elif data_config.data_type == DataType.MultiTiffSameSizeDset:
+        return _loadmultitiff(fpath,data_config,datasplit_type)
+    
     elif data_config.data_type == DataType.SimilarityExperiment:
         import numpy as np
         from skimage.transform import resize

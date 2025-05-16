@@ -231,6 +231,7 @@ def create_dataset(config,
 
     elif config.data.data_type in [
             DataType.OptiMEM100_014,
+            DataType.MultiTiffSameSizeDset,
             DataType.CustomSinosoid,
             DataType.CustomSinosoidThreeCurve,
             DataType.Prevedel_EMBL,
