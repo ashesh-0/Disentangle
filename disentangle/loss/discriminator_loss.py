@@ -38,10 +38,10 @@ class DiscriminatorLoss(nn.Module):
         print(f'{self.__class__.__name__} RKey: {self.realkey}, FKey: {self.fakekey} Ch: {self._ch_idx} GP: {self.gp_lambda} LossMode: {self.loss_mode}')
     
     def update_gradients_with_generator_loss(self, fake_imgs):
-        return update_gradients_with_generator_loss(self.D, fake_imgs, mode=self.loss_mode)
+        return update_gradients_with_generator_loss(self.D, fake_imgs, mode=self.loss_mode, loss_scalar=self.loss_scalar)
     
     def update_gradients_with_discriminator_loss(self, real_imgs, fake_imgs):
-        return update_gradients_with_discriminator_loss(self.D, real_imgs, fake_imgs, lambda_term=self.gp_lambda, mode=self.loss_mode, enable_gradient_penalty=self.gp_lambda > 0)
+        return update_gradients_with_discriminator_loss(self.D, real_imgs, fake_imgs, lambda_term=self.gp_lambda, mode=self.loss_mode, enable_gradient_penalty=self.gp_lambda > 0, loss_scalar=self.loss_scalar)
     
     def G_loss(self, data_dict):
         fakedata = data_dict[self.fakekey]
@@ -77,7 +77,7 @@ class DiscriminatorLossWithExistingData(DiscriminatorLoss):
             if self._ch_idx is not None:
                 real_imgs = real_imgs[:,self._ch_idx:self._ch_idx+1]
 
-        return update_gradients_with_discriminator_loss(self.D, real_imgs, fake_imgs, lambda_term=self.gp_lambda, mode=self.loss_mode, enable_gradient_penalty=self.gp_lambda > 0)
+        return update_gradients_with_discriminator_loss(self.D, real_imgs, fake_imgs, lambda_term=self.gp_lambda, mode=self.loss_mode, enable_gradient_penalty=self.gp_lambda > 0, loss_scalar=self.loss_scalar)
 
     
 

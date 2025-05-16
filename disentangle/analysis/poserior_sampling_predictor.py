@@ -2,11 +2,25 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from finetunesplit.asymmetric_transforms import (DeepinvTransform, HFlip, Identity, Rotate, TransformAllChannels,
-                                                 TransformEnum, Translate, VFlip, get_inverse_transforms)
+from deepinv.transform.projective import Homography
+from finetunesplit.asymmetric_transforms import (CorrelationPreservingTransforms, DeepinvTransform, HFlip, Identity,
+                                                 Rotate, TransformAllChannels, TransformEnum, Translate, VFlip,
+                                                 get_inverse_transforms)
 
 
-def get_one_transform(transform_enum):
+def _get_homography(kwargs):
+    return Homography(n_trans = 1, 
+                        zoom_factor_min=1.0, 
+                        theta_max=kwargs.get('theta_max', 0),
+                        theta_z_max=kwargs.get('theta_z_max',0), 
+                        skew_max=kwargs.get('skew_max',0), 
+                        shift_max=kwargs.get('shift_max',0),
+                        x_stretch_factor_min = 1,
+                        y_stretch_factor_min = 1, 
+                        device = kwargs['device'])
+
+
+def get_one_transform(transform_enum, **kwargs):
     if transform_enum == TransformEnum.Identity:
         return Identity()
     elif transform_enum == TransformEnum.VFlip:
@@ -16,23 +30,28 @@ def get_one_transform(transform_enum):
     elif transform_enum == TransformEnum.Rotate:
         return Rotate()
     elif transform_enum == TransformEnum.Translate:
-        return Translate(max_fraction=0.1)
-    elif transform_enum == TransformEnum.DeepinvTransform:
-        raise NotImplementedError("DeepinvTransform is not implemented")
+        return Translate(**kwargs)
+    elif transform_enum == TransformEnum.DeepInV:
+        trans_homo = _get_homography(kwargs)
+        return DeepinvTransform(trans_homo)
     else:
         raise ValueError(f"Unknown transform enum: {transform_enum}")
 
-def get_transform_obj(ch1_transforms, ch2_transforms):    
+def get_transform_obj(ch1_transforms, ch2_transforms, correlation_preserving_transforms=False):    
     transform_types = {
-                    0:[get_one_transform(x) for x in ch1_transforms], 
-                    1:[get_one_transform(x) for x in ch2_transforms]
+                    0:[get_one_transform(x,**kwargs) for x, kwargs in ch1_transforms], 
+                    1:[get_one_transform(x,**kwargs) for x, kwargs in ch2_transforms]
                     }
 
     # print 
     print('Transforms for Ch1:', ch1_transforms)
     print('Transforms for Ch2:', ch2_transforms)
-
-    transform_all = TransformAllChannels(transform_types)
+    if correlation_preserving_transforms:
+        print('Using correlation preserving transforms')
+        transform_all = CorrelationPreservingTransforms(transform_types)
+    else:
+        print('Using asymmetric transforms')
+        transform_all = TransformAllChannels(transform_types)
     return transform_all
 
 class PosteriorSamplingPredictor(nn.Module):
