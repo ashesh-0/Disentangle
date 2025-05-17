@@ -19,7 +19,7 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.metric_monitor import MetricMonitor
 from disentangle.core.model_type import ModelType
-from disentangle.data_loader.ht_iba1_ki67_dloader import IBA1Ki67DataLoader
+# from disentangle.data_loader.ht_iba1_ki67_dloader import IBA1Ki67DataLoader
 from disentangle.data_loader.intensity_augm_tiff_dloader import IntensityAugCLTiffDloader
 from disentangle.data_loader.lc_multich_dloader import LCMultiChDloader
 from disentangle.data_loader.lc_multich_explicit_input_dloader import LCMultiChExplicitInputDloader

@@ -16,6 +16,7 @@ from disentangle.data_loader.exp_microscopy_rawdata_loader import get_train_val_
 from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import get_train_val_data as _load_ht_iba1_ki67
 from disentangle.data_loader.multi_channel_train_val_data import train_val_data as _load_tiff_train_val
 from disentangle.data_loader.multicrops_dset_rawdata_loader import get_train_val_data as _loadmulticropdset
+from disentangle.data_loader.multitiffsamesized_raw_dloader import get_train_val_data as _loadmultitiff
 from disentangle.data_loader.nikola_7D_rawdata_loader import get_train_val_data as _loadnikola7D
 from disentangle.data_loader.pavia2_rawdata_loader import get_train_val_data as _loadpavia2
 from disentangle.data_loader.pavia2_rawdata_loader import get_train_val_data_vanilla as _loadpavia2_vanilla
@@ -27,7 +28,6 @@ from disentangle.data_loader.sinosoid_dloader import train_val_data as _loadsino
 from disentangle.data_loader.sinosoid_threecurve_dloader import train_val_data as _loadsinosoid3curve
 from disentangle.data_loader.sox2golgi_rawdata_loader import get_train_val_data as _loadsox2golgi
 from disentangle.data_loader.sox2golgi_v2_rawdata_loader import get_train_val_data as _loadsox2golgi_v2
-from disentangle.data_loader.tiff_raw_dloader import get_train_val_data as _loadmultitiff
 from disentangle.data_loader.two_tiff_rawdata_loader import get_train_val_data as _loadseparatetiff
 
 
