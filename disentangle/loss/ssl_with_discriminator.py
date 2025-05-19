@@ -29,6 +29,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                                 D_gp_lambda=0.1,
                                 D_loss_scalar=1.0,
                                 D_only_one_channel_idx =None,
+                                D_train_G_on_both_real_and_fake=False,
                                 num_workers=4,
                                 k_augmentations=1,sample_mixing_ratio=False, tmp_dir='/group/jug/ashesh/tmp'):
     """
@@ -65,7 +66,8 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                                                       gradient_penalty_lambda=D_gp_lambda, loss_mode=D_mode, 
                                                       realimg_key=D_realimg_key, fakeimg_key=D_fakeimg_key,
                                                       loss_scalar=D_loss_scalar,
-                                                      only_one_channel_idx=D_only_one_channel_idx)
+                                                      only_one_channel_idx=D_only_one_channel_idx,
+                                                      train_G_on_both_real_and_fake=D_train_G_on_both_real_and_fake)
     _ = AdvLoss.cuda()
 
     # real_data_gen = RealData(external_real_data)
@@ -99,6 +101,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
 
     cnt = 0
     step_idx = 0
+    switch_made = False
     while True:
         dloader = DataLoader(finetune_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
@@ -125,7 +128,8 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
 
             adv_data_dict = {'gt':None, # one can use tar here, but it is not needed
                              'pred_FP1':loss_dict['pred_FP1'], 
-                             'pred_FP2':loss_dict['pred_FP2']
+                             'pred_FP2':loss_dict['pred_FP2'],
+                             'pred_FP1_aug':loss_dict['pred_FP1_aug'],
                              }
             # print('inspecting grad', adv_data_dict['pred_FP1'].mean(), adv_data_dict['pred_FP2'].mean())      
             
@@ -152,6 +156,13 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             disc_loss_dict = AdvLoss.D_loss(adv_data_dict)
             opt_dis.step()
             
+            # disc_loss_dict = AdvLoss.D_loss(adv_data_dict, return_loss_without_update=cnt > 40_000)
+            # if cnt <= 40_000:
+            #     opt_dis.step()
+            # else:
+            #     if not switch_made:
+            #         print('disabling the discriminator')
+            #         switch_made = True    
             
             
             
