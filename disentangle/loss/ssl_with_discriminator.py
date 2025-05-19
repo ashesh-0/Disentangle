@@ -13,6 +13,12 @@ from disentangle.nets.discriminator import Discriminator
 from finetunesplit.loss import SSL_loss
 
 
+def total_variation_loss(img, weight):
+     bs_img, c_img, h_img, w_img = img.size()
+     tv_h = torch.pow(img[:,:,1:,:]-img[:,:,:-1,:], 2).sum()
+     tv_w = torch.pow(img[:,:,:,1:]-img[:,:,:,:-1], 2).sum()
+     return weight*(tv_h+tv_w)/(bs_img*c_img*h_img*w_img)
+
 def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, transform_obj, 
                                        external_real_data=None,
                                        external_real_data_probability=0.0, 
@@ -30,6 +36,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                                 D_loss_scalar=1.0,
                                 D_only_one_channel_idx =None,
                                 D_train_G_on_both_real_and_fake=False,
+                                tv_weight =0.0,
                                 num_workers=4,
                                 k_augmentations=1,sample_mixing_ratio=False, tmp_dir='/group/jug/ashesh/tmp'):
     """
@@ -81,6 +88,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
     loss_inp_arr = []
     loss_pred_arr = []
     loss_inp2_arr = []
+    loss_tv_arr = []
     stats_loss_arr = []
 
     # discriminator based losses
@@ -125,6 +133,11 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                 
             
             loss = agg_loss_dict['loss_inp'] + agg_loss_dict['loss_pred'] + agg_loss_dict['loss_inp2'] + agg_loss_dict['stats_loss']
+            loss_tv = 0
+            if tv_weight > 0:
+                loss_tv = total_variation_loss(loss_dict['pred_FP1'], tv_weight)
+            
+            loss += loss_tv
 
             adv_data_dict = {'gt':None, # one can use tar here, but it is not needed
                              'pred_FP1':loss_dict['pred_FP1'], 
@@ -138,11 +151,11 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             for p in AdvLoss.parameters():
                 p.requires_grad = False
             
-            if step_idx % k_Dsteps_perG == 0:
-                loss.backward(retain_graph=True)
-                gen_loss_dict= AdvLoss.G_loss(adv_data_dict)
-                # gen_loss_dict = update_gradients_with_generator_loss(discriminator, pred[:,:2], mode=D_mode)
-                opt_gen.step()
+            loss.backward(retain_graph=True)
+            update_with_g_loss = (k_Dsteps_perG > 1 and step_idx % k_Dsteps_perG == 0) or (k_Dsteps_perG <= 1)
+            gen_loss_dict= AdvLoss.G_loss(adv_data_dict, return_loss_without_update=not update_with_g_loss)
+            # gen_loss_dict = update_gradients_with_generator_loss(discriminator, pred[:,:2], mode=D_mode)
+            opt_gen.step()
 
 
             # Now, we update the discriminator
@@ -153,9 +166,13 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             # real_data = real_data_gen.get(len(inp)).to(inp.device)
             # disc_loss_dict = update_gradients_with_discriminator_loss(discriminator, real_data, pred[:,:2].detach(), lambda_term=grain_penalty_lambda, enable_gradient_penalty=enable_gradient_penalty, mode=D_mode)
             # print('inspecting grad', adv_data_dict['pred_FP1'].mean(), adv_data_dict['pred_FP2'].mean())      
-            disc_loss_dict = AdvLoss.D_loss(adv_data_dict)
-            opt_dis.step()
-            
+            update_with_D_loss =k_Dsteps_perG > 1 or (step_idx % (int(1/k_Dsteps_perG)) == 0)
+            disc_loss_dict = AdvLoss.D_loss(adv_data_dict, return_loss_without_update=not update_with_D_loss)
+            if update_with_D_loss:
+                opt_dis.step()
+                # print('not skipping discriminator')
+            # else:
+                # print('skipping discriminator')            
             # disc_loss_dict = AdvLoss.D_loss(adv_data_dict, return_loss_without_update=cnt > 40_000)
             # if cnt <= 40_000:
             #     opt_dis.step()
@@ -172,6 +189,8 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             loss_inp_arr.append(agg_loss_dict['loss_inp'].item())
             loss_pred_arr.append(agg_loss_dict['loss_pred'].item())
             loss_inp2_arr.append(agg_loss_dict['loss_inp2'].item() if torch.is_tensor(agg_loss_dict['loss_inp2']) else agg_loss_dict['loss_inp2'])
+            loss_tv_arr.append(loss_tv.item() if torch.is_tensor(loss_tv) else loss_tv)
+
             stats_loss_arr.append(agg_loss_dict['stats_loss'].item() if torch.is_tensor(agg_loss_dict['stats_loss']) else agg_loss_dict['stats_loss'])
             factor1_arr.append(factor1.item())
             offset1_arr.append(offset1.item())
@@ -189,7 +208,10 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             mixing_ratio_arr.append(mixing_ratio.item())
             d_real = np.mean(discrim_real_arr[-100:])
             d_fake = np.mean(discrim_fake_arr[-100:])
-            bar.set_description(f'[{cnt}] Loss:{np.mean(loss_arr[-10:]):.2f} D_Real:{d_real:.2f} D_Fake:{d_fake:.2f}')
+            update_str = f'[{cnt}] Loss:{np.mean(loss_arr[-10:]):.2f} D_Real:{d_real:.2f} D_Fake:{d_fake:.2f}'
+            if tv_weight > 0:
+                update_str += f' TV:{np.mean(loss_tv_arr[-10:]):.2f}'
+            bar.set_description(update_str)
             bar.update(1)
             
             if validation_step_freq is not None and cnt //validation_step_freq > (cnt - len(inp))//validation_step_freq:
@@ -243,6 +265,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             'factor2': factor2_arr, 'offset2': offset2_arr, 'mixing_ratio': mixing_ratio_arr,
             'loss_inp': loss_inp_arr, 'loss_pred': loss_pred_arr,
             'loss_inp2': loss_inp2_arr,
+            'loss_tv': loss_tv_arr,
             'stats_loss': stats_loss_arr,
             'gen_fake': gen_fake_arr, 'discrim_real': discrim_real_arr,
             'discrim_fake': discrim_fake_arr, 'grad_penalty': grad_penalty_arr,
