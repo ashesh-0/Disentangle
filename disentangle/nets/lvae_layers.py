@@ -209,7 +209,10 @@ class TopDownLayer(nn.Module):
             # NOTE: Here the assumption is that the vampprior is only applied on the top layer.
             n_img_prior = None
             p_params = self.get_p_params(input_, n_img_prior)
-            q_params = self.merge(bu_value, p_params)
+            if bu_value is not None:
+                q_params = self.merge(bu_value, p_params)
+            else:
+                q_params = p_params
 
         sample = self.stochastic.sample_from_q(q_params, var_clip_max)
         if mask:
@@ -236,7 +239,7 @@ class TopDownLayer(nn.Module):
         """
         In case the padding is not used either (or both) in encoder and decoder, we could have a mismatch. Doing a centercrop to ensure that both remain aligned.
         """
-        if bu_value.shape[-2:] != p_params.shape[-2:]:
+        if bu_value is not None and bu_value.shape[-2:] != p_params.shape[-2:]:
             assert self.bottomup_no_padding_mode is True, f'{bu_value.shape[-2:]} != {p_params.shape[-2:]}'
             if self.topdown_no_padding_mode is False:
                 assert bu_value.shape[-1] > p_params.shape[-1]
@@ -297,9 +300,12 @@ class TopDownLayer(nn.Module):
                 if use_uncond_mode:
                     q_params = p_params
                 else:
-                    p_params, bu_value = self.align_pparams_buvalue(p_params, bu_value)
-                    q_params = self.merge(bu_value, p_params)
-
+                    if bu_value is not None:
+                        p_params, bu_value = self.align_pparams_buvalue(p_params, bu_value)
+                        q_params = self.merge(bu_value, p_params)
+                    else:
+                        q_params = p_params
+                        
         # In generative mode, q is not used
         else:
             q_params = None

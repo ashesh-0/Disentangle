@@ -112,7 +112,7 @@ class NormalStochasticBlock(nn.Module):
         """
         Note that q_params should come from outside. It must not be already transformed since we are doing it here.
         """
-        _, _, q = self.process_q_params(q_params, var_clip_max)
+        _, _, q = self.process_q_params(q_params, var_clip_max, allow_oddsizes=True)
         return q.rsample()
 
     def compute_kl_metrics(self, p, p_params, q, q_params, mode_pred, analytical_kl, z):
@@ -223,7 +223,7 @@ class NormalStochasticBlock(nn.Module):
 
         if q_params is not None:
             # At inference time, just don't centercrop the q_params even if they are odd in size.
-            q_mu, q_lv, q = self.process_q_params(q_params, var_clip_max, allow_oddsizes=mode_pred is True)
+            q_mu, q_lv, q = self.process_q_params(q_params, var_clip_max, allow_oddsizes=True)
             q_params = (q_mu, q_lv)
             debug_qvar_max = torch.max(q_lv.get())
             # Sample from q(z)
