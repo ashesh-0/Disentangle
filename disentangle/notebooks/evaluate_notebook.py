@@ -22,11 +22,18 @@ if __name__ == '__main__':
     outputdir = os.path.join(args.outputdir, model_token)
     fname = os.path.basename(args.notebook)
     fname = fname.replace('.ipynb','')
+    
+    # subdirectory for the current month
+    yearmonth = datetime.now().strftime("%Y%m")
+    outputdir = os.path.join(outputdir, yearmonth)
+    os.makedirs(outputdir, exist_ok=True)
+
     if args.tag_time_flag:
         now = datetime.now().strftime("%Y%m%d.%H.%M")
-        fname = f"{fname}_{param_str}_{now}.ipynb"
     else:
-        fname = f"{fname}_{param_str}.ipynb"
+        now = datetime.now().strftime('%y%m%d')
+
+    fname = f"{now}_{fname}_{param_str}.ipynb"
 
     output_fpath = os.path.join(outputdir, fname)
     output_config_fpath = os.path.join(outputdir,'config', fname.replace('.ipynb','.txt'))
