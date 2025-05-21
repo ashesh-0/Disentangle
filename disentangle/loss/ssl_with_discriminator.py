@@ -80,6 +80,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             num_input_channels = 1
         else:
             num_input_channels = 2
+    
     AdvLoss = DiscriminatorLossWithExistingData(external_real_data, 
                                                 num_channels=num_input_channels, 
                                                 use_external_data_probability=external_real_data_probability, 
