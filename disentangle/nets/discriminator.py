@@ -32,15 +32,30 @@ class Discriminator(torch.nn.Module):
 
         self.output = nn.Sequential(
             # The output of D is no longer a probability, we do not apply sigmoid at the output of D.
-            nn.Conv2d(in_channels=self._out_C, out_channels=1, kernel_size=4, stride=1, padding=0))
+            nn.Conv2d(in_channels=self._out_C, out_channels=1, kernel_size=2, stride=1, padding=0))
         print(f'{self.__class__.__name__} initialized with {self._out_C} channels')
 
 
     def forward(self, x):
+        # print(x.shape, 'before discriminator')
         x = self.main_module(x)
+        # print(x.shape, 'after discriminator')
         return self.output(x)
 
     def feature_extraction(self, x):
         # Use discriminator for feature extraction then flatten to vector of 16384
         x = self.main_module(x)
         return x.view(-1, self._out_C*4*4)
+
+
+class LatentDiscriminator(nn.Module):
+    def __init__(self, discriminator, embedding_network):
+        super().__init__()
+        self.embedding_network = embedding_network
+        self.D = discriminator
+    
+    def forward(self, x):
+        # print(x.shape, 'before embedding')
+        x = self.embedding_network.get_embedding(x)
+        # print(x.shape, 'after embedding')   
+        return self.D(x)

@@ -10,6 +10,7 @@ from disentangle.loss.discriminator_loss import (DiscriminatorLossWithExistingDa
                                                  update_gradients_with_generator_loss)
 from disentangle.loss.ssl_finetuning import get_stats_loss_func
 from disentangle.nets.discriminator import Discriminator
+from disentangle.nets.vae_compressor import get_vae
 from finetunesplit.loss import SSL_loss
 
 
@@ -36,6 +37,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                                 D_loss_scalar=1.0,
                                 D_only_one_channel_idx =None,
                                 D_train_G_on_both_real_and_fake=False,
+                                use_embedding_network=False,
                                 tv_weight =0.0,
                                 num_workers=4,
                                 k_augmentations=1,sample_mixing_ratio=False, tmp_dir='/group/jug/ashesh/tmp'):
@@ -64,24 +66,38 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
     assert offset2 is not None
     assert optimization_params_dict is not None, "Please provide optimization parameters"
 
+    embedding_network = None
+    if use_embedding_network:
+        embedding_network,num_input_channels = get_vae()
+        embedding_network.set_params_to_same_device_as(torch.ones(1).cuda())
     # define the discriminator
     # discriminator = Discriminator(channels=2, first_out_channel=128)
     # _ = discriminator.cuda()
+    if embedding_network is None:
+        if D_only_one_channel_idx is not None:
+            num_input_channels = 1
+        else:
+            num_input_channels = 2
     AdvLoss = DiscriminatorLossWithExistingData(external_real_data, 
-                                                num_channels=1 if D_only_one_channel_idx is not None else 2, 
+                                                num_channels=num_input_channels, 
                                                 use_external_data_probability=external_real_data_probability, 
                                                       gradient_penalty_lambda=D_gp_lambda, loss_mode=D_mode, 
                                                       realimg_key=D_realimg_key, fakeimg_key=D_fakeimg_key,
                                                       loss_scalar=D_loss_scalar,
                                                       only_one_channel_idx=D_only_one_channel_idx,
-                                                      train_G_on_both_real_and_fake=D_train_G_on_both_real_and_fake)
+                                                      train_G_on_both_real_and_fake=D_train_G_on_both_real_and_fake,
+                                                      embedding_network=embedding_network)
     _ = AdvLoss.cuda()
 
     # real_data_gen = RealData(external_real_data)
     # define an optimizer
     # opt = torch.optim.Adam(model.parameters(), lr=1e-3)
-    opt_gen = torch.optim.Adam(optimization_params_dict['parameters'], lr=optimization_params_dict['lr'], weight_decay=0)
-    opt_dis = torch.optim.Adam(AdvLoss.parameters(), lr=optimization_params_dict['lr'], weight_decay=0)
+    gen_params  = list(optimization_params_dict['parameters'])
+    if use_embedding_network:
+        gen_params += list(embedding_network.parameters())
+    
+    opt_gen = torch.optim.Adam(gen_params, lr=optimization_params_dict['lr'], weight_decay=0)
+    opt_dis = torch.optim.Adam(AdvLoss.discriminator_network.parameters(), lr=optimization_params_dict['lr'], weight_decay=0)
 
     # SSL losses. 
     loss_arr = []
@@ -154,7 +170,13 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             loss.backward(retain_graph=True)
             update_with_g_loss = (k_Dsteps_perG > 1 and step_idx % k_Dsteps_perG == 0) or (k_Dsteps_perG <= 1)
             gen_loss_dict= AdvLoss.G_loss(adv_data_dict, return_loss_without_update=not update_with_g_loss)
+            loss_embedding_network = 0
             # gen_loss_dict = update_gradients_with_generator_loss(discriminator, pred[:,:2], mode=D_mode)
+            if embedding_network is not None:
+                pred_detached = loss_dict['pred_FP1'].detach()
+                # print(pred_detached.shape, 'pred_detached')
+                loss_embedding_network = embedding_network.training_step((pred_detached, pred_detached), i)['loss']
+            
             opt_gen.step()
 
 

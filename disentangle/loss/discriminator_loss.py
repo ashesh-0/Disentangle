@@ -7,7 +7,7 @@ import torch.nn as nn
 from torch import autograd
 from torch.autograd import Variable
 
-from disentangle.nets.discriminator import Discriminator
+from disentangle.nets.discriminator import Discriminator, LatentDiscriminator
 
 
 class RealData:
@@ -22,10 +22,16 @@ class DiscriminatorLoss(nn.Module):
     def __init__(self, num_channels=2, gradient_penalty_lambda=0.1, loss_mode='wgan', realimg_key='gt', fakeimg_key='pred_FP1',
                  loss_scalar=1.0, 
                  train_G_on_both_real_and_fake=False,
-                 only_one_channel_idx=None):
+                 only_one_channel_idx=None, 
+                 embedding_network=None):
         super().__init__()
         assert num_channels ==1 or only_one_channel_idx is None, "If num_channels > 1, only_one_channel_idx must be None"
-        self.D = Discriminator(num_channels)
+        self.discriminator_network = Discriminator(num_channels)
+        if embedding_network is None:
+            self.D = self.discriminator_network
+        else:
+            self.D = LatentDiscriminator(self.discriminator_network, embedding_network)
+
         self.gp_lambda = gradient_penalty_lambda
         self.loss_mode = loss_mode
 
