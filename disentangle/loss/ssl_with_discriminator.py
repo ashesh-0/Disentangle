@@ -76,6 +76,8 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
     if embedding_network is None:
         if D_only_one_channel_idx is not None:
             num_input_channels = 1
+        elif D_realimg_key =='inp':
+            num_input_channels = 1
         else:
             num_input_channels = 2
     AdvLoss = DiscriminatorLossWithExistingData(external_real_data, 
@@ -159,6 +161,8 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                              'pred_FP1':loss_dict['pred_FP1'], 
                              'pred_FP2':loss_dict['pred_FP2'],
                              'pred_FP1_aug':loss_dict['pred_FP1_aug'],
+                             'inv_inp2':loss_dict['inv_inp2'],
+                              'inp':loss_dict['inp']
                              }
             # print('inspecting grad', adv_data_dict['pred_FP1'].mean(), adv_data_dict['pred_FP2'].mean())      
             

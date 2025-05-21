@@ -42,8 +42,8 @@ class DiscriminatorLoss(nn.Module):
         self._train_G_on_both_real_and_fake = train_G_on_both_real_and_fake
         
         # groundtruth, prediction at first forward pass, prediction at second forward pass
-        assert self.realkey in ['gt', 'pred_FP1', 'pred_FP2', 'pred_FP1_aug'], f"Invalid discriminator real image key: {self.realkey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
-        assert self.fakekey in ['gt', 'pred_FP1', 'pred_FP2', 'pred_FP1_aug'], f"Invalid discriminator fake image key: {self.fakekey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
+        assert self.realkey in ['inp','gt', 'pred_FP1', 'pred_FP2', 'pred_FP1_aug','inv_inp2'], f"Invalid discriminator real image key: {self.realkey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
+        assert self.fakekey in ['inp','gt', 'pred_FP1', 'pred_FP2', 'pred_FP1_aug','inv_inp2'], f"Invalid discriminator fake image key: {self.fakekey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
         print(f'{self.__class__.__name__} RKey: {self.realkey}, FKey: {self.fakekey} Ch: {self._ch_idx} GP: {self.gp_lambda} LossMode: {self.loss_mode}, TrainGBoth: {self._train_G_on_both_real_and_fake}')
     
     def update_gradients_with_generator_loss(self, fake_images, real_images=None, return_loss_without_update=False):
