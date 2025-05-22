@@ -11,7 +11,7 @@ if __name__ == '__main__':
     parser.add_argument('--notebook', type=str, help='Notebook to run', default='/home/ashesh.ashesh/code/Disentangle/disentangle/notebooks/CalibrationCoverage.ipynb')
     parser.add_argument('--outputdir', type=str, help='Output notebook directory', default='/group/jug/ashesh/EnsDeLyon/notebook_results/')
     parser.add_argument('--ckpt_dir', type=str, help='Checkpoint to use. eg. /group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4')
-    parser.add_argument('--tag_time_flag', type=bool, help='Tag time flag', default=False)
+    parser.add_argument('--tag_time_flag', action='store_true', help='Tag time flag')
     parser.add_argument('--override_kwargs', type=json.loads, default='{}', )
     args = parser.parse_args()
     param_dict = args.override_kwargs
