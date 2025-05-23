@@ -163,7 +163,8 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                              'pred_FP2':loss_dict['pred_FP2'],
                              'pred_FP1_aug':loss_dict['pred_FP1_aug'],
                              'inv_inp2':loss_dict['inv_inp2'],
-                              'inp':loss_dict['inp']
+                            #   'inp':loss_dict['inp'],
+                              'predInp1':loss_dict['predInp1'],
                              }
             # print('inspecting grad', adv_data_dict['pred_FP1'].mean(), adv_data_dict['pred_FP2'].mean())      
             

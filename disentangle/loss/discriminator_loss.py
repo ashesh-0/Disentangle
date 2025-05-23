@@ -42,8 +42,8 @@ class DiscriminatorLoss(nn.Module):
         self._train_G_on_both_real_and_fake = train_G_on_both_real_and_fake
         
         # groundtruth, prediction at first forward pass, prediction at second forward pass
-        assert self.realkey in ['inp','gt', 'pred_FP1', 'pred_FP2', 'pred_FP1_aug','inv_inp2'], f"Invalid discriminator real image key: {self.realkey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
-        assert self.fakekey in ['inp','gt', 'pred_FP1', 'pred_FP2', 'pred_FP1_aug','inv_inp2'], f"Invalid discriminator fake image key: {self.fakekey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
+        assert self.realkey in ['inp','gt', 'pred_FP1', 'pred_FP2','predInp1', 'pred_FP1_aug','inv_inp2'], f"Invalid discriminator real image key: {self.realkey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
+        assert self.fakekey in ['inp','gt', 'pred_FP1', 'pred_FP2','predInp1', 'pred_FP1_aug','inv_inp2'], f"Invalid discriminator fake image key: {self.fakekey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
         print(f'{self.__class__.__name__} RKey: {self.realkey}, FKey: {self.fakekey} Ch: {self._ch_idx} GP: {self.gp_lambda} LossMode: {self.loss_mode}, TrainGBoth: {self._train_G_on_both_real_and_fake}')
     
     def update_gradients_with_generator_loss(self, fake_images, real_images=None, return_loss_without_update=False):
@@ -63,12 +63,12 @@ class DiscriminatorLoss(nn.Module):
         return self.update_gradients_with_generator_loss(fakedata, real_images=realdata, return_loss_without_update=return_loss_without_update)
     
     def D_loss(self, data_dict, return_loss_without_update=False):
-        real_img = data_dict[self.realkey]
-        fake_img = data_dict[self.fakekey]
+        real_img = data_dict[self.realkey].detach() if self.realkey != 'inp' else None
+        fake_img = data_dict[self.fakekey].detach()
         if self._ch_idx is not None:
             real_img = real_img[:,self._ch_idx:self._ch_idx+1]
             fake_img = fake_img[:,self._ch_idx:self._ch_idx+1]
-        return self.update_gradients_with_discriminator_loss(real_img.detach(), fake_img.detach(), return_loss_without_update=return_loss_without_update)
+        return self.update_gradients_with_discriminator_loss(real_img, fake_img, return_loss_without_update=return_loss_without_update)
 
 
 
@@ -116,11 +116,13 @@ def calculate_gradient_penalty(real_images, fake_images, discriminator, lambda_t
     grad_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * lambda_term
     return grad_penalty
 
-def increase_value(x, mode, loss_scalar=1.0,retain_graph=False):
+def increase_value(x, mode, loss_scalar=1.0,retain_graph=False, verbose=False, verbose_name=''):
     if mode == 'wgan':
         x.backward(gradient=-1*loss_scalar*(torch.ones_like(x)), retain_graph=retain_graph)
     elif mode == '-1_1':
         loss = torch.nn.MSELoss()(x, torch.ones_like(x))*loss_scalar
+        if verbose:
+            print(f'[{verbose_name}] increasing value loss term', loss.item())
         loss.backward(retain_graph=retain_graph)
     else:
         raise ValueError(f"Unknown mode: {mode}. Supported modes are 'wgan' and '-1_1'.")
@@ -136,7 +138,7 @@ def update_gradients_with_generator_loss(discriminator, fake_images, real_images
     d_pred_fake = discriminator(fake_images)
     d_pred_fake = d_pred_fake.mean()
     if not return_loss_without_update:
-        increase_value(d_pred_fake, mode, loss_scalar=loss_scalar, retain_graph=real_images is not None)
+        increase_value(d_pred_fake, mode, loss_scalar=loss_scalar, retain_graph=real_images is not None)#, verbose=True, verbose_name='G_loss')
 
     if real_images is not None:
         d_pred_real = discriminator(real_images)
