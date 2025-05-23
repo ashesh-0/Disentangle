@@ -37,7 +37,7 @@ class DiscriminatorLoss(nn.Module):
 
         self.realkey = realimg_key
         self.fakekey = fakeimg_key
-        if isinstance(loss_scalar, tuple):
+        if isinstance(loss_scalar, tuple) or isinstance(loss_scalar, list):
             self.loss_scalar_D = loss_scalar[0]
             self.loss_scalar_G = loss_scalar[1]
         else:
