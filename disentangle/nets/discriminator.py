@@ -32,7 +32,10 @@ class Discriminator(torch.nn.Module):
 
         self.output = nn.Sequential(
             # The output of D is no longer a probability, we do not apply sigmoid at the output of D.
-            nn.Conv2d(in_channels=self._out_C, out_channels=1, kernel_size=2, stride=1, padding=0))
+            nn.Conv2d(in_channels=self._out_C, out_channels=1, kernel_size=2, stride=1, padding=0)
+            # tanh
+            # nn.Tanh()
+            )
         print(f'{self.__class__.__name__} initialized with {self._out_C} channels')
 
 

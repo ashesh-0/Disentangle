@@ -1,5 +1,5 @@
 # Adapted from https://github.com/Zeleni9/pytorch-wgan/blob/master/models/wgan_gradient_penalty.py#L296
-from typing import Union
+from typing import Tuple, Union
 
 import numpy as np
 import torch
@@ -20,7 +20,7 @@ class RealData:
 
 class DiscriminatorLoss(nn.Module):
     def __init__(self, num_channels=2, gradient_penalty_lambda=0.1, loss_mode='wgan', realimg_key='gt', fakeimg_key='pred_FP1',
-                 loss_scalar=1.0, 
+                 loss_scalar:Union[float,Tuple]=1.0, 
                  train_G_on_both_real_and_fake=False,
                  only_one_channel_idx=None, 
                  embedding_network=None):
@@ -37,20 +37,26 @@ class DiscriminatorLoss(nn.Module):
 
         self.realkey = realimg_key
         self.fakekey = fakeimg_key
-        self.loss_scalar = loss_scalar
+        if isinstance(loss_scalar, tuple):
+            self.loss_scalar_D = loss_scalar[0]
+            self.loss_scalar_G = loss_scalar[1]
+        else:
+            self.loss_scalar_D = loss_scalar
+            self.loss_scalar_G = loss_scalar
+
         self._ch_idx = only_one_channel_idx
         self._train_G_on_both_real_and_fake = train_G_on_both_real_and_fake
         
         # groundtruth, prediction at first forward pass, prediction at second forward pass
         assert self.realkey in ['inp','gt', 'pred_FP1', 'pred_FP2','predInp1', 'pred_FP1_aug','inv_inp2'], f"Invalid discriminator real image key: {self.realkey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
         assert self.fakekey in ['inp','gt', 'pred_FP1', 'pred_FP2','predInp1', 'pred_FP1_aug','inv_inp2'], f"Invalid discriminator fake image key: {self.fakekey}. Must be 'gt', 'pred_FP1' or 'pred_FP2'."
-        print(f'{self.__class__.__name__} RKey: {self.realkey}, FKey: {self.fakekey} Ch: {self._ch_idx} GP: {self.gp_lambda} LossMode: {self.loss_mode}, TrainGBoth: {self._train_G_on_both_real_and_fake}')
+        print(f'{self.__class__.__name__} RKey: {self.realkey}, FKey: {self.fakekey} Ch: {self._ch_idx} GP: {self.gp_lambda} LossMode: {self.loss_mode}, TrainGBoth: {self._train_G_on_both_real_and_fake} w_D: {self.loss_scalar_D} w_G: {self.loss_scalar_G}')
     
     def update_gradients_with_generator_loss(self, fake_images, real_images=None, return_loss_without_update=False):
-        return update_gradients_with_generator_loss(self.D, fake_images, mode=self.loss_mode, real_images=real_images, loss_scalar=self.loss_scalar, return_loss_without_update=return_loss_without_update)
+        return update_gradients_with_generator_loss(self.D, fake_images, mode=self.loss_mode, real_images=real_images, loss_scalar=self.loss_scalar_G, return_loss_without_update=return_loss_without_update)
     
     def update_gradients_with_discriminator_loss(self, real_imgs, fake_imgs, return_loss_without_update=False):
-        return update_gradients_with_discriminator_loss(self.D, real_imgs, fake_imgs, lambda_term=self.gp_lambda, mode=self.loss_mode, enable_gradient_penalty=self.gp_lambda > 0, loss_scalar=self.loss_scalar, return_loss_without_update=return_loss_without_update)
+        return update_gradients_with_discriminator_loss(self.D, real_imgs, fake_imgs, lambda_term=self.gp_lambda, mode=self.loss_mode, enable_gradient_penalty=self.gp_lambda > 0, loss_scalar=self.loss_scalar_D, return_loss_without_update=return_loss_without_update)
     
     def G_loss(self, data_dict, return_loss_without_update=False):
         fakedata = data_dict[self.fakekey]
@@ -88,7 +94,7 @@ class DiscriminatorLossWithExistingData(DiscriminatorLoss):
             if self._ch_idx is not None:
                 real_imgs = real_imgs[:,self._ch_idx:self._ch_idx+1]
 
-        return update_gradients_with_discriminator_loss(self.D, real_imgs, fake_imgs, lambda_term=self.gp_lambda, mode=self.loss_mode, enable_gradient_penalty=self.gp_lambda > 0, loss_scalar=self.loss_scalar, return_loss_without_update=return_loss_without_update)
+        return update_gradients_with_discriminator_loss(self.D, real_imgs, fake_imgs, lambda_term=self.gp_lambda, mode=self.loss_mode, enable_gradient_penalty=self.gp_lambda > 0, loss_scalar=self.loss_scalar_D, return_loss_without_update=return_loss_without_update)
 
     
 
