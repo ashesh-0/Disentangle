@@ -1236,10 +1236,11 @@ class LadderVAE(pl.LightningModule):
             return list(size)
 
         # Overall downscale factor from input to top layer (power of 2)
-        dwnsc = self.overall_downscale_factor
-
+        dwnsc = (1+self.overall_downscale_factor)
+        f = 2**dwnsc
         # Output smallest powers of 2 that are larger than current sizes
-        padded_size = list(((s - 1) // dwnsc + 1) * dwnsc for s in size)
+        padded_size = [s + (f - s%f)%f for s in size]
+        # padded_size = list(((s - 1) // dwnsc + 1) * dwnsc for s in size)
 
         return padded_size
 

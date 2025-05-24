@@ -87,10 +87,13 @@ class DiscriminatorLossWithExistingData(DiscriminatorLoss):
         self.external_data = RealData(external_data)
         self.p = use_external_data_probability
 
+    def get_external_data(self, count):
+        return self.external_data.get(count)
+    
     def update_gradients_with_discriminator_loss(self, real_imgs, fake_imgs, return_loss_without_update=False):
         if torch.rand(1).item() < self.p:
             # print('replacing real images with external data')
-            real_imgs = self.external_data.get(len(fake_imgs)).to(fake_imgs.device)
+            real_imgs = self.get_external_data(len(fake_imgs)).to(fake_imgs.device)
             if self._ch_idx is not None:
                 real_imgs = real_imgs[:,self._ch_idx:self._ch_idx+1]
 

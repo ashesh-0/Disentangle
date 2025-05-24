@@ -68,7 +68,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
 
     embedding_network = None
     if use_embedding_network:
-        embedding_network,num_input_channels = get_vae()
+        embedding_network,num_input_channels = get_vae(input_channels=1 if D_realimg_key == 'inp' else 2)
         embedding_network.set_params_to_same_device_as(torch.ones(1).cuda())
     # define the discriminator
     # discriminator = Discriminator(channels=2, first_out_channel=128)
@@ -179,8 +179,10 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             loss_embedding_network = 0
             # gen_loss_dict = update_gradients_with_generator_loss(discriminator, pred[:,:2], mode=D_mode)
             if embedding_network is not None:
-                pred_detached = loss_dict['pred_FP1'].detach()
+                # We need to train on real image as well. 
+                pred_detached = loss_dict[D_realimg_key].detach() if D_realimg_key != 'inp' else AdvLoss.get_external_data(len(inp)).to(inp.device)
                 # print(pred_detached.shape, 'pred_detached')
+
                 loss_embedding_network = embedding_network.training_step((pred_detached, pred_detached), i)['loss']
             
             opt_gen.step()

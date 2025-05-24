@@ -11,7 +11,7 @@ from disentangle.nets.lvae import LadderVAE
 from finetunesplit.asymmetric_transforms import TransformEnum
 
 
-def get_vae():
+def get_vae(input_channels=2):
     config = ml_collections.ConfigDict()
     config.training = ml_collections.ConfigDict()
     config.training.lr = 1e-3
@@ -41,7 +41,7 @@ def get_vae():
     config.data.normalized_input = True
     
     # input has two channels.
-    config.data.color_ch = 2
+    config.data.color_ch = input_channels
     config.data.multiscale_lowres_count = None
 
     # for loading MNIST dataset
