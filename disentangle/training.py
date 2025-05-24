@@ -231,7 +231,7 @@ def create_dataset(config,
 
     elif config.data.data_type in [
             DataType.OptiMEM100_014,
-            DataType.MultiTiffSameSizeDset,
+            # DataType.MultiTiffSameSizeDset,
             DataType.CustomSinosoid,
             DataType.CustomSinosoidThreeCurve,
             DataType.Prevedel_EMBL,
@@ -389,7 +389,7 @@ def create_dataset(config,
         val_data.set_mean_std(mean_val, std_val)
     elif config.data.data_type in [
             DataType.TavernaSox2Golgi, DataType.Dao3Channel, DataType.Dao3ChannelWithInput, DataType.ExpMicroscopyV1, DataType.ExpMicroscopyV2,
-            DataType.TavernaSox2GolgiV2, DataType.Pavia3SeqData, DataType.ExpMicroscopyV3, DataType.Care3D
+            DataType.TavernaSox2GolgiV2, DataType.Pavia3SeqData, DataType.ExpMicroscopyV3, DataType.Care3D, DataType.MultiTiffSameSizeDset,
     ]:
         datapath = datadir
         normalized_input = config.data.normalized_input

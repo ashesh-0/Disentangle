@@ -22,11 +22,9 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType):
         raise Exception("invalid datasplit")
     
     fpaths = [os.path.join(datadir, x) for x in fnames]
-    data = [load_tiff(x).transpose((0,2,3,1)) for x in fpaths]
-    data = [x[...,data_config.channel_idx_list] for x in data]
-    
-    data = np.concatenate(data, axis=0)
-    print('Loaded:', fnames, data.shape)
+    data = [(load_tiff(x).transpose((0,2,3,1)),x) for x in fpaths]
+    data = [(x[0][...,data_config.channel_idx_list],x[1]) for x in data]
+    print('Loaded:', fnames, 'one data shape', data[0][0].shape)
     return data
 
 if __name__ == '__main__':

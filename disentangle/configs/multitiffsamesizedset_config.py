@@ -12,14 +12,19 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.MultiTiffSameSizeDset
     # data.channel_idx_list = [0,1,2,3,4,5]
-    data.channel_idx_list = [0,2,3,4]
+    data.channel_idx_list = [1,2,4]
     # data.channel_idx_list = [1,2,4,5]
     data.train_fnames = ['Composite_region3_6am_CF_L3L2.tif', 
-                        'Composite_region5_6am_L3L1.tif',
-                        'Composite_region2_6AM_CF_L3L3.tif',  
-                        'Composite_region4_6am_L3L2.tif']
+                        # 'Composite_region5_6am_L3L1.tif',
+                        # 'Composite_region2_6AM_CF_L3L3.tif',  
+                        # 'Composite_region4_6am_L3L2.tif'
+                        ]
     data.val_fnames = ['Composite_region1_CF_L3L3.tif']
-    data.test_fnames = ['Composite_region7_CF_12noon_L3L4.tif']
+    data.test_fnames = ['Composite_region7_CF_12noon_L3L4.tif'
+    ]
+    data.depth3D = 5
+    data.mode_3D = True
+
 
     # data.trainig_datausage_fraction = 0.1
     data.num_channels = len(data.channel_idx_list)
@@ -74,6 +79,9 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
+    model.mode_3D = data.mode_3D
+    model.decoder.mode_3D = model.mode_3D
+
     model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
@@ -122,16 +130,20 @@ def get_config():
     # model.noise_model_ch4_fpath = '/group/jug/ashesh/training/noise_model/2505/5/GMMNoiseModel_n2v_denoising-subset_Ch3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     # model.noise_model_ch5_fpath = '/group/jug/ashesh/training/noise_model/2505/6/GMMNoiseModel_n2v_denoising-subset_Ch4__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     # model.noise_model_ch6_fpath = '/group/jug/ashesh/training/noise_model/2505/7/GMMNoiseModel_n2v_denoising-subset_Ch5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    
+
+    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2505/3/GMMNoiseModel_n2v_denoising-subset_Ch1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2505/4/GMMNoiseModel_n2v_denoising-subset_Ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2505/6/GMMNoiseModel_n2v_denoising-subset_Ch4__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+
     # model.noise_model_ch1_fpath ='/group/jug/ashesh/training/noise_model/2505/3/GMMNoiseModel_n2v_denoising-subset_Ch1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     # model.noise_model_ch2_fpath ='/group/jug/ashesh/training/noise_model/2505/4/GMMNoiseModel_n2v_denoising-subset_Ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     # model.noise_model_ch3_fpath ='/group/jug/ashesh/training/noise_model/2505/6/GMMNoiseModel_n2v_denoising-subset_Ch4__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     # model.noise_model_ch4_fpath ='/group/jug/ashesh/training/noise_model/2505/7/GMMNoiseModel_n2v_denoising-subset_Ch5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
-    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2505/2/GMMNoiseModel_n2v_denoising-subset_Ch0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2505/4/GMMNoiseModel_n2v_denoising-subset_Ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2505/5/GMMNoiseModel_n2v_denoising-subset_Ch3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch4_fpath = '/group/jug/ashesh/training/noise_model/2505/6/GMMNoiseModel_n2v_denoising-subset_Ch4__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2505/2/GMMNoiseModel_n2v_denoising-subset_Ch0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2505/4/GMMNoiseModel_n2v_denoising-subset_Ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2505/5/GMMNoiseModel_n2v_denoising-subset_Ch3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch4_fpath = '/group/jug/ashesh/training/noise_model/2505/6/GMMNoiseModel_n2v_denoising-subset_Ch4__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
     model.noise_model_learnable = False
 
@@ -143,7 +155,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 30
     training.max_epochs = 400
-    training.batch_size = 32
+    training.batch_size = 8
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None
