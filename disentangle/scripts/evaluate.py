@@ -306,6 +306,10 @@ def get_data_dir(dtype):
         data_dir = f"{DATA_ROOT}/shrofflab/"
     elif dtype == DataType.Care3D:
         data_dir = f"{DATA_ROOT}/CARE/care_florian/"
+    elif dtype == DataType.MultiTiffSameSizeDset:
+        # data_dir = f'{DATA_ROOT}/HHMI25/'
+        # data_dir = "/group/jug/ashesh/data/HHMI25_reweighted/"
+        data_dir = "/group/jug/ashesh/data/HHMI25_smaller/"
     return data_dir
 
 def get_calibration_stats(calibration_factors, pred, pred_std, tar_normalized):
@@ -692,7 +696,10 @@ def main(
     else:
         pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
 
-    highres_data = (get_highsnr_data(config, data_dir, eval_datasplit_type) if compare_with_highsnr else None)
+    if config.data.data_type == DataType.MultiTiffSameSizeDset:
+        highres_data = None
+    else:
+        highres_data = (get_highsnr_data(config, data_dir, eval_datasplit_type) if compare_with_highsnr else None)
     if highres_data is not None and isinstance(highres_data, list):
         if len(highres_data[0].shape) != len(pred_unnorm[0].shape):
             assert len(highres_data[0].shape) == len(pred_unnorm[0].shape) - 1
@@ -821,7 +828,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-
+            '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/27',
             # elisa3D
             # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24',
             # '/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6'
@@ -829,7 +836,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
             
             # nicola
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10',
-            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
