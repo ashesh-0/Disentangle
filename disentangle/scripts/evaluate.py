@@ -307,9 +307,9 @@ def get_data_dir(dtype):
     elif dtype == DataType.Care3D:
         data_dir = f"{DATA_ROOT}/CARE/care_florian/"
     elif dtype == DataType.MultiTiffSameSizeDset:
-        # data_dir = f'{DATA_ROOT}/HHMI25/'
+        data_dir = f'{DATA_ROOT}/HHMI25/'
         # data_dir = "/group/jug/ashesh/data/HHMI25_reweighted/"
-        data_dir = "/group/jug/ashesh/data/HHMI25_smaller/"
+        # data_dir = "/group/jug/ashesh/data/HHMI25_smaller/"
     return data_dir
 
 def get_calibration_stats(calibration_factors, pred, pred_std, tar_normalized):
@@ -828,7 +828,9 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-            '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/31'
+            # '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/31'
+            # '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/29',
+            '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/26',
             # '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/27',
             # elisa3D
             # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24',
@@ -922,7 +924,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
     patchsz_gridsz_tuples = [(patch_size, grid_size)]
     print("Using patch,grid size", patchsz_gridsz_tuples)
     for custom_image_size, image_size_for_grid_centers in patchsz_gridsz_tuples:
-        for eval_datasplit_type in [DataSplitType.Test]:
+        for eval_datasplit_type in [DataSplitType.Val]:
             for ckpt_dir in ckpt_dirs:
                 # data_type = int(os.path.basename(os.path.dirname(ckpt_dir)).split("-")[0][1:])
                 # if data_type in [

@@ -24,7 +24,7 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType):
     fpaths = [os.path.join(datadir, x) for x in fnames]
     data = [(load_tiff(x).transpose((0,2,3,1)),x) for x in fpaths]
     data = [(x[0][...,data_config.channel_idx_list],x[1]) for x in data]
-    print('Loaded:', fnames, 'one data shape', data[0][0].shape)
+    print('Loaded:', datadir, fnames, 'one data shape', data[0][0].shape)
     return data
 
 if __name__ == '__main__':
