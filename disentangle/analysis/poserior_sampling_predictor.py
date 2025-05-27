@@ -4,7 +4,7 @@ import torch.nn as nn
 
 from deepinv.transform.projective import Homography
 from finetunesplit.asymmetric_transforms import (CorrelationPreservingTransforms, DeepinvTransform, HFlip, Identity,
-                                                 Rotate, TransformAllChannels, TransformEnum, Translate, VFlip,
+                                                 Rotate, Scale, TransformAllChannels, TransformEnum, Translate, VFlip,
                                                  get_inverse_transforms)
 
 
@@ -31,6 +31,8 @@ def get_one_transform(transform_enum, **kwargs):
         return Rotate()
     elif transform_enum == TransformEnum.Translate:
         return Translate(**kwargs)
+    elif transform_enum == TransformEnum.Scale:
+        return Scale(**kwargs)
     elif transform_enum == TransformEnum.DeepInV:
         trans_homo = _get_homography(kwargs)
         return DeepinvTransform(trans_homo)

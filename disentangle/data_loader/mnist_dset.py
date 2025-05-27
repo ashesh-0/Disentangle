@@ -4,7 +4,7 @@ from sklearn.model_selection import train_test_split
 
 from deepinv.transform.projective import Homography
 from disentangle.core.data_split_type import DataSplitType
-from finetunesplit.asymmetric_transforms import (DeepinvTransform, HFlip, Identity, Rotate, TransformAllChannels,
+from finetunesplit.asymmetric_transforms import (DeepinvTransform, HFlip, Identity, Rotate, Scale, TransformAllChannels,
                                                  TransformEnum, Translate, VFlip)
 from finetunesplit.aug_patch_shuffle import GridShuffle
 from mnist import MNIST
@@ -23,6 +23,8 @@ def get_one_channel_transforms(transform_list, device='cpu'):
             transforms.append(VFlip())
         elif transform_dict['name'] == TransformEnum.Translate:
             transforms.append(Translate(max_fraction=transform_dict['max_fraction']))
+        elif transform_dict['name'] == TransformEnum.Scale:
+            transforms.append(Scale(min_scale=transform_dict['min_scale'], max_scale=transform_dict['max_scale']))
         elif transform_dict['name'] == TransformEnum.DeepInV:
             trans_homo = Homography(n_trans = 1, zoom_factor_min=1.0, theta_max=transform_dict['aug_theta_max'], 
                                     theta_z_max=transform_dict['aug_theta_z_max'], 
