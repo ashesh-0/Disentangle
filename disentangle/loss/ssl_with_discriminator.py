@@ -3,6 +3,7 @@ from datetime import datetime
 
 import numpy as np
 import torch
+import torch.nn as nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -39,12 +40,18 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                                 D_train_G_on_both_real_and_fake=False,
                                 use_embedding_network=False,
                                 tv_weight =0.0,
+                                enable_supervised_loss=False,
                                 num_workers=4,
                                 k_augmentations=1,sample_mixing_ratio=False, tmp_dir='/group/jug/ashesh/tmp'):
     """
     external_real_data: For a discriminator based setup, we need to have a notion of how the real data should look like. So, this would either be the predictions on the training data, or would be real channel data. Note the it must be of the same shape as the predictions. Alos, it must be normalized. Because otherwise, one can simply differentiate by the scaling.
     """
-
+    if enable_supervised_loss:
+        print('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
+        print('')
+        print('WARNING: !! Enabling supervised loss')
+        print('')
+        print('xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx')
     tmp_path = f'{tmp_dir}/finetune_with_discriminator_{datetime.now().strftime("%Y%m%d_%H%M%S")}'
     os.makedirs(tmp_path, exist_ok=True)
     # enable dropout.
@@ -122,9 +129,10 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
     factor2_arr = []
     offset2_arr = []
     mixing_ratio_arr= []
+    loss_sup_arr = []
     
     best_val_loss = 1e6
-    best_factors = best_offsets = None
+    best_factors = best_offsets = best_step = None
 
     cnt = 0
     step_idx = 0
@@ -147,11 +155,15 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                                     offset2=offset2, skip_pixels=skip_pixels,
                                     stats_enforcing_loss_fn=stats_enforcing_loss_fn, 
                                     sample_mixing_ratio=sample_mixing_ratio, return_predictions=True)
+                loss_sup = 0
+                if enable_supervised_loss:
+                    loss_sup = nn.MSELoss()(loss_dict['pred_FP1'], tar.cuda())
+                
                 for key in keys:
                     agg_loss_dict[key] =agg_loss_dict[key] + loss_dict[key]/ k_augmentations
                 
             
-            loss = agg_loss_dict['loss_inp'] + agg_loss_dict['loss_pred'] + agg_loss_dict['loss_inp2'] + agg_loss_dict['stats_loss']
+            loss = agg_loss_dict['loss_inp'] + agg_loss_dict['loss_pred'] + agg_loss_dict['loss_inp2'] + agg_loss_dict['stats_loss'] + loss_sup
             loss_tv = 0
             if tv_weight > 0:
                 loss_tv = total_variation_loss(loss_dict['pred_FP1'], tv_weight)
@@ -220,7 +232,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             loss_pred_arr.append(agg_loss_dict['loss_pred'].item())
             loss_inp2_arr.append(agg_loss_dict['loss_inp2'].item() if torch.is_tensor(agg_loss_dict['loss_inp2']) else agg_loss_dict['loss_inp2'])
             loss_tv_arr.append(loss_tv.item() if torch.is_tensor(loss_tv) else loss_tv)
-
+            loss_sup_arr.append(loss_sup.item() if torch.is_tensor(loss_sup) else None)
             stats_loss_arr.append(agg_loss_dict['stats_loss'].item() if torch.is_tensor(agg_loss_dict['stats_loss']) else agg_loss_dict['stats_loss'])
             factor1_arr.append(factor1.item())
             offset1_arr.append(offset1.item())
@@ -270,6 +282,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                     best_factors = [factor1.item(), factor2.item()]
                     best_offsets = [offset1.item(), offset2.item()]
                     best_val_loss = val_loss
+                    best_step = len(loss_arr)
                     # save the model
                     torch.save(model.state_dict(), f'{tmp_path}/best_model.pth')
                     torch.save(AdvLoss.state_dict(), f'{tmp_path}/best_discriminator.pth')
@@ -292,10 +305,12 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
 
     return {'loss': loss_arr, 'best_loss': best_val_loss, 'best_factors': best_factors, 
             'best_offsets': best_offsets, 'factor1': factor1_arr, 'offset1': offset1_arr, 
+            'best_step': best_step,
             'factor2': factor2_arr, 'offset2': offset2_arr, 'mixing_ratio': mixing_ratio_arr,
             'loss_inp': loss_inp_arr, 'loss_pred': loss_pred_arr,
             'loss_inp2': loss_inp2_arr,
             'loss_tv': loss_tv_arr,
+            'loss_sup': loss_sup_arr,
             'stats_loss': stats_loss_arr,
             'gen_fake': gen_fake_arr, 'discrim_real': discrim_real_arr,
             'discrim_fake': discrim_fake_arr, 'grad_penalty': grad_penalty_arr,

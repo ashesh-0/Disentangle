@@ -70,6 +70,10 @@ def plot_finetuning_loss(finetuning_output_dict, loss_rolling=50):
     pd.Series(finetuning_output_dict['loss_inp']).rolling(loss_rolling).mean().plot(ax=ax[1,0], logy=True, label = '$loss_{inp}$')
     pd.Series(finetuning_output_dict['loss_pred']).rolling(loss_rolling).mean().plot(ax=ax[1,1], logy=True, label = '$loss_{pred}$')
     pd.Series(finetuning_output_dict['stats_loss']).plot(ax=ax[1,2], label = '$loss_{stats}$')
+    # place a vertical line at finetuning_output_dict['best_step'] for each ax
+    for i in range(6):
+        ax[0,i].axvline(finetuning_output_dict['best_step'], color='r', linestyle='--', ymax = 0.2, label='Best Step')
+        ax[1,i].axvline(finetuning_output_dict['best_step'], color='r', linestyle='--', ymax =0.2, label='Best Step')
     # 
     if 'psnr' in finetuning_output_dict and finetuning_output_dict['psnr'][0] is not None:
         psnr = np.array(finetuning_output_dict['psnr'])
