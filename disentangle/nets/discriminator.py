@@ -4,43 +4,62 @@ import torch.nn as nn
 
 
 class Discriminator(torch.nn.Module):
-    def __init__(self, channels, first_out_channel=128):
+    def __init__(self, channels, dense=False, first_out_channel=128):
         super().__init__()
         # Filters [256, 512, 1024]
         # Input_dim = channels (Cx64x64)
         # Output_dim = 1
-        self._out_C = first_out_channel*4
-        self.main_module = nn.Sequential(
-            # Omitting batch normalization in critic because our new penalized training objective (WGAN with gradient penalty) is no longer valid
-            # in this setting, since we penalize the norm of the critic's gradient with respect to each input independently and not the enitre batch.
-            # There is not good & fast implementation of layer normalization --> using per instance normalization nn.InstanceNorm2d()
-            # Image (Cx32x32)
-            nn.Conv2d(in_channels=channels, out_channels=first_out_channel, kernel_size=4, stride=2, padding=1),
-            nn.InstanceNorm2d(first_out_channel, affine=True),
-            nn.LeakyReLU(0.2, inplace=True),
-
-            # State (256x16x16)
-            # nn.Conv2d(in_channels=first_out_channel, out_channels=first_out_channel*2, kernel_size=4, stride=2, padding=1),
-            # nn.InstanceNorm2d(first_out_channel*2, affine=True),
-            # nn.LeakyReLU(0.2, inplace=True),
-
-            # State (512x8x8)
-            nn.Conv2d(in_channels=first_out_channel, out_channels=self._out_C, kernel_size=4, stride=2, padding=1),
-            nn.InstanceNorm2d(self._out_C, affine=True),
-            nn.LeakyReLU(0.2, inplace=True))
-            # output of main module --> State (1024x4x4)
-
-        self.output = nn.Sequential(
-            # The output of D is no longer a probability, we do not apply sigmoid at the output of D.
-            nn.Conv2d(in_channels=self._out_C, out_channels=1, kernel_size=2, stride=1, padding=0)
-            # tanh
-            # nn.Tanh()
+        self._dense = dense
+        if self._dense:
+            self.main_module = nn.Sequential(
+                nn.Linear(channels, 128),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Linear(128, 256),
+                nn.LeakyReLU(0.2, inplace=True),
+                nn.Linear(256, 512),
+                nn.LeakyReLU(0.2, inplace=True),
             )
-        print(f'{self.__class__.__name__} initialized with {self._out_C} channels')
+            self.output = nn.Sequential(
+                # Output layer
+                nn.Linear(512, 1)
+            )
+        else:
+            self._out_C = first_out_channel*4
+            self.main_module = nn.Sequential(
+                # Omitting batch normalization in critic because our new penalized training objective (WGAN with gradient penalty) is no longer valid
+                # in this setting, since we penalize the norm of the critic's gradient with respect to each input independently and not the enitre batch.
+                # There is not good & fast implementation of layer normalization --> using per instance normalization nn.InstanceNorm2d()
+                # Image (Cx32x32)
+                nn.Conv2d(in_channels=channels, out_channels=first_out_channel, kernel_size=4, stride=2, padding=1),
+                nn.InstanceNorm2d(first_out_channel, affine=True),
+                nn.LeakyReLU(0.2, inplace=True),
+
+                # State (256x16x16)
+                # nn.Conv2d(in_channels=first_out_channel, out_channels=first_out_channel*2, kernel_size=4, stride=2, padding=1),
+                # nn.InstanceNorm2d(first_out_channel*2, affine=True),
+                # nn.LeakyReLU(0.2, inplace=True),
+
+                # State (512x8x8)
+                nn.Conv2d(in_channels=first_out_channel, out_channels=self._out_C, kernel_size=4, stride=2, padding=1),
+                nn.InstanceNorm2d(self._out_C, affine=True),
+                nn.LeakyReLU(0.2, inplace=True))
+                # output of main module --> State (1024x4x4)
+
+            self.output = nn.Sequential(
+                # The output of D is no longer a probability, we do not apply sigmoid at the output of D.
+                nn.Conv2d(in_channels=self._out_C, out_channels=1, kernel_size=2, stride=1, padding=0)
+                # tanh
+                # nn.Tanh()
+                )
+            print(f'{self.__class__.__name__} initialized with {self._out_C} channels')
 
 
     def forward(self, x):
         # print(x.shape, 'before discriminator')
+        if self._dense:
+            # Flatten input for dense network
+            x = x.view(x.size(0), -1)
+        
         x = self.main_module(x)
         # print(x.shape, 'after discriminator')
         return self.output(x)
@@ -60,5 +79,6 @@ class LatentDiscriminator(nn.Module):
     def forward(self, x):
         # print(x.shape, 'before embedding')
         x = self.embedding_network.get_embedding(x)
+        # print(self.embedding_network.output_layer.weight.data[0,0].reshape(-1))
         # print(x.shape, 'after embedding')   
         return self.D(x)

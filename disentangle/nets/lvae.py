@@ -996,13 +996,14 @@ class LadderVAE(pl.LightningModule):
 
     def forward(self, x):
         img_size = x.size()[2:]
-
+        # print(f"Input size: {img_size}")
         # Pad input to make everything easier with conv strides
         x_pad = self.pad_input(x)
+        # print(f"Input size after padding: {x_pad.size()[2:]}, {self.overall_downscale_factor}")
 
         # Bottom-up inference: return list of length n_layers (bottom to top)
         bu_values = self.bottomup_pass(x_pad)
-
+        # print([x.shape for x in bu_values])
         for i in range(0, self.skip_bottomk_buvalues):
             bu_values[i] = None
 
@@ -1236,8 +1237,7 @@ class LadderVAE(pl.LightningModule):
             return list(size)
 
         # Overall downscale factor from input to top layer (power of 2)
-        dwnsc = (1+self.overall_downscale_factor)
-        f = 2**dwnsc
+        f = self.overall_downscale_factor
         # Output smallest powers of 2 that are larger than current sizes
         padded_size = [s + (f - s%f)%f for s in size]
         # padded_size = list(((s - 1) // dwnsc + 1) * dwnsc for s in size)

@@ -11,7 +11,7 @@ from disentangle.nets.lvae import LadderVAE
 from finetunesplit.asymmetric_transforms import TransformEnum
 
 
-def get_vae(input_channels=2):
+def get_vae_config(input_channels=2):
     config = ml_collections.ConfigDict()
     config.training = ml_collections.ConfigDict()
     config.training.lr = 1e-3
@@ -63,7 +63,7 @@ def get_vae(input_channels=2):
     config.model.encoder = ml_collections.ConfigDict()
     config.model.decoder = ml_collections.ConfigDict()
     config.model.model_type = ModelType.LadderVae
-    config.model.z_dims = [4,4]
+    config.model.z_dims = [8,8,8,8]
 
     config.model.encoder.batchnorm = True
     config.model.encoder.blocks_per_layer = 1
@@ -99,19 +99,27 @@ def get_vae(input_channels=2):
     config.model.multiscale_lowres_separate_branch = False
     config.model.multiscale_retain_spatial_dims = True
     config.model.monitor = 'val_psnr'  # {'val_loss','val_psnr'}
-    config.model.non_stochastic_version = False
     config.model.enable_noise_model = False
-    config.model.skip_bottomk_buvalues = 1
 
 
+    config.model.non_stochastic_version = True
+    config.model.skip_bottomk_buvalues = len(config.model.z_dims) - 1
+    return config
+
+def get_vae(input_channels=2, pretrained_weights_fpath=None):
+    config = get_vae_config(input_channels)
     data_mean = {'target': np.array([0.0]), 'input':np.array([0.0])} 
     data_std = {'target': np.array([1.0]), 'input':np.array([1.0])}
 
     class LVAEForward(LadderVAE):
         def get_embedding(self, x):
             _, td_data = self.forward(x)
-            embeeding = td_data['z'][-1]
-            return nn.functional.pad(embeeding, [1,0,1,0, 0, 0, 0, 0])
+            embedding = td_data['z'][-1]
+            return embedding
         
-    model = LVAEForward(data_mean, data_std, config, target_ch=2)
+    model = LVAEForward(data_mean, data_std, config, target_ch=input_channels)
+    if pretrained_weights_fpath is not None:
+        model.load_state_dict(torch.load(pretrained_weights_fpath))
+        print(f"Loaded pretrained weights from {pretrained_weights_fpath}")
+    
     return model, config.model.z_dims[-1]

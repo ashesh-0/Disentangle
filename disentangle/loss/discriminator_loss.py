@@ -19,14 +19,14 @@ class RealData:
         return torch.Tensor(self.data[idx])
 
 class DiscriminatorLoss(nn.Module):
-    def __init__(self, num_channels=2, gradient_penalty_lambda=0.1, loss_mode='wgan', realimg_key='gt', fakeimg_key='pred_FP1',
+    def __init__(self, num_channels=2, gradient_penalty_lambda=0.1, dense_discriminator=False, loss_mode='wgan', realimg_key='gt', fakeimg_key='pred_FP1',
                  loss_scalar:Union[float,Tuple]=1.0, 
                  train_G_on_both_real_and_fake=False,
                  only_one_channel_idx=None, 
                  embedding_network=None):
         super().__init__()
         assert num_channels ==1 or only_one_channel_idx is None, "If num_channels > 1, only_one_channel_idx must be None"
-        self.discriminator_network = Discriminator(num_channels)
+        self.discriminator_network = Discriminator(num_channels, dense=dense_discriminator)
         if embedding_network is None:
             self.D = self.discriminator_network
         else:
