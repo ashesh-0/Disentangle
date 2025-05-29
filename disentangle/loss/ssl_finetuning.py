@@ -69,6 +69,8 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
     
     import os
     from datetime import datetime
+    assert 2*skip_pixels <= finetune_dset[0][0].shape[-1], "skip_pixels should be less than half of the image size"
+    assert 2*skip_pixels <= finetune_val_dset[0][0].shape[-2], "skip_pixels should be less than half of the image size"
     finetune_dset.train_mode()
     finetune_val_dset.eval_mode()
 
@@ -151,7 +153,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                     agg_loss_dict[key] += loss_dict[key]/ k_augmentations
                 
             loss = agg_loss_dict['loss_inp'] + agg_loss_dict['loss_pred'] + agg_loss_dict['loss_inp2'] + agg_loss_dict['stats_loss']
-            
+            # print('Loss upper level:',agg_loss_dict['loss_inp'].item(), agg_loss_dict['loss_pred'].item(), agg_loss_dict['loss_inp2'], agg_loss_dict['stats_loss'].item())
             loss.backward()
             loss_arr.append(loss.item())
             loss_inp_arr.append(agg_loss_dict['loss_inp'].item())

@@ -1024,6 +1024,9 @@ class LadderVAE(pl.LightningModule):
             ch2 = self.get_other_channel(out, x_pad)
             out = torch.cat([out, ch2], dim=1)
 
+        if out.isnan().any():
+            msg = "Output contains NaN values. Output shape: {}, bu_values: {}".format(out.shape, [x.shape for x in bu_values])
+            print(msg)
         return out, td_data
 
     def bottomup_pass(self, inp):
@@ -1241,7 +1244,7 @@ class LadderVAE(pl.LightningModule):
         # Output smallest powers of 2 that are larger than current sizes
         padded_size = [s + (f - s%f)%f for s in size]
         # padded_size = list(((s - 1) // dwnsc + 1) * dwnsc for s in size)
-
+        # print('padding', size, padded_size)
         return padded_size
 
     def sample_prior(self, n_imgs, mode_layers=None, constant_layers=None):
