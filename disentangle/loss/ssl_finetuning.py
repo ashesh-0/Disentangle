@@ -133,6 +133,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
     best_factors = best_offsets = None
 
     cnt = 0
+    best_step = None
     while True:
         dloader = DataLoader(finetune_dset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
 
@@ -186,6 +187,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                     best_factors = [factor1.item(), factor2.item()]
                     best_offsets = [offset1.item(), offset2.item()]
                     best_val_loss = val_loss
+                    best_step = len(loss_arr)
                     # save the model
                     torch.save(model.state_dict(), f'{tmp_path}/best_model.pth')
 
@@ -206,6 +208,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
 
     return {'loss': loss_arr, 'best_loss': best_val_loss, 'best_factors': best_factors, 
             'best_offsets': best_offsets, 'factor1': factor1_arr, 'offset1': offset1_arr, 
+            'best_step': best_step,
             'factor2': factor2_arr, 'offset2': offset2_arr, 'mixing_ratio': mixing_ratio_arr,
             'loss_inp': loss_inp_arr, 'loss_pred': loss_pred_arr,
             'loss_inp2': loss_inp2_arr,
