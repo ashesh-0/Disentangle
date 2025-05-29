@@ -41,8 +41,10 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                                 D_train_G_on_both_real_and_fake=False,
                                 use_embedding_network=False,
                                 pretrained_embedding_network_fpath=None,
+                                embedding_zdim = 8,
                                 tv_weight =0.0,
                                 enable_supervised_loss=False,
+                                start_adv_loss_step=10000,
                                 num_workers=4,
                                 k_augmentations=1,sample_mixing_ratio=False, tmp_dir='/group/jug/ashesh/tmp'):
     """
@@ -76,10 +78,12 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
     assert optimization_params_dict is not None, "Please provide optimization parameters"
 
     embedding_network = None
+    update_embedding_network = use_embedding_network and pretrained_embedding_network_fpath is None
     if use_embedding_network:
-        embedding_network,num_input_channels = get_vae(input_channels=1 if D_realimg_key == 'inp' else 2)
+        # print('Using embedding network for discriminator', embedding_zdim)
+        embedding_network,num_input_channels = get_vae(input_channels=1 if D_realimg_key == 'inp' else 2, z_dim=embedding_zdim)
         if pretrained_embedding_network_fpath is not None:
-            print(f'Loading pretrained embedding network from {pretrained_embedding_network_fpath}')
+            print(f'Loading pretrained embedding network from {pretrained_embedding_network_fpath}', embedding_zdim)
             embedding_network.load_state_dict(torch.load(pretrained_embedding_network_fpath))
 
         embedding_network.set_params_to_same_device_as(torch.ones(1).cuda())
@@ -95,7 +99,10 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             num_input_channels = 2
     if dense_discriminator:
         # update 2x2 with whatever is the spatial size of the input.
-        num_input_channels *= 2*2
+        if embedding_network is None:
+            num_input_channels *= 28*28
+        else:
+            num_input_channels *= 2*2
     AdvLoss = DiscriminatorLossWithExistingData(external_real_data, 
                                                 num_channels=num_input_channels, 
                                                 dense_discriminator=dense_discriminator,
@@ -112,7 +119,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
     # define an optimizer
     # opt = torch.optim.Adam(model.parameters(), lr=1e-3)
     gen_params  = list(optimization_params_dict['parameters'])
-    if use_embedding_network and pretrained_embedding_network_fpath is None:
+    if update_embedding_network:
         gen_params += list(embedding_network.parameters())
     
     opt_gen = torch.optim.Adam(gen_params, lr=optimization_params_dict['lr'], weight_decay=0)
@@ -196,7 +203,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             
             loss_embedding_network = 0
             # gen_loss_dict = update_gradients_with_generator_loss(discriminator, pred[:,:2], mode=D_mode)
-            if embedding_network is not None:
+            if update_embedding_network:
                 # We need to train on real image as well. 
                 pred_detached = loss_dict[D_realimg_key].detach() if D_realimg_key != 'inp' else AdvLoss.get_external_data(len(inp)).to(inp.device)
                 # print(pred_detached.shape, 'pred_detached')
@@ -205,7 +212,9 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
                 loss += loss_embedding_network
             
             loss.backward(retain_graph=True)
-            update_with_g_loss = (k_Dsteps_perG > 1 and step_idx % k_Dsteps_perG == 0) or (k_Dsteps_perG <= 1)
+            enable_adv = cnt >= start_adv_loss_step
+
+            update_with_g_loss = enable_adv and ((k_Dsteps_perG > 1 and step_idx % k_Dsteps_perG == 0) or (k_Dsteps_perG <= 1))
             gen_loss_dict= AdvLoss.G_loss(adv_data_dict, return_loss_without_update=not update_with_g_loss)
 
             opt_gen.step()
@@ -219,7 +228,7 @@ def finetune_with_D_two_forward_passes(model, finetune_dset, finetune_val_dset, 
             # real_data = real_data_gen.get(len(inp)).to(inp.device)
             # disc_loss_dict = update_gradients_with_discriminator_loss(discriminator, real_data, pred[:,:2].detach(), lambda_term=grain_penalty_lambda, enable_gradient_penalty=enable_gradient_penalty, mode=D_mode)
             # print('inspecting grad', adv_data_dict['pred_FP1'].mean(), adv_data_dict['pred_FP2'].mean())      
-            update_with_D_loss =k_Dsteps_perG > 1 or (step_idx % (int(1/k_Dsteps_perG)) == 0)
+            update_with_D_loss =enable_adv and (k_Dsteps_perG > 1 or (step_idx % (int(1/k_Dsteps_perG)) == 0))
             disc_loss_dict = AdvLoss.D_loss(adv_data_dict, return_loss_without_update=not update_with_D_loss)
             if update_with_D_loss:
                 opt_dis.step()

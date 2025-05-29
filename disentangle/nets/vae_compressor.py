@@ -11,7 +11,7 @@ from disentangle.nets.lvae import LadderVAE
 from finetunesplit.asymmetric_transforms import TransformEnum
 
 
-def get_vae_config(input_channels=2):
+def get_vae_config(input_channels=2, z_dim=None):
     config = ml_collections.ConfigDict()
     config.training = ml_collections.ConfigDict()
     config.training.lr = 1e-3
@@ -63,7 +63,10 @@ def get_vae_config(input_channels=2):
     config.model.encoder = ml_collections.ConfigDict()
     config.model.decoder = ml_collections.ConfigDict()
     config.model.model_type = ModelType.LadderVae
-    config.model.z_dims = [8,8,8,8]
+    if z_dim is not None:
+        config.model.z_dims = [z_dim]*4
+    else:
+        config.model.z_dims = [8,8,8,8]
 
     config.model.encoder.batchnorm = True
     config.model.encoder.blocks_per_layer = 1
@@ -106,8 +109,8 @@ def get_vae_config(input_channels=2):
     config.model.skip_bottomk_buvalues = len(config.model.z_dims) - 1
     return config
 
-def get_vae(input_channels=2, pretrained_weights_fpath=None):
-    config = get_vae_config(input_channels)
+def get_vae(input_channels=2, pretrained_weights_fpath=None, z_dim=None):
+    config = get_vae_config(input_channels, z_dim=z_dim)
     data_mean = {'target': np.array([0.0]), 'input':np.array([0.0])} 
     data_std = {'target': np.array([1.0]), 'input':np.array([1.0])}
 
@@ -118,6 +121,7 @@ def get_vae(input_channels=2, pretrained_weights_fpath=None):
             return embedding
         
     model = LVAEForward(data_mean, data_std, config, target_ch=input_channels)
+    print(model)
     if pretrained_weights_fpath is not None:
         model.load_state_dict(torch.load(pretrained_weights_fpath))
         print(f"Loaded pretrained weights from {pretrained_weights_fpath}")
