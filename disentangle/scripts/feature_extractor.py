@@ -54,20 +54,29 @@ def extract_feature_one_batch(model, x:torch.Tensor) -> dict:
     data_dict = extract_raw_feature_one_batch(model, x)
     summarized_dict = {}
     for key in data_dict.keys():
-        avg_arr = [x.mean(axis=(2,3))[...,None] for x in data_dict[key]]
-        std_arr = [x.std(axis=(2,3))[...,None] for x in data_dict[key]]
+        avg_arr = [x.mean(axis=(2,3)) for x in data_dict[key]]
+        std_arr = [x.std(axis=(2,3)) for x in data_dict[key]]
         feature = [np.concatenate([avg,std],axis=-1) for avg,std in zip(avg_arr,std_arr)]
         summarized_dict[key] = feature
     return summarized_dict
 
+def get_feature_fpaths(feature_str, outputdir, num_hierarchies):
+    assert feature_str in ['bu_values', 'mu_Z', 'logvar_Z'], "feature_str must be one of ['bu_values', 'mu_Z', 'logvar_Z']"
+    feature_fpaths = [os.path.join(outputdir, f'{feature_str}/hierarchy_{k}/{feature_str}_{k}.mmap') for k in range(num_hierarchies)]
+    return feature_fpaths
 
 def get_multi_hierarchy_mmaps(feature_str, outputdir, num_hierarchies, channel_count, num_inputs):
-    feature_fpaths = [os.path.join(outputdir, f'{feature_str}/hierarchy_{k}/{feature_str}_{k}.mmap') for k in range(num_hierarchies)]
+    feature_fpaths = get_feature_fpaths(feature_str, outputdir, num_hierarchies)
     # create the directories if they do not exist
     for fpath in feature_fpaths:
         os.makedirs(os.path.dirname(fpath), exist_ok=True)
     
-    feature_data = [np.memmap(fpath, dtype=float, mode='w+', shape=(num_inputs, channel_count, 2)) for fpath in feature_fpaths]
+    feature_data = [np.memmap(fpath, dtype=float, mode='w+', shape=(num_inputs, channel_count)) for fpath in feature_fpaths]
+    # save the shape 
+    shape_fpath = os.path.join(outputdir, feature_str, f'shape_{feature_str}.txt')
+    with open(shape_fpath, 'w') as f:
+        f.write(f'{num_inputs},{channel_count}\n')
+    
     return  feature_data
 
 def extract_and_save_features(model,dset,  outputdir, num_epochs=1, num_hierarchies=4, bu_values_channels=64,
@@ -83,18 +92,31 @@ def extract_and_save_features(model,dset,  outputdir, num_epochs=1, num_hierarch
         num_epochs: The number of epochs to run the extraction for.
     """
     os.makedirs(outputdir, exist_ok=True)
+    
+    print('---------------')
+    print(f'Extracting features from {len(dset)} data points for {num_epochs} epochs and saving to {outputdir}')
+    print('---------------')
+
     model.eval()  # Set the model to evaluation mode
     dloader = torch.utils.data.DataLoader(dset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
     # input
     inpC,inpH,inpW = dset[0][0].shape
     input_fpath = os.path.join(outputdir, 'patches.mmap')
+    num_data_points = len(dset) * num_epochs
+    # save the num_data_points in the input_fpath
+    # np.save(os.path.join(outputdir, 'num_data_points.npy'), num_data_points)
 
-    input_data = np.memmap(input_fpath, dtype=float, mode='w+', shape=(len(dset)*num_epochs, inpC,inpH, inpW))
+    input_data = np.memmap(input_fpath, dtype=float, mode='w+', shape=(num_data_points, inpC,inpH, inpW))
+    # save the shape 
+    shape_fpath = os.path.join(outputdir, 'shape_input.txt')
+    with open(shape_fpath, 'w') as f:
+        f.write(f'{num_data_points},{inpC},{inpH},{inpW}\n')
+
     
     # bu_values
-    bu_values_data = get_multi_hierarchy_mmaps('bu_values', outputdir, num_hierarchies, bu_values_channels, len(dset)*num_epochs)
-    mu_data = get_multi_hierarchy_mmaps('mu_Z', outputdir, num_hierarchies, mu_Z_channels, len(dset)*num_epochs)
-    sigma_data = get_multi_hierarchy_mmaps('logvar_Z', outputdir, num_hierarchies, sigma_Z_channels, len(dset)*num_epochs)
+    bu_values_data = get_multi_hierarchy_mmaps('bu_values', outputdir, num_hierarchies, bu_values_channels*2, num_data_points)
+    mu_data = get_multi_hierarchy_mmaps('mu_Z', outputdir, num_hierarchies, mu_Z_channels*2, num_data_points)
+    sigma_data = get_multi_hierarchy_mmaps('logvar_Z', outputdir, num_hierarchies, sigma_Z_channels*2, num_data_points)
 
     cnt = 0
     for _ in range(num_epochs):
@@ -110,7 +132,8 @@ def extract_and_save_features(model,dset,  outputdir, num_epochs=1, num_hierarch
             cnt += inp.shape[0]
             # breakpoint()  # For debugging purposes, remove in production.
             # Flush the memory-mapped files to disk
-            
+    for key in ['bu_values', 'mu_Z', 'logvar_Z']:
+        print(key, features[key][0].shape)
 
 def boilerplate(ckpt_dir, data_dir):
     config = load_config(ckpt_dir)
