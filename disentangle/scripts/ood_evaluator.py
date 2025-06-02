@@ -15,29 +15,37 @@ def load_normalized_features(raw_feature_fpath:str, shape:tuple):
     norm_feature_fpath = os.path.join(os.path.dirname(raw_feature_fpath), f'norm_{fname}')
     if os.path.exists(norm_feature_fpath):
         print(f'Loading normalized features from {norm_feature_fpath}')
-        return np.memmap(norm_feature_fpath, dtype=float, mode='r', shape=shape)
+        return np.memmap(norm_feature_fpath, dtype=np.float32, mode='r', shape=shape)
     else:
         normalizer = lambda x: x / np.linalg.norm(x, axis=-1, keepdims=True) + 1e-10
         print(f'Normalizing features from {raw_feature_fpath} and saving to {norm_feature_fpath}')
-        data = np.memmap(raw_feature_fpath, dtype=float, mode='r', shape=shape)
-        norm_data = np.memmap(norm_feature_fpath, dtype=float, mode='w+', shape=shape)
+        data = np.memmap(raw_feature_fpath, dtype=np.float32, mode='r', shape=shape)
+        norm_data = np.memmap(norm_feature_fpath, dtype=np.float32, mode='w+', shape=shape)
         norm_data[:] = normalizer(data)
         return norm_data
 
 def get_shape(feature_fpath: str):
     """
     Get the shape of the feature file.
+    /group/jug/ashesh/EnsDeLyon/OOD/2406_D25-M3-S0-L8_10/logvar_Z/hierarchy_2/logvar_Z_2.mmap
     """
-    datadir = os.path.dirname(feature_fpath)
-    fname = 'shape_' + os.path.basename(feature_fpath)
+    datadir = os.path.dirname(os.path.dirname(feature_fpath))
+    fname = 'shape_' + os.path.basename(datadir) + '.txt'
     shape_fpath = os.path.join(datadir, fname)
-    return tuple(np.load(shape_fpath, allow_pickle=True))
+    with open(shape_fpath, 'r') as f:
+        shape_str = f.readline().strip().split(',')
+        shape = tuple([int(x) for x in shape_str])
+    return shape
 
 def evaluate(indistribution_feature_fpath, ood_feature_fpath):
     in_feat = load_normalized_features(indistribution_feature_fpath, shape=get_shape(indistribution_feature_fpath))
     ood_feat = load_normalized_features(ood_feature_fpath, shape=get_shape(ood_feature_fpath))
+    
+    in_feat = np.asarray(in_feat, dtype=np.float32)
+    ood_feat = np.asarray(ood_feat, dtype=np.float32)
+    # breakpoint()
 
-    ALPHA = 1.00
+    ALPHA = 1.0
     for K in [100]:
         rand_ind = np.random.choice(len(in_feat), int(len(in_feat) * ALPHA), replace=False)
         index = faiss.IndexFlatL2(in_feat.shape[1])
@@ -56,3 +64,18 @@ def evaluate(indistribution_feature_fpath, ood_feature_fpath):
         print()
 
 
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Evaluate OOD detection using KNN distance')
+    parser.add_argument('--ind', type=str,
+                        help='Path to the in-distribution feature file')
+    parser.add_argument('--ood', type=str,
+                        help='Path to the out-of-distribution feature file')
+
+    args = parser.parse_args()
+
+    indistribution_feature_fpath = args.ind
+    ood_feature_fpath = args.ood
+
+    evaluate(indistribution_feature_fpath, ood_feature_fpath)

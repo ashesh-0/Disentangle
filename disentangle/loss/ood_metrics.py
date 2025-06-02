@@ -10,7 +10,7 @@ import sys
 import numpy as np
 from scipy import misc
 
-from ylib.yplot import plot_distrib
+# from ylib.yplot import plot_distrib
 
 
 def cal_metric(known, novel, method=None):
