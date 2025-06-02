@@ -24,6 +24,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
+import ml_collections
 from disentangle.analysis.checkpoint_utils import get_best_checkpoint
 from disentangle.config_utils import load_config
 from disentangle.core.data_split_type import DataSplitType
@@ -160,11 +161,12 @@ def boilerplate(ckpt_dir, data_dir, test_datapath):
     if test_datapath is not None:
         print(f"Using test dataset: {test_datapath}")
         data_dir = os.path.dirname(test_datapath)
-        config.data.data_type = DataType.MultiTiffSameSizeDset
-        # config.data.channel_idx_list = [0,1,2,3,4,5]
-        config.data.train_fnames = [os.path.basename(test_datapath)]
-        config.data.val_fnames = [os.path.basename(test_datapath)]
-        config.data.test_fnames = [os.path.basename(test_datapath)]
+        config = ml_collections.ConfigDict(config)
+        with config.unlocked():
+            config.data.data_type = DataType.MultiTiffSameSizeDset
+            config.data.train_fnames = [os.path.basename(test_datapath)]
+            config.data.val_fnames = [os.path.basename(test_datapath)]
+            config.data.test_fnames = [os.path.basename(test_datapath)]
 
     train_dset, val_dset = create_dataset(
         config,
@@ -189,14 +191,20 @@ def boilerplate(ckpt_dir, data_dir, test_datapath):
 
     return {'config': config, 'train_dset': train_dset, 'val_dset': val_dset, 'model': model}
 
-def get_output_modeldir(output_dir, ckpt_dir):
+def get_output_modeldir(output_dir, ckpt_dir, test_datapath=None):
     """
     ckpt_dir: /group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/1
     """
     if ckpt_dir[-1] == '/':
         ckpt_dir = ckpt_dir[:-1]
     modeldir = '_'.join(ckpt_dir.split("/")[-3:])
-    return os.path.join(output_dir, modeldir)
+    resultsdir = os.path.join(output_dir, modeldir)
+    if test_datapath is not None:
+        test_fname = os.path.basename(test_datapath).replace('.tif', '').replace('.tiff', '')
+        resultsdir = os.path.join(resultsdir, test_fname)
+    os.makedirs(resultsdir, exist_ok=True)
+    # breakpoint()  # For debugging purposes, remove in production.
+    return resultsdir
 
 if __name__ == '__main__':
     import argparse
@@ -211,10 +219,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     boilerplate_output = boilerplate(args.ckpt_dir, args.data_dir, args.test_datapath)
+    # breakpoint()  # For debugging purposes, remove in production.
     extract_and_save_features(
         boilerplate_output['model'],
         boilerplate_output['train_dset'],
-        get_output_modeldir(args.output_dir, args.ckpt_dir),
+        get_output_modeldir(args.output_dir, args.ckpt_dir, args.test_datapath),
         num_epochs=args.num_epochs,
         batch_size=args.batch_size,
     )
