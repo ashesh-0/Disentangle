@@ -22,8 +22,17 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType):
         raise Exception("invalid datasplit")
     
     fpaths = [os.path.join(datadir, x) for x in fnames]
-    data = [(load_tiff(x).transpose((0,2,3,1)),x) for x in fpaths]
-    data = [(x[0][...,data_config.channel_idx_list],x[1]) for x in data]
+    # N x H x W x C
+    data = [load_tiff(x) for x in fpaths]
+    for x in data:
+        assert len(x.shape) == 4, f"Expected 4D tiff data, got {x.shape} for {x}"
+    # it could be that it just has one channel. in which case the easiest way is to just replicate it
+    if data[0].shape[-1] == 1:
+        data = [np.repeat(x, len(data_config.channel_idx_list), axis=-1) for x in data]
+    else:    
+        data = [x[...,data_config.channel_idx_list] for x in data]
+    
+    data = list(zip(data, fpaths))
     print('Loaded:', datadir, fnames, 'one data shape', data[0][0].shape)
     return data
 

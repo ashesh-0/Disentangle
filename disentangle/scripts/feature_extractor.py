@@ -27,6 +27,7 @@ from tqdm import tqdm
 from disentangle.analysis.checkpoint_utils import get_best_checkpoint
 from disentangle.config_utils import load_config
 from disentangle.core.data_split_type import DataSplitType
+from disentangle.core.data_type import DataType
 from disentangle.data_loader.patch_index_manager import TilingMode
 from disentangle.training import create_dataset, create_model
 
@@ -143,7 +144,7 @@ def extract_and_save_features(model,dset,  outputdir, num_epochs=1, num_hierarch
     for key in ['bu_values', 'mu_Z', 'logvar_Z']:
         print(key, features[key][0].shape)
 
-def boilerplate(ckpt_dir, data_dir):
+def boilerplate(ckpt_dir, data_dir, test_datapath):
     config = load_config(ckpt_dir)
     padding_kwargs = {
         "mode": config.data.get("padding_mode", "constant"),
@@ -156,6 +157,14 @@ def boilerplate(ckpt_dir, data_dir):
         "overlapping_padding_kwargs": padding_kwargs,
         "tiling_mode": TilingMode.ShiftBoundary,
     }
+    if test_datapath is not None:
+        print(f"Using test dataset: {test_datapath}")
+        data_dir = os.path.dirname(test_datapath)
+        config.data.data_type = DataType.MultiTiffSameSizeDset
+        # config.data.channel_idx_list = [0,1,2,3,4,5]
+        config.data.train_fnames = [os.path.basename(test_datapath)]
+        config.data.val_fnames = [os.path.basename(test_datapath)]
+        config.data.test_fnames = [os.path.basename(test_datapath)]
 
     train_dset, val_dset = create_dataset(
         config,
@@ -198,9 +207,10 @@ if __name__ == '__main__':
     parser.add_argument('--num_epochs', type=int, default=1, help='The number of epochs to run the extraction for.')
     # batch size 
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size for feature extraction.')
+    parser.add_argument('--test_datapath', type=str, default=None, help='Path to the test dataset. If provided, will use this dataset for feature extraction instead of the training dataset.')
     args = parser.parse_args()
 
-    boilerplate_output = boilerplate(args.ckpt_dir, args.data_dir)
+    boilerplate_output = boilerplate(args.ckpt_dir, args.data_dir, args.test_datapath)
     extract_and_save_features(
         boilerplate_output['model'],
         boilerplate_output['train_dset'],
