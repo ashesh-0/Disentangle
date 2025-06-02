@@ -82,6 +82,7 @@ def extract_and_save_features(model,dset,  outputdir, num_epochs=1, num_hierarch
         dset: The dataset to extract features from.
         num_epochs: The number of epochs to run the extraction for.
     """
+    os.makedirs(outputdir, exist_ok=True)
     model.eval()  # Set the model to evaluation mode
     dloader = torch.utils.data.DataLoader(dset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
     # input
@@ -107,6 +108,7 @@ def extract_and_save_features(model,dset,  outputdir, num_epochs=1, num_hierarch
                 mu_data[k][cnt:cnt+inp.shape[0], ...] = features['mu_Z'][k]
                 sigma_data[k][cnt:cnt+inp.shape[0], ...] = features['logvar_Z'][k]
             cnt += inp.shape[0]
+            # breakpoint()  # For debugging purposes, remove in production.
             # Flush the memory-mapped files to disk
             
 
@@ -147,13 +149,21 @@ def boilerplate(ckpt_dir, data_dir):
 
     return {'config': config, 'train_dset': train_dset, 'val_dset': val_dset, 'model': model}
 
+def get_output_modeldir(output_dir, ckpt_dir):
+    """
+    ckpt_dir: /group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/1
+    """
+    if ckpt_dir[-1] == '/':
+        ckpt_dir = ckpt_dir[:-1]
+    modeldir = '_'.join(ckpt_dir.split("/")[-3:])
+    return os.path.join(output_dir, modeldir)
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Extract features from the dataset.')
     parser.add_argument('--ckpt_dir', type=str, required=True, help='The directory containing the model checkpoint.')
     parser.add_argument('--data_dir', type=str, required=True, help='The directory containing the dataset.')
-    parser.add_argument('--output_dir', type=str, required=True, help='The directory to save the extracted features.')
+    parser.add_argument('--output_dir', type=str, required=True, help='The directory to save the extracted features.', default='/group/jug/ashesh/EnsDeLyon/OOD/')
     parser.add_argument('--num_epochs', type=int, default=1, help='The number of epochs to run the extraction for.')
     # batch size 
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size for feature extraction.')
@@ -163,7 +173,7 @@ if __name__ == '__main__':
     extract_and_save_features(
         boilerplate_output['model'],
         boilerplate_output['train_dset'],
-        args.output_dir,
+        get_output_modeldir(args.output_dir, args.ckpt_dir),
         num_epochs=args.num_epochs,
         batch_size=args.batch_size,
     )
