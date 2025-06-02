@@ -79,6 +79,16 @@ def get_multi_hierarchy_mmaps(feature_str, outputdir, num_hierarchies, channel_c
     
     return  feature_data
 
+def get_feature_shape_fname(feature_str):
+    return f'shape_{feature_str}.txt'
+
+def get_input_shape_fname():
+    """
+    Returns the name of the file that contains the shape of the input data.
+    """
+    return get_feature_shape_fname('input')
+
+
 def extract_and_save_features(model,dset,  outputdir, num_epochs=1, num_hierarchies=4, bu_values_channels=64,
                                 mu_Z_channels=128,
                                 sigma_Z_channels=128, 
@@ -103,12 +113,10 @@ def extract_and_save_features(model,dset,  outputdir, num_epochs=1, num_hierarch
     inpC,inpH,inpW = dset[0][0].shape
     input_fpath = os.path.join(outputdir, 'patches.mmap')
     num_data_points = len(dset) * num_epochs
-    # save the num_data_points in the input_fpath
-    # np.save(os.path.join(outputdir, 'num_data_points.npy'), num_data_points)
 
     input_data = np.memmap(input_fpath, dtype=float, mode='w+', shape=(num_data_points, inpC,inpH, inpW))
     # save the shape 
-    shape_fpath = os.path.join(outputdir, 'shape_input.txt')
+    shape_fpath = os.path.join(outputdir, get_input_shape_fname())
     with open(shape_fpath, 'w') as f:
         f.write(f'{num_data_points},{inpC},{inpH},{inpW}\n')
 
@@ -131,7 +139,7 @@ def extract_and_save_features(model,dset,  outputdir, num_epochs=1, num_hierarch
                 sigma_data[k][cnt:cnt+inp.shape[0], ...] = features['logvar_Z'][k]
             cnt += inp.shape[0]
             # breakpoint()  # For debugging purposes, remove in production.
-            # Flush the memory-mapped files to disk
+    
     for key in ['bu_values', 'mu_Z', 'logvar_Z']:
         print(key, features[key][0].shape)
 
