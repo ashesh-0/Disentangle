@@ -994,7 +994,7 @@ class LadderVAE(pl.LightningModule):
             self.mixed_rec_w = max(self.mixed_rec_w - self.mixed_rec_w_step, 0.0)
             self.log('mixed_rec_w', self.mixed_rec_w, on_epoch=True)
 
-    def forward(self, x):
+    def forward(self, x, return_bu_values=False):
         img_size = x.size()[2:]
         # print(f"Input size: {img_size}")
         # Pad input to make everything easier with conv strides
@@ -1027,6 +1027,11 @@ class LadderVAE(pl.LightningModule):
         if out.isnan().any():
             msg = "Output contains NaN values. Output shape: {}, bu_values: {}".format(out.shape, [x.shape for x in bu_values])
             print(msg)
+        
+        if return_bu_values:
+            assert 'bu_values' not in td_data, 'bu_values already exists in td_data. This will override the content!'
+            td_data['bu_values'] = bu_values
+        
         return out, td_data
 
     def bottomup_pass(self, inp):

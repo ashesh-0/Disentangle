@@ -1,0 +1,169 @@
+"""
+For the purpose of doing OOD detection, we need to extract features from the training dataset. 
+There are three primary locations where the features can be extracted from:
+1. bu_values.
+2. mu of Z.
+3. sigma of Z.
+
+Then we have different hierarchy levels.
+An additional idea is to observe how the boundary uncertainty is.
+
+To save the features, we need a way to also know which features corresponds to which data point. The simplest approach is to save the (normalized) patch as well. 
+
+We follow the following directory structure:
+
+model_name/patches/patch_i.npy
+model_name/features/bu_values/hierarchy_K/bu_values_i_K.npy
+model_name/features/mu_Z/hierarchy_K/mu_Z_i_K.npy
+model_name/features/sigma_Z/hierarchy_K/sigma_Z_i_K.npy
+"""
+import os
+from copy import deepcopy
+
+import numpy as np
+import torch
+from tqdm import tqdm
+
+from disentangle.analysis.checkpoint_utils import get_best_checkpoint
+from disentangle.config_utils import load_config
+from disentangle.core.data_split_type import DataSplitType
+from disentangle.data_loader.patch_index_manager import TilingMode
+from disentangle.training import create_dataset, create_model
+
+
+def extract_raw_feature_one_batch(model, x:torch.Tensor) -> dict:
+    """
+    Extract features from the model.
+    
+    Args:
+        model: The model to extract features from.
+        x: NxCxHxW
+    
+    Returns:
+        A dictionary containing the extracted features.
+    """
+    _, td_data =model(x, return_bu_values=True)
+    
+    return {
+        'bu_values': [x.detach().cpu().numpy() for x in td_data['bu_values']],
+        'mu_Z': [x.get().detach().cpu().numpy() for x in td_data['q_mu']],
+        'logvar_Z': [x.get().detach().cpu().numpy() for x in td_data['q_lv']],
+    }
+
+def extract_feature_one_batch(model, x:torch.Tensor) -> dict:
+    data_dict = extract_raw_feature_one_batch(model, x)
+    summarized_dict = {}
+    for key in data_dict.keys():
+        avg_arr = [x.mean(axis=(2,3))[...,None] for x in data_dict[key]]
+        std_arr = [x.std(axis=(2,3))[...,None] for x in data_dict[key]]
+        feature = [np.concatenate([avg,std],axis=-1) for avg,std in zip(avg_arr,std_arr)]
+        summarized_dict[key] = feature
+    return summarized_dict
+
+
+def get_multi_hierarchy_mmaps(feature_str, outputdir, num_hierarchies, channel_count, num_inputs):
+    feature_fpaths = [os.path.join(outputdir, f'{feature_str}/hierarchy_{k}/{feature_str}_{k}.mmap') for k in range(num_hierarchies)]
+    # create the directories if they do not exist
+    for fpath in feature_fpaths:
+        os.makedirs(os.path.dirname(fpath), exist_ok=True)
+    
+    feature_data = [np.memmap(fpath, dtype=float, mode='w+', shape=(num_inputs, channel_count, 2)) for fpath in feature_fpaths]
+    return  feature_data
+
+def extract_and_save_features(model,dset,  outputdir, num_epochs=1, num_hierarchies=4, bu_values_channels=64,
+                                mu_Z_channels=128,
+                                sigma_Z_channels=128, 
+                               batch_size=64, num_workers=4, shuffle=False):
+    """
+    Extract features from the dataset. and save them to disk.
+    
+    Args:
+        model: The model to extract features from.
+        dset: The dataset to extract features from.
+        num_epochs: The number of epochs to run the extraction for.
+    """
+    model.eval()  # Set the model to evaluation mode
+    dloader = torch.utils.data.DataLoader(dset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers)
+    # input
+    inpC,inpH,inpW = dset[0][0].shape
+    input_fpath = os.path.join(outputdir, 'patches.mmap')
+
+    input_data = np.memmap(input_fpath, dtype=float, mode='w+', shape=(len(dset)*num_epochs, inpC,inpH, inpW))
+    
+    # bu_values
+    bu_values_data = get_multi_hierarchy_mmaps('bu_values', outputdir, num_hierarchies, bu_values_channels, len(dset)*num_epochs)
+    mu_data = get_multi_hierarchy_mmaps('mu_Z', outputdir, num_hierarchies, mu_Z_channels, len(dset)*num_epochs)
+    sigma_data = get_multi_hierarchy_mmaps('logvar_Z', outputdir, num_hierarchies, sigma_Z_channels, len(dset)*num_epochs)
+
+    cnt = 0
+    for _ in range(num_epochs):
+        for batch in tqdm(dloader):
+            inp, _ = batch
+            input_data[cnt:cnt+inp.shape[0], ...] = inp.numpy()
+            inp = inp.to(model.device)
+            features = extract_feature_one_batch(model, inp)
+            for k in range(num_hierarchies):
+                bu_values_data[k][cnt:cnt+inp.shape[0], ...] = features['bu_values'][k]
+                mu_data[k][cnt:cnt+inp.shape[0], ...] = features['mu_Z'][k]
+                sigma_data[k][cnt:cnt+inp.shape[0], ...] = features['logvar_Z'][k]
+            cnt += inp.shape[0]
+            # Flush the memory-mapped files to disk
+            
+
+def boilerplate(ckpt_dir, data_dir):
+    config = load_config(ckpt_dir)
+    padding_kwargs = {
+        "mode": config.data.get("padding_mode", "constant"),
+    }
+
+    if padding_kwargs["mode"] == "constant":
+        padding_kwargs["constant_values"] = config.data.get("padding_value", 0)
+
+    dloader_kwargs = {
+        "overlapping_padding_kwargs": padding_kwargs,
+        "tiling_mode": TilingMode.ShiftBoundary,
+    }
+
+    train_dset, val_dset = create_dataset(
+        config,
+        data_dir,
+        eval_datasplit_type=DataSplitType.Val,
+        kwargs_dict=dloader_kwargs,
+    )
+
+    # For normalizing, we should be using the training data's mean and std.
+    mean_dict, std_dict = train_dset.compute_mean_std()
+    train_dset.set_mean_std(mean_dict, std_dict)
+    val_dset.set_mean_std(mean_dict, std_dict)
+
+    # load model
+    model = create_model(config, deepcopy(mean_dict), deepcopy(std_dict))
+    ckpt_fpath = get_best_checkpoint(ckpt_dir)
+    checkpoint = torch.load(ckpt_fpath)
+
+    _ = model.load_state_dict(checkpoint["state_dict"], strict=False)
+    model.eval()
+    _ = model.cuda()
+
+    return {'config': config, 'train_dset': train_dset, 'val_dset': val_dset, 'model': model}
+
+
+if __name__ == '__main__':
+    import argparse
+    parser = argparse.ArgumentParser(description='Extract features from the dataset.')
+    parser.add_argument('--ckpt_dir', type=str, required=True, help='The directory containing the model checkpoint.')
+    parser.add_argument('--data_dir', type=str, required=True, help='The directory containing the dataset.')
+    parser.add_argument('--output_dir', type=str, required=True, help='The directory to save the extracted features.')
+    parser.add_argument('--num_epochs', type=int, default=1, help='The number of epochs to run the extraction for.')
+    # batch size 
+    parser.add_argument('--batch_size', type=int, default=16, help='Batch size for feature extraction.')
+    args = parser.parse_args()
+
+    boilerplate_output = boilerplate(args.ckpt_dir, args.data_dir)
+    extract_and_save_features(
+        boilerplate_output['model'],
+        boilerplate_output['train_dset'],
+        args.output_dir,
+        num_epochs=args.num_epochs,
+        batch_size=args.batch_size,
+    )
