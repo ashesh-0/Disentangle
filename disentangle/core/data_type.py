@@ -35,3 +35,4 @@ class DataType(Enum):
     Elisa3DData = 29
     Care3D = 30
     SimilarityExperiment = 31
+    MultiTiffSameSizeDset = 32
