@@ -73,7 +73,7 @@ def get_multi_hierarchy_mmaps(feature_str, outputdir, num_hierarchies, channel_c
     for fpath in feature_fpaths:
         os.makedirs(os.path.dirname(fpath), exist_ok=True)
     
-    feature_data = [np.memmap(fpath, dtype=float, mode='w+', shape=(num_inputs, channel_count)) for fpath in feature_fpaths]
+    feature_data = [np.memmap(fpath, dtype=np.float32, mode='w+', shape=(num_inputs, channel_count)) for fpath in feature_fpaths]
     # save the shape 
     shape_fpath = os.path.join(outputdir, feature_str, f'shape_{feature_str}.txt')
     with open(shape_fpath, 'w') as f:
@@ -116,7 +116,7 @@ def extract_and_save_features(model,dset,  outputdir, num_epochs=1, num_hierarch
     input_fpath = os.path.join(outputdir, 'patches.mmap')
     num_data_points = len(dset) * num_epochs
 
-    input_data = np.memmap(input_fpath, dtype=float, mode='w+', shape=(num_data_points, inpC,inpH, inpW))
+    input_data = np.memmap(input_fpath, dtype=np.float32, mode='w+', shape=(num_data_points, inpC,inpH, inpW))
     # save the shape 
     shape_fpath = os.path.join(outputdir, get_input_shape_fname())
     with open(shape_fpath, 'w') as f:
@@ -135,6 +135,7 @@ def extract_and_save_features(model,dset,  outputdir, num_epochs=1, num_hierarch
             input_data[cnt:cnt+inp.shape[0], ...] = inp.numpy()
             inp = inp.to(model.device)
             features = extract_feature_one_batch(model, inp)
+            # breakpoint()  # For debugging purposes, remove in production.
             for k in range(num_hierarchies):
                 bu_values_data[k][cnt:cnt+inp.shape[0], ...] = features['bu_values'][k]
                 mu_data[k][cnt:cnt+inp.shape[0], ...] = features['mu_Z'][k]
@@ -207,6 +208,8 @@ def get_output_modeldir(output_dir, ckpt_dir, test_datapath=None):
     return resultsdir
 
 if __name__ == '__main__':
+    # OOD: python disentangle/scripts/feature_extractor_for_ood.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10 --data_dir=/group/jug/ashesh/data/nikola_data/20240531/ --output_dir=/group/jug/ashesh/EnsDeLyon/OOD/ --test_datapath=/group/jug/ashesh/EnsDeLyon/OOD_data/TavernaSox2GolgiV2/TavernaSox2GolgiV2_Test_W0.1.tif
+    # In distribution: python disentangle/scripts/feature_extractor.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10 --data_dir=/group/jug/ashesh/data/nikola_data/20240531/ --output_dir=/group/jug/ashesh/EnsDeLyon/OOD/
     import argparse
     parser = argparse.ArgumentParser(description='Extract features from the dataset.')
     parser.add_argument('--ckpt_dir', type=str, required=True, help='The directory containing the model checkpoint.')
