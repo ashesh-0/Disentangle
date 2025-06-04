@@ -138,7 +138,7 @@ def print_all_results_tab(results, datasets, method):
 def print_all_results(results, datasets, method):
     mtypes = ['FPR', 'AUROC', 'AUIN']#['FPR', 'DTERR', 'AUROC', 'AUIN', 'AUOUT']
     avg_results = compute_average_results(results)
-    print(' OOD detection method: ' + method)
+    print(method)
     print('             ', end='')
     for mtype in mtypes:
         print(' {mtype:6s}'.format(mtype=mtype), end='')
