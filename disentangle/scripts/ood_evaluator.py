@@ -67,6 +67,8 @@ def evaluate(indistribution_feature_fpath, ood_feature_fpath):
 if __name__ == '__main__':
     import argparse
 
+    # python disentangle/scripts/ood_evaluator.py --ind=/group/jug/ashesh/EnsDeLyon/OOD/2406_D25-M3-S0-L8_10/logvar_Z/hierarchy_2/logvar_Z_2.mmap --ood=/group/jug/ashesh/EnsDeLyon/OOD/2406_D25-M3-S0-L8_10/TavernaSox2GolgiV2_Test_W0.1/logvar_Z/hierarchy_2/logvar_Z_2.mmap
+
     parser = argparse.ArgumentParser(description='Evaluate OOD detection using KNN distance')
     parser.add_argument('--ind', type=str,
                         help='Path to the in-distribution feature file')
