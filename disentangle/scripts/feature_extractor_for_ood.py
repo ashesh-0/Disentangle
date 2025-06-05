@@ -213,7 +213,7 @@ def get_output_modeldir(output_dir, ckpt_dir, test_datapath=None, indistr_val=Fa
     return resultsdir
 
 if __name__ == '__main__':
-    # OOD: python disentangle/scripts/feature_extractor_for_ood.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10 --data_dir=/group/jug/ashesh/data/nikola_data/20240531/ --output_dir=/group/jug/ashesh/EnsDeLyon/OOD/ --test_datapath=/group/jug/ashesh/EnsDeLyon/OOD_data/TavernaSox2GolgiV2/TavernaSox2GolgiV2_Test_W0.1.tif
+    # OOD: python disentangle/scripts/feature_extractor_for_ood.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10 --data_dir=/group/jug/ashesh/data/nikola_data/20240531/ --output_dir=/group/jug/ashesh/EnsDeLyon/OOD/ --test_datapath=/group/jug/ashesh/EnsDeLyon/OOD_data/TavernaSox2GolgiV2/TavernaSox2GolgiV2_Test_RealInput.tif
     # In distribution: python disentangle/scripts/feature_extractor_for_ood.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10 --data_dir=/group/jug/ashesh/data/nikola_data/20240531/ --output_dir=/group/jug/ashesh/EnsDeLyon/OOD/
     import argparse
     parser = argparse.ArgumentParser(description='Extract features from the dataset.')

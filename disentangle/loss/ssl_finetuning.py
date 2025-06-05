@@ -8,6 +8,9 @@ from disentangle.analysis.stitch_prediction import stitch_predictions
 from disentangle.core.psnr import RangeInvariantPsnr
 from finetunesplit.loss import SSL_loss
 
+from disentangle.analysis.ood_detector OODDetector
+from itertools import defaultdict
+
 
 def k_moment(data, k):
     # data: N x C x H x W
@@ -65,7 +68,15 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                                 optimization_params_dict=None, stats_enforcing_loss_fn=None, 
                                 num_workers=4,
                                 # lookback=10, 
-                                k_augmentations=1,sample_mixing_ratio=False, psnr_evaluation=False, tmp_dir='/group/jug/ashesh/tmp'):
+                                k_augmentations=1,sample_mixing_ratio=False, psnr_evaluation=False,
+                                latent_data_func=None,
+                                ood_detector:OODDetector=None, 
+                                tmp_dir='/group/jug/ashesh/tmp'):
+    """
+    Args:
+        latent_data_func: This is a function which takes in the output of the model and returns the specific latent data that is used for OOD detection.
+        ood_detector:OODDetector=None, 
+    """
     
     import os
     from datetime import datetime
@@ -94,6 +105,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
     assert factor2 is not None
     assert offset2 is not None
     assert optimization_params_dict is not None, "Please provide optimization parameters"
+
     # if factor1 is None:
     #     factor1 = torch.nn.Parameter(torch.tensor(1.0).cuda())
 
@@ -108,7 +120,8 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                                               mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
                                               offset2=offset2, skip_pixels=skip_pixels,pred_func=pred_func, 
                                               transform_obj=transform_obj, stats_enforcing_loss_fn=stats_enforcing_loss_fn, tmp_path=tmp_path,
-                                              psnr_evaluation=psnr_evaluation)
+                                              psnr_evaluation=psnr_evaluation,
+                                              latent_data_func=latent_data_func, ood_detector=ood_detector)
     print(val_dict) 
     
     # define an optimizer
@@ -130,6 +143,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
     offset2_arr = []
     mixing_ratio_arr= []
     psnr_arr = []
+    ood_detector_scores = defaultdict(list)
     best_factors = best_offsets = None
 
     cnt = 0
@@ -178,9 +192,12 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                                               mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
                                               offset2=offset2, skip_pixels=skip_pixels,pred_func=pred_func, 
                                               transform_obj=transform_obj, stats_enforcing_loss_fn=stats_enforcing_loss_fn, tmp_path=tmp_path,
-                                              psnr_evaluation=psnr_evaluation)
+                                              psnr_evaluation=psnr_evaluation, latent_data_func=latent_data_func, ood_detector=ood_detector)
                 val_loss = val_dict['loss']
                 psnr_arr.append(val_dict['psnr'])
+                if ood_detector is not None and latent_data_func is not None:
+                    for key in val_dict['ood_score']:
+                        ood_detector_scores[key].append(val_dict['ood_score'][key])
                 # validate the model
                 if val_loss < best_val_loss:
                     print('Saving best model')
@@ -213,9 +230,14 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
             'loss_inp': loss_inp_arr, 'loss_pred': loss_pred_arr,
             'loss_inp2': loss_inp2_arr,
             'stats_loss': stats_loss_arr,
+            'ood_scores': ood_detector_scores if ood_detector is not None else None,
             'psnr': psnr_arr,}
 
-def perform_validation(finetune_val_dset, batch_size=None, num_workers=None, mixing_ratio=None, factor1=None, offset1=None, factor2=None, offset2=None, skip_pixels=None,pred_func=None, transform_obj=None, stats_enforcing_loss_fn=None, tmp_path=None, psnr_evaluation=False):
+def perform_validation(finetune_val_dset, batch_size=None, num_workers=None, mixing_ratio=None, factor1=None, offset1=None, factor2=None, offset2=None, skip_pixels=None,pred_func=None, 
+                       transform_obj=None, stats_enforcing_loss_fn=None, 
+                       tmp_path=None, psnr_evaluation=False,
+                       latent_data_func=None,
+                       ood_detector:OODDetector=None):
     print('Validating the model', end=' ')  
     finetune_val_dset.eval_mode()
 
@@ -225,12 +247,13 @@ def perform_validation(finetune_val_dset, batch_size=None, num_workers=None, mix
     val_dloader = DataLoader(finetune_val_dset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     pred_arr = []
     tar_arr = []
+    latent_data_arr = []
     for j, (inp, tar) in tqdm(enumerate(val_dloader)):
         inp = inp.cuda()
         with torch.no_grad():
             loss_dict = SSL_loss(pred_func, inp, transform_obj, mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
                                 offset2=offset2, skip_pixels=skip_pixels,
-                                stats_enforcing_loss_fn=stats_enforcing_loss_fn, return_predictions=psnr_evaluation)
+                                stats_enforcing_loss_fn=stats_enforcing_loss_fn, return_predictions=psnr_evaluation, latent_data_func=latent_data_func)
             val_loss += loss_dict['loss_inp'].item() #+ loss_dict['loss_pred'].item()
             val_steps += len(inp)
             if val_steps_max is not None and val_steps >= val_steps_max:
@@ -239,7 +262,10 @@ def perform_validation(finetune_val_dset, batch_size=None, num_workers=None, mix
             if psnr_evaluation:
                 pred_arr.append(loss_dict['first_prediction'].cpu().numpy())
                 tar_arr.append(tar.cpu().numpy())
-
+            if latent_data_func is not None:
+                assert ood_detector is not None, "ood_detector should be provided if latent_data_func is not None"
+                latent_data_arr.append(latent_data_func(loss_dict['latent_data']).cpu())
+            
     val_loss /= j
     psnr_arr = None
     if psnr_evaluation:
@@ -257,8 +283,14 @@ def perform_validation(finetune_val_dset, batch_size=None, num_workers=None, mix
     else:
         print(f'Validation Loss: {val_loss:.4f}')
     
+    output_dict = {'loss': val_loss, 'psnr': psnr_arr}
+    if latent_data_func is not None:
+        latent_data_arr = np.concatenate(latent_data_arr, axis=0)
+        ood_score = ood_detector.OOD_detector_score(latent_data_arr)
+        output_dict['ood_score'] = ood_score
+    
     finetune_val_dset.train_mode()
-    return {'loss': val_loss, 'psnr': psnr_arr}
+    return output_dict
 
 def get_best_mixing_t(pred, inp_unnorm, enable_tqdm=False):
     mean_psnr_arr = []
