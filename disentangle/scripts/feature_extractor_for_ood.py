@@ -190,9 +190,12 @@ def boilerplate(ckpt_dir, data_dir, test_datapath):
     model.eval()
     _ = model.cuda()
 
-    return {'config': config, 'train_dset': train_dset, 'val_dset': val_dset, 'model': model}
+    outputdict = {'config': config, 'train_dset': train_dset, 'val_dset': val_dset, 'model': model}
+    if test_datapath is not None:
+        outputdict['test_dset'] = train_dset
+    return outputdict
 
-def get_output_modeldir(output_dir, ckpt_dir, test_datapath=None):
+def get_output_modeldir(output_dir, ckpt_dir, test_datapath=None, indistr_val=False):
     """
     ckpt_dir: /group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/1
     """
@@ -203,19 +206,23 @@ def get_output_modeldir(output_dir, ckpt_dir, test_datapath=None):
     if test_datapath is not None:
         test_fname = os.path.basename(test_datapath).replace('.tif', '').replace('.tiff', '')
         resultsdir = os.path.join(resultsdir, test_fname)
+    elif indistr_val:
+        resultsdir = os.path.join(resultsdir, 'indistribution_val')
     os.makedirs(resultsdir, exist_ok=True)
     # breakpoint()  # For debugging purposes, remove in production.
     return resultsdir
 
 if __name__ == '__main__':
     # OOD: python disentangle/scripts/feature_extractor_for_ood.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10 --data_dir=/group/jug/ashesh/data/nikola_data/20240531/ --output_dir=/group/jug/ashesh/EnsDeLyon/OOD/ --test_datapath=/group/jug/ashesh/EnsDeLyon/OOD_data/TavernaSox2GolgiV2/TavernaSox2GolgiV2_Test_W0.1.tif
-    # In distribution: python disentangle/scripts/feature_extractor.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10 --data_dir=/group/jug/ashesh/data/nikola_data/20240531/ --output_dir=/group/jug/ashesh/EnsDeLyon/OOD/
+    # In distribution: python disentangle/scripts/feature_extractor_for_ood.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10 --data_dir=/group/jug/ashesh/data/nikola_data/20240531/ --output_dir=/group/jug/ashesh/EnsDeLyon/OOD/
     import argparse
     parser = argparse.ArgumentParser(description='Extract features from the dataset.')
     parser.add_argument('--ckpt_dir', type=str, required=True, help='The directory containing the model checkpoint.')
     parser.add_argument('--data_dir', type=str, required=True, help='The directory containing the dataset.')
     parser.add_argument('--output_dir', type=str, required=True, help='The directory to save the extracted features.', default='/group/jug/ashesh/EnsDeLyon/OOD/')
     parser.add_argument('--num_epochs', type=int, default=1, help='The number of epochs to run the extraction for.')
+    # a flag 
+    parser.add_argument('--use_indistribution_val', action='store_true', help='If set, will use the test dataset for feature extraction instead of the training dataset.')
     # batch size 
     parser.add_argument('--batch_size', type=int, default=16, help='Batch size for feature extraction.')
     parser.add_argument('--test_datapath', type=str, default=None, help='Path to the test dataset. If provided, will use this dataset for feature extraction instead of the training dataset.')
@@ -223,10 +230,22 @@ if __name__ == '__main__':
 
     boilerplate_output = boilerplate(args.ckpt_dir, args.data_dir, args.test_datapath)
     # breakpoint()  # For debugging purposes, remove in production.
+    dset = None
+    if args.test_datapath is None:
+        if args.use_indistribution_val:
+            print("Using in-distribution validation dataset for feature extraction.")
+            dset = boilerplate_output['val_dset']
+        else:
+            print("Using training dataset for feature extraction.")
+            dset = boilerplate_output['train_dset']
+    else:
+        print("Using test dataset for feature extraction.")
+        dset  = boilerplate_output['test_dset']
+
     extract_and_save_features(
         boilerplate_output['model'],
-        boilerplate_output['train_dset'],
-        get_output_modeldir(args.output_dir, args.ckpt_dir, args.test_datapath),
+        dset,
+        get_output_modeldir(args.output_dir, args.ckpt_dir, args.test_datapath, indistr_val=args.use_indistribution_val),
         num_epochs=args.num_epochs,
         batch_size=args.batch_size,
     )
