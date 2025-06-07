@@ -1,15 +1,15 @@
 
+from collections import defaultdict
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+from disentangle.analysis.ood_detector import OODDetector
 from disentangle.analysis.stitch_prediction import stitch_predictions
 from disentangle.core.psnr import RangeInvariantPsnr
 from finetunesplit.loss import SSL_loss
-
-from disentangle.analysis.ood_detector OODDetector
-from itertools import defaultdict
 
 
 def k_moment(data, k):
