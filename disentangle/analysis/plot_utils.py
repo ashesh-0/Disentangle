@@ -26,9 +26,13 @@ def add_text(ax, text, img_shape, place='TOP_LEFT', alpha=0.9):
     """
     Adding text on image
     """
-    assert place in ['TOP_LEFT', 'BOTTOM_RIGHT']
+    assert place in ['TOP_LEFT', 'BOTTOM_RIGHT', 'TOP_RIGHT'], "place should be one of TOP_LEFT, BOTTOM_RIGHT, TOP_RIGHT"
     if place == 'TOP_LEFT':
         ax.text(img_shape[1] * 20 / 500, img_shape[0] * 35 / 500, text, bbox=dict(facecolor='white', alpha=alpha))
+    elif place == 'TOP_RIGHT':
+        s0 = img_shape[1]
+        s1 = img_shape[0]
+        ax.text(s0 - s0 * 90 / 500, s1 * 35 / 500, text, bbox=dict(facecolor='white', alpha=alpha))
     elif place == 'BOTTOM_RIGHT':
         s0 = img_shape[1]
         s1 = img_shape[0]
