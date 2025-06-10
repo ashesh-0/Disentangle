@@ -7,19 +7,18 @@ from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
+from disentangle.data_loader.multifile_raw_dloader import SubDsetType
 
 
 def get_config():
     config = get_default_config()
     data = config.data
     data.image_size = 64
-    data.data_type = DataType.Elisa3DData
-    data.channel_idx_list = [0,1]
-    data.zstart = 25
-    data.zstop = 40
+    data.data_type = DataType.ExpMicroscopyV1
+    config.data.subdset_type = SubDsetType.MultiChannel
     data.depth3D = 5
     data.mode_3D = True
-    assert data.depth3D <= data.zstop - data.zstart
+    data.random_flip_z_3D = False
 
 
     data.poisson_noise_factor = -1
@@ -115,8 +114,8 @@ def get_config():
     model.num_targets = 2
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2408/0/GMMNoiseModel_n2v_denoising-raw_ch0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2408/1/GMMNoiseModel_n2v_denoising-raw_ch1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = "/home/ashesh.ashesh/training/noise_model/2408/4/GMMNoiseModel_denoising_inputs-ch_0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
+    model.noise_model_ch2_fpath = "/home/ashesh.ashesh/training/noise_model/2408/5/GMMNoiseModel_denoising_inputs-ch_1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
 
     model.noise_model_learnable = False
     # assert model.enable_noise_model == False or model.predict_logvar is None
@@ -137,4 +136,5 @@ def get_config():
     training.earlystop_patience = 200
     training.precision = 16
     training.limit_train_batches = 2000
+
     return config
