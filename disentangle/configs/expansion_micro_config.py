@@ -16,8 +16,8 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.ExpMicroscopyV2
     config.data.subdset_type = SubDsetType.MultiChannel
-    data.depth3D = 1
-    data.mode_3D = False
+    data.depth3D = 5
+    data.mode_3D = True
     data.random_flip_z_3D = False
 
 
@@ -42,7 +42,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = True
     data.randomized_channels = False
-    data.multiscale_lowres_count = None
+    data.multiscale_lowres_count = 3
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -58,7 +58,7 @@ def get_config():
     loss.kl_loss_formulation = 'denoisplit_usplit'
 
     # loss.mixed_rec_weight = 1
-    loss.restricted_kl = False 
+    loss.restricted_kl = True
     assert loss.restricted_kl is False or data.multiscale_lowres_count is not None, 'LC must be set for restricted KL'
 
     loss.kl_weight = 1.0
@@ -109,9 +109,9 @@ def get_config():
     model.predict_logvar =  'pixelwise'#'pixelwise' #'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
-    model.multiscale_retain_spatial_dims = False
+    model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
-
+    model.num_targets = 2
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     model.noise_model_ch1_fpath = "/home/ashesh.ashesh/training/noise_model/2408/2/GMMNoiseModel_denoising_input-ch_0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz"
@@ -127,7 +127,7 @@ def get_config():
     training.lr = 0.001
     training.lr_scheduler_patience = 30
     training.max_epochs = 400
-    training.batch_size = 32
+    training.batch_size = 16
     training.num_workers = 4
     training.val_repeat_factor = None
     training.train_repeat_factor = None

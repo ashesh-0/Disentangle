@@ -14,8 +14,9 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.Care3D
-    data.subdset_type = 'zebrafish'
+    data.subdset_type = 'liver'
     data.num_channels = 3
+    
     # data.channel_idx_list = [0,1,2]
     # data.zstart = 25
     # data.zstop = 40
@@ -74,6 +75,7 @@ def get_config():
 
     model = config.model
     model.mode_3D = data.mode_3D
+    model.num_targets = data.num_channels
     model.decoder.mode_3D = model.mode_3D
     model.model_type = ModelType.LadderVae
     model.z_dims = [128, 128, 128, 128]
@@ -112,7 +114,7 @@ def get_config():
     model.predict_logvar =  'pixelwise'#'pixelwise' #'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
-    model.multiscale_retain_spatial_dims = False
+    model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
     model.enable_noise_model = True

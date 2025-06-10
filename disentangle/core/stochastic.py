@@ -130,7 +130,7 @@ class NormalStochasticBlock(nn.Module):
             # compute KL only on the portion of the latent space that is used for prediction. 
             if self._restricted_kl:
                 pad = (kl_elementwise.shape[-1] - self._vanilla_latent_hw)//2
-                assert pad > 0, 'Disable restricted kl since there is no restriction.'
+                assert pad > 0, 'Disable restricted kl since there is no restriction. Either Lean-LC is being used or LC is not used at all.'
                 tmp = kl_elementwise[..., pad:-pad, pad:-pad]
                 kl_samplewise_restricted = tmp.sum(all_dims[1:])
             
