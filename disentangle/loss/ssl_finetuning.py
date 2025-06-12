@@ -91,7 +91,8 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
     # model.train()
     print(f'Finetuning with {k_augmentations} augmentations, batch size {batch_size}, max step count {max_step_count}, sample mixing ratio {sample_mixing_ratio}')
     def pred_func(inp):
-        return model(inp)[0][:,:2]
+        pred, td_data = model(inp)
+        return pred[:,:2], td_data
 
     factor1 = scalar_params_dict.get('factor1', None)
     offset1 = scalar_params_dict.get('offset1', None)
