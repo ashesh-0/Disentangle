@@ -70,6 +70,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                                 # lookback=10, 
                                 k_augmentations=1,sample_mixing_ratio=False, psnr_evaluation=False,
                                 latent_data_func=None,
+                                detach_first_forward_pass=False,
                                 ood_detector:OODDetector=None, 
                                 tmp_dir='/group/jug/ashesh/tmp'):
     """
@@ -164,7 +165,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                 # apply the augmentations
                 loss_dict = SSL_loss(pred_func, inp, transform_obj, mixing_ratio=mixing_ratio, factor1=factor1, offset1=offset1, factor2=factor2, 
                                     offset2=offset2, skip_pixels=skip_pixels,
-                                    stats_enforcing_loss_fn=stats_enforcing_loss_fn, sample_mixing_ratio=sample_mixing_ratio)
+                                    stats_enforcing_loss_fn=stats_enforcing_loss_fn, sample_mixing_ratio=sample_mixing_ratio,detach_first_forward_pass=detach_first_forward_pass)
                 for key in keys:
                     agg_loss_dict[key] += loss_dict[key]/ k_augmentations
                 
