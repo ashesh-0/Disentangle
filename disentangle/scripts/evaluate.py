@@ -828,9 +828,20 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
+            
+            # 3D datasets, recent results.
+            # '/group/jug/ashesh/training/disentangle/2506/D30-M3-S0-L8/6',
+            # '/group/jug/ashesh/training/disentangle/2506/D30-M3-S0-L8/5',
+            # '/group/jug/ashesh/training/disentangle/2506/D12-M3-S0-L8/0',
+            # '/group/jug/ashesh/training/disentangle/2506/D19-M3-S0-L8/4',
+            # '/group/jug/ashesh/training/disentangle/2506/D29-M3-S0-L8/2',
+            # '/group/jug/ashesh/training/disentangle/2506/D29-M3-S0-L8/3',
+            # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/0',
+            '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/1',
+
             # '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/31'
             # '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/29',
-            '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/26',
+            # '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/26',
             # '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/27',
             # elisa3D
             # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24',
