@@ -78,7 +78,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
         latent_data_func: This is a function which takes in the output of the model and returns the specific latent data that is used for OOD detection.
         ood_detector:OODDetector=None, 
     """
-    
+    # print('hello')
     import os
     from datetime import datetime
     assert 2*skip_pixels <= finetune_dset[0][0].shape[-1], "skip_pixels should be less than half of the image size"
@@ -202,7 +202,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                     for key in val_dict['ood_score']:
                         ood_detector_scores[key].append(val_dict['ood_score'][key])
                 
-                val_loss_arr.append(val_loss.item())
+                val_loss_arr.append(val_loss)
                 # validate the model
                 if val_loss < best_val_loss:
                     print('Saving best model')
@@ -235,6 +235,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
             'loss_inp': loss_inp_arr, 'loss_pred': loss_pred_arr,
             'loss_inp2': loss_inp2_arr,
             'stats_loss': stats_loss_arr,
+            'val_loss': val_loss_arr,
             'ood_scores': ood_detector_scores if ood_detector is not None else None,
             'psnr': psnr_arr,}
 

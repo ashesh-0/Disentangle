@@ -60,18 +60,22 @@ def plot_one_sample(tar_unnorm, pred_unnorm, inp_unnorm, config, best_t_estimate
 
 
 def plot_finetuning_loss(finetuning_output_dict, loss_rolling=50):
+    print('Plotting finetuning loss')
     _,ax = plt.subplots(figsize=(18,9), ncols=6,nrows=3)
     pd.Series(finetuning_output_dict['loss']).rolling(loss_rolling).mean().plot(ax=ax[0,0], logy=True, label = 'total loss')
     pd.Series(finetuning_output_dict['factor1']).rolling(5).mean().plot(ax=ax[0,1], label='$\sigma_1$')
     pd.Series(finetuning_output_dict['offset1']).rolling(5).mean().plot(ax=ax[0,2], label='$\mu_1$')
-    pd.Series(finetuning_output_dict['factor2']).rolling(5).mean().plot(ax=ax[0,3], label='$\sigma_2$')
-    pd.Series(finetuning_output_dict['offset2']).rolling(5).mean().plot(ax=ax[0,4], label='$\mu_2$')
+    pd.Series(finetuning_output_dict['val_loss']).rolling(5).mean().plot(ax=ax[0,3], label='val loss')
+    # pd.Series(finetuning_output_dict['factor2']).rolling(5).mean().plot(ax=ax[0,3], label='$\sigma_2$')
+    # pd.Series(finetuning_output_dict['offset2']).rolling(5).mean().plot(ax=ax[0,4], label='$\mu_2$')
     pd.Series(finetuning_output_dict['mixing_ratio']).rolling(5).mean().plot(ax=ax[0,5], label='$t$')
     pd.Series(finetuning_output_dict['loss_inp']).rolling(loss_rolling).mean().plot(ax=ax[1,0], logy=True, label = '$loss_{inp}$')
     pd.Series(finetuning_output_dict['loss_pred']).rolling(loss_rolling).mean().plot(ax=ax[1,1], logy=True, label = '$loss_{pred}$')
     pd.Series(finetuning_output_dict['stats_loss']).plot(ax=ax[1,2], label = '$loss_{stats}$')
     # place a vertical line at finetuning_output_dict['best_step'] for each ax
     for i in range(6):
+        if i ==3:
+            continue
         ax[0,i].axvline(finetuning_output_dict['best_step'], color='r', linestyle='--', ymax = 0.2, label='Best Step')
         ax[1,i].axvline(finetuning_output_dict['best_step'], color='r', linestyle='--', ymax =0.2, label='Best Step')
     # 
