@@ -289,7 +289,7 @@ def get_noise_model(config):
             noise_model_config_sanity_check(config.model.noise_model_ch1_fpath, config, 'ch1_fname')
             noise_model_config_sanity_check(config.model.noise_model_ch2_fpath, config, 'ch2_fname')
             nmodels = [nmodel1, nmodel2]
-            if config.model.num_targets > 2:
+            if 'num_targets' in config.model and config.model.num_targets > 2:
                 for i in range(3, config.model.num_targets+1):
                     nm_fpath = config.model[f'noise_model_ch{i}_fpath']
                     print(f'Noise model Ch{i}: {nm_fpath}')
