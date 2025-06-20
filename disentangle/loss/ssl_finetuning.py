@@ -137,6 +137,7 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
     stats_loss_arr = []
 
     best_val_loss = 1e6
+    val_loss_arr = []
 
     factor1_arr = []
     offset1_arr = []
@@ -200,6 +201,8 @@ def finetune_two_forward_passes(model, finetune_dset, finetune_val_dset, transfo
                 if ood_detector is not None and latent_data_func is not None:
                     for key in val_dict['ood_score']:
                         ood_detector_scores[key].append(val_dict['ood_score'][key])
+                
+                val_loss_arr.append(val_loss.item())
                 # validate the model
                 if val_loss < best_val_loss:
                     print('Saving best model')
