@@ -9,7 +9,7 @@ from disentangle.data_loader.nikola_7D_rawdata_loader import NikolaChannelList
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 128
     data.data_type = DataType.MultiTiffSameSizeDset
     data.channel_idx_list = [1,2,4]
     # data.channel_idx_list = [2,4]
@@ -52,7 +52,7 @@ def get_config():
     data.use_one_mu_std = True
     data.train_aug_rotate = True
     data.randomized_channels = False
-    data.multiscale_lowres_count = 3
+    data.multiscale_lowres_count = None
     data.padding_mode = 'reflect'
     data.padding_value = None
     # If this is set to True, then target channels will be normalized from their separate mean.
@@ -82,7 +82,7 @@ def get_config():
     model.mode_3D = data.mode_3D
     model.decoder.mode_3D = model.mode_3D
 
-    model.z_dims = [128, 128, 128, 128]
+    model.z_dims = [128, 128, 128, 128, 128, 128]
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
