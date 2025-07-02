@@ -22,3 +22,4 @@ mamba install -c conda-forge czifile -y
 mamba install scikit-image -y
 pip install nd2
 pip install nis2pyr
+pip install read-lif

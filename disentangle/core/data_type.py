@@ -36,3 +36,5 @@ class DataType(Enum):
     Care3D = 30
     SimilarityExperiment = 31
     MultiTiffSameSizeDset = 32
+    HHMI25V2 = 33
+    HHMI25V3 = 34

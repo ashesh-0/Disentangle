@@ -14,6 +14,7 @@ from disentangle.data_loader.elisa3D_rawdata_loader import get_train_val_data as
 from disentangle.data_loader.embl_semisup_rawdata_loader import get_train_val_data as _loadembl2_semisup
 from disentangle.data_loader.exp_microscopy_rawdata_loader import get_train_val_data as _loadexp_microscopy
 from disentangle.data_loader.hhmi_raw_dloader import get_train_val_data as _loadmultitiff
+from disentangle.data_loader.hhmi_v2_raw_dloader import get_train_val_data as _loadhhmi_v2
 from disentangle.data_loader.ht_iba1_ki67_rawdata_loader import get_train_val_data as _load_ht_iba1_ki67
 from disentangle.data_loader.multi_channel_train_val_data import train_val_data as _load_tiff_train_val
 from disentangle.data_loader.multicrops_dset_rawdata_loader import get_train_val_data as _loadmulticropdset
@@ -173,6 +174,12 @@ def get_train_val_data(data_config,
                           test_fraction=test_fraction)
     elif data_config.data_type == DataType.MultiTiffSameSizeDset:
         return _loadmultitiff(fpath,data_config,datasplit_type)
+    elif data_config.data_type == DataType.HHMI25V2:
+        return _loadhhmi_v2(fpath,
+                            data_config,
+                            datasplit_type,
+                            val_fraction=val_fraction,
+                            test_fraction=test_fraction)
     
     elif data_config.data_type == DataType.SimilarityExperiment:
         import numpy as np

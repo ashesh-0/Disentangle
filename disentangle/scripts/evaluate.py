@@ -308,8 +308,15 @@ def get_data_dir(dtype):
         data_dir = f"{DATA_ROOT}/CARE/care_florian/"
     elif dtype == DataType.MultiTiffSameSizeDset:
         data_dir = f'{DATA_ROOT}/HHMI25/'
+        # data_dir = '/group/jug/ashesh/data/HHMI25_downsampled_by_2/'
+        # data_dir = '/group/jug/ashesh/data/HHMI25_blur_sigma_0.2/'
+        # data_dir = '/group/jug/ashesh/data/HHMI25_blur_sigma_0.5/'
+        # data_dir = '/group/jug/ashesh/data/HHMI25_blur_sigma_1/'
         # data_dir = "/group/jug/ashesh/data/HHMI25_reweighted/"
         # data_dir = "/group/jug/ashesh/data/HHMI25_smaller/"
+    elif dtype == DataType.HHMI25V2:
+        data_dir = f'{DATA_ROOT}/HHMI25_v2/'
+    
     return data_dir
 
 def get_calibration_stats(calibration_factors, pred, pred_std, tar_normalized):
@@ -696,7 +703,7 @@ def main(
     else:
         pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
 
-    if config.data.data_type == DataType.MultiTiffSameSizeDset:
+    if config.data.data_type in [DataType.MultiTiffSameSizeDset, DataType.HHMI25V2]:
         highres_data = None
     else:
         highres_data = (get_highsnr_data(config, data_dir, eval_datasplit_type) if compare_with_highsnr else None)
@@ -828,6 +835,18 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
+            # HHMI v2
+            # '/group/jug/ashesh/training/disentangle/2506/D33-M3-S0-L8/1'
+            # '/group/jug/ashesh/training/disentangle/2506/D33-M3-S0-L0/0',
+            # HHMI
+            '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L0/0'
+            # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/13'
+            # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/12'
+            # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/11'
+            # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/10'
+            # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/6',
+            # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/5',
+            #   '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/2',
             
             # 3D datasets, recent results.
             # '/group/jug/ashesh/training/disentangle/2506/D30-M3-S0-L8/6',
@@ -837,7 +856,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # '/group/jug/ashesh/training/disentangle/2506/D29-M3-S0-L8/2',
             # '/group/jug/ashesh/training/disentangle/2506/D29-M3-S0-L8/3',
             # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/0',
-            '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/1',
+            # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/1',
 
             # '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/31'
             # '/group/jug/ashesh/training/disentangle/2505/D32-M3-S0-L8/29',
@@ -990,7 +1009,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
                     image_size_for_grid_centers=image_size_for_grid_centers,
                     mmse_count=mmse_count,
                     custom_image_size=custom_image_size,
-                    batch_size=64,
+                    batch_size=32,
                     num_workers=4,
                     COMPUTE_LOSS=False,
                     use_deterministic_grid=None,
