@@ -769,6 +769,7 @@ class LadderVAE(pl.LightningModule):
     def training_step(self, batch, batch_idx, enable_logging=True):
         if self.current_epoch == 0 and batch_idx == 0:
             self.log('val_psnr', 1.0, on_epoch=True)
+            self.log('val_loss', 100.0, on_epoch=True)
 
         x, target = batch[:2]
         if self._mode_3D and not self._decoder_mode_3D:
