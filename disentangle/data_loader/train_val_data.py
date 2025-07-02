@@ -174,7 +174,7 @@ def get_train_val_data(data_config,
                           test_fraction=test_fraction)
     elif data_config.data_type == DataType.MultiTiffSameSizeDset:
         return _loadmultitiff(fpath,data_config,datasplit_type)
-    elif data_config.data_type == DataType.HHMI25V2:
+    elif data_config.data_type in [DataType.HHMI25V2, DataType.HHMI25V3]:
         return _loadhhmi_v2(fpath,
                             data_config,
                             datasplit_type,
