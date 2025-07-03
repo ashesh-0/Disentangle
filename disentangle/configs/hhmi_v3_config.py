@@ -127,6 +127,8 @@ def get_config():
     model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2507/13/GMMNoiseModel_n2v_denoising-subset_Ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2507/14/GMMNoiseModel_n2v_denoising-subset_Ch3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
+
+
     model.noise_model_learnable = False
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
