@@ -57,16 +57,18 @@ def get_transform_obj(ch1_transforms, ch2_transforms, correlation_preserving_tra
     return transform_all
 
 class PosteriorSamplingPredictor(nn.Module):
-    def __init__(self, model, transform, forward_operator_params, k_predictions=1, k_prediction_mode='entire'):
+    def __init__(self, model, transform, forward_operator_params, k_predictions=1, k_prediction_mode='entire', k_forward_pass=2):
         """
         Args:
         k_prediction_mode: 'entire' - use the entire prediction scheme with first and the augmentation based predictions
         'only_transformed' - use only the transformed prediction: skips the stochasticity of the first prediction. Stochasticity comes only from transforms.
         'only_first' - use only the first prediction: stochasticity comes only from the first prediction. augmentation is not used.
+        k_forward_pass: number of forward passes to perform for each prediction.
         """
         super().__init__()
         self.model = model
         self.transform = transform
+        self.k_forward_pass = k_forward_pass
         
         self.mixing_t_min = forward_operator_params['mixing_t_min']
         self.mixing_t_max = forward_operator_params['mixing_t_max']
@@ -75,9 +77,26 @@ class PosteriorSamplingPredictor(nn.Module):
 
         self.k = k_predictions
         self.k_prediction_mode = k_prediction_mode
-        print(f'[{self.__class__.__name__}] k_prediction_mode: {self.k_prediction_mode}')
-
+        print(f'[{self.__class__.__name__}] k_prediction_mode: {self.k_prediction_mode} k_forward_pass: {self.k_forward_pass}')
+        # we need two things: one set of predictions for error computation (pred1_mmse is the mmse prediction for that) and another set of predictions for variance computation (outputs). 
+        # only_first: Just uses the first forward pass for both these things. 
+        # only_transformed: uses multiple forward pass for variance computation. but error computation is done only the single forward pass. (? why) I see the motivation, but the implementation is suboptimal. The problem here is that mmse has no effect for error computation. 
+        # entire: the variance computation uses the stochasticity of all forward passes. in only_transformed, it used the stochasticity of the second forward pass. 
         assert self.k_prediction_mode in ['entire', 'only_transformed', 'only_first']
+
+
+    def one_forward_pass(self, pred):
+        pred1_transformed, applied_transforms = self.transform(pred[:,:2])
+        # print('max difference pred<->pred_transformed', torch.abs(pred1_transformed - pred1[:,:2]).max())
+        inv_transform, invertible = get_inverse_transforms(applied_transforms)
+        assert invertible is True, "Transform is not invertible"
+        mixing_t = np.random.uniform(self.mixing_t_min, self.mixing_t_max)
+        new_inp = pred1_transformed[:,:1]*mixing_t + pred1_transformed[:,1:2]* (1-mixing_t)
+        new_inp = new_inp * self.sigma + self.mu
+        pred2,_ = self.model(new_inp)
+        # apply inverse transform on pred2
+        inv_transformed_pred, _  = self.transform(pred2[:,:2], params_dict = inv_transform, inverse=True)
+        return inv_transformed_pred
 
     def forward(self, x):
         outputs = []
@@ -89,20 +108,25 @@ class PosteriorSamplingPredictor(nn.Module):
             if self.k_prediction_mode == 'only_first':
                 outputs.append(pred1[:,:2])
             elif self.k_prediction_mode in ['only_transformed', 'entire']:
-                pred1_transformed, applied_transforms = self.transform(pred1[:,:2])
-                # print('max difference pred<->pred_transformed', torch.abs(pred1_transformed - pred1[:,:2]).max())
-                inv_transform, invertible = get_inverse_transforms(applied_transforms)
-                assert invertible is True, "Transform is not invertible"
-                mixing_t = np.random.uniform(self.mixing_t_min, self.mixing_t_max)
-                new_inp = pred1_transformed[:,:1]*mixing_t + pred1_transformed[:,1:2]* (1-mixing_t)
-                new_inp = new_inp * self.sigma + self.mu
-                pred2,_ = self.model(new_inp)
-                # apply inverse transform on pred2
-                inv_transformed_pred, _  = self.transform(pred2[:,:2], params_dict = inv_transform, inverse=True)
+                pred_mf = pred1[:,:2]
+                for _ in range(1,self.k_forward_pass):
+                    pred_mf = self.one_forward_pass(pred_mf)
+                outputs.append(pred_mf)
+                # inv_transformed_pred= self.one_forward_pass(pred1)
+                # pred1_transformed, applied_transforms = self.transform(pred1[:,:2])
+                # # print('max difference pred<->pred_transformed', torch.abs(pred1_transformed - pred1[:,:2]).max())
+                # inv_transform, invertible = get_inverse_transforms(applied_transforms)
+                # assert invertible is True, "Transform is not invertible"
+                # mixing_t = np.random.uniform(self.mixing_t_min, self.mixing_t_max)
+                # new_inp = pred1_transformed[:,:1]*mixing_t + pred1_transformed[:,1:2]* (1-mixing_t)
+                # new_inp = new_inp * self.sigma + self.mu
+                # pred2,_ = self.model(new_inp)
+                # # apply inverse transform on pred2
+                # inv_transformed_pred, _  = self.transform(pred2[:,:2], params_dict = inv_transform, inverse=True)
                 # print('max difference pred<->inverse of pred_transformed', torch.abs(inv_transformed_pred - pred1[:,:2]).max())
-                outputs.append(inv_transformed_pred)
+                # outputs.append(inv_transformed_pred)
             if self.k_prediction_mode in ['entire', 'only_first']:
                 pred1, _ = self.model(x)
-                print('sampling  again')
+                # print('sampling  again')
         
         return outputs, pred1_mmse
