@@ -14,7 +14,7 @@ from disentangle.data_loader.sox2golgi_v2_rawdata_loader import Sox2GolgiV2Chann
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 16
+    data.image_size = 64
     data.data_type = DataType.TavernaSox2GolgiV2
     data.subdset_type = SubDsetType.MultiChannel
     # all channels: ['555-647', 'GT_Cy5', 'GT_TRITC']
@@ -22,8 +22,8 @@ def get_config():
     #     Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC, Sox2GolgiV2ChannelList.GT_555_647
     # ]
     data.channel_idx_list = [Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC]
-    # data.start_alpha = [0.2, 0.2]
-    # data.end_alpha = [0.8, 0.8]
+    data.start_alpha = [0.2, 0.2]
+    data.end_alpha = [0.8, 0.8]
 
     data.num_channels = len(data.channel_idx_list)
     # data.input_idx = 2
@@ -68,12 +68,12 @@ def get_config():
     # data.return_alpha = True
 
     loss = config.loss
-    loss.loss_type = LossType.ElboMixedReconstruction
-    # this is not uSplit.
-    loss.kl_loss_formulation = 'usplit'
+    loss.loss_type = LossType.Elbo
+    # 'usplit', 'denoisplit', 'denoisplit_usplit'
+    loss.kl_loss_formulation = 'denoisplit'
     loss.restricted_kl = False
 
-    loss.mixed_rec_weight = 1
+    # loss.mixed_rec_weight = 1
     loss.usplit_w = 0.1
     loss.denoisplit_w = 1 - loss.usplit_w
 
@@ -87,7 +87,7 @@ def get_config():
 
     model = config.model
     model.model_type = ModelType.LadderVae
-    model.z_dims = [128, 128, 128]
+    model.z_dims = [128, 128, 128, 128]
 
     model.encoder.batchnorm = True
     model.encoder.blocks_per_layer = 1
@@ -121,13 +121,13 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = 'pixelwise'  #'channelwise'
+    model.predict_logvar = None#'pixelwise'  #'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True
     model.monitor = 'val_loss'  # {'val_loss','val_psnr'}
 
-    model.enable_noise_model = False
+    model.enable_noise_model = True
     model.noise_model_type = 'gmm'
     model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/112/GMMNoiseModel_N2V_data-sox2golgiv2_GT_Cy5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2404/113/GMMNoiseModel_N2V_data-sox2golgiv2_GT_TRITC__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
@@ -136,7 +136,7 @@ def get_config():
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
     # model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
-    model.non_stochastic_version = False
+    model.non_stochastic_version = True
 
     training = config.training
     training.lr = 0.001
