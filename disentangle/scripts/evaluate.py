@@ -316,6 +316,8 @@ def get_data_dir(dtype):
         # data_dir = "/group/jug/ashesh/data/HHMI25_smaller/"
     elif dtype == DataType.HHMI25V2:
         data_dir = f'{DATA_ROOT}/HHMI25_v2/'
+    elif dtype == DataType.HHMI25V3:
+        data_dir = f'{DATA_ROOT}/HHMI25_v3/'
     
     return data_dir
 
@@ -703,7 +705,7 @@ def main(
     else:
         pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
 
-    if config.data.data_type in [DataType.MultiTiffSameSizeDset, DataType.HHMI25V2]:
+    if config.data.data_type in [DataType.MultiTiffSameSizeDset, DataType.HHMI25V2, DataType.HHMI25V3]:
         highres_data = None
     else:
         highres_data = (get_highsnr_data(config, data_dir, eval_datasplit_type) if compare_with_highsnr else None)
@@ -835,11 +837,14 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
+            # HHMI v3
+            # '/group/jug/ashesh/training/disentangle/2507/D34-M3-S0-L8/4'
             # HHMI v2
+            '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/11'
             # '/group/jug/ashesh/training/disentangle/2506/D33-M3-S0-L8/1'
             # '/group/jug/ashesh/training/disentangle/2506/D33-M3-S0-L0/0',
             # HHMI
-            '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L0/0'
+            # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L0/0'
             # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/13'
             # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/12'
             # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/11'

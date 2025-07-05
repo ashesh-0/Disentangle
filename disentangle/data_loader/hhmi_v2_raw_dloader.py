@@ -26,6 +26,7 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
     reader = read_lif.Reader(fpath)
     series = reader.getSeries()
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(series))
+    # breakpoint()
     if datasplit_type == DataSplitType.Train:
         data = load_series(series, train_idx, data_config.channel_idx_list)
         data = [(data[i],str(train_idx[i])) for i in range(len(data))]
@@ -34,6 +35,7 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
         data = [(data[i],str(val_idx[i])) for i in range(len(data))]
     elif datasplit_type == DataSplitType.Test:
         data = load_series(series, test_idx, data_config.channel_idx_list)
+        # data = [x[:6] for x in data]  # only take first 6 channels
         data = [(data[i],str(test_idx[i])) for i in range(len(data))]
     elif datasplit_type == DataSplitType.All:
         idx = np.arange(len(series))

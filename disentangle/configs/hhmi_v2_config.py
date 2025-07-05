@@ -11,8 +11,8 @@ def get_config():
     data = config.data
     data.image_size = 64
     data.data_type = DataType.HHMI25V2
-    # data.channel_idx_list = [0,1,2,3,4,5]
-    data.channel_idx_list = [1,2,4]
+    data.channel_idx_list = [0,1,2,3,4,5]
+    # data.channel_idx_list = [1,2,4]
     data.data_fname = '12_noon_female_con_liv4.lif' 
     data.depth3D = 5
     data.mode_3D = True
@@ -116,16 +116,16 @@ def get_config():
 
     model.enable_noise_model = True
     model.noise_model_type = 'gmm'
-    # model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2507/18/GMMNoiseModel_n2v_denoising-subset_Ch0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2507/19/GMMNoiseModel_n2v_denoising-subset_Ch1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2507/20/GMMNoiseModel_n2v_denoising-subset_Ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch4_fpath = '/group/jug/ashesh/training/noise_model/2507/21/GMMNoiseModel_n2v_denoising-subset_Ch3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch5_fpath = '/group/jug/ashesh/training/noise_model/2507/22/GMMNoiseModel_n2v_denoising-subset_Ch4__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch6_fpath = '/group/jug/ashesh/training/noise_model/2507/23/GMMNoiseModel_n2v_denoising-subset_Ch5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2507/18/GMMNoiseModel_n2v_denoising-subset_Ch0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2507/19/GMMNoiseModel_n2v_denoising-subset_Ch1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2507/20/GMMNoiseModel_n2v_denoising-subset_Ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch4_fpath = '/group/jug/ashesh/training/noise_model/2507/21/GMMNoiseModel_n2v_denoising-subset_Ch3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch5_fpath = '/group/jug/ashesh/training/noise_model/2507/22/GMMNoiseModel_n2v_denoising-subset_Ch4__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch6_fpath = '/group/jug/ashesh/training/noise_model/2507/23/GMMNoiseModel_n2v_denoising-subset_Ch5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
-    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2507/19/GMMNoiseModel_n2v_denoising-subset_Ch1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2507/20/GMMNoiseModel_n2v_denoising-subset_Ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2507/22/GMMNoiseModel_n2v_denoising-subset_Ch4__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2507/19/GMMNoiseModel_n2v_denoising-subset_Ch1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2507/20/GMMNoiseModel_n2v_denoising-subset_Ch2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2507/22/GMMNoiseModel_n2v_denoising-subset_Ch4__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
 
 
     
