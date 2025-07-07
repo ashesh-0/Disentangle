@@ -838,12 +838,14 @@ def save_hardcoded_ckpt_evaluations_to_file(
     if ckpt_dir is None:
         ckpt_dirs = [
             # HHMI v3
-            # '/group/jug/ashesh/training/disentangle/2507/D34-M3-S0-L8/4'
+            # '/group/jug/ashesh/training/disentangle/2507/D34-M3-S0-L8/2'
             # HHMI v2
-            '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/11'
+            # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/13'
+            # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/11'
             # '/group/jug/ashesh/training/disentangle/2506/D33-M3-S0-L8/1'
             # '/group/jug/ashesh/training/disentangle/2506/D33-M3-S0-L0/0',
             # HHMI
+            '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L8/0'
             # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L0/0'
             # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/13'
             # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/12'
