@@ -845,7 +845,9 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # '/group/jug/ashesh/training/disentangle/2506/D33-M3-S0-L8/1'
             # '/group/jug/ashesh/training/disentangle/2506/D33-M3-S0-L0/0',
             # HHMI
-            '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L8/0'
+            # '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L8/0'
+            # '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L0/2',
+            '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L0/3',
             # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L0/0'
             # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/13'
             # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/12'
