@@ -108,7 +108,7 @@ class PosteriorSamplingPredictor(nn.Module):
         pred2,_ = self.model(new_inp)
         # apply inverse transform on pred2
         inv_transformed_pred, _  = self.transform(pred2[:,:2], params_dict = inv_transform, inverse=True)
-        return inv_transformed_pred, input_extra_channels
+        return inv_transformed_pred, new_inp
 
     def forward(self, x):
         outputs = []
@@ -123,7 +123,7 @@ class PosteriorSamplingPredictor(nn.Module):
                 pred_mf = pred1[:,:2]
                 extra_ch_input = x[:,1:]
                 for _ in range(1,self.k_forward_pass):
-                    pred_mf, extra_ch_input = self.one_forward_pass(pred_mf, extra_ch_input)
+                    pred_mf = self.one_forward_pass(pred_mf, extra_ch_input)[0]
                 outputs.append(pred_mf)
             if self.k_prediction_mode in ['entire', 'only_first']:
                 pred1, _ = self.model(x)
