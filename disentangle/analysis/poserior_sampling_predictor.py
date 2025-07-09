@@ -85,7 +85,7 @@ class PosteriorSamplingPredictor(nn.Module):
         assert self.k_prediction_mode in ['entire', 'only_transformed', 'only_first']
 
 
-    def one_forward_pass(self, pred):
+    def one_forward_pass(self, pred, input_extra_channels):
         pred1_transformed, applied_transforms = self.transform(pred[:,:2])
         # print('max difference pred<->pred_transformed', torch.abs(pred1_transformed - pred1[:,:2]).max())
         inv_transform, invertible = get_inverse_transforms(applied_transforms)
@@ -93,10 +93,22 @@ class PosteriorSamplingPredictor(nn.Module):
         mixing_t = np.random.uniform(self.mixing_t_min, self.mixing_t_max)
         new_inp = pred1_transformed[:,:1]*mixing_t + pred1_transformed[:,1:2]* (1-mixing_t)
         new_inp = new_inp * self.sigma + self.mu
+        if len(input_extra_channels) > 0:
+            trans0, trans1 = applied_transforms['params']
+            trans0 = [x['applied'] for x in trans0]
+            trans1 =[x['applied'] for x in trans1]
+            applied_transforms = {'params':[trans0, trans1]}
+            # print(applied_transforms)
+            # print(inv_transform)
+            # print(input_extra_channels.shape)
+            input_extra_channels, _ = self.transform(input_extra_channels, params_dict = applied_transforms)
+            # print(input_extra_channels.shape, new_inp.shape)
+            new_inp = torch.cat([new_inp, input_extra_channels],dim=1)
+            # print(new_inp.shape)
         pred2,_ = self.model(new_inp)
         # apply inverse transform on pred2
         inv_transformed_pred, _  = self.transform(pred2[:,:2], params_dict = inv_transform, inverse=True)
-        return inv_transformed_pred
+        return inv_transformed_pred, input_extra_channels
 
     def forward(self, x):
         outputs = []
@@ -109,22 +121,10 @@ class PosteriorSamplingPredictor(nn.Module):
                 outputs.append(pred1[:,:2])
             elif self.k_prediction_mode in ['only_transformed', 'entire']:
                 pred_mf = pred1[:,:2]
+                extra_ch_input = x[:,1:]
                 for _ in range(1,self.k_forward_pass):
-                    pred_mf = self.one_forward_pass(pred_mf)
+                    pred_mf, extra_ch_input = self.one_forward_pass(pred_mf, extra_ch_input)
                 outputs.append(pred_mf)
-                # inv_transformed_pred= self.one_forward_pass(pred1)
-                # pred1_transformed, applied_transforms = self.transform(pred1[:,:2])
-                # # print('max difference pred<->pred_transformed', torch.abs(pred1_transformed - pred1[:,:2]).max())
-                # inv_transform, invertible = get_inverse_transforms(applied_transforms)
-                # assert invertible is True, "Transform is not invertible"
-                # mixing_t = np.random.uniform(self.mixing_t_min, self.mixing_t_max)
-                # new_inp = pred1_transformed[:,:1]*mixing_t + pred1_transformed[:,1:2]* (1-mixing_t)
-                # new_inp = new_inp * self.sigma + self.mu
-                # pred2,_ = self.model(new_inp)
-                # # apply inverse transform on pred2
-                # inv_transformed_pred, _  = self.transform(pred2[:,:2], params_dict = inv_transform, inverse=True)
-                # print('max difference pred<->inverse of pred_transformed', torch.abs(inv_transformed_pred - pred1[:,:2]).max())
-                # outputs.append(inv_transformed_pred)
             if self.k_prediction_mode in ['entire', 'only_first']:
                 pred1, _ = self.model(x)
                 # print('sampling  again')
