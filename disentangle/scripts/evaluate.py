@@ -307,8 +307,9 @@ def get_data_dir(dtype):
     elif dtype == DataType.Care3D:
         data_dir = f"{DATA_ROOT}/CARE/care_florian/"
     elif dtype == DataType.MultiTiffSameSizeDset:
+        data_dir = '/group/jug/ashesh/n2v_predictions/HHMI25_discrete/'
         # data_dir = f'{DATA_ROOT}/HHMI25/'
-        data_dir = '/group/jug/ashesh/data/HHMI25_downsampled_by_2/'
+        # data_dir = '/group/jug/ashesh/data/HHMI25_downsampled_by_2/'
         # data_dir = '/group/jug/ashesh/data/HHMI25_blur_sigma_0.2/'
         # data_dir = '/group/jug/ashesh/data/HHMI25_blur_sigma_0.5/'
         # data_dir = '/group/jug/ashesh/data/HHMI25_blur_sigma_1/'
@@ -840,12 +841,17 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # HHMI v3
             # '/group/jug/ashesh/training/disentangle/2507/D34-M3-S0-L8/2'
             # HHMI v2
-            '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/18'
+            # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/25'
+            # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/22'
+            # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/20'
+            # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/18'
             # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/13'
             # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/11'
             # '/group/jug/ashesh/training/disentangle/2506/D33-M3-S0-L8/1'
             # '/group/jug/ashesh/training/disentangle/2506/D33-M3-S0-L0/0',
             # HHMI
+            '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L8/7'
+            # '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L0/5'
             # '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L8/2'
             # '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L8/3'
             # '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L8/4'
