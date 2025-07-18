@@ -706,10 +706,7 @@ def main(
     else:
         pred_unnorm = pred * sep_std.cpu().numpy() + sep_mean.cpu().numpy()
 
-    if config.data.data_type in [DataType.MultiTiffSameSizeDset, DataType.HHMI25V2, DataType.HHMI25V3]:
-        highres_data = None
-    else:
-        highres_data = (get_highsnr_data(config, data_dir, eval_datasplit_type) if compare_with_highsnr else None)
+    highres_data = (get_highsnr_data(config, data_dir, eval_datasplit_type) if compare_with_highsnr else None)
     if highres_data is not None and isinstance(highres_data, list):
         if len(highres_data[0].shape) != len(pred_unnorm[0].shape):
             assert len(highres_data[0].shape) == len(pred_unnorm[0].shape) - 1
@@ -721,7 +718,11 @@ def main(
         highres_data = highres_data[[predict_kth_frame]].copy()
 
     if (highres_data is not None and "target_idx_list" in config.data and config.data.target_idx_list is not None):
-        highres_data = highres_data[..., config.data.target_idx_list]
+        if isinstance(highres_data, list):
+            for i in range(len(highres_data)):
+                highres_data[i] = highres_data[i][..., config.data.target_idx_list]
+        else:
+            highres_data = highres_data[..., config.data.target_idx_list]
 
     if highres_data is None:
         # Computing the output statistics.
@@ -841,7 +842,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # HHMI v3
             # '/group/jug/ashesh/training/disentangle/2507/D34-M3-S0-L8/2'
             # HHMI v2
-            # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/25'
+            '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/25'
             # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/22'
             # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/20'
             # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/18'
@@ -850,7 +851,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # '/group/jug/ashesh/training/disentangle/2506/D33-M3-S0-L8/1'
             # '/group/jug/ashesh/training/disentangle/2506/D33-M3-S0-L0/0',
             # HHMI
-            '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L8/7'
+            # '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L8/7'
             # '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L0/5'
             # '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L8/2'
             # '/group/jug/ashesh/training/disentangle/2507/D32-M3-S0-L8/3'
