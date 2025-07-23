@@ -842,7 +842,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
             # HHMI v3
             # '/group/jug/ashesh/training/disentangle/2507/D34-M3-S0-L8/2'
             # HHMI v2
-            '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/25'
+            # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/25'
             # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/22'
             # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/20'
             # '/group/jug/ashesh/training/disentangle/2507/D33-M3-S0-L8/18'
@@ -870,11 +870,12 @@ def save_hardcoded_ckpt_evaluations_to_file(
             #   '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/2',
             
             # 3D datasets, recent results.
+            # 2506/D29-M3-S0-L8/2
             # '/group/jug/ashesh/training/disentangle/2506/D30-M3-S0-L8/6',
             # '/group/jug/ashesh/training/disentangle/2506/D30-M3-S0-L8/5',
             # '/group/jug/ashesh/training/disentangle/2506/D12-M3-S0-L8/0',
             # '/group/jug/ashesh/training/disentangle/2506/D19-M3-S0-L8/4',
-            # '/group/jug/ashesh/training/disentangle/2506/D29-M3-S0-L8/2',
+            '/group/jug/ashesh/training/disentangle/2506/D29-M3-S0-L8/2',
             # '/group/jug/ashesh/training/disentangle/2506/D29-M3-S0-L8/3',
             # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/0',
             # '/group/jug/ashesh/training/disentangle/2506/D32-M3-S0-L8/1',
