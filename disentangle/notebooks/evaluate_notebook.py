@@ -15,7 +15,6 @@ if __name__ == '__main__':
     parser.add_argument('--override_kwargs', type=json.loads, default='{}', )
     args = parser.parse_args()
     param_dict = args.override_kwargs
-    param_dict['ckpt_dir'] = args.ckpt_dir
     keys = sorted(param_dict.keys())
     param_str = '_'.join([f'{k}-{param_dict[k]}' for k in keys])
     ckpt_dir = args.ckpt_dir
@@ -47,6 +46,7 @@ if __name__ == '__main__':
         f.write(str(args_dict))
 
     print(output_fpath, '\n', output_config_fpath)
+    param_dict['ckpt_dir'] = args.ckpt_dir
     pm.execute_notebook(
         args.notebook,
         output_fpath,
