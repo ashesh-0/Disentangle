@@ -213,7 +213,7 @@ def main(argv):
             config = ml_collections.FrozenConfigDict(config)
         except:
             print('Cannot freeze the config. This is not a problem. Just a warning.')
-        
+        log_config(config, cur_workdir)
 
         train_data, val_data = create_dataset(config, FLAGS.datadir, raw_data_dict=raw_data_dict)
 
