@@ -10,7 +10,7 @@ from disentangle.data_loader.pavia3_rawdata_loader import Pavia3SeqAlpha, Pavia3
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
+    data.image_size = 128
     data.data_type = DataType.Pavia3SeqData
     data.num_channels = 2
     data.subdset_type = SubDsetType.MultiChannel
@@ -58,7 +58,7 @@ def get_config():
     loss.kl_loss_formulation = 'denoisplit'
 
     # loss.mixed_rec_weight = 1
-    loss.restricted_kl = True
+    loss.restricted_kl = False
     loss.kl_weight = 1.0
     loss.reconstruction_weight = 1.0
     loss.kl_annealing = False
@@ -102,7 +102,7 @@ def get_config():
     model.mode_pred = False
     model.var_clip_max = 20
     # predict_logvar takes one of the four values: [None,'global','channelwise','pixelwise']
-    model.predict_logvar = None #'pixelwise'  #'pixelwise' #'channelwise'
+    model.predict_logvar = 'pixelwise' #'pixelwise'  #'pixelwise' #'channelwise'
     model.logvar_lowerbound = -5  # -2.49 is log(1/12), from paper "Re-parametrizing VAE for stablity."
     model.multiscale_lowres_separate_branch = False
     model.multiscale_retain_spatial_dims = True

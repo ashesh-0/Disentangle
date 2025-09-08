@@ -1,41 +1,54 @@
+from tkinter.tix import Tree
+
+import numpy as np
+
 from disentangle.configs.default_config import get_default_config
 from disentangle.core.data_type import DataType
 from disentangle.core.loss_type import LossType
 from disentangle.core.model_type import ModelType
 from disentangle.core.sampler_type import SamplerType
-from disentangle.data_loader.nikola_7D_rawdata_loader import NikolaChannelList
+from disentangle.data_loader.multifile_raw_dloader import SubDsetType
+from disentangle.data_loader.sox2golgi_v2_rawdata_loader import Sox2GolgiV2ChannelList
 
 
 def get_config():
     config = get_default_config()
     data = config.data
-    data.image_size = 64
-    data.data_type = DataType.NicolaData
-    data.dset_type = '5ms'  # high, mid, low, verylow
-    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B]
+    data.image_size = 128
+    data.data_type = DataType.TavernaSox2GolgiV2
+    data.subdset_type = SubDsetType.MultiChannel
+    # all channels: ['555-647', 'GT_Cy5', 'GT_TRITC']
+    # data.channel_idx_list = [
+    #     Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC, Sox2GolgiV2ChannelList.GT_555_647
+    # ]
+    data.channel_idx_list = [Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC]
+    data.start_alpha = [0.2, 0.2]
+    data.end_alpha = [0.8, 0.8]
 
     data.num_channels = len(data.channel_idx_list)
-    # data.input_idx = len(data.channel_idx_list) - 1
-    data.target_idx_list = list(range(len(data.channel_idx_list)))
-    # data.target_idx_list = list(range(len(data.channel_idx_list) - 1))
-
-    data.enable_gaussian_noise = False
-    # data.trainig_datausage_fraction = 0.02
-    data.poisson_noise_factor = -1
-    # data.validtarget_random_fraction = 1.0
-    # data.training_validtarget_fraction = 0.2
-    config.data.synthetic_gaussian_scale = 100
-    # if True, then input has 'identical' noise as the target. Otherwise, noise of input is independently sampled.
-    config.data.input_has_dependant_noise = True
+    # data.input_idx = 2
+    data.target_idx_list = [0, 1]
 
     data.sampler_type = SamplerType.DefaultSampler
-    data.threshold = 0.02
-    # data.grid_size = 1
     data.deterministic_grid = False
     data.normalized_input = True
-    data.clip_percentile = 1
+    data.clip_percentile = 1.0
+    data.background_quantile = 0.0
+    # With background quantile, one is setting the avg background value to 0. With this, any negative values are also set to 0.
+    # This, together with correct background_quantile should altogether get rid of the background. The issue here is that
+    # the background noise is also a distribution. So, some amount of background noise will remain.
+    data.clip_background_noise_to_zero = False
 
-    data.channelwise_quantile = False
+    # we will not subtract the mean of the dataset from every patch. We just want to subtract the background and normalize using std. This way, background will be very close to 0.
+    # this will help in the all scaling related approaches where we want to multiply the frame with some factor and then add them. we will then effectively just do these scaling on the
+    # foreground pixels and the background will anyways will remain very close to 0.
+    data.skip_normalization_using_mean = False
+
+    data.uncorrelated_channels = True
+    data.uncorrelated_channel_probab = 1.0
+
+    data.input_is_sum = False
+
     # If this is set to true, then one mean and stdev is used for both channels. Otherwise, two different
     # meean and stdev are used.
     data.use_one_mu_std = True
@@ -47,15 +60,21 @@ def get_config():
     # If this is set to True, then target channels will be normalized from their separate mean.
     # otherwise, target will be normalized just the same way as the input, which is determined by use_one_mu_std
     data.target_separate_normalization = True
-    data.input_is_sum = False
+
+    # This is for intensity augmentation
+    # data.ch1_min_alpha = 0.4
+    # data.ch1_max_alpha = 0.6
+    # data.alpha_weighted_target = True
+    # data.return_alpha = True
+
     loss = config.loss
     loss.loss_type = LossType.Elbo
-    # this is not uSplit.
+    # 'usplit', 'denoisplit', 'denoisplit_usplit'
     loss.kl_loss_formulation = 'denoisplit'
     loss.restricted_kl = False
 
     # loss.mixed_rec_weight = 1
-    loss.usplit_w = 0.0
+    loss.usplit_w = 0.1
     loss.denoisplit_w = 1 - loss.usplit_w
 
     loss.kl_weight = 1.0
@@ -110,10 +129,9 @@ def get_config():
 
     model.enable_noise_model = False
     model.noise_model_type = 'gmm'
-    model.noise_model_ch1_fpath = '/group/jug/ashesh/training/noise_model/2406/6/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_5msSNR_channel0__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    model.noise_model_ch2_fpath = '/group/jug/ashesh/training/noise_model/2406/7/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_5msSNR_channel1__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch3_fpath = '/group/jug/ashesh/training/noise_model/2406/19/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_5msSNR_channel3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
-    # model.noise_model_ch4_fpath = '/group/jug/ashesh/training/noise_model/2406/9/GMMNoiseModel_nikola_denoising_input-uSplit_20240531_20msSNR_channel3__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch1_fpath = '/home/ashesh.ashesh/training/noise_model/2404/112/GMMNoiseModel_N2V_data-sox2golgiv2_GT_Cy5__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    model.noise_model_ch2_fpath = '/home/ashesh.ashesh/training/noise_model/2404/113/GMMNoiseModel_N2V_data-sox2golgiv2_GT_TRITC__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
+    # model.noise_model_ch3_fpath = '/home/ashesh.ashesh/training/noise_model/2404/32/GMMNoiseModel_nikola_denoising_input-uSplit_14022025_highSNR_channel2__6_4_Clip0.0-1.0_Sig0.125_UpNone_Norm0_bootstrap.npz'
     model.noise_model_learnable = False
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')

@@ -110,6 +110,26 @@ def load_data(datadir, dset_type, channel_list):
     return data
 
 def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
+    if 'dset_type_per_channel' not in data_config or data_config.dset_type_per_channel is None:
+        return _get_train_val_data_one_dsettype(datadir, data_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
+    else:
+        import ml_collections
+        new_config = ml_collections.ConfigDict(data_config)
+        del new_config.dset_type_per_channel
+        data_list = {}
+        for dset_type in data_config.dset_type_per_channel:
+            if dset_type in data_list:
+                continue
+            new_config.dset_type = dset_type
+            data_list[dset_type] = _get_train_val_data_one_dsettype(datadir, new_config, datasplit_type, val_fraction=val_fraction, test_fraction=test_fraction)
+        data = []
+        for ch_idx in range(len(data_config.channel_idx_list)):
+            dset_type = data_config.dset_type_per_channel[ch_idx]
+            data.append(data_list[dset_type][..., ch_idx:ch_idx+1])
+        data = np.concatenate(data, axis=-1)
+        return data
+    
+def _get_train_val_data_one_dsettype(datadir, data_config, datasplit_type: DataSplitType, val_fraction=None, test_fraction=None):
     dset_type = data_config.dset_type
     data = load_data(datadir, dset_type, data_config.channel_idx_list)
     train_idx, val_idx, test_idx = get_datasplit_tuples(val_fraction, test_fraction, len(data))
@@ -130,14 +150,17 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
 
-    from disentangle.configs.nikola_7D_config import get_config
+    from disentangle.configs.nikola_denoisplit import get_config
 
     config = get_config()
     config.data.enable_gaussian_noise = False
+    config.data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B,  NikolaChannelList.Ch_AB]
+    config.data.num_channels = len(config.data.channel_idx_list)
+    # config.data.dset_type_per_channel = ['5ms', '5ms', '500ms']
+
     datadir = '/group/jug/ashesh/data/nikola_data/20240531/'
     data = get_train_val_data(datadir, config.data, DataSplitType.Train,
                               config.training.val_fraction, config.training.test_fraction)
-
     _,ax = plt.subplots(figsize=(18,6),ncols=3)
     ax[0].imshow(data[0,...,0])
     ax[1].imshow(data[0,...,1])
