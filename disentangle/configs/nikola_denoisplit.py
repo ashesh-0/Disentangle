@@ -12,12 +12,13 @@ def get_config():
     data.image_size = 64
     data.data_type = DataType.NicolaData
     data.dset_type = '5ms'  # high, mid, low, verylow
-    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B]
+    data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B, NikolaChannelList.Ch_AB]
+    data.dset_type_per_channel = ['5ms', '5ms', '500ms']
 
     data.num_channels = len(data.channel_idx_list)
-    # data.input_idx = len(data.channel_idx_list) - 1
-    data.target_idx_list = list(range(len(data.channel_idx_list)))
-    # data.target_idx_list = list(range(len(data.channel_idx_list) - 1))
+    data.input_idx = len(data.channel_idx_list) - 1
+    # data.target_idx_list = list(range(len(data.channel_idx_list)))
+    data.target_idx_list = list(range(len(data.channel_idx_list) - 1))
 
     data.enable_gaussian_noise = False
     # data.trainig_datausage_fraction = 0.02

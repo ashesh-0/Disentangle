@@ -115,7 +115,8 @@ def get_train_val_data(datadir, data_config, datasplit_type: DataSplitType, val_
     else:
         import ml_collections
         new_config = ml_collections.ConfigDict(data_config)
-        del new_config.dset_type_per_channel
+        with new_config.unlocked():
+            del new_config.dset_type_per_channel
         data_list = {}
         for dset_type in data_config.dset_type_per_channel:
             if dset_type in data_list:
