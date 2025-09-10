@@ -30,6 +30,7 @@ from disentangle.nets.lvae_twodset_restrictedrecons import LadderVaeTwoDsetRestr
 from disentangle.nets.lvae_with_critic import LadderVAECritic
 from disentangle.nets.lvae_with_stitch import LadderVAEwithStitching
 from disentangle.nets.lvae_with_stitch_2stage import LadderVAEwithStitching2Stage
+from disentangle.nets.lvae_with_transformer import LadderVAEWithTransformer
 from disentangle.nets.splitter_denoiser import SplitterDenoiser
 from disentangle.nets.unet import UNet
 
@@ -84,6 +85,8 @@ def create_model(config, data_mean, data_std, val_idx_manager=None):
         model = LadderVaeTwoDsetRestrictedRecons(data_mean, data_std, config)
     elif config.model.model_type == ModelType.LadderVAETwoDataSetFinetuning:
         model = LadderVaeTwoDsetFinetuning(data_mean, data_std, config)
+    elif config.model.model_type == ModelType.LadderVaeWithTransformer:
+        model = LadderVAEWithTransformer(data_mean, data_std, config)
     else:
         raise Exception('Invalid model type:', config.model.model_type)
 
