@@ -283,11 +283,19 @@ def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 class TransformerEncoder(nn.Module):
-    def __init__(self, image_size:Tuple[int,int], in_channels, num_blocks, channels, block_types=['C', 'C', 'T', 'T']):
+    def __init__(self, image_size:Tuple[int,int], in_channels,num_blocks, channels, block_types=['C', 'C', 'T', 'T'], final_channel_size=None):
         super().__init__()
         self.coatnet = CoAtNet(image_size, in_channels, num_blocks, channels, block_types)
+        self.final_conv = None
+        # 1x1 convolution to adjust the final output channels.
+        if final_channel_size is not None:
+            self.final_conv = nn.ModuleList([nn.Conv2d(channels[i], final_channel_size, 1, 1, 0) for i in range(len(channels))])
     def forward(self, x):
-        return self.coatnet(x)
+        output = self.coatnet(x)
+        if self.final_conv is not None:
+            output = [self.final_conv[i](output[i]) for i in range(len(output))]
+        return output
+    
 
 
 if __name__ == '__main__':

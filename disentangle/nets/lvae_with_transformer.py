@@ -15,7 +15,8 @@ class LadderVAEWithTransformer(LadderVAE):
         sz = config.data.image_size
         # add transformer encoder
         
-        self.encoder = TransformerEncoder((sz, sz), config.data.get('color_ch', 1), encoder_params.num_blocks, encoder_params.channels, encoder_params.block_types)
+        self.encoder = TransformerEncoder((sz, sz), config.data.get('color_ch', 1), encoder_params.num_blocks, encoder_params.channels, encoder_params.block_types,
+                                          final_channel_size=config.model.decoder.n_filters)
     
     def bottomup_pass(self, x_pad):
         return self.encoder(x_pad)
@@ -33,7 +34,7 @@ if __name__ == '__main__':
     config.model.mode_pred=True
     config.model.transformer_encoder_params = ml_collections.ConfigDict()
     config.model.transformer_encoder_params.num_blocks = [2, 2, 3, 5, 2]            # L
-    config.model.transformer_encoder_params.channels = [64] * 5
+    config.model.transformer_encoder_params.channels = [64, 96, 192, 384, 768]  
     config.model.z_dims = [128, 128, 128, 128, 128]
     config.model.transformer_encoder_params.block_types=['C', 'C', 'T', 'T']
 
