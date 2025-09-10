@@ -14,7 +14,7 @@ def get_config():
     data.data_type = DataType.NicolaData
     data.dset_type = '5ms'  # high, mid, low, verylow
     data.channel_idx_list = [NikolaChannelList.Ch_A, NikolaChannelList.Ch_B, NikolaChannelList.Ch_AB]
-    data.dset_type_per_channel = ['5ms', '5ms', '500ms']
+    # data.dset_type_per_channel = ['5ms', '5ms', '500ms']
 
     data.num_channels = len(data.channel_idx_list)
     data.input_idx = len(data.channel_idx_list) - 1
