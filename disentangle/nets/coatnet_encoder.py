@@ -290,6 +290,9 @@ class TransformerEncoder(nn.Module):
         # 1x1 convolution to adjust the final output channels.
         if final_channel_size is not None:
             self.final_conv = nn.ModuleList([nn.Conv2d(channels[i], final_channel_size, 1, 1, 0) for i in range(len(channels))])
+        
+        print(f'{self.__class__.__name__}: {image_size}, in_ch: {in_channels}, final_ch: {final_channel_size}, num_blocks: {num_blocks}, channels: {channels}, block_types: {block_types}, params: {count_parameters(self)/1e6:.2f}M')
+
     def forward(self, x):
         output = self.coatnet(x)
         if self.final_conv is not None:
