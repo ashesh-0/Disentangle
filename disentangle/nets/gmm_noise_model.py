@@ -181,6 +181,27 @@ class GaussianMixtureNoiseModel(nn.Module):
                 gaussianParameters[self.n_gaussian + gaussian]) * gaussianParameters[2 * self.n_gaussian + gaussian]
         return p + self.tol
 
+    def sample(self, signals):
+        """
+        Sample a noisy version of the given signal. 
+        """
+        gparams = self.getGaussianParameters(signals)
+        kernels = self.weight.shape[0] // 3
+        mu = gparams[0:kernels]
+        sigma = gparams[kernels:2 * kernels]
+        alpha = gparams[2 * kernels:3 * kernels]
+        
+        alpha = torch.stack(alpha, dim=-1)
+        alpha = torch.distributions.Categorical(alpha)
+        component = alpha.sample()
+
+        mu = torch.stack(mu, dim=-1)
+        sigma = torch.stack(sigma, dim=-1)
+        chosen_mu = mu[torch.arange(mu.shape[0]), component]
+        chosen_sigma = sigma[torch.arange(sigma.shape[0]), component]
+        noise = torch.normal(0, 1, size=chosen_mu.shape, device=chosen_mu.device)
+        return chosen_mu + chosen_sigma * noise
+    
     def getGaussianParameters(self, signals):
         """Returns the noise model for given signals
 
