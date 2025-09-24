@@ -609,8 +609,9 @@ def main(
         }, None
     
 
-    
-    pred_tiled, rec_loss, logvar_tiled, patch_psnr_tuple, pred_std_tiled = get_dset_predictions(
+
+
+    pred_tiled, rec_loss, logvar_tiled, patch_psnr_tuple, pred_std_tiled, _ = get_dset_predictions(
         model,
         val_dset,
         batch_size,
@@ -827,7 +828,23 @@ def save_hardcoded_ckpt_evaluations_to_file(
 ):
     if ckpt_dir is None:
         ckpt_dirs = [
-
+            # transformer
+            # 64 patch size
+            '/group/jug/ashesh/training/disentangle/2509/D25-M3-S0-L0/20',
+            '/group/jug/ashesh/training/disentangle/2509/D25-M3-S0-L0/19',
+            '/group/jug/ashesh/training/disentangle/2509/D25-M3-S0-L0/21',
+            '/group/jug/ashesh/training/disentangle/2509/D25-M3-S0-L0/22',
+            # '/group/jug/ashesh/training/disentangle/2509/D25-M3-S0-L0/24'
+            # '/group/jug/ashesh/training/disentangle/2509/D25-M29-S0-L0/4',
+            # '/group/jug/ashesh/training/disentangle/2509/D25-M29-S0-L0/5',
+            # '/group/jug/ashesh/training/disentangle/2509/D25-M29-S0-L0/6',
+            # '/group/jug/ashesh/training/disentangle/2509/D25-M29-S0-L0/3',
+            # 256 patch size
+            # '/group/jug/ashesh/training/disentangle/2509/D25-M3-S0-L0/25'
+            # '/group/jug/ashesh/training/disentangle/2509/D25-M29-S0-L0/10',
+            # '/group/jug/ashesh/training/disentangle/2509/D25-M29-S0-L0/9',
+            # '/group/jug/ashesh/training/disentangle/2509/D25-M29-S0-L0/8',
+            # '/group/jug/ashesh/training/disentangle/2509/D25-M29-S0-L0/7',
             # elisa3D
             # '/group/jug/ashesh/training/disentangle/2408/D29-M3-S0-L8/24',
             # '/group/jug/ashesh/training/disentangle/2404/D21-M3-S0-L8/6'
@@ -835,7 +852,7 @@ def save_hardcoded_ckpt_evaluations_to_file(
             
             # nicola
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/10',
-            '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
+            # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/4',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/5',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/6',
             # '/group/jug/ashesh/training/disentangle/2406/D25-M3-S0-L8/14',
@@ -1023,6 +1040,8 @@ def save_hardcoded_ckpt_evaluations_to_file(
     return data, prediction
 
 def parse_grid_size(grid_size):
+        if grid_size is None:
+            return None
         grid_size = list(map(int,grid_size.split(',')))
         if len(grid_size) == 1:
             grid_size = grid_size[0]
@@ -1046,7 +1065,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--ckpt_dir", type=str, default=None)
     parser.add_argument("--patch_size", type=int, default=None)
-    parser.add_argument("--grid_size", type=parse_grid_size, default=32)
+    parser.add_argument("--grid_size", type=parse_grid_size, default=None)
     parser.add_argument("--normalized_ssim", action="store_true")
     parser.add_argument("--save_prediction", action="store_true")
     parser.add_argument("--save_prediction_factor", type=float, default=1.0)
