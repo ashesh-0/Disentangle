@@ -222,17 +222,17 @@ class GaussianMixtureNoiseModel(nn.Module):
         kernels = self.weight.shape[0] // 3
         for num in range(kernels):
             mu.append(self.polynomialRegressor(self.weight[num, :], signals))
-            # expval = torch.exp(torch.clamp(self.weight[kernels + num, :], max=MAX_VAR_W))
-            expval = torch.exp(self.weight[kernels + num, :])
+            expval = torch.exp(torch.clamp(self.weight[kernels + num, :], max=MAX_VAR_W))
+            # expval = torch.exp(self.weight[kernels + num, :])
             # self.maxval = max(self.maxval, expval.max().item())
             sigmaTemp = self.polynomialRegressor(expval, signals)
             sigmaTemp = torch.clamp(sigmaTemp, min=self.min_sigma)
             sigma.append(torch.sqrt(sigmaTemp))
-
-            # expval = torch.exp(
-            #     torch.clamp(
-            #         self.polynomialRegressor(self.weight[2 * kernels + num, :], signals) + self.tol, MAX_ALPHA_W))
-            expval = torch.exp(self.polynomialRegressor(self.weight[2 * kernels + num, :], signals) + self.tol)
+            # TODO: one needs to check how this is possible to generate such large weights during noise model training.
+            expval = torch.exp(
+                torch.clamp(
+                    self.polynomialRegressor(self.weight[2 * kernels + num, :], signals), max=MAX_ALPHA_W))
+            # expval = torch.exp(self.polynomialRegressor(self.weight[2 * kernels + num, :], signals) + self.tol)
             # self.maxval = max(self.maxval, expval.max().item())
             alpha.append(expval)
 
