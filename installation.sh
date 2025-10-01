@@ -32,3 +32,4 @@ pip install --upgrade numpy==1.25.2
 pip install nis2pyr
 pip install cellpose
 python -m pip install faiss-gpu
+pip install papermill
