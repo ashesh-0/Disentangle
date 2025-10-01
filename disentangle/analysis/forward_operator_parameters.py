@@ -32,7 +32,7 @@ def get_best_mixing(normalized_tar_arr, normalized_inp_arr, plot=False):
         plt.plot(t_values, mean_psnr_arr)
     return best_t_estimate, mean_psnr_arr[best_idx]
 
-def get_forward_operator_parameters(dset, normalized_tar_patches, normalized_inp_patches, plot=False):
+def get_forward_operator_parameters(dset, normalized_tar_patches, normalized_inp_patches, input_gaussian_noise_std=None, plot=False):
     """
     if [c1,c2] = model(x), and t is the optimal mixing, then 
     (t*c1 + (1-t)*c2)*sigma + mu will be the closest approximation to x.
@@ -47,6 +47,10 @@ def get_forward_operator_parameters(dset, normalized_tar_patches, normalized_inp
 
     # Now we need to find the best mu and sigma
     estimated_inp_patches = normalized_tar_patches[:,0]*mixing_t + normalized_tar_patches[:,1]*(1-mixing_t)
+    # at this point, one needs to add the noise. and then compute sigma.
+    if input_gaussian_noise_std is not None:
+        estimated_inp_patches += np.random.normal(0, input_gaussian_noise_std, estimated_inp_patches.shape)
+    
     N = estimated_inp_patches.shape[0]
     mu_est = np.mean(estimated_inp_patches)
     sigma_est = estimated_inp_patches.reshape(N, -1).std(axis=1).mean()
@@ -59,3 +63,17 @@ def get_forward_operator_parameters(dset, normalized_tar_patches, normalized_inp
     return mixing_t, mu, sigma
     # ((est_inp - mu_est)/sigma_est)*sigma_act + mu_act
     # = est_inp*sigma_act/sigma_est + mu_act - mu_est*(sigma_act/sigma_est)
+
+def get_gaussian_sigma(data, patch_size=7, num_patches=10_000):
+    """
+    data is of shape (N,H,W)
+    """
+    std_arr = []
+    for i in range(num_patches):
+        idx = np.random.randint(0, data.shape[0])
+        h = np.random.randint(0, data.shape[1]-patch_size)
+        w = np.random.randint(0, data.shape[2]-patch_size)
+        patch = data[idx,h:h+patch_size,w:w+patch_size]
+        std_arr.append(patch.std())
+    return np.median(std_arr)
+
