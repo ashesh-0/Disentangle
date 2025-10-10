@@ -17,6 +17,7 @@ dependencies = [
     "ml-collections>=1.1.0",
     "nd2>=0.10.3",
     "nd2reader>=3.3.1",
+    "nis2pyr>=0.6.1",
     "pre-commit>=4.3.0",
     "python-mnist>=0.7",
     "pytorch-lightning>=2.5.5",
