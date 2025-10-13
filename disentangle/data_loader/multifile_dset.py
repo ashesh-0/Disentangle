@@ -199,6 +199,9 @@ class MultiFileDset:
         self.set_max_val(max_val, datasplit_type)
         self.upperclip_data()
 
+    def get_mean_std_for_input(self):
+        return self.dsets[0].get_mean_std_for_input()
+    
     def train_mode(self):
         for dset in self.dsets:
             dset.train_mode()
