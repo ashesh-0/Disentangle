@@ -1,0 +1,45 @@
+with_inp_transforms
+with_transforms
+k_forward_pass
+delta_t
+
+# Taverna
+# just vae. 
+python evaluate_notebook.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2509/D21-M3-S0-L0/3  --notebook=/scratch/ashesh.ashesh/code/Disentangle/disentangle/notebooks/CoveragePlotWithAugmentationWithNoise.ipynb --override_kwargs='{"k_forward_pass":1, "learn_noise_characteristics":true, "delta_t":0.0, "with_transforms":false, "with_inp_transforms":false}'
+
+# just vae with input transforms
+python evaluate_notebook.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2509/D21-M3-S0-L0/3  --notebook=/scratch/ashesh.ashesh/code/Disentangle/disentangle/notebooks/CoveragePlotWithAugmentationWithNoise.ipynb --override_kwargs='{"k_forward_pass":1, "learn_noise_characteristics":true, "delta_t":0.0, "with_transforms":false, "with_inp_transforms":true}'
+
+# vae with input transforms, two forward pass
+python evaluate_notebook.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2509/D21-M3-S0-L0/3  --notebook=/scratch/ashesh.ashesh/code/Disentangle/disentangle/notebooks/CoveragePlotWithAugmentationWithNoise.ipynb --override_kwargs='{"k_forward_pass":2, "learn_noise_characteristics":true, "delta_t":0.0, "with_transforms":false, "with_inp_transforms":true}'
+
+# vae with input transforms, two forward pass, with delta_t
+python evaluate_notebook.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2509/D21-M3-S0-L0/3  --notebook=/scratch/ashesh.ashesh/code/Disentangle/disentangle/notebooks/CoveragePlotWithAugmentationWithNoise.ipynb --override_kwargs='{"k_forward_pass":2, "learn_noise_characteristics":true, "delta_t":0.1, "with_transforms":false, "with_inp_transforms":true}'
+
+# vae with input transforms, two forward pass, with delta_t, with_transforms
+python evaluate_notebook.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2509/D21-M3-S0-L0/3  --notebook=/scratch/ashesh.ashesh/code/Disentangle/disentangle/notebooks/CoveragePlotWithAugmentationWithNoise.ipynb --override_kwargs='{"k_forward_pass":2, "learn_noise_characteristics":true, "delta_t":0.1, "with_transforms":true, "with_inp_transforms":true}'
+
+
+
+
+
+
+
+
+
+# Pavia.
+# just vae. 
+python evaluate_notebook.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2509/D24-M3-S0-L0/11  --notebook=/scratch/ashesh.ashesh/code/Disentangle/disentangle/notebooks/CoveragePlotWithAugmentationWithNoise.ipynb --override_kwargs='{"k_forward_pass":1, "learn_noise_characteristics":true, "delta_t":0.0, "with_transforms":false, "with_inp_transforms":false}'
+
+# just vae with input transforms
+python evaluate_notebook.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2509/D24-M3-S0-L0/11  --notebook=/scratch/ashesh.ashesh/code/Disentangle/disentangle/notebooks/CoveragePlotWithAugmentationWithNoise.ipynb --override_kwargs='{"k_forward_pass":1, "learn_noise_characteristics":true, "delta_t":0.0, "with_transforms":false, "with_inp_transforms":true}'
+
+# vae with input transforms, two forward pass
+python evaluate_notebook.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2509/D24-M3-S0-L0/11  --notebook=/scratch/ashesh.ashesh/code/Disentangle/disentangle/notebooks/CoveragePlotWithAugmentationWithNoise.ipynb --override_kwargs='{"k_forward_pass":2, "learn_noise_characteristics":true, "delta_t":0.0, "with_transforms":false, "with_inp_transforms":true}'
+
+# vae with input transforms, two forward pass, with delta_t
+python evaluate_notebook.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2509/D24-M3-S0-L0/11  --notebook=/scratch/ashesh.ashesh/code/Disentangle/disentangle/notebooks/CoveragePlotWithAugmentationWithNoise.ipynb --override_kwargs='{"k_forward_pass":2, "learn_noise_characteristics":true, "delta_t":0.1, "with_transforms":false, "with_inp_transforms":true}'
+
+# vae with input transforms, two forward pass, with delta_t, with_transforms
+python evaluate_notebook.py --ckpt_dir=/group/jug/ashesh/training/disentangle/2509/D24-M3-S0-L0/11  --notebook=/scratch/ashesh.ashesh/code/Disentangle/disentangle/notebooks/CoveragePlotWithAugmentationWithNoise.ipynb --override_kwargs='{"k_forward_pass":2, "learn_noise_characteristics":true, "delta_t":0.1, "with_transforms":true, "with_inp_transforms":true}'
+
