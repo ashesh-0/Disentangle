@@ -1,5 +1,3 @@
-from tkinter.tix import Tree
-
 import numpy as np
 
 from disentangle.configs.default_config import get_default_config
