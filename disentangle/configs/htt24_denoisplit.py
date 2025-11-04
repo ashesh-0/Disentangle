@@ -42,7 +42,7 @@ def get_config():
     # foreground pixels and the background will anyways will remain very close to 0.
     data.skip_normalization_using_mean = False
 
-    data.uncorrelated_channels = True
+    data.uncorrelated_channels = False
     data.uncorrelated_channel_probab = 1.0
 
     data.input_is_sum = False
