@@ -530,8 +530,8 @@ class LadderVAE(pl.LightningModule):
                                                          self.lr_scheduler_mode,
                                                          patience=self.lr_scheduler_patience,
                                                          factor=0.5,
-                                                         min_lr=1e-12,
-                                                         verbose=True)
+                                                         min_lr=1e-12
+                                                         )
 
         return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': self.lr_scheduler_monitor}
 
