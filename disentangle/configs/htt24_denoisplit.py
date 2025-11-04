@@ -22,8 +22,8 @@ def get_config():
     #     Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC, Sox2GolgiV2ChannelList.GT_555_647
     # ]
     data.channel_idx_list = [Sox2GolgiV2ChannelList.GT_Cy5, Sox2GolgiV2ChannelList.GT_TRITC]
-    data.start_alpha = [0.2, 0.2]
-    data.end_alpha = [0.8, 0.8]
+    # data.start_alpha = [0.2, 0.2]
+    # data.end_alpha = [0.8, 0.8]
 
     data.num_channels = len(data.channel_idx_list)
     # data.input_idx = 2
@@ -136,7 +136,7 @@ def get_config():
 
     # model.noise_model_ch1_fpath = fname_format.format('2307/58', 'actin')
     # model.noise_model_ch2_fpath = fname_format.format('2307/59', 'mito')
-    model.non_stochastic_version = False
+    model.non_stochastic_version = True
 
     training = config.training
     training.lr = 0.001
