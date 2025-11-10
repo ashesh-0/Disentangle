@@ -194,6 +194,9 @@ class MultiFileDset:
         avg_width = int(avg_width / len(self.dsets))
         print(f'{self.__class__.__name__} avg height: {avg_height}, avg width: {avg_width}, count: {count}')
 
+    def get_mean_std_for_input(self):
+        return self.dsets[0].get_mean_std_for_input()
+
     def rm_bkground_set_max_val_and_upperclip_data(self, max_val, datasplit_type):
         assert self._background_quantile == 0.0
         self.set_max_val(max_val, datasplit_type)
