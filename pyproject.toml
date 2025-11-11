@@ -14,6 +14,7 @@ dependencies = [
     "ipykernel>=6.30.1",
     "ipython>=8.37.0",
     "isort>=6.1.0",
+    "lpips>=0.1.4",
     "matplotlib>=3.10.6",
     "ml-collections>=1.1.0",
     "nbformat>=5.10.4",
