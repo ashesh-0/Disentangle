@@ -30,6 +30,7 @@ dependencies = [
     "seaborn>=0.13.2",
     "tensorboard>=2.20.0",
     "tifffile>=2025.5.10",
+    "tig>=0.0.1",
     "torch>=2.8.0",
     "torchvision>=0.23.0",
     "wandb>=0.22.1",
