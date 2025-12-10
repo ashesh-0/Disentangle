@@ -1,6 +1,7 @@
 """
 Ladder VAE. Adapted from from https://github.com/juglab/HDN/blob/main/models/lvae.py
 """
+
 import os
 
 import numpy as np
@@ -24,8 +25,12 @@ from disentangle.loss.exclusive_loss import compute_exclusion_loss
 from disentangle.loss.nbr_consistency_loss import NeighborConsistencyLoss
 from disentangle.losses import free_bits_kl
 from disentangle.metrics.running_psnr import RunningPSNR
-from disentangle.nets.lvae_layers import (BottomUpDeterministicResBlock, BottomUpLayer, TopDownDeterministicResBlock,
-                                          TopDownLayer)
+from disentangle.nets.lvae_layers import (
+    BottomUpDeterministicResBlock,
+    BottomUpLayer,
+    TopDownDeterministicResBlock,
+    TopDownLayer,
+)
 from disentangle.nets.noise_model import get_noise_model
 
 
@@ -39,48 +44,53 @@ def compute_batch_mean(x):
 
 
 class LadderVAE(pl.LightningModule):
-
     def __init__(self, data_mean, data_std, config, use_uncond_mode_at=[], target_ch=2, val_idx_manager=None):
         super().__init__()
         self.lr = config.training.lr
         self.lr_scheduler_patience = config.training.lr_scheduler_patience
         self.enable_noise_model = config.model.enable_noise_model
-        self.ch1_recons_w = config.loss.get('ch1_recons_w', 1)
-        self.ch2_recons_w = config.loss.get('ch2_recons_w', 1)
-        self._stochastic_use_naive_exponential = config.model.decoder.get('stochastic_use_naive_exponential', False)
-        self._enable_topdown_normalize_factor = config.model.get('enable_topdown_normalize_factor', True)
-        
+        self.ch1_recons_w = config.loss.get("ch1_recons_w", 1)
+        self.ch2_recons_w = config.loss.get("ch2_recons_w", 1)
+        self._stochastic_use_naive_exponential = config.model.decoder.get("stochastic_use_naive_exponential", False)
+        self._enable_topdown_normalize_factor = config.model.get("enable_topdown_normalize_factor", True)
+
         # 3D related stuff
-        self._mode_3D = config.model.get('mode_3D', False)
-        self._model_3D_depth = config.data.get('depth3D', 1)
-        self._decoder_mode_3D = config.model.decoder.get('mode_3D', self._mode_3D)
+        self._mode_3D = config.model.get("mode_3D", False)
+        self._model_3D_depth = config.data.get("depth3D", 1)
+        self._decoder_mode_3D = config.model.decoder.get("mode_3D", self._mode_3D)
         if self._mode_3D and not self._decoder_mode_3D:
-            assert self._model_3D_depth%2 ==1, '3D model depth should be odd'
-        assert self._mode_3D is True or self._decoder_mode_3D is False, 'Decoder cannot be 3D when encoder is 2D'
+            assert self._model_3D_depth % 2 == 1, "3D model depth should be odd"
+        assert self._mode_3D is True or self._decoder_mode_3D is False, "Decoder cannot be 3D when encoder is 2D"
         self._squish3d = self._mode_3D and not self._decoder_mode_3D
-        self._3D_squisher = None if not self._squish3d else nn.ModuleList([GateLayer(config.model.encoder.n_filters,3, True) for k in range(len(config.model.z_dims))])
+        self._3D_squisher = (
+            None
+            if not self._squish3d
+            else nn.ModuleList(
+                [GateLayer(config.model.encoder.n_filters, 3, True) for k in range(len(config.model.z_dims))]
+            )
+        )
 
         self.likelihood_gm = self.likelihood_NM = None
-        self._restricted_kl = config.loss.get('restricted_kl', False)
+        self._restricted_kl = config.loss.get("restricted_kl", False)
         # can be used to tile the validation predictions
         self._val_idx_manager = val_idx_manager
         self._val_frame_creator = None
-        self._dump_kth_frame_prediction = config.training.get('dump_kth_frame_prediction')
+        self._dump_kth_frame_prediction = config.training.get("dump_kth_frame_prediction")
         if self._dump_kth_frame_prediction is not None:
             assert self._val_idx_manager is not None
-            dir = os.path.join(config.workdir, 'pred_frames')
+            dir = os.path.join(config.workdir, "pred_frames")
             os.mkdir(dir)
-            self._dump_epoch_interval = config.training.get('dump_epoch_interval', 1)
+            self._dump_epoch_interval = config.training.get("dump_epoch_interval", 1)
             self._val_frame_creator = PredFrameCreator(self._val_idx_manager, self._dump_kth_frame_prediction, dir)
 
         self._input_is_sum = config.data.input_is_sum
         # grayscale input
-        self.color_ch = config.data.get('color_ch', 1)
+        self.color_ch = config.data.get("color_ch", 1)
         self._tethered_ch1_scalar = self._tethered_ch2_scalar = None
-        self._tethered_to_input = config.model.get('tethered_to_input', False)
+        self._tethered_to_input = config.model.get("tethered_to_input", False)
         if self._tethered_to_input:
             target_ch = 1
-            requires_grad = config.model.get('tethered_learnable_scalar', False)
+            requires_grad = config.model.get("tethered_learnable_scalar", False)
             # a learnable scalar that is multiplied with one channel prediction.
             self._tethered_ch1_scalar = nn.Parameter(torch.ones(1) * 0.5, requires_grad=requires_grad)
             self._tethered_ch2_scalar = nn.Parameter(torch.ones(1) * 2.0, requires_grad=requires_grad)
@@ -92,9 +102,10 @@ class LadderVAE(pl.LightningModule):
         self.encoder_blocks_per_layer = config.model.encoder.blocks_per_layer
         self.decoder_blocks_per_layer = config.model.decoder.blocks_per_layer
 
-        self.kl_loss_formulation = config.loss.get('kl_loss_formulation', None)
-        assert self.kl_loss_formulation in [None, '',
-                                            'usplit','denoisplit','denoisplit_usplit'], f'Invalid kl_loss_formulation. {self.kl_loss_formulation}'
+        self.kl_loss_formulation = config.loss.get("kl_loss_formulation", None)
+        assert self.kl_loss_formulation in [None, "", "usplit", "denoisplit", "denoisplit_usplit"], (
+            f"Invalid kl_loss_formulation. {self.kl_loss_formulation}"
+        )
         self.n_layers = len(self.z_dims)
         self.stochastic_skip = config.model.stochastic_skip
         self.bottomup_batchnorm = config.model.encoder.batchnorm
@@ -105,7 +116,7 @@ class LadderVAE(pl.LightningModule):
 
         self.encoder_dropout = config.model.encoder.dropout
         self.decoder_dropout = config.model.decoder.dropout
-        self.skip_bottomk_buvalues = config.model.get('skip_bottomk_buvalues', 0)
+        self.skip_bottomk_buvalues = config.model.get("skip_bottomk_buvalues", 0)
 
         # whether or not to have bias with Conv2D layer.
         self.topdown_conv2d_bias = config.model.decoder.conv2d_bias
@@ -119,7 +130,7 @@ class LadderVAE(pl.LightningModule):
         self.encoder_res_block_skip_padding = config.model.encoder.res_block_skip_padding
         self.decoder_res_block_skip_padding = config.model.decoder.res_block_skip_padding
 
-        self.reconstruction_mode = config.model.get('reconstruction_mode', False)
+        self.reconstruction_mode = config.model.get("reconstruction_mode", False)
 
         self.gated = config.model.gated
         if isinstance(data_mean, np.ndarray):
@@ -132,13 +143,13 @@ class LadderVAE(pl.LightningModule):
             self.data_mean = data_mean
             self.data_std = data_std
         else:
-            raise NotImplementedError('data_mean and data_std must be either a numpy array or a dictionary')
+            raise NotImplementedError("data_mean and data_std must be either a numpy array or a dictionary")
 
         if self._decoder_mode_3D is False and self._mode_3D:
-            assert len(self.data_mean['target'].shape) == 5
-            self.data_mean['target'] = self.data_mean['target'][...,0]
-            self.data_std['target'] = self.data_std['target'][...,0]
-        
+            assert len(self.data_mean["target"].shape) == 5
+            self.data_mean["target"] = self.data_mean["target"][..., 0]
+            self.data_std["target"] = self.data_std["target"][..., 0]
+
         self.noiseModel = get_noise_model(config)
         self.merge_type = config.model.merge_type
         self.analytical_kl = config.model.analytical_kl
@@ -155,18 +166,22 @@ class LadderVAE(pl.LightningModule):
 
         self.predict_logvar = config.model.predict_logvar
         self.logvar_lowerbound = config.model.logvar_lowerbound
-        self.non_stochastic_version = config.model.get('non_stochastic_version', False)
+        self.non_stochastic_version = config.model.get("non_stochastic_version", False)
         self._var_clip_max = config.model.var_clip_max
         # loss related
         self.loss_type = config.loss.loss_type
         self.kl_weight = config.loss.kl_weight
-        self.usplit_kl_weight = config.loss.get('usplit_kl_weight', None)
+        self.usplit_kl_weight = config.loss.get("usplit_kl_weight", None)
 
         self.free_bits = config.loss.free_bits
-        self.reconstruction_weight = config.loss.get('reconstruction_weight', 1.0)
+        self.reconstruction_weight = config.loss.get("reconstruction_weight", 1.0)
 
-        self.encoder_no_padding_mode = config.model.encoder.res_block_skip_padding is True and config.model.encoder.res_block_kernel > 1
-        self.decoder_no_padding_mode = config.model.decoder.res_block_skip_padding is True and config.model.decoder.res_block_kernel > 1
+        self.encoder_no_padding_mode = (
+            config.model.encoder.res_block_skip_padding is True and config.model.encoder.res_block_kernel > 1
+        )
+        self.decoder_no_padding_mode = (
+            config.model.decoder.res_block_skip_padding is True and config.model.decoder.res_block_kernel > 1
+        )
 
         self.skip_nboundary_pixels_from_loss = config.model.skip_nboundary_pixels_from_loss
         # initialize the learning rate scheduler params.
@@ -178,8 +193,8 @@ class LadderVAE(pl.LightningModule):
         self.mixed_rec_w_step = 0
         self.enable_mixed_rec = False
         self.nbr_consistency_w = 0
-        self._exclusion_loss_weight = config.loss.get('exclusion_loss_weight', 0)
-        
+        self._exclusion_loss_weight = config.loss.get("exclusion_loss_weight", 0)
+
         self._denoisplit_w = self._usplit_w = None
         if self.loss_type == LossType.DenoiSplitMuSplit:
             self._denoisplit_w = config.loss.denoisplit_w
@@ -187,29 +202,36 @@ class LadderVAE(pl.LightningModule):
             assert self._denoisplit_w + self._usplit_w == 1
 
         if self.loss_type in [
-                LossType.ElboMixedReconstruction, LossType.ElboSemiSupMixedReconstruction,
-                LossType.ElboRestrictedReconstruction
+            LossType.ElboMixedReconstruction,
+            LossType.ElboSemiSupMixedReconstruction,
+            LossType.ElboRestrictedReconstruction,
         ]:
-
             self.mixed_rec_w = config.loss.mixed_rec_weight
-            self.mixed_rec_w_step = config.loss.get('mixed_rec_w_step', 0)
+            self.mixed_rec_w_step = config.loss.get("mixed_rec_w_step", 0)
             self.enable_mixed_rec = True
-            if self.loss_type not in [
-                    LossType.ElboSemiSupMixedReconstruction, LossType.ElboMixedReconstruction,
-                    LossType.ElboRestrictedReconstruction
-            ] and config.data.use_one_mu_std is False:
+            if (
+                self.loss_type
+                not in [
+                    LossType.ElboSemiSupMixedReconstruction,
+                    LossType.ElboMixedReconstruction,
+                    LossType.ElboRestrictedReconstruction,
+                ]
+                and config.data.use_one_mu_std is False
+            ):
                 raise NotImplementedError(
                     "This cannot work since now, different channels have different mean. One needs to reweigh the "
-                    "predicted channels and then take their sum. This would then be equivalent to the input.")
+                    "predicted channels and then take their sum. This would then be equivalent to the input."
+                )
         elif self.loss_type == LossType.ElboWithNbrConsistency:
             self.nbr_consistency_w = config.loss.nbr_consistency_w
-            assert 'grid_size' in config.data or 'gridsizes' in config.training
-            self._grid_sz = config.data.grid_size if 'grid_size' in config.data else config.data.image_size
+            assert "grid_size" in config.data or "gridsizes" in config.training
+            self._grid_sz = config.data.grid_size if "grid_size" in config.data else config.data.image_size
             # NeighborConsistencyLoss assumes the batch to be a sequence of [center, left, right, top bottom] images.
             self.nbr_consistency_loss = NeighborConsistencyLoss(
                 self._grid_sz,
-                nbr_set_count=config.data.get('nbr_set_count', None),
-                focus_on_opposite_gradients=config.model.offset_prediction_focus_on_opposite_gradients)
+                nbr_set_count=config.data.get("nbr_set_count", None),
+                focus_on_opposite_gradients=config.model.offset_prediction_focus_on_opposite_gradients,
+            )
 
         self._global_step = 0
 
@@ -217,8 +239,8 @@ class LadderVAE(pl.LightningModule):
         # We then just normalize the target. Otherwise, both input and target are normalized.
         self.normalized_input = config.data.normalized_input
 
-        assert (self.data_std is not None)
-        assert (self.data_mean is not None)
+        assert self.data_std is not None
+        assert self.data_mean is not None
         if self.noiseModel is None:
             self.likelihood_form = "gaussian"
         else:
@@ -250,7 +272,7 @@ class LadderVAE(pl.LightningModule):
         enable_multiscale = self._multiscale_count is not None and self._multiscale_count > 1
         self.multiscale_decoder_retain_spatial_dims = self.multiscale_retain_spatial_dims and enable_multiscale
         if self.multiscale_decoder_retain_spatial_dims:
-            assert self._restricted_kl is True, 'restricted KL must be set for LC'
+            assert self._restricted_kl is True, "restricted KL must be set for LC"
 
         self.bottom_up_layers = self.create_bottom_up_layers(config.model.multiscale_lowres_separate_branch)
         self.top_down_layers = self.create_top_down_layers()
@@ -258,8 +280,8 @@ class LadderVAE(pl.LightningModule):
         # Final top-down layer
         self.final_top_down = self.create_final_topdown_layer(not self.no_initial_downscaling)
 
-        self.channel_1_w = config.loss.get('channel_1_w', 1)
-        self.channel_2_w = config.loss.get('channel_2_w', 1)
+        self.channel_1_w = config.loss.get("channel_1_w", 1)
+        self.channel_2_w = config.loss.get("channel_2_w", 1)
 
         self.likelihood = self.create_likelihood_module()
         # gradient norms. updated while training. this is also logged.
@@ -275,15 +297,17 @@ class LadderVAE(pl.LightningModule):
             conv_cls = nn.Conv3d
         else:
             conv_cls = nn.Conv2d
-        self.output_layer = self.parameter_net = conv_cls(self.decoder_n_filters,
-                                                          self.target_ch * (1 + logvar_ch_needed),
-                                                          kernel_size=3,
-                                                          padding=1,
-                                                          bias=self.topdown_conv2d_bias)
+        self.output_layer = self.parameter_net = conv_cls(
+            self.decoder_n_filters,
+            self.target_ch * (1 + logvar_ch_needed),
+            kernel_size=3,
+            padding=1,
+            bias=self.topdown_conv2d_bias,
+        )
 
-        msg = f'[{self.__class__.__name__}] Stoc:{not self.non_stochastic_version} RecMode:{self.reconstruction_mode} TethInput:{self._tethered_to_input}'
+        msg = f"[{self.__class__.__name__}] Stoc:{not self.non_stochastic_version} RecMode:{self.reconstruction_mode} TethInput:{self._tethered_to_input}"
         if self._model_3D_depth > 1:
-            msg += f' 3D:{self._model_3D_depth} 3D Decoder:{self._decoder_mode_3D}'
+            msg += f" 3D:{self._model_3D_depth} 3D Decoder:{self._decoder_mode_3D}"
         print(msg)
 
     def create_top_down_layers(self):
@@ -331,7 +355,7 @@ class LadderVAE(pl.LightningModule):
                     gated=self.gated,
                     analytical_kl=self.analytical_kl,
                     restricted_kl=self._restricted_kl,
-                    vanilla_latent_hw = self.get_latent_spatial_size(i),
+                    vanilla_latent_hw=self.get_latent_spatial_size(i),
                     # in no_padding_mode, what gets passed from the encoder are not multiples of 2 and so merging operation does not work natively.
                     bottomup_no_padding_mode=self.encoder_no_padding_mode,
                     topdown_no_padding_mode=self.decoder_no_padding_mode,
@@ -340,17 +364,19 @@ class LadderVAE(pl.LightningModule):
                     input_image_shape=self.img_shape,
                     normalize_latent_factor=normalize_latent_factor,
                     conv2d_bias=self.topdown_conv2d_bias,
-                    stochastic_use_naive_exponential=self._stochastic_use_naive_exponential))
+                    stochastic_use_naive_exponential=self._stochastic_use_naive_exponential,
+                )
+            )
         return top_down_layers
 
     def get_other_channel(self, ch1, input):
-        assert self.data_std['target'].squeeze().shape == (2, )
-        assert self.data_mean['target'].squeeze().shape == (2, )
+        assert self.data_std["target"].squeeze().shape == (2,)
+        assert self.data_mean["target"].squeeze().shape == (2,)
         assert self.target_ch == 2
-        ch1_un = ch1[:, :1] * self.data_std['target'][:, :1] + self.data_mean['target'][:, :1]
-        input_un = input * self.data_std['input'] + self.data_mean['input']
+        ch1_un = ch1[:, :1] * self.data_std["target"][:, :1] + self.data_mean["target"][:, :1]
+        input_un = input * self.data_std["input"] + self.data_mean["input"]
         ch2_un = self._tethered_ch2_scalar * (input_un - ch1_un * self._tethered_ch1_scalar)
-        ch2 = (ch2_un - self.data_mean['target'][:, -1:]) / self.data_std['target'][:, -1:]
+        ch2 = (ch2_un - self.data_mean["target"][:, -1:]) / self.data_std["target"][:, -1:]
         return ch2
 
     def create_bottom_up_layers(self, lowres_separate_branch):
@@ -363,34 +389,39 @@ class LadderVAE(pl.LightningModule):
             is_top = i == self.n_layers - 1
             layer_enable_multiscale = enable_multiscale and self._multiscale_count > i + 1
             # if multiscale is enabled, this is the factor by which the lowres tensor will be larger than
-            multiscale_lowres_size_factor *= (1 + int(layer_enable_multiscale))
+            multiscale_lowres_size_factor *= 1 + int(layer_enable_multiscale)
             # Add bottom-up deterministic layer at level i.
             # It's a sequence of residual blocks (BottomUpDeterministicResBlock)
             # possibly with downsampling between them.
-            output_expected_shape = (self.img_shape[0] // 2**(i + 1),
-                                     self.img_shape[1] // 2**(i + 1)) if self._multiscale_count > 1 else None
+            output_expected_shape = (
+                (self.img_shape[0] // 2 ** (i + 1), self.img_shape[1] // 2 ** (i + 1))
+                if self._multiscale_count > 1
+                else None
+            )
             bottom_up_layers.append(
-                BottomUpLayer(n_res_blocks=self.encoder_blocks_per_layer,
-                              n_filters=self.encoder_n_filters,
-                              downsampling_steps=self.downsample[i],
-                              nonlin=nonlin,
-                              batchnorm=self.bottomup_batchnorm,
-                              dropout=self.encoder_dropout,
-                              mode_3D=self._mode_3D,
-                              res_block_type=self.res_block_type,
-                              res_block_kernel=self.encoder_res_block_kernel,
-                              res_block_skip_padding=self.encoder_res_block_skip_padding,
-                              gated=self.gated,
-                              lowres_separate_branch=lowres_separate_branch,
-                              enable_multiscale=enable_multiscale,
-                              multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
-                              multiscale_lowres_size_factor=multiscale_lowres_size_factor,
-                              decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
-                              output_expected_shape=output_expected_shape))
+                BottomUpLayer(
+                    n_res_blocks=self.encoder_blocks_per_layer,
+                    n_filters=self.encoder_n_filters,
+                    downsampling_steps=self.downsample[i],
+                    nonlin=nonlin,
+                    batchnorm=self.bottomup_batchnorm,
+                    dropout=self.encoder_dropout,
+                    mode_3D=self._mode_3D,
+                    res_block_type=self.res_block_type,
+                    res_block_kernel=self.encoder_res_block_kernel,
+                    res_block_skip_padding=self.encoder_res_block_skip_padding,
+                    gated=self.gated,
+                    lowres_separate_branch=lowres_separate_branch,
+                    enable_multiscale=enable_multiscale,
+                    multiscale_retain_spatial_dims=self.multiscale_retain_spatial_dims,
+                    multiscale_lowres_size_factor=multiscale_lowres_size_factor,
+                    decoder_retain_spatial_dims=self.multiscale_decoder_retain_spatial_dims,
+                    output_expected_shape=output_expected_shape,
+                )
+            )
         return bottom_up_layers
 
     def create_final_topdown_layer(self, upsample):
-
         # Final top-down layer
 
         modules = list()
@@ -410,23 +441,27 @@ class LadderVAE(pl.LightningModule):
                     skip_padding=self.decoder_res_block_skip_padding,
                     gated=self.gated,
                     conv2d_bias=self.topdown_conv2d_bias,
-                ))
+                )
+            )
         return nn.Sequential(*modules)
 
     def create_likelihood_module(self):
         # Define likelihood
-        self.likelihood_gm = GaussianLikelihood(self.decoder_n_filters,
-                                            self.target_ch,
-                                            predict_logvar=self.predict_logvar,
-                                            logvar_lowerbound=self.logvar_lowerbound,
-                                            conv2d_bias=self.topdown_conv2d_bias)
+        self.likelihood_gm = GaussianLikelihood(
+            self.decoder_n_filters,
+            self.target_ch,
+            predict_logvar=self.predict_logvar,
+            logvar_lowerbound=self.logvar_lowerbound,
+            conv2d_bias=self.topdown_conv2d_bias,
+        )
         self.likelihood_NM = None
         if self.enable_noise_model:
-            self.likelihood_NM = NoiseModelLikelihood(self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std,
-                                                self.noiseModel)
+            self.likelihood_NM = NoiseModelLikelihood(
+                self.decoder_n_filters, self.target_ch, self.data_mean, self.data_std, self.noiseModel
+            )
         if self.loss_type == LossType.DenoiSplitMuSplit or self.likelihood_NM is None:
             return self.likelihood_gm
-        
+
         return self.likelihood_NM
 
     def create_first_bottom_up(self, init_stride, num_blocks=1):
@@ -436,12 +471,14 @@ class LadderVAE(pl.LightningModule):
         else:
             conv_cls = nn.Conv2d
         modules = [
-            conv_cls(self.color_ch,
-                     self.encoder_n_filters,
-                     self.encoder_res_block_kernel,
-                     padding=0 if self.encoder_res_block_skip_padding else self.encoder_res_block_kernel // 2,
-                     stride=init_stride),
-            nonlin()
+            conv_cls(
+                self.color_ch,
+                self.encoder_n_filters,
+                self.encoder_res_block_kernel,
+                padding=0 if self.encoder_res_block_skip_padding else self.encoder_res_block_kernel // 2,
+                stride=init_stride,
+            ),
+            nonlin(),
         ]
         for _ in range(num_blocks):
             modules.append(
@@ -455,7 +492,8 @@ class LadderVAE(pl.LightningModule):
                     res_block_type=self.res_block_type,
                     skip_padding=self.encoder_res_block_skip_padding,
                     res_block_kernel=self.encoder_res_block_kernel,
-                ))
+                )
+            )
         return nn.Sequential(*modules)
 
     def _init_multires(self, config):
@@ -483,7 +521,8 @@ class LadderVAE(pl.LightningModule):
         lowres_first_bottom_ups = []
         for _ in range(1, self._multiscale_count):
             first_bottom_up = nn.Sequential(
-                conv_cls(self.color_ch, self.encoder_n_filters, 5, padding=2, stride=stride), nonlin(),
+                conv_cls(self.color_ch, self.encoder_n_filters, 5, padding=2, stride=stride),
+                nonlin(),
                 BottomUpDeterministicResBlock(
                     c_in=self.encoder_n_filters,
                     c_out=self.encoder_n_filters,
@@ -493,17 +532,18 @@ class LadderVAE(pl.LightningModule):
                     dropout=self.encoder_dropout,
                     res_block_type=self.res_block_type,
                     skip_padding=self.encoder_res_block_skip_padding,
-                ))
+                ),
+            )
             lowres_first_bottom_ups.append(first_bottom_up)
 
         self.lowres_first_bottom_ups = nn.ModuleList(lowres_first_bottom_ups) if len(lowres_first_bottom_ups) else None
 
     def get_nonlin(self):
         nonlin = {
-            'relu': nn.ReLU,
-            'leakyrelu': nn.LeakyReLU,
-            'elu': nn.ELU,
-            'selu': nn.SELU,
+            "relu": nn.ReLU,
+            "leakyrelu": nn.LeakyReLU,
+            "elu": nn.ELU,
+            "selu": nn.SELU,
         }
         return nonlin[self.nonlin]
 
@@ -517,22 +557,24 @@ class LadderVAE(pl.LightningModule):
         return self._global_step
 
     def _init_lr_scheduler_params(self, config):
-        self.lr_scheduler_monitor = config.model.get('monitor', 'val_loss')
+        self.lr_scheduler_monitor = config.model.get("monitor", "val_loss")
         self.lr_scheduler_mode = MetricMonitor(self.lr_scheduler_monitor).mode()
 
     def configure_optimizers(self):
         optimizer = optim.Adamax(self.parameters(), lr=self.lr, weight_decay=0)
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,
-                                                         self.lr_scheduler_mode,
-                                                         patience=self.lr_scheduler_patience,
-                                                         factor=0.5,
-                                                         min_lr=1e-12,
-                                                         verbose=True)
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer,
+            self.lr_scheduler_mode,
+            patience=self.lr_scheduler_patience,
+            factor=0.5,
+            min_lr=1e-12,
+            verbose=True,
+        )
 
-        return {'optimizer': optimizer, 'lr_scheduler': scheduler, 'monitor': self.lr_scheduler_monitor}
+        return {"optimizer": optimizer, "lr_scheduler": scheduler, "monitor": self.lr_scheduler_monitor}
 
     def get_kl_weight(self):
-        if (self.kl_annealing == True):
+        if self.kl_annealing == True:
             # calculate relative weight
             kl_weight = (self.current_epoch - self.kl_start) * (1.0 / self.kl_annealtime)
             # clamp to [0,1]
@@ -548,30 +590,24 @@ class LadderVAE(pl.LightningModule):
             kl_weight = 1.0
         return kl_weight
 
-    def get_reconstruction_loss(self,
-                                reconstruction,
-                                target,
-                                input,
-                                splitting_mask=None,
-                                return_predicted_img=False,
-                                likelihood_obj=None):
-        output = self._get_reconstruction_loss_vector(reconstruction,
-                                                      target,
-                                                      input,
-                                                      return_predicted_img=return_predicted_img,
-                                                      likelihood_obj=likelihood_obj)
+    def get_reconstruction_loss(
+        self, reconstruction, target, input, splitting_mask=None, return_predicted_img=False, likelihood_obj=None
+    ):
+        output = self._get_reconstruction_loss_vector(
+            reconstruction, target, input, return_predicted_img=return_predicted_img, likelihood_obj=likelihood_obj
+        )
         loss_dict = output[0] if return_predicted_img else output
         if splitting_mask is None:
-            splitting_mask = torch.ones_like(loss_dict['loss']).bool()
+            splitting_mask = torch.ones_like(loss_dict["loss"]).bool()
 
         # print(len(target) - (torch.isnan(loss_dict['loss'])).sum())
-        loss_dict['loss'] = loss_dict['loss'][splitting_mask].sum() / len(reconstruction)
+        loss_dict["loss"] = loss_dict["loss"][splitting_mask].sum() / len(reconstruction)
         for i in range(1, 1 + target.shape[1]):
-            key = 'ch{}_loss'.format(i)
+            key = "ch{}_loss".format(i)
             loss_dict[key] = loss_dict[key][splitting_mask].sum() / len(reconstruction)
 
-        if 'mixed_loss' in loss_dict:
-            loss_dict['mixed_loss'] = torch.mean(loss_dict['mixed_loss'])
+        if "mixed_loss" in loss_dict:
+            loss_dict["mixed_loss"] = torch.mean(loss_dict["mixed_loss"])
         if return_predicted_img:
             assert len(output) == 2
             return loss_dict, output[1]
@@ -583,12 +619,12 @@ class LadderVAE(pl.LightningModule):
         This should be called if we want to predict for a different input/output size.
         """
         for i in range(self.n_layers):
-            sz = output_size // 2**(1 + i)
+            sz = output_size // 2 ** (1 + i)
             self.bottom_up_layers[i].output_expected_shape = (sz, sz)
             self.top_down_layers[i].latent_shape = (output_size, output_size)
 
     def get_mixed_prediction(self, prediction, prediction_logvar, data_mean, data_std, channel_weights=None):
-        pred_unorm = prediction * data_std['target'] + data_mean['target']
+        pred_unorm = prediction * data_std["target"] + data_mean["target"]
         if channel_weights is None:
             channel_weights = 1
 
@@ -597,23 +633,24 @@ class LadderVAE(pl.LightningModule):
         else:
             mixed_prediction = torch.mean(pred_unorm * channel_weights, dim=1, keepdim=True)
 
-        mixed_prediction = (mixed_prediction - data_mean['input'].mean()) / data_std['input'].mean()
+        mixed_prediction = (mixed_prediction - data_mean["input"].mean()) / data_std["input"].mean()
 
         if prediction_logvar is not None:
-            if data_std['target'].shape == data_std['input'].shape and torch.all(
-                    data_std['target'] == data_std['input']):
+            if data_std["target"].shape == data_std["input"].shape and torch.all(
+                data_std["target"] == data_std["input"]
+            ):
                 assert channel_weights == 1
                 logvar = prediction_logvar
             else:
                 var = torch.exp(prediction_logvar)
-                var = var * (data_std['target'] / data_std['input'])**2
+                var = var * (data_std["target"] / data_std["input"]) ** 2
                 if channel_weights != 1:
                     var = var * torch.square(channel_weights)
 
                 # sum of variance.
                 mixed_var = 0
                 for i in range(var.shape[1]):
-                    mixed_var += var[:, i:i + 1]
+                    mixed_var += var[:, i : i + 1]
 
                 logvar = torch.log(mixed_var)
         else:
@@ -634,23 +671,20 @@ class LadderVAE(pl.LightningModule):
         mask2[:, 1] = 1
         return ll * mask1 * self.ch1_recons_w + ll * mask2 * self.ch2_recons_w
 
-    def _get_reconstruction_loss_vector(self,
-                                        reconstruction,
-                                        target,
-                                        input,
-                                        return_predicted_img=False,
-                                        likelihood_obj=None):
+    def _get_reconstruction_loss_vector(
+        self, reconstruction, target, input, return_predicted_img=False, likelihood_obj=None
+    ):
         """
         Args:
             return_predicted_img: If set to True, the besides the loss, the reconstructed image is also returned.
         """
 
         output = {
-            'loss': None,
-            'mixed_loss': None,
+            "loss": None,
+            "mixed_loss": None,
         }
         for i in range(1, 1 + target.shape[1]):
-            output['ch{}_loss'.format(i)] = None
+            output["ch{}_loss".format(i)] = None
 
         if likelihood_obj is None:
             likelihood_obj = self.likelihood
@@ -661,80 +695,84 @@ class LadderVAE(pl.LightningModule):
         if self.skip_nboundary_pixels_from_loss is not None and self.skip_nboundary_pixels_from_loss > 0:
             pad = self.skip_nboundary_pixels_from_loss
             ll = ll[:, :, pad:-pad, pad:-pad]
-            like_dict['params']['mean'] = like_dict['params']['mean'][:, :, pad:-pad, pad:-pad]
+            like_dict["params"]["mean"] = like_dict["params"]["mean"][:, :, pad:-pad, pad:-pad]
 
         # assert ll.shape[1] == 2, f"Change the code below to handle >2 channels first. ll.shape {ll.shape}"
         output = {
-            'loss': compute_batch_mean(-1 * ll),
+            "loss": compute_batch_mean(-1 * ll),
         }
         if ll.shape[1] > 1:
             for i in range(1, 1 + target.shape[1]):
-                output['ch{}_loss'.format(i)] = compute_batch_mean(-ll[:, i - 1])
+                output["ch{}_loss".format(i)] = compute_batch_mean(-ll[:, i - 1])
         else:
             assert ll.shape[1] == 1
-            output['ch1_loss'] = output['loss']
-            output['ch2_loss'] = output['loss']
+            output["ch1_loss"] = output["loss"]
+            output["ch2_loss"] = output["loss"]
 
-        if self.channel_1_w is not None and self.channel_2_w is not None and (self.channel_1_w != 1
-                                                                              or self.channel_2_w != 1):
+        if (
+            self.channel_1_w is not None
+            and self.channel_2_w is not None
+            and (self.channel_1_w != 1 or self.channel_2_w != 1)
+        ):
             assert ll.shape[1] == 2, "Only 2 channels are supported for now."
-            output['loss'] = (self.channel_1_w * output['ch1_loss'] +
-                              self.channel_2_w * output['ch2_loss']) / (self.channel_1_w + self.channel_2_w)
+            output["loss"] = (self.channel_1_w * output["ch1_loss"] + self.channel_2_w * output["ch2_loss"]) / (
+                self.channel_1_w + self.channel_2_w
+            )
 
         if self.enable_mixed_rec:
-            mixed_pred, mixed_logvar = self.get_mixed_prediction(like_dict['params']['mean'],
-                                                                 like_dict['params']['logvar'], self.data_mean,
-                                                                 self.data_std)
+            mixed_pred, mixed_logvar = self.get_mixed_prediction(
+                like_dict["params"]["mean"], like_dict["params"]["logvar"], self.data_mean, self.data_std
+            )
             if self._multiscale_count is not None and self._multiscale_count > 1:
                 assert input.shape[1] == self._multiscale_count
                 input = input[:, :1]
 
             assert input.shape == mixed_pred.shape, "No fucking room for vectorization induced bugs."
-            mixed_recons_ll = self.likelihood.log_likelihood(input, {'mean': mixed_pred, 'logvar': mixed_logvar})
-            output['mixed_loss'] = compute_batch_mean(-1 * mixed_recons_ll)
+            mixed_recons_ll = self.likelihood.log_likelihood(input, {"mean": mixed_pred, "logvar": mixed_logvar})
+            output["mixed_loss"] = compute_batch_mean(-1 * mixed_recons_ll)
 
         if self._exclusion_loss_weight:
-            imgs = like_dict['params']['mean']
+            imgs = like_dict["params"]["mean"]
             exclusion_loss = compute_exclusion_loss(imgs[:, :1], imgs[:, 1:])
-            output['exclusion_loss'] = exclusion_loss
+            output["exclusion_loss"] = exclusion_loss
 
         if return_predicted_img:
-            return output, like_dict['params']['mean']
+            return output, like_dict["params"]["mean"]
 
         return output
 
     def get_kl_divergence_loss_usplit(self, topdown_layer_data_dict):
-        kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict['kl']], dim=1)
+        kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict["kl"]], dim=1)
         # kl.shape = (16,4) 16 is batch size. 4 is number of layers. Values are sum() and so are of the order 30000
         # Example values: 30626.6758, 31028.8145, 29509.8809, 29945.4922, 28919.1875, 29075.2988
         nlayers = kl.shape[1]
         for i in range(nlayers):
             # topdown_layer_data_dict['z'][2].shape[-3:] = 128 * 32 * 32
-            norm_factor = np.prod(topdown_layer_data_dict['z'][i].shape[-3:])
+            norm_factor = np.prod(topdown_layer_data_dict["z"][i].shape[-3:])
             # if self._restricted_kl:
             #     pow = np.power(2,min(i + 1, self._multiscale_count-1))
             #     norm_factor /= pow * pow
-            
+
             kl[:, i] = kl[:, i] / norm_factor
 
         if self._mode_3D and self._decoder_mode_3D:
-            # In stochastic.py, we sum over all dimensions, including the Z dimension. 
+            # In stochastic.py, we sum over all dimensions, including the Z dimension.
             # To not penalize the KL loss too much, we divide by the depth of the 3D model.
             # NOTE: If we have downsampling in Z dimension, then this needs to change.
-            kl = kl/self._model_3D_depth
-        
+            kl = kl / self._model_3D_depth
+
         kl_loss = free_bits_kl(kl, 0.0).mean()
         return kl_loss
 
-    def get_kl_divergence_loss(self, topdown_layer_data_dict, kl_key='kl'):
+    def get_kl_divergence_loss(self, topdown_layer_data_dict, kl_key="kl"):
         # kl[i] for each i has length batch_size
         # resulting kl shape: (batch_size, layers)
         kl = torch.cat([kl_layer.unsqueeze(1) for kl_layer in topdown_layer_data_dict[kl_key]], dim=1)
         if self._mode_3D and self._decoder_mode_3D:
-            # In stochastic.py, we sum over all dimensions, including the Z dimension. 
+            # In stochastic.py, we sum over all dimensions, including the Z dimension.
             # To not penalize the KL loss too much, we divide by the depth of the 3D model.
             # NOTE: If we have downsampling in Z dimension, then this needs to change.
-            kl = kl/self._model_3D_depth
+            kl = kl / self._model_3D_depth
 
         # As compared to uSplit kl divergence,
         # more by a factor of 4 just because we do sum and not mean.
@@ -748,31 +786,31 @@ class LadderVAE(pl.LightningModule):
         return kl_loss
 
     def get_kl_loss_usplit_denoisplit(self, td_data):
-        kl_key_denoisplit = 'kl_restricted' if self._restricted_kl else 'kl'
+        kl_key_denoisplit = "kl_restricted" if self._restricted_kl else "kl"
         denoisplit_kl = self.get_kl_divergence_loss(td_data, kl_key=kl_key_denoisplit)
         usplit_kl = self.get_kl_divergence_loss_usplit(td_data)
         kl_loss = self._denoisplit_w * denoisplit_kl + self._usplit_w * usplit_kl
         kl_loss = self.kl_weight * kl_loss
         return kl_loss
-    
+
     def get_reconstruction_loss_usplit_denoisplit(self, out, target_normalized):
         if self.predict_logvar is not None:
             out_mean, _ = out.chunk(2, dim=1)
         else:
-            out_mean  = out
+            out_mean = out
 
-        recons_loss_nm = -1*self.likelihood_NM(out_mean, target_normalized)[0].mean()
-        recons_loss_gm = -1*self.likelihood_gm(out, target_normalized)[0].mean()
+        recons_loss_nm = -1 * self.likelihood_NM(out_mean, target_normalized)[0].mean()
+        recons_loss_gm = -1 * self.likelihood_gm(out, target_normalized)[0].mean()
         recons_loss = self._denoisplit_w * recons_loss_nm + self._usplit_w * recons_loss_gm
-        return recons_loss 
+        return recons_loss
 
     def training_step(self, batch, batch_idx, enable_logging=True):
         if self.current_epoch == 0 and batch_idx == 0:
-            self.log('val_psnr', 1.0, on_epoch=True)
+            self.log("val_psnr", 1.0, on_epoch=True)
 
         x, target = batch[:2]
         if self._mode_3D and not self._decoder_mode_3D:
-            target = target[:, :, self._decoder_mode_3D//2]
+            target = target[:, :, self._decoder_mode_3D // 2]
 
         x_normalized = self.normalize_input(x)
         if self.reconstruction_mode:
@@ -788,30 +826,28 @@ class LadderVAE(pl.LightningModule):
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
         # mask = torch.isnan(target.reshape(len(x), -1)).all(dim=1)
-        recons_loss_dict, imgs = self.get_reconstruction_loss(out,
-                                                              target_normalized,
-                                                              x_normalized,
-                                                              mask,
-                                                              return_predicted_img=True)
+        recons_loss_dict, imgs = self.get_reconstruction_loss(
+            out, target_normalized, x_normalized, mask, return_predicted_img=True
+        )
         if self.skip_nboundary_pixels_from_loss:
             pad = self.skip_nboundary_pixels_from_loss
             target_normalized = target_normalized[:, :, pad:-pad, pad:-pad]
 
-        recons_loss = recons_loss_dict['loss'] * self.reconstruction_weight
+        recons_loss = recons_loss_dict["loss"] * self.reconstruction_weight
         if torch.isnan(recons_loss).any():
             recons_loss = 0.0
 
         if self.loss_type == LossType.ElboMixedReconstruction:
-            recons_loss += self.mixed_rec_w * recons_loss_dict['mixed_loss']
+            recons_loss += self.mixed_rec_w * recons_loss_dict["mixed_loss"]
 
             if enable_logging:
-                self.log('mixed_reconstruction_loss', recons_loss_dict['mixed_loss'], on_epoch=True)
+                self.log("mixed_reconstruction_loss", recons_loss_dict["mixed_loss"], on_epoch=True)
 
         if self._exclusion_loss_weight:
-            exclusion_loss = recons_loss_dict['exclusion_loss']
+            exclusion_loss = recons_loss_dict["exclusion_loss"]
             recons_loss += self._exclusion_loss_weight * exclusion_loss
             if enable_logging:
-                self.log('exclusion_loss', exclusion_loss, on_epoch=True)
+                self.log("exclusion_loss", exclusion_loss, on_epoch=True)
 
         assert self.loss_type != LossType.ElboWithNbrConsistency
 
@@ -820,38 +856,40 @@ class LadderVAE(pl.LightningModule):
             net_loss = recons_loss
         else:
             if self.loss_type == LossType.DenoiSplitMuSplit:
-                msg = f"For the loss type {LossType.name(self.loss_type)}, kl_loss_formulation must be denoisplit_usplit"
-                assert self.kl_loss_formulation == 'denoisplit_usplit', msg
+                msg = (
+                    f"For the loss type {LossType.name(self.loss_type)}, kl_loss_formulation must be denoisplit_usplit"
+                )
+                assert self.kl_loss_formulation == "denoisplit_usplit", msg
                 assert self._denoisplit_w is not None and self._usplit_w is not None
 
                 kl_loss = self.get_kl_loss_usplit_denoisplit(td_data)
                 recons_loss = self.get_reconstruction_loss_usplit_denoisplit(out, target_normalized)
-                
-            elif self.kl_loss_formulation == 'usplit':
+
+            elif self.kl_loss_formulation == "usplit":
                 kl_loss = self.get_kl_weight() * self.get_kl_divergence_loss_usplit(td_data)
-            elif self.kl_loss_formulation in ['', 'denoisplit']:
+            elif self.kl_loss_formulation in ["", "denoisplit"]:
                 kl_loss = self.get_kl_weight() * self.get_kl_divergence_loss(td_data)
             net_loss = recons_loss + kl_loss
 
         if enable_logging:
-            for i, x in enumerate(td_data['debug_qvar_max']):
-                self.log(f'qvar_max:{i}', x.item(), on_epoch=True)
+            for i, x in enumerate(td_data["debug_qvar_max"]):
+                self.log(f"qvar_max:{i}", x.item(), on_epoch=True)
 
-            self.log('reconstruction_loss', recons_loss_dict['loss'], on_epoch=True)
-            self.log('kl_loss', kl_loss, on_epoch=True)
-            self.log('training_loss', net_loss, on_epoch=True)
-            self.log('lr', self.lr, on_epoch=True)
+            self.log("reconstruction_loss", recons_loss_dict["loss"], on_epoch=True)
+            self.log("kl_loss", kl_loss, on_epoch=True)
+            self.log("training_loss", net_loss, on_epoch=True)
+            self.log("lr", self.lr, on_epoch=True)
             if self._tethered_ch2_scalar is not None:
-                self.log('tethered_ch2_scalar', self._tethered_ch2_scalar, on_epoch=True)
-                self.log('tethered_ch1_scalar', self._tethered_ch1_scalar, on_epoch=True)
+                self.log("tethered_ch2_scalar", self._tethered_ch2_scalar, on_epoch=True)
+                self.log("tethered_ch1_scalar", self._tethered_ch1_scalar, on_epoch=True)
 
             # self.log('grad_norm_bottom_up', self.grad_norm_bottom_up, on_epoch=True)
             # self.log('grad_norm_top_down', self.grad_norm_top_down, on_epoch=True)
 
         output = {
-            'loss': net_loss,
-            'reconstruction_loss': recons_loss.detach() if isinstance(recons_loss, torch.Tensor) else recons_loss,
-            'kl_loss': kl_loss.detach(),
+            "loss": net_loss,
+            "reconstruction_loss": recons_loss.detach() if isinstance(recons_loss, torch.Tensor) else recons_loss,
+            "kl_loss": kl_loss.detach(),
         }
         # https://github.com/openai/vdvae/blob/main/train.py#L26
         if torch.isnan(net_loss).any():
@@ -862,13 +900,13 @@ class LadderVAE(pl.LightningModule):
     def normalize_input(self, x):
         if self.normalized_input:
             return x
-        return (x - self.data_mean['input'].mean()) / self.data_std['input'].mean()
+        return (x - self.data_mean["input"].mean()) / self.data_std["input"].mean()
 
     def normalize_target(self, target, batch=None):
-        return (target - self.data_mean['target']) / self.data_std['target']
+        return (target - self.data_mean["target"]) / self.data_std["target"]
 
     def unnormalize_target(self, target_normalized):
-        return target_normalized * self.data_std['target'] + self.data_mean['target']
+        return target_normalized * self.data_std["target"] + self.data_mean["target"]
 
     def power_of_2(self, x):
         assert isinstance(x, int)
@@ -896,7 +934,7 @@ class LadderVAE(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x, target = batch[:2]
         if self._mode_3D and not self._decoder_mode_3D:
-            target = target[:, :, self._decoder_mode_3D//2]
+            target = target[:, :, self._decoder_mode_3D // 2]
 
         self.set_params_to_same_device_as(x)
         x_normalized = self.normalize_input(x)
@@ -912,15 +950,14 @@ class LadderVAE(pl.LightningModule):
         if self.encoder_no_padding_mode and out.shape[-2:] != target_normalized.shape[-2:]:
             target_normalized = F.center_crop(target_normalized, out.shape[-2:])
 
-        recons_loss_dict, recons_img = self.get_reconstruction_loss(out,
-                                                                    target_normalized,
-                                                                    x_normalized,
-                                                                    mask,
-                                                                    return_predicted_img=True)
+        recons_loss_dict, recons_img = self.get_reconstruction_loss(
+            out, target_normalized, x_normalized, mask, return_predicted_img=True
+        )
         if self._dump_kth_frame_prediction is not None:
             if self.current_epoch == 0:
-                self._val_frame_creator.update_target(target.cpu().numpy().astype(np.int32),
-                                                      batch[-1].cpu().numpy().astype(np.int32))
+                self._val_frame_creator.update_target(
+                    target.cpu().numpy().astype(np.int32), batch[-1].cpu().numpy().astype(np.int32)
+                )
             if self.current_epoch == 0 or self.current_epoch % self._dump_epoch_interval == 0:
                 imgs = self.unnormalize_target(recons_img).cpu().numpy().astype(np.int32)
                 self._val_frame_creator.update(imgs, batch[-1].cpu().numpy().astype(np.int32))
@@ -943,17 +980,17 @@ class LadderVAE(pl.LightningModule):
                 psnr = RangeInvariantPsnr(target_normalized[:, i].clone(), recons_img[:, i].clone())
             channels_rinvpsnr.append(psnr)
             psnr = torch_nanmean(psnr).item()
-            self.log(f'val_psnr_l{i+1}', psnr, on_epoch=True)
+            self.log(f"val_psnr_l{i + 1}", psnr, on_epoch=True)
 
         if self.loss_type == LossType.DenoiSplitMuSplit:
             recons_loss = self.get_reconstruction_loss_usplit_denoisplit(out, target_normalized)
-        else: 
-            recons_loss = recons_loss_dict['loss']
-        
+        else:
+            recons_loss = recons_loss_dict["loss"]
+
         if torch.isnan(recons_loss).any():
             return
 
-        self.log('val_loss', recons_loss, on_epoch=True)
+        self.log("val_loss", recons_loss, on_epoch=True)
 
     def on_validation_epoch_end(self):
         psnr_arr = []
@@ -967,9 +1004,9 @@ class LadderVAE(pl.LightningModule):
 
         if psnr_arr is not None:
             psnr = np.mean(psnr_arr)
-            self.log('val_psnr', psnr, on_epoch=True)
+            self.log("val_psnr", psnr, on_epoch=True)
         else:
-            self.log('val_psnr', 0.0, on_epoch=True)
+            self.log("val_psnr", 0.0, on_epoch=True)
 
         if self._dump_kth_frame_prediction is not None:
             if self.current_epoch == 1:
@@ -980,7 +1017,7 @@ class LadderVAE(pl.LightningModule):
 
         if self.mixed_rec_w_step:
             self.mixed_rec_w = max(self.mixed_rec_w - self.mixed_rec_w_step, 0.0)
-            self.log('mixed_rec_w', self.mixed_rec_w, on_epoch=True)
+            self.log("mixed_rec_w", self.mixed_rec_w, on_epoch=True)
 
     def forward(self, x):
         img_size = x.size()[2:]
@@ -995,7 +1032,7 @@ class LadderVAE(pl.LightningModule):
             bu_values[i] = None
 
         if self._squish3d:
-            bu_values = [torch.mean(self._3D_squisher[k](bu_value), dim=2) for k,bu_value in enumerate(bu_values)]
+            bu_values = [torch.mean(self._3D_squisher[k](bu_value), dim=2) for k, bu_value in enumerate(bu_values)]
 
         mode_layers = range(self.n_layers) if self.non_stochastic_version else None
         # Top-down inference/generation
@@ -1017,7 +1054,6 @@ class LadderVAE(pl.LightningModule):
         return self._bottomup_pass(inp, self.first_bottom_up, self.lowres_first_bottom_ups, self.bottom_up_layers)
 
     def _bottomup_pass(self, inp, first_bottom_up, lowres_first_bottom_ups, bottom_up_layers):
-
         if self._multiscale_count > 1:
             # Bottom-up initial layer. The first channel is the original input, what we want to reconstruct.
             # later channels are simply to yield more context.
@@ -1031,7 +1067,7 @@ class LadderVAE(pl.LightningModule):
         for i in range(self.n_layers):
             lowres_x = None
             if self._multiscale_count > 1 and i + 1 < inp.shape[1]:
-                lowres_x = lowres_first_bottom_ups[i](inp[:, i + 1:i + 2])
+                lowres_x = lowres_first_bottom_ups[i](inp[:, i + 1 : i + 2])
 
             x, bu_value = bottom_up_layers[i](x, lowres_x=lowres_x)
             bu_values.append(bu_value)
@@ -1068,14 +1104,16 @@ class LadderVAE(pl.LightningModule):
 
         return samples
 
-    def topdown_pass(self,
-                     bu_values=None,
-                     n_img_prior=None,
-                     mode_layers=None,
-                     constant_layers=None,
-                     forced_latent=None,
-                     top_down_layers=None,
-                     final_top_down_layer=None):
+    def topdown_pass(
+        self,
+        bu_values=None,
+        n_img_prior=None,
+        mode_layers=None,
+        constant_layers=None,
+        forced_latent=None,
+        top_down_layers=None,
+        final_top_down_layer=None,
+    ):
         """
         Args:
             bu_values: Output of the bottom-up pass. It will have values from multiple layers of the ladder.
@@ -1104,12 +1142,10 @@ class LadderVAE(pl.LightningModule):
 
         # Check consistency of arguments
         if inference_mode != (n_img_prior is None):
-            msg = ("Number of images for top-down generation has to be given "
-                   "if and only if we're not doing inference")
+            msg = "Number of images for top-down generation has to be given if and only if we're not doing inference"
             raise RuntimeError(msg)
         if inference_mode and prior_experiment and (self.non_stochastic_version is False):
-            msg = ("Prior experiments (e.g. sampling from mode) are not"
-                   " compatible with inference mode")
+            msg = "Prior experiments (e.g. sampling from mode) are not compatible with inference mode"
             raise RuntimeError(msg)
 
         # Sampled latent variables at each layer
@@ -1117,7 +1153,7 @@ class LadderVAE(pl.LightningModule):
 
         # KL divergence of each layer
         kl = [None] * self.n_layers
-        # Kl divergence restricted, only for the LC enabled setup denoiSplit. 
+        # Kl divergence restricted, only for the LC enabled setup disentangle.
         kl_restricted = [None] * self.n_layers
 
         # mean from which z is sampled.
@@ -1140,7 +1176,6 @@ class LadderVAE(pl.LightningModule):
         # Top-down inference/generation loop
         out = out_pre_residual = None
         for i in reversed(range(self.n_layers)):
-
             # If available, get deterministic node from bottom-up inference
             try:
                 bu_value = bu_values[i]
@@ -1156,26 +1191,28 @@ class LadderVAE(pl.LightningModule):
             skip_input = out  # TODO or n? or both?
 
             # Full top-down layer, including sampling and deterministic part
-            out, out_pre_residual, aux = top_down_layers[i](out,
-                                                            skip_connection_input=skip_input,
-                                                            inference_mode=inference_mode,
-                                                            bu_value=bu_value,
-                                                            n_img_prior=n_img_prior,
-                                                            use_mode=use_mode,
-                                                            force_constant_output=constant_out,
-                                                            forced_latent=forced_latent[i],
-                                                            mode_pred=self.mode_pred,
-                                                            use_uncond_mode=use_uncond_mode,
-                                                            var_clip_max=self._var_clip_max)
-            z[i] = aux['z']  # sampled variable at this layer (batch, ch, h, w)
-            kl[i] = aux['kl_samplewise']  # (batch, )
-            kl_restricted[i] = aux['kl_samplewise_restricted']
-            kl_spatial[i] = aux['kl_spatial']  # (batch, h, w)
-            q_mu[i] = aux['q_mu']
-            q_lv[i] = aux['q_lv']
+            out, out_pre_residual, aux = top_down_layers[i](
+                out,
+                skip_connection_input=skip_input,
+                inference_mode=inference_mode,
+                bu_value=bu_value,
+                n_img_prior=n_img_prior,
+                use_mode=use_mode,
+                force_constant_output=constant_out,
+                forced_latent=forced_latent[i],
+                mode_pred=self.mode_pred,
+                use_uncond_mode=use_uncond_mode,
+                var_clip_max=self._var_clip_max,
+            )
+            z[i] = aux["z"]  # sampled variable at this layer (batch, ch, h, w)
+            kl[i] = aux["kl_samplewise"]  # (batch, )
+            kl_restricted[i] = aux["kl_samplewise_restricted"]
+            kl_spatial[i] = aux["kl_spatial"]  # (batch, h, w)
+            q_mu[i] = aux["q_mu"]
+            q_lv[i] = aux["q_lv"]
 
-            kl_channelwise[i] = aux['kl_channelwise']
-            debug_qvar_max[i] = aux['qvar_max']
+            kl_channelwise[i] = aux["kl_channelwise"]
+            debug_qvar_max[i] = aux["qvar_max"]
             # if self.mode_pred is False:
             #     logprob_p += aux['logprob_p'].mean()  # mean over batch
             # else:
@@ -1184,15 +1221,15 @@ class LadderVAE(pl.LightningModule):
         out = final_top_down_layer(out)
 
         data = {
-            'z': z,  # list of tensors with shape (batch, ch[i], h[i], w[i])
-            'kl': kl,  # list of tensors with shape (batch, )
-            'kl_restricted': kl_restricted, # list of tensors with shape (batch, )
-            'kl_spatial': kl_spatial,  # list of tensors w shape (batch, h[i], w[i])
-            'kl_channelwise': kl_channelwise,  # list of tensors with shape (batch, ch[i])
+            "z": z,  # list of tensors with shape (batch, ch[i], h[i], w[i])
+            "kl": kl,  # list of tensors with shape (batch, )
+            "kl_restricted": kl_restricted,  # list of tensors with shape (batch, )
+            "kl_spatial": kl_spatial,  # list of tensors w shape (batch, h[i], w[i])
+            "kl_channelwise": kl_channelwise,  # list of tensors with shape (batch, ch[i])
             # 'logprob_p': logprob_p,  # scalar, mean over batch
-            'q_mu': q_mu,
-            'q_lv': q_lv,
-            'debug_qvar_max': debug_qvar_max,
+            "q_mu": q_mu,
+            "q_lv": q_lv,
+            "debug_qvar_max": debug_qvar_max,
         }
         return out, data
 
@@ -1232,7 +1269,6 @@ class LadderVAE(pl.LightningModule):
         return padded_size
 
     def sample_prior(self, n_imgs, mode_layers=None, constant_layers=None):
-
         # Generate from prior
         out, _ = self.topdown_pass(n_img_prior=n_imgs, mode_layers=mode_layers, constant_layers=constant_layers)
         out = crop_img_tensor(out, self.img_shape)
@@ -1240,7 +1276,7 @@ class LadderVAE(pl.LightningModule):
         # Log likelihood and other info (per data point)
         _, likelihood_data = self.likelihood(out, None)
 
-        return likelihood_data['sample']
+        return likelihood_data["sample"]
 
     def get_latent_spatial_size(self, level_idx):
         """
@@ -1278,35 +1314,34 @@ class LadderVAE(pl.LightningModule):
         if target is not None:
             clamped_input = torch.clamp((target - target.min()) / (target.max() - target.min()), 0, 1)
             img = wandb.Image(clamped_input[None].cpu().numpy())
-            self.logger.experiment.log({f'target_for{label}': img})
+            self.logger.experiment.log({f"target_for{label}": img})
             # self.trainer.logger.experiment.add_image(f'target_for{label}', clamped_input[None], self.current_epoch)
         for i in range(3):
             # self.trainer.logger.experiment.add_image(f'{label}/sample_{i}', clamped_pred[i:i + 1], self.current_epoch)
-            img = wandb.Image(clamped_pred[i:i + 1].cpu().numpy())
-            self.logger.experiment.log({f'{label}/sample_{i}': img})
+            img = wandb.Image(clamped_pred[i : i + 1].cpu().numpy())
+            self.logger.experiment.log({f"{label}/sample_{i}": img})
 
         img = wandb.Image(clamped_mmse[None].cpu().numpy())
-        self.trainer.logger.experiment.log({f'{label}/mmse (100 samples)': img})
+        self.trainer.logger.experiment.log({f"{label}/mmse (100 samples)": img})
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import numpy as np
     import torch
 
     # from disentangle.configs.microscopy_multi_channel_lvae_config import get_config
     from disentangle.configs.elisa3D_config import get_config
+
     config = get_config()
-    config.model.mode_pred=True
-    data_mean = torch.Tensor([0]).reshape(1, 1,1, 1, 1)
+    config.model.mode_pred = True
+    data_mean = torch.Tensor([0]).reshape(1, 1, 1, 1, 1)
     # copy twice along 2nd dimensiion
-    data_std = torch.Tensor([1]).reshape(1, 1,1, 1, 1)
-    model = LadderVAE({
-        'input': data_mean,
-        'target': data_mean.repeat(1, 2, 1,1, 1)
-    }, {
-        'input': data_std,
-        'target': data_std.repeat(1, 2, 1,1, 1)
-    }, config)
+    data_std = torch.Tensor([1]).reshape(1, 1, 1, 1, 1)
+    model = LadderVAE(
+        {"input": data_mean, "target": data_mean.repeat(1, 2, 1, 1, 1)},
+        {"input": data_std, "target": data_std.repeat(1, 2, 1, 1, 1)},
+        config,
+    )
     mc = 1 if config.data.multiscale_lowres_count is None else config.data.multiscale_lowres_count
     # 3D example
     inp = torch.rand((2, mc, config.data.depth3D, config.data.image_size, config.data.image_size))
@@ -1315,7 +1350,7 @@ if __name__ == '__main__':
         torch.rand((16, mc, config.data.depth3D, config.data.image_size, config.data.image_size)),
         torch.rand((16, 2, config.data.depth3D, config.data.image_size, config.data.image_size)),
     )
-    model.mode_pred=False
+    model.mode_pred = False
     model.training_step(batch, 0)
     model.validation_step(batch, 0)
 
@@ -1323,7 +1358,7 @@ if __name__ == '__main__':
     ll_new = model._get_weighted_likelihood(ll)
     print(ll_new[:, 0].mean(), ll_new[:, 0].std())
     print(ll_new[:, 1].mean(), ll_new[:, 1].std())
-    print('mar')
+    print("mar")
 
     # # 2D example.
     # model.reset_for_different_output_size(2*config.data.image_size)
