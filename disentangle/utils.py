@@ -10,20 +10,20 @@ from sklearn.feature_extraction import image
 from tqdm import tqdm
 
 from IPython.display import clear_output
-from tifffile import imsave
+# from tifffile import imsave
 
 
 def normalize(img, mean, std):
     """Normalize an array of images with mean and standard deviation.
-        Parameters
-        ----------
-        img: array
-            An array of images.
-        mean: float
-            Mean of img array.
-        std: float
-            Standard deviation of img array.
-        """
+    Parameters
+    ----------
+    img: array
+        An array of images.
+    mean: float
+        Mean of img array.
+    std: float
+        Standard deviation of img array.
+    """
     return (img - mean) / std
 
 
@@ -49,9 +49,9 @@ def convertToFloat32(train_images, val_images):
         Training data.
     val_images: array
         Validation data.
-        """
-    x_train = train_images.astype('float32')
-    x_val = val_images.astype('float32')
+    """
+    x_train = train_images.astype("float32")
+    x_val = val_images.astype("float32")
     return x_train, x_val
 
 
@@ -64,8 +64,8 @@ def getMeanStdData(train_images, val_images):
     val_images: array
         Validation data.
     """
-    x_train_ = train_images.astype('float32')
-    x_val_ = val_images.astype('float32')
+    x_train_ = train_images.astype("float32")
+    x_val_ = val_images.astype("float32")
     data = np.concatenate((x_train_, x_val_), axis=0)
     mean, std = np.mean(data), np.std(data)
     return mean, std
@@ -93,9 +93,9 @@ def preprocess(train_patches, val_patches):
 
 def get_trainval_patches(x, split_fraction=0.85, augment=True, patch_size=128, num_patches=None):
     np.random.shuffle(x)
-    train_images = x[:int(0.85 * x.shape[0])]
-    val_images = x[int(0.85 * x.shape[0]):]
-    if (augment):
+    train_images = x[: int(0.85 * x.shape[0])]
+    val_images = x[int(0.85 * x.shape[0]) :]
+    if augment:
         train_images = augment_data(train_images)
     x_train_crops = extract_patches(train_images, patch_size, num_patches)
     x_val_crops = extract_patches(val_images, patch_size, num_patches)
@@ -116,14 +116,14 @@ def extract_patches(x, patch_size, num_patches):
     """
     img_width = x.shape[2]
     img_height = x.shape[1]
-    if (num_patches is None):
+    if num_patches is None:
         num_patches = int(float(img_width * img_height) / float(patch_size**2) * 2)
     patches = np.zeros(shape=(x.shape[0] * num_patches, patch_size, patch_size))
 
     for i in tqdm(range(x.shape[0])):
-        patches[i * num_patches:(i + 1) * num_patches] = image.extract_patches_2d(x[i], (patch_size, patch_size),
-                                                                                  num_patches,
-                                                                                  random_state=i)
+        patches[i * num_patches : (i + 1) * num_patches] = image.extract_patches_2d(
+            x[i], (patch_size, patch_size), num_patches, random_state=i
+        )
     return patches
 
 
@@ -153,9 +153,9 @@ def loadImages(path):
     data = []
     print(path)
     for f in files:
-        if '.png' in f:
+        if ".png" in f:
             im_b = np.array(io.imread(f))
-        if '.npy' in f:
+        if ".npy" in f:
             im_b = np.load(f)
         data.append(im_b)
 
@@ -209,7 +209,7 @@ def interpolate(
 ):
     results = []
     for i in range(steps):
-        alpha = (i / (steps - 1.0))
+        alpha = i / (steps - 1.0)
         z = z_end * alpha + z_start * (1.0 - alpha)
         recon = vae.decode(z)
         recon_cpu = recon.cpu()
@@ -231,12 +231,12 @@ def tiledMode(im, ps, overlap, display=True, vmin=0, vmax=255, initBW=200, minBW
     xmax = ps
     ymax = ps
     ovLeft = 0
-    while (xmin < im.shape[2]):
+    while xmin < im.shape[2]:
         ovTop = 0
-        while (ymin < im.shape[1]):
+        while ymin < im.shape[1]:
             inputPatch = im[:, ymin:ymax, xmin:xmax]
             a = findMode(inputPatch, initBW, minBW, reduce)
-            a = a[:a.shape[0], :a.shape[1]]
+            a = a[: a.shape[0], : a.shape[1]]
             means[ymin:ymax, xmin:xmax][ovTop:, ovLeft:] = a[ovTop:, ovLeft:]
 
             ymin = ymin - overlap + ps
@@ -266,7 +266,7 @@ def findClosest(samples, q):
     q: image(array)
         Image to which the closest image needs to be found.
     """
-    dif = np.mean(np.mean((samples - q)**2, -1), -1)
+    dif = np.mean(np.mean((samples - q) ** 2, -1), -1)
     return samples[np.argmin(dif)]
 
 
@@ -288,7 +288,6 @@ def findMode(samples, initBW=200, minBW=100, reduce=0.9):
     seed = np.mean(imagesC, axis=0)[np.newaxis, ...]
     bw = initBW
     for i in range(15):
-
         clustering = MeanShift(bandwidth=bw, seeds=seed, cluster_all=True).fit(imagesC)
         centers = clustering.cluster_centers_.copy()
         seed = centers
@@ -303,22 +302,22 @@ def findMode(samples, initBW=200, minBW=100, reduce=0.9):
 
 def plotProbabilityDistribution(signalBinIndex, histogramNoiseModel, gaussianMixtureNoiseModel, device):
     """Plots probability distribution P(x|s) for a certain ground truth signal.
-       Predictions from both Histogram and GMM-based Noise models are displayed for comparison.
-        Parameters
-        ----------
-        signalBinIndex: int
-            index of signal bin. Values go from 0 to number of bins (`n_bin`).
-        histogramNoiseModel: Histogram based noise model
-        gaussianMixtureNoiseModel: GaussianMixtureNoiseModel
-            Object containing trained parameters.
-        device: GPU device
-        """
+    Predictions from both Histogram and GMM-based Noise models are displayed for comparison.
+     Parameters
+     ----------
+     signalBinIndex: int
+         index of signal bin. Values go from 0 to number of bins (`n_bin`).
+     histogramNoiseModel: Histogram based noise model
+     gaussianMixtureNoiseModel: GaussianMixtureNoiseModel
+         Object containing trained parameters.
+     device: GPU device
+    """
     max_signal = histogramNoiseModel.maxv.item()
     min_signal = histogramNoiseModel.minv.item()
     n_bin = int(histogramNoiseModel.bins.item())
 
     histBinSize = (max_signal - min_signal) / n_bin
-    querySignal_numpy = (signalBinIndex / float(n_bin) * (max_signal - min_signal) + min_signal)
+    querySignal_numpy = signalBinIndex / float(n_bin) * (max_signal - min_signal) + min_signal
     querySignal_numpy += histBinSize / 2
     querySignal_torch = torch.from_numpy(np.array(querySignal_numpy)).float().to(device)
 
@@ -331,38 +330,42 @@ def plotProbabilityDistribution(signalBinIndex, histogramNoiseModel, gaussianMix
     plt.figure(figsize=(12, 5))
 
     plt.subplot(1, 2, 1)
-    plt.xlabel('Observation Bin')
-    plt.ylabel('Signal Bin')
+    plt.xlabel("Observation Bin")
+    plt.ylabel("Signal Bin")
     histogram = histogramNoiseModel.fullHist.cpu().numpy()
-    plt.imshow(histogram**0.25, cmap='gray')
-    plt.axhline(y=signalBinIndex + 0.5, linewidth=5, color='blue', alpha=0.5)
+    plt.imshow(histogram**0.25, cmap="gray")
+    plt.axhline(y=signalBinIndex + 0.5, linewidth=5, color="blue", alpha=0.5)
 
     plt.subplot(1, 2, 2)
     histobs = histogramNoiseModel.likelihood(queryObservations, querySignal_torch).cpu().numpy()
     # histobs_repeated = np.repeat(histobs, 2)
     # queryObservations_repeated = np.repeat(queryObservations_numpy, 2)
-    plt.plot(queryObservations_numpy,
-             histobs,
-             label='Hist : ' + ' signal = ' + str(np.round(querySignal_numpy, 2)),
-             color='blue',
-             marker='.',
-             linewidth=2)
+    plt.plot(
+        queryObservations_numpy,
+        histobs,
+        label="Hist : " + " signal = " + str(np.round(querySignal_numpy, 2)),
+        color="blue",
+        marker=".",
+        linewidth=2,
+    )
 
-    plt.plot(queryObservations_numpy,
-             pNumpy,
-             label='GMM : ' + ' signal = ' + str(np.round(querySignal_numpy, 2)),
-             marker='.',
-             color='red',
-             linewidth=2)
-    plt.xlabel('Observations (x) for signal s = ' + str(querySignal_numpy))
-    plt.ylabel('Probability Density')
+    plt.plot(
+        queryObservations_numpy,
+        pNumpy,
+        label="GMM : " + " signal = " + str(np.round(querySignal_numpy, 2)),
+        marker=".",
+        color="red",
+        linewidth=2,
+    )
+    plt.xlabel("Observations (x) for signal s = " + str(querySignal_numpy))
+    plt.ylabel("Probability Density")
     plt.title("Probability Distribution P(x|s) at signal =" + str(querySignal_numpy))
     plt.legend()
-    return {'gmm': {'x': queryObservations_numpy, 'p': pNumpy}, 'hist': {'x': queryObservations_numpy, 'p': histobs}}
+    return {"gmm": {"x": queryObservations_numpy, "p": pNumpy}, "hist": {"x": queryObservations_numpy, "p": histobs}}
 
 
 def predict_mmse(vae, img, samples, device, returnSamples=False, tq=True):
-    '''
+    """
     Predicts MMSE estimate.
     Parameters
     ----------
@@ -378,7 +381,7 @@ def predict_mmse(vae, img, samples, device, returnSamples=False, tq=True):
         Should progress bar be shown.
     tta:
         Should test time augmentation be enabled.
-    '''
+    """
     img_height, img_width = img.shape[0], img.shape[1]
     imgT = torch.Tensor(img.copy())
     image_sample = imgT.view(1, 1, img_height, img_width).to(device)
@@ -438,13 +441,13 @@ def tta_backward(x_aug):
         np.fliplr(x_aug[4]),
         np.rot90(np.fliplr(x_aug[5]), -1),
         np.rot90(np.fliplr(x_aug[6]), -2),
-        np.rot90(np.fliplr(x_aug[7]), -3)
+        np.rot90(np.fliplr(x_aug[7]), -3),
     ]
     return np.mean(x_deaug, 0)
 
 
 def predict_and_save(img, vae, num_samples, device, fraction_samples_to_export, export_mmse, export_results_path, tta):
-    '''
+    """
     Predict denoised images and save results to disk.
     Parameters
     ----------
@@ -463,7 +466,7 @@ def predict_and_save(img, vae, num_samples, device, fraction_samples_to_export, 
     tta: bool
         Use test-time augmentation if set to True.
 
-    '''
+    """
     mmse_results = []
     if isinstance(img, (list)):
         num_images = len(img)
@@ -475,7 +478,7 @@ def predict_and_save(img, vae, num_samples, device, fraction_samples_to_export, 
             aug_imgs = tta_forward(img[i])
             mmse_aug = []
             for j in range(len(aug_imgs)):
-                if (j == 0):
+                if j == 0:
                     mmse, samples = predict_mmse(vae, aug_imgs[j], num_samples, device=device, returnSamples=True)
                 else:
                     mmse = predict_mmse(vae, aug_imgs[j], num_samples, device=device, returnSamples=False)
@@ -490,30 +493,31 @@ def predict_and_save(img, vae, num_samples, device, fraction_samples_to_export, 
             subdir = export_results_path + "/" + str(i).zfill(3) + "/"
             if not os.path.exists(subdir):
                 os.makedirs(subdir)
-            imsave(subdir + "samples_for_image_" + str(i).zfill(3) + ".tif",
-                   np.array(samples[:int(num_samples * fraction_samples_to_export)]).astype("float32"))
-    if (export_mmse):
+            imsave(
+                subdir + "samples_for_image_" + str(i).zfill(3) + ".tif",
+                np.array(samples[: int(num_samples * fraction_samples_to_export)]).astype("float32"),
+            )
+    if export_mmse:
         imsave(export_results_path + "/mmse_results.tif", np.array(mmse_results).astype("float32"))
     return mmse_results
 
 
 def plot_qualitative_results(noisy_input, vae, device):
-    '''
+    """
     Plot qualitative results on patches.
     Parameters
     ----------
     noisy_input: array or list
         A stack of tif images.
-    '''
+    """
 
     for j in range(5):
-
         # we select a random crop
         size_uncropped = int(0.14 * (np.minimum(noisy_input[0].shape[0], noisy_input[0].shape[1])))
         size = size_uncropped - (size_uncropped % (2**vae.n_depth))
         minx = np.random.randint(0, noisy_input[0].shape[0] - size)
         miny = np.random.randint(0, noisy_input[0].shape[1] - size)
-        img = noisy_input[0][minx:minx + size, miny:miny + size]
+        img = noisy_input[0][minx : minx + size, miny : miny + size]
 
         # generate samples and MMSE estimate
         imgMMSE, samps = predict_mmse(vae, img, samples=100, device=device, returnSamples=True)
@@ -524,22 +528,22 @@ def plot_qualitative_results(noisy_input, vae, device):
         ax = plt.subplot(1, 6, 1)
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
-        plt.imshow(img, cmap='magma')
-        plt.title('input')
+        plt.imshow(img, cmap="magma")
+        plt.title("input")
 
         # We display the average of 100 predicted samples
         ax = plt.subplot(1, 6, 6)
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
-        plt.imshow(imgMMSE, cmap='magma')
-        plt.title('MMSE (100 samples)')
+        plt.imshow(imgMMSE, cmap="magma")
+        plt.title("MMSE (100 samples)")
 
         # We also display the first 4 samples
         for i in range(4):
             ax = plt.subplot(1, 6, i + 2)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
-            plt.imshow(samps[i], cmap='magma')
-            plt.title('prediction ' + str(i + 1))
+            plt.imshow(samps[i], cmap="magma")
+            plt.title("prediction " + str(i + 1))
 
         plt.show()
